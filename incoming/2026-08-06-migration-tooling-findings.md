@@ -1,5 +1,12 @@
 # Tooling findings from the 2026-08-06 unified-core migration
 
+## STATUS UPDATE after the 2026.08.06-unified.3 upgrade (same day)
+
+- FIXED in v3: item 2 (install now preserves assets/templates/calibration, excluding only TOP-LEVEL calibration/ and incoming/) and item 3 (unit suite validates a clean package copy; 32 tests pass with plain python3).
+- STILL OPEN in v3: item 1 (zero is_symlink calls in adc.py; the shared-core-behind-symlink hazard stands, our layout avoids it), item 4 partially (with --allow-exec blocked gates exit 2, but a plain dry-run still exits 0 while printing BLOCKED), item 5 (no process-group kill on gate timeout), item 6 (MANAGED_SKILL_PREFIXES still names only the two canonical paths). Item 7 cosmetics not re-verified in v3.
+- NEW in v3, minor: (a) the unit suite fails when run from a DEPLOYED shared core rather than the pristine package: test_operational_guidance... reads ../MIGRATION.md from the parent directory (distribution layout assumption), and test_source_calibration_is_never_copied_even_with_override does incoming.mkdir() which raises FileExistsError once flowback has ever staged a proposal, even though flowback staging to <core>/incoming/ is the tool's own design. Suggested fix: mkdir(exist_ok=True) in the test's temp-copy setup and resolve MIGRATION.md relative to the package root only when present.
+- NEW in v3, by design but worth documenting: `validate --skill <installed repo copy>` now always fails ("Universal core contains repo-owned top-level calibration") because installed copies legitimately carry calibration/. Installed-copy integrity is the .adc-managed.json checksum set; validate is for the clean source only. A --installed mode or a doc note would prevent confusion.
+
 Source: installing the shared core user-level (symlinked hosts) and bootstrapping Chronicle Engine. Hand-written report, same inbox as flowback proposals. Each item names the defect, the evidence, and a suggested fix. None block the current installs.
 
 ## 1. adc.py is symlink-blind on every repo-side write path (HIGH for shared-core layouts)
