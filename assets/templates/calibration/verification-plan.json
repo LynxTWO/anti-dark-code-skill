@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "generated_by": "adc.py plan",
+  "generated_at_utc": null,
+  "catalog_version": null,
+  "repo_profile_sha256": null,
+  "summary": {
+    "selected": 0,
+    "candidate": 0,
+    "deferred": 0,
+    "not_applicable": 0
+  },
+  "capabilities": [],
+  "notes": ["Run adc.py plan --repo . --write to replace this template."]
+}

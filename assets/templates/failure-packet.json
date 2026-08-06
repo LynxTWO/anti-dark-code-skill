@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "failure_id": null,
+  "gate_id": null,
+  "level": null,
+  "exit_code": null,
+  "command": [],
+  "cwd": null,
+  "duration_seconds": null,
+  "first_bad_event": null,
+  "violated_invariant": null,
+  "expected": null,
+  "actual": null,
+  "seed": null,
+  "source_identity": null,
+  "changed_files": [],
+  "replay_command": null,
+  "bounded_output": [],
+  "full_log_path": null,
+  "redaction_note": "Do not place secrets or raw personal data in this packet."
+}

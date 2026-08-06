@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "generated_by": "adc.py probe",
+  "generated_at_utc": null,
+  "repo_root": ".",
+  "scan": {
+    "complete": false,
+    "files_seen": 0,
+    "files_scanned_for_indicators": 0,
+    "scan_limit": 0,
+    "ignored_directories": []
+  },
+  "repo_types": [],
+  "languages": [],
+  "manifests": [],
+  "ci_files": [],
+  "steering_files": [],
+  "counts": {},
+  "signals": {},
+  "exact_commands": [],
+  "notes": ["Run adc.py probe --repo . --write to replace this template."]
+}

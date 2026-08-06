@@ -1,0 +1,7 @@
+interface:
+  display_name: "Anti-Dark Code"
+  short_description: "Map code truth and build deterministic verification"
+  default_prompt: "Use $anti-dark-code to profile this repo, read or create calibration, select the smallest defensible verification plan, and run the next safe evidence-backed pass."
+
+policy:
+  allow_implicit_invocation: true

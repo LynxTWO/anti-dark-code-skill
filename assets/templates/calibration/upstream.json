@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_skill": "anti-dark-code",
+  "installed_version": null,
+  "installed_core_sha256": null,
+  "promotion_mode": "proposal-only",
+  "parent_path": null,
+  "notes": [
+    "Pass the parent path explicitly or use ADC_PARENT_SKILL when staging a proposal.",
+    "Do not commit personal absolute paths."
+  ]
+}

@@ -1,0 +1,819 @@
+{
+  "schema_version": 1,
+  "catalog_version": "2026.08.06-unified.2",
+  "description": "Machine-readable catalog for the 20 Anti-Dark-Code verification capabilities.",
+  "statuses": [
+    "selected",
+    "candidate",
+    "deferred",
+    "not_applicable"
+  ],
+  "repo_types": [
+    "service-web",
+    "frontend",
+    "monorepo",
+    "library-sdk",
+    "game-simulation",
+    "mobile-native",
+    "infra-as-code",
+    "ai-data",
+    "cli-desktop",
+    "small-new",
+    "mixed"
+  ],
+  "confidence_levels": {
+    "0": "Every meaningful edit: static, schema, architecture, and cheap changed-slice checks.",
+    "1": "Completed task or slice: affected unit, contract, integration, and replay checks.",
+    "2": "Before merge or elevated risk: property, fuzz, monkey, mutation, performance, and focused faults.",
+    "3": "Scheduled, release, or high-risk: full suite, soak, full mutation, migration, platform, and broad fault matrices."
+  },
+  "capabilities": [
+    {
+      "id": "V01",
+      "slug": "mutation-testing",
+      "name": "Mutation testing",
+      "category": "test-strength",
+      "default_level": 2,
+      "cost": "high",
+      "purpose": "Measure whether tests detect plausible code defects rather than merely execute lines.",
+      "local_work": [
+        "Mutate changed or high-risk modules",
+        "Run affected tests",
+        "Report killed and surviving mutants"
+      ],
+      "agent_work": [
+        "Choose mutation scope",
+        "Review equivalent mutants",
+        "Strengthen behavior-focused tests"
+      ],
+      "adaptations": {
+        "service-web": "Mutate authorization, transaction, idempotency, and validation rules in changed high-risk modules.",
+        "frontend": "Mutate state reducers, selectors, route guards, storage adapters, and error handling, not generated UI code.",
+        "monorepo": "Run only on affected packages and high-risk shared libraries.",
+        "library-sdk": "Prioritize public API branches, compatibility paths, and serialization.",
+        "game-simulation": "Prioritize economy, combat, save, replay, content validation, and rule authority.",
+        "mobile-native": "Prioritize permission, lifecycle, bridge, secure storage, and sync rules.",
+        "infra-as-code": "Use on policy and helper code, not by mutating live plans or applying infrastructure.",
+        "ai-data": "Prioritize routing, filtering, data contracts, and deterministic pipeline logic.",
+        "cli-desktop": "Prioritize parsing, exit codes, migrations, file writes, and process control.",
+        "small-new": "Defer until meaningful tests protect real behavior.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "has_tests"
+        ],
+        "risks_any": [
+          "security_sensitive",
+          "financial_or_entitlement",
+          "persistence",
+          "deterministic_or_replay"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V02",
+      "slug": "model-based-stateful-testing",
+      "name": "Model-based stateful testing",
+      "category": "exploration",
+      "default_level": 2,
+      "cost": "medium",
+      "purpose": "Generate legal action sequences, check invariants, and shrink sequence failures.",
+      "local_work": [
+        "Run random, stateful, and adversarial action generators",
+        "Capture seeds and action traces",
+        "Shrink failures"
+      ],
+      "agent_work": [
+        "Define state model, preconditions, actions, and invariants",
+        "Choose adversarial boundaries"
+      ],
+      "adaptations": {
+        "service-web": "Model transaction, account, workflow, permission, and event-consumer states.",
+        "frontend": "Combine random UI clicking with legal navigation models and adversarial boundary actions.",
+        "monorepo": "Model workflows within one runtime unit at a time.",
+        "library-sdk": "Model protocol or builder states when the API is stateful.",
+        "game-simulation": "Keep dumb, stateful, and adversarial monkeys; capture seed, world state, and actions.",
+        "mobile-native": "Model permissions, foreground/background, offline/online, deep links, and navigation.",
+        "infra-as-code": "Model plan and policy workflows only in disposable or read-only environments.",
+        "ai-data": "Model pipeline states, retries, partitions, routing, and tool-call sequences.",
+        "cli-desktop": "Model command sequences, dialogs, project state, file locks, and cancellation.",
+        "small-new": "Use only if a real workflow already exists.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "stateful",
+          "workflow_or_ui",
+          "emergent_or_simulation"
+        ],
+        "risks_any": [],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V03",
+      "slug": "executable-invariants",
+      "name": "Executable invariants",
+      "category": "correctness",
+      "default_level": 1,
+      "cost": "low",
+      "purpose": "Detect impossible states at the mutation or trust boundary that creates them.",
+      "local_work": [
+        "Evaluate assertions and invariant checks",
+        "Capture first violation with state hashes"
+      ],
+      "agent_work": [
+        "Identify load-bearing truths",
+        "Choose fail, quarantine, or recovery policy"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V04",
+      "slug": "differential-testing",
+      "name": "Differential testing",
+      "category": "oracle",
+      "default_level": 2,
+      "cost": "medium",
+      "purpose": "Compare implementations that should agree and reveal drift.",
+      "local_work": [
+        "Run both implementations on identical fixtures",
+        "Normalize irrelevant differences",
+        "Diff semantic outputs"
+      ],
+      "agent_work": [
+        "Define equivalence",
+        "Keep a simple reference oracle",
+        "Explain intentional differences"
+      ],
+      "adaptations": {
+        "service-web": "Compare old/new endpoints, handlers, serializers, or database adapters.",
+        "frontend": "Compare view projections to canonical domain rules and old/new render models.",
+        "monorepo": "Compare shared library versions and parallel package implementations.",
+        "library-sdk": "Keep a simple reference implementation and compare compatibility behavior.",
+        "game-simulation": "Compare engine versus projection, old versus optimized sim, and native versus web persistence.",
+        "mobile-native": "Compare iOS/Android or native/web adapters on shared fixtures.",
+        "infra-as-code": "Compare normalized plans and policy results, never routine applies.",
+        "ai-data": "Compare pipeline, route, model, prompt, or feature versions on fixed datasets.",
+        "cli-desktop": "Compare old/new formats, platform adapters, and migration implementations.",
+        "small-new": "Candidate only when a second implementation or reference exists.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "multiple_implementations",
+          "migration_or_rewrite"
+        ],
+        "risks_any": [],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V05",
+      "slug": "metamorphic-testing",
+      "name": "Metamorphic testing",
+      "category": "property",
+      "default_level": 2,
+      "cost": "medium",
+      "purpose": "Verify required relationships between transformed inputs and outputs when exact oracles are difficult.",
+      "local_work": [
+        "Generate valid input transformations",
+        "Evaluate output relations",
+        "Shrink counterexamples"
+      ],
+      "agent_work": [
+        "Define valid transformations",
+        "State the expected relation and limits"
+      ],
+      "adaptations": {
+        "service-web": "Test retry, idempotency, ordering, pagination, and batch-size relations.",
+        "frontend": "Test equivalent navigation paths, storage round trips, reorder-independent actions, and locale changes.",
+        "monorepo": "Test transformations at package boundaries and generated artifacts.",
+        "library-sdk": "Use algebraic, round-trip, ordering, and scaling properties.",
+        "game-simulation": "Test save-load, chunk splitting, conservation, monotonic resistance, and independent event ordering.",
+        "mobile-native": "Test lifecycle chunking, sync batching, orientation, locale, and offline round trips.",
+        "infra-as-code": "Test module composition, variable normalization, and plan invariance under irrelevant ordering.",
+        "ai-data": "Test row order, batch size, partitioning, scaling, paraphrase, and stable-filter relations.",
+        "cli-desktop": "Test file round trips, equivalent flags, ordering, and chunked processing.",
+        "small-new": "Add when exact expected output becomes costly or brittle.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "generated_or_serialized_output",
+          "emergent_or_simulation",
+          "batch_or_chunk_processing",
+          "search_or_numerical"
+        ],
+        "risks_any": [
+          "deterministic_or_replay"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V06",
+      "slug": "deterministic-execution-mode",
+      "name": "Deterministic execution mode",
+      "category": "reproducibility",
+      "default_level": 1,
+      "cost": "medium",
+      "purpose": "Make failures replayable by controlling time, randomness, ids, locale, config, and starting state.",
+      "local_work": [
+        "Inject clock and seeded RNG",
+        "Capture replay identity",
+        "Fix locale and timezone where appropriate"
+      ],
+      "agent_work": [
+        "Define intentional nondeterminism",
+        "Choose replay identity fields"
+      ],
+      "adaptations": {
+        "service-web": "Control clock, ids, retry schedules, locale, and test database state.",
+        "frontend": "Control clock, randomness, storage, feature flags, network fixtures, and animation time.",
+        "monorepo": "Capture toolchain, package graph, config, and per-runtime seeds.",
+        "library-sdk": "Control locale, floating settings, random generators, and platform fixtures.",
+        "game-simulation": "Centralize seeded RNG, clock, ids, content version, starting save, and action schedule.",
+        "mobile-native": "Control lifecycle clock, device fixtures, locale, permissions, and network state.",
+        "infra-as-code": "Pin providers and normalize plans; remote state remains an external boundary.",
+        "ai-data": "Pin model, prompt, tool schema, dataset, route, seed, and environment versions.",
+        "cli-desktop": "Control temp paths, home directory, locale, clock, child-process fixtures, and OS inputs.",
+        "small-new": "Introduce injected time and randomness before hidden globals spread.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "randomness_or_time",
+          "concurrency_or_async",
+          "emergent_or_simulation"
+        ],
+        "risks_any": [
+          "deterministic_or_replay"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V07",
+      "slug": "record-replay-corpus",
+      "name": "Record and replay regression corpus",
+      "category": "reproducibility",
+      "default_level": 1,
+      "cost": "medium",
+      "purpose": "Turn exploratory, intermittent, and production failures into permanent replayable regressions.",
+      "local_work": [
+        "Save seed, initial-state hash, action trace, and version",
+        "Minimize reproducer",
+        "Replay corpus in gates"
+      ],
+      "agent_work": [
+        "Choose permanent regressions",
+        "Redact sensitive state",
+        "Classify corpus ownership"
+      ],
+      "adaptations": {
+        "service-web": "Retain request/event sequences and database fixture hashes.",
+        "frontend": "Retain UI actions, route, store state, network fixtures, and viewport.",
+        "monorepo": "Store corpus ownership per runtime unit and package.",
+        "library-sdk": "Retain protocol traces, parser inputs, and compatibility fixtures.",
+        "game-simulation": "Retain world seed, starting save, monkey seed, action trace, content version, and first bad event.",
+        "mobile-native": "Retain navigation, lifecycle, permissions, network, and device fixture traces.",
+        "infra-as-code": "Retain normalized plan fixtures and policy inputs, not secrets or mutable live state.",
+        "ai-data": "Retain data snapshot, model/prompt/tool versions, route, and failing example.",
+        "cli-desktop": "Retain command sequence, environment, fixture tree, and exit results.",
+        "small-new": "Create the corpus as soon as the first intermittent or exploratory failure appears.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "stateful",
+          "workflow_or_ui",
+          "emergent_or_simulation",
+          "parser_or_protocol"
+        ],
+        "risks_any": [
+          "deterministic_or_replay"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V08",
+      "slug": "schema-contract-validation",
+      "name": "Schema and contract validation",
+      "category": "boundary",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Reject malformed data at external, persisted, generated, or process boundaries.",
+      "local_work": [
+        "Validate payloads, configs, events, saves, messages, and environment",
+        "Report exact field paths"
+      ],
+      "agent_work": [
+        "Define ownership, compatibility, defaults, migrations, and failure policy"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V09",
+      "slug": "static-architecture-enforcement",
+      "name": "Static architecture enforcement",
+      "category": "architecture",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Prevent forbidden imports, cycles, layer violations, and bypasses of canonical boundaries.",
+      "local_work": [
+        "Build dependency graph",
+        "Apply import or AST rules",
+        "Track named exceptions"
+      ],
+      "agent_work": [
+        "Define intended layers",
+        "Review whether exceptions are debt or wrong rules"
+      ],
+      "adaptations": {
+        "service-web": "Enforce transport, domain, persistence, jobs, and privileged boundary direction.",
+        "frontend": "Block UI from private persistence/domain internals and direct forbidden globals.",
+        "monorepo": "Enforce package public APIs, ownership, cycles, and allowed dependency direction.",
+        "library-sdk": "Enforce public API versus internal implementation and code generation boundaries.",
+        "game-simulation": "Keep engine authoritative, presentation downstream, diagnostics observational, and persistence isolated.",
+        "mobile-native": "Enforce shared/native bridge, secure storage, permissions, and platform boundary direction.",
+        "infra-as-code": "Enforce module, environment, state, IAM, and runner boundaries.",
+        "ai-data": "Enforce pipeline, data, model, routing, eval, and tool execution boundaries.",
+        "cli-desktop": "Enforce UI, domain, file, IPC, process, and platform adapter boundaries.",
+        "small-new": "Install a small forbidden-import map before layering debt forms.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V10",
+      "slug": "deterministic-quality-gate",
+      "name": "Deterministic quality gate",
+      "category": "execution",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Run exact reviewed commands with real exit codes and compact results.",
+      "local_work": [
+        "Run command arrays without shell interpolation",
+        "Capture logs and exit codes",
+        "Emit compact verdict"
+      ],
+      "agent_work": [
+        "Choose gate set",
+        "Interpret failures that require judgment"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V11",
+      "slug": "change-impact-analysis",
+      "name": "Change-impact analysis",
+      "category": "efficiency",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Run the smallest defensible check set for the changed slice without missing semantic dependencies.",
+      "local_work": [
+        "Map changed files through imports, ownership, coverage, schemas, events, and globs"
+      ],
+      "agent_work": [
+        "Add semantic edges such as shared config, content, deploy paths, and control planes"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V12",
+      "slug": "hermetic-builds-tests",
+      "name": "Hermetic builds and tests",
+      "category": "reproducibility",
+      "default_level": 3,
+      "cost": "high",
+      "purpose": "Remove undeclared machine, cache, locale, timezone, network, and toolchain dependencies.",
+      "local_work": [
+        "Pin toolchains and dependencies",
+        "Use clean temp state",
+        "Fix locale and timezone",
+        "Block unintended network"
+      ],
+      "agent_work": [
+        "Identify intentional external dependencies",
+        "Design local substitutes"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "has_ci",
+          "cross_platform",
+          "generated_or_serialized_output"
+        ],
+        "risks_any": [
+          "release_sensitive"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V13",
+      "slug": "golden-semantic-snapshots",
+      "name": "Golden and semantic snapshot testing",
+      "category": "oracle",
+      "default_level": 1,
+      "cost": "medium",
+      "purpose": "Detect semantic drift in complex serialized, generated, migrated, compiled, or rendered artifacts.",
+      "local_work": [
+        "Normalize artifacts",
+        "Diff against reviewed baselines",
+        "Reject unreviewed baseline drift"
+      ],
+      "agent_work": [
+        "Choose semantic fields",
+        "Review diffs",
+        "Approve intentional baseline changes"
+      ],
+      "adaptations": {
+        "service-web": "Snapshot normalized API schemas, events, migrations, and selected responses.",
+        "frontend": "Snapshot semantic view models, accessibility trees, DOM structure, and selective screenshots.",
+        "monorepo": "Store baselines with owning package and regeneration command.",
+        "library-sdk": "Snapshot public API, generated clients, serialization, and compatibility artifacts.",
+        "game-simulation": "Snapshot receipts, saves, maps, content compile output, and fixed-seed worlds.",
+        "mobile-native": "Snapshot semantic views, navigation state, native bridge payloads, and migrations.",
+        "infra-as-code": "Snapshot normalized plans and policy output with secrets removed.",
+        "ai-data": "Snapshot eval sets, reports, lineage, normalized model outputs, and pipeline manifests.",
+        "cli-desktop": "Snapshot normalized stdout, files, migrations, and UI trees.",
+        "small-new": "Keep snapshots small and semantic from the start.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "generated_or_serialized_output",
+          "migration_or_rewrite",
+          "rendered_output",
+          "emergent_or_simulation"
+        ],
+        "risks_any": [
+          "deterministic_or_replay"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V14",
+      "slug": "performance-leak-budgets",
+      "name": "Performance and leak budgets",
+      "category": "nonfunctional",
+      "default_level": 2,
+      "cost": "medium",
+      "purpose": "Catch latency, throughput, memory, render, listener, queue, and resource regressions.",
+      "local_work": [
+        "Run fixed workloads",
+        "Compare to baseline and budget",
+        "Track resource growth"
+      ],
+      "agent_work": [
+        "Choose user-relevant budgets",
+        "Separate noise from regression"
+      ],
+      "adaptations": {
+        "service-web": "Budget p95 latency, throughput, memory, queue depth, connections, and retry load.",
+        "frontend": "Budget render count, startup, bundle size, detached nodes, listeners, and long-session memory.",
+        "monorepo": "Assign budgets per runtime or package rather than one misleading repo number.",
+        "library-sdk": "Budget hot operations, allocation, binary size, and generated artifact size.",
+        "game-simulation": "Budget frame/tick time, queue depth, memory, listener count, render count, and soak behavior.",
+        "mobile-native": "Budget startup, frames, memory, battery, bridge calls, and background work.",
+        "infra-as-code": "Budget plan time, policy time, graph size, and artifact growth.",
+        "ai-data": "Budget cost, latency, throughput, memory, token use, and drift.",
+        "cli-desktop": "Budget startup, memory, handles, file scan time, IPC, and long sessions.",
+        "small-new": "Record one or two user-relevant baselines before optimization begins.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "performance_sensitive",
+          "long_running_or_background",
+          "workflow_or_ui",
+          "emergent_or_simulation"
+        ],
+        "risks_any": [],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V15",
+      "slug": "fault-injection",
+      "name": "Fault injection",
+      "category": "resilience",
+      "default_level": 2,
+      "cost": "medium",
+      "purpose": "Exercise environmental failure such as timeouts, partial writes, duplicate events, worker death, and resource exhaustion.",
+      "local_work": [
+        "Inject reviewed faults in isolated environments",
+        "Check recovery invariants",
+        "Capture replayable fault scenario"
+      ],
+      "agent_work": [
+        "Choose realistic faults",
+        "Define acceptable recovery and isolation"
+      ],
+      "adaptations": {
+        "service-web": "Inject timeout, duplicate delivery, partial write, dependency loss, retry storm, and queue failure.",
+        "frontend": "Inject offline, slow network, stale cache, storage quota, tab suspension, and malformed response.",
+        "monorepo": "Inject within the owning runtime, not indiscriminately across all packages.",
+        "library-sdk": "Inject malformed input, unavailable resource, cancellation, and platform adapter failure.",
+        "game-simulation": "Inject interrupted save, missing asset, worker death, storage exhaustion, and suspended tab.",
+        "mobile-native": "Inject permission denial, background kill, low storage, network switch, and interrupted sync.",
+        "infra-as-code": "Use disposable sandboxes for provider and state faults. Never fault live infrastructure casually.",
+        "ai-data": "Inject missing partitions, malformed rows, model timeout, partial backfill, and tool failure.",
+        "cli-desktop": "Inject locked files, full disk, missing permission, child-process death, and interrupted writes.",
+        "small-new": "Defer until a real persistence or external dependency boundary exists.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "external_dependencies",
+          "persistence",
+          "concurrency_or_async",
+          "long_running_or_background"
+        ],
+        "risks_any": [
+          "release_sensitive"
+        ],
+        "candidate_if_missing": true
+      }
+    },
+    {
+      "id": "V16",
+      "slug": "authoritative-project-map",
+      "name": "Authoritative project map",
+      "category": "context",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Give agents compact generated repo facts plus human-maintained meaning.",
+      "local_work": [
+        "Enumerate manifests, languages, entrypoint candidates, tests, CI, ownership, and freshness"
+      ],
+      "agent_work": [
+        "Explain runtime purpose, trust, ownership, rule authority, and external boundaries"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V17",
+      "slug": "separated-agent-roles",
+      "name": "Separated builder, challenger, and verifier roles",
+      "category": "governance",
+      "default_level": 1,
+      "cost": "variable",
+      "purpose": "Prevent one agent from writing requirements, implementation, tests, and its own verdict.",
+      "local_work": [
+        "Enforce stage order and deterministic verifier result"
+      ],
+      "agent_work": [
+        "Builder implements",
+        "Challenger attacks assumptions",
+        "Verifier reviews evidence without editing"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V18",
+      "slug": "test-change-policing",
+      "name": "Test-change policing",
+      "category": "governance",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Detect silent weakening of tests, assertions, snapshots, timeouts, mocks, coverage, or mutation strength.",
+      "local_work": [
+        "Diff tests and config",
+        "Flag skips, assertion loss, broad mocks, timeout growth, and baseline updates"
+      ],
+      "agent_work": [
+        "Decide whether the behavior contract legitimately changed"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V19",
+      "slug": "minimal-failure-packets",
+      "name": "Minimal failure packets",
+      "category": "efficiency",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Replace giant logs with bounded evidence that identifies the next action.",
+      "local_work": [
+        "Capture first failing gate, exit code, bounded output, seed, version, replay, and log path"
+      ],
+      "agent_work": [
+        "Request only missing context",
+        "Choose the next experiment"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V20",
+      "slug": "confidence-ladder",
+      "name": "Confidence ladder",
+      "category": "efficiency",
+      "default_level": 0,
+      "cost": "low",
+      "purpose": "Keep edit feedback fast while reserving expensive checks for merge, schedule, or high-risk changes.",
+      "local_work": [
+        "Route Level 0 through Level 3 gates by risk and change impact"
+      ],
+      "agent_work": [
+        "Calibrate levels from measured runtime, failure history, and blast radius"
+      ],
+      "adaptations": {
+        "service-web": "Apply at request, event, transaction, job, persistence, authorization, and external-service boundaries.",
+        "frontend": "Apply to navigation, UI state, browser storage, API clients, feature flags, rendering, and long-session behavior.",
+        "monorepo": "Apply per package and runtime unit, then synthesize without flattening package-specific evidence.",
+        "library-sdk": "Apply to public API behavior, compatibility, serialization, examples, generated clients, and platform matrices.",
+        "game-simulation": "Apply to seeded worlds, time, RNG, saves, content, economy, projections, UI exploration, and aggregate behavior.",
+        "mobile-native": "Apply to lifecycle, permissions, native bridges, secure storage, background work, platform adapters, and device constraints.",
+        "infra-as-code": "Apply to modules, policy, plans, state, environments, IAM, and runners. Never treat apply as a routine verification step.",
+        "ai-data": "Apply to data contracts, lineage, model and prompt versions, routing, evals, batch semantics, and probabilistic outputs.",
+        "cli-desktop": "Apply to commands, exit codes, files, IPC, child processes, local state, OS behavior, and long-running sessions.",
+        "small-new": "Use the lightest useful form. Record the trigger for adding heavier tooling later.",
+        "mixed": "Select and run by runtime unit. Combine only after each unit has an honest result."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    }
+  ]
+}
