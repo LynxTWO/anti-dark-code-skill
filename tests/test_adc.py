@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,27 @@ spec.loader.exec_module(adc)
 
 
 class AntiDarkCodeToolsTests(unittest.TestCase):
+    def bind_calibration(self, repo: Path, calibration: Path) -> None:
+        calibration.mkdir(parents=True, exist_ok=True)
+        assessment = adc.assess_repository_binding(repo, calibration)
+        adc.write_repository_binding(
+            calibration,
+            assessment,
+            accepted_unbound=assessment["status"] in {"unbound", "invalid"},
+            rebound=assessment["status"] == "mismatch",
+        )
+
+    def copy_clean_skill(self, destination: Path) -> Path:
+        source = Path(__file__).resolve().parents[1]
+        destination.mkdir(parents=True, exist_ok=True)
+        target = destination / "anti-dark-code"
+        shutil.copytree(
+            source,
+            target,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+        return target
+
     def make_node_repo(self, root: Path) -> None:
         (root / "src").mkdir(parents=True)
         (root / "tests").mkdir()
@@ -49,9 +71,27 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         subprocess.run(["git", "-C", str(root), "commit", "-qm", "initial"], check=True)
 
     def test_skill_validates(self) -> None:
-        errors, warnings = adc.validate_skill(Path(__file__).resolve().parents[1])
-        self.assertEqual(errors, [])
-        self.assertEqual(warnings, [])
+        with tempfile.TemporaryDirectory() as tmp:
+            clean_skill = self.copy_clean_skill(Path(tmp))
+            errors, warnings = adc.validate_skill(clean_skill)
+            self.assertEqual(errors, [])
+            self.assertEqual(warnings, [])
+
+    def test_validator_rejects_packaged_python_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clean_skill = self.copy_clean_skill(Path(tmp))
+            cache = clean_skill / "scripts" / "__pycache__"
+            cache.mkdir()
+            (cache / "adc.cpython-test.pyc").write_bytes(b"not-real-bytecode")
+            errors, _ = adc.validate_skill(clean_skill)
+            self.assertTrue(any("Generated Python artifacts" in item for item in errors))
+
+    def test_validator_rejects_missing_gate_template(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clean_skill = self.copy_clean_skill(Path(tmp))
+            (clean_skill / "assets" / "templates" / "calibration" / "gates.json").unlink()
+            errors, _ = adc.validate_skill(clean_skill)
+            self.assertTrue(any("Missing calibration template gates.json" in item for item in errors))
 
     def test_probe_and_plan_evaluate_all_capabilities(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,6 +121,8 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertTrue(result["applied"])
             target = repo / ".agents" / "skills" / "anti-dark-code"
             self.assertTrue((target / "SKILL.md").exists())
+            self.assertTrue((target / "assets" / "templates" / "calibration" / "gates.json").exists())
+            self.assertTrue((target / "assets" / "templates" / "calibration" / "repo-binding.json").exists())
             self.assertTrue((target / "calibration" / "invariants.md").exists())
             self.assertTrue((repo / ".claude" / "skills" / "anti-dark-code" / "SKILL.md").exists())
 
@@ -95,6 +137,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             repo = Path(tmp)
             cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
             cal.mkdir(parents=True)
+            self.bind_calibration(repo, cal)
             config = {
                 "schema_version": 1,
                 "execution_policy": {"owner_confirmed_safe_to_execute": True},
@@ -171,6 +214,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             repo = Path(tmp)
             cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
             cal.mkdir(parents=True)
+            self.bind_calibration(repo, cal)
             (cal / "gates.json").write_text(json.dumps({
                 "schema_version": 1,
                 "execution_policy": {"owner_confirmed_safe_to_execute": False},
@@ -196,6 +240,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             repo = Path(tmp)
             cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
             cal.mkdir(parents=True)
+            self.bind_calibration(repo, cal)
             (cal / "upstream-candidates.md").write_text(
                 "# Upstream Candidates\n\n"
                 "## ADC-LOCAL-001: Exact gates\n\n"
@@ -232,6 +277,8 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             self.make_node_repo(repo)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
             profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
             gate_path, changed = adc.merge_gate_suggestions(repo, profile)
             self.assertGreater(changed, 0)
@@ -305,16 +352,43 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             fallback = repo / ".anti-dark-code" / "calibration"
             fallback.mkdir(parents=True)
             (fallback / "invariants.md").write_text("# Existing local truth\n", encoding="utf-8")
-            result = adc.install_skill(repo, Path(__file__).resolve().parents[1], apply=True, force=False, hosts="none")
-            target = repo / ".agents" / "skills" / "anti-dark-code" / "calibration" / "invariants.md"
+            (fallback / "gates.json").write_text(json.dumps({
+                "schema_version": 1,
+                "execution_policy": {"owner_confirmed_safe_to_execute": True},
+                "gates": [{
+                    "id": "legacy-approved",
+                    "level": 0,
+                    "argv": [sys.executable, "-c", "print('legacy')"],
+                    "enabled": True,
+                    "review_status": "approved",
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                }],
+            }), encoding="utf-8")
+            result = adc.install_skill(
+                repo,
+                Path(__file__).resolve().parents[1],
+                apply=True,
+                force=False,
+                hosts="none",
+                accept_unbound_calibration=True,
+            )
+            target_calibration = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            target = target_calibration / "invariants.md"
             self.assertIn("calibration/invariants.md", result["calibration_migrated"])
             self.assertEqual(target.read_text(encoding="utf-8"), "# Existing local truth\n")
+            migrated_gates = json.loads((target_calibration / "gates.json").read_text(encoding="utf-8"))
+            self.assertFalse(migrated_gates["execution_policy"]["owner_confirmed_safe_to_execute"])
+            self.assertFalse(migrated_gates["gates"][0]["enabled"])
+            self.assertEqual(migrated_gates["gates"][0]["review_status"], "proposed")
+            self.assertTrue(result["migrated_gate_approvals"]["reset"])
 
     def test_flowback_redacts_repo_paths_and_secret_like_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
             cal.mkdir(parents=True)
+            self.bind_calibration(repo, cal)
             (cal / "upstream-candidates.md").write_text(
                 "# Upstream Candidates\n\n"
                 "## ADC-LOCAL-002: Redacted lesson\n\n"
@@ -333,6 +407,347 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn("hunter2", text)
             self.assertNotIn("abc123", text)
             self.assertIn("<redacted>", text)
+
+    def test_fresh_install_creates_matching_repo_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            result = adc.install_skill(
+                repo,
+                Path(__file__).resolve().parents[1],
+                apply=True,
+                force=False,
+                hosts="none",
+            )
+            binding_path = repo / ".agents" / "skills" / "anti-dark-code" / "calibration" / "repo-binding.json"
+            self.assertTrue(binding_path.exists())
+            assessment = adc.assess_repository_binding(repo, binding_path.parent)
+            self.assertEqual(assessment["status"], "match")
+            self.assertEqual(result["calibration_binding_written"], "calibration/repo-binding.json")
+
+    def test_local_git_binding_stays_stable_across_first_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            source = Path(__file__).resolve().parents[1]
+            adc.install_skill(repo, source, apply=True, force=False, hosts="none")
+            calibration = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            before = json.loads((calibration / "repo-binding.json").read_text(encoding="utf-8"))["repository_id"]
+
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            plan = adc.install_skill(repo, source, apply=False, force=False, hosts="none")
+            after = adc.compute_repository_binding(repo)["repository_id"]
+            self.assertEqual(before, after)
+            self.assertEqual(plan["calibration_binding"]["status"], "match")
+
+    def test_remote_git_binding_is_stable_across_first_commit_and_protocol(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run([
+                "git", "-C", str(repo), "remote", "add", "origin",
+                "git@github.com:Example/Repository.git",
+            ], check=True)
+            before = adc.compute_repository_binding(repo)
+
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            after_commit = adc.compute_repository_binding(repo)
+            self.assertEqual(before["repository_id"], after_commit["repository_id"])
+
+            subprocess.run([
+                "git", "-C", str(repo), "remote", "set-url", "origin",
+                "https://github.com/Example/Repository.git",
+            ], check=True)
+            after_protocol_change = adc.compute_repository_binding(repo)
+            self.assertEqual(before["repository_id"], after_protocol_change["repository_id"])
+            self.assertEqual(after_protocol_change["identity_method"], "git-origin-sha256")
+
+    def test_unbound_legacy_calibration_requires_explicit_acceptance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            calibration = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            calibration.mkdir(parents=True)
+            (calibration / "invariants.md").write_text("# Same repo legacy facts\n", encoding="utf-8")
+
+            plan = adc.install_skill(
+                repo,
+                Path(__file__).resolve().parents[1],
+                apply=False,
+                force=False,
+                hosts="none",
+            )
+            self.assertTrue(plan["blocked"])
+            self.assertEqual(plan["calibration_binding"]["status"], "unbound")
+            with self.assertRaises(SystemExit):
+                adc.install_skill(
+                    repo,
+                    Path(__file__).resolve().parents[1],
+                    apply=True,
+                    force=False,
+                    hosts="none",
+                )
+
+            result = adc.install_skill(
+                repo,
+                Path(__file__).resolve().parents[1],
+                apply=True,
+                force=False,
+                hosts="none",
+                accept_unbound_calibration=True,
+            )
+            self.assertTrue(result["applied"])
+            self.assertEqual(adc.assess_repository_binding(repo, calibration)["status"], "match")
+            self.assertIn("Same repo legacy facts", (calibration / "invariants.md").read_text(encoding="utf-8"))
+
+    def test_foreign_calibration_is_rejected_until_explicit_rebind(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo_a = base / "repo-a"
+            repo_b = base / "repo-b"
+            repo_a.mkdir()
+            repo_b.mkdir()
+            source = Path(__file__).resolve().parents[1]
+            adc.install_skill(repo_a, source, apply=True, force=False, hosts="none")
+            cal_a = repo_a / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            cal_b = repo_b / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            cal_b.parent.mkdir(parents=True)
+            shutil.copytree(cal_a, cal_b)
+
+            plan = adc.install_skill(repo_b, source, apply=False, force=False, hosts="none")
+            self.assertEqual(plan["calibration_binding"]["status"], "mismatch")
+            self.assertTrue(plan["blocked"])
+            with self.assertRaises(SystemExit):
+                adc.install_skill(repo_b, source, apply=True, force=False, hosts="none")
+
+            result = adc.install_skill(
+                repo_b,
+                source,
+                apply=True,
+                force=False,
+                hosts="none",
+                rebind_calibration=True,
+            )
+            self.assertTrue(result["applied"])
+            assessment = adc.assess_repository_binding(repo_b, cal_b)
+            self.assertEqual(assessment["status"], "match")
+            rebound = json.loads((cal_b / "repo-binding.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(rebound["previous_repository_ids"]), 1)
+
+    def test_repo_local_source_is_blocked_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            source = self.copy_clean_skill(repo / "tools")
+            plan = adc.install_skill(repo, source, apply=False, force=False, hosts="none")
+            self.assertTrue(plan["blocked"])
+            self.assertTrue(plan["source_scope"]["source_inside_target_repo"])
+            with self.assertRaises(SystemExit):
+                adc.install_skill(repo, source, apply=True, force=False, hosts="none")
+
+    def test_managed_repo_copy_is_blocked_as_cross_repo_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            (source / ".adc-managed.json").write_text("{}\n", encoding="utf-8")
+            repo = base / "target"
+            repo.mkdir()
+            plan = adc.install_skill(repo, source, apply=False, force=False, hosts="none")
+            self.assertTrue(plan["blocked"])
+            self.assertTrue(plan["source_scope"]["source_has_managed_install_manifest"])
+
+    def test_source_calibration_is_never_copied_even_with_override(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            foreign = source / "calibration"
+            foreign.mkdir()
+            (foreign / "invariants.md").write_text("# FOREIGN REPO SECRET ASSUMPTION\n", encoding="utf-8")
+            incoming = source / "incoming"
+            incoming.mkdir()
+            (incoming / "private-proposal.md").write_text("# Local proposal from another repo\n", encoding="utf-8")
+            repo = base / "target"
+            repo.mkdir()
+
+            blocked = adc.install_skill(repo, source, apply=False, force=False, hosts="none")
+            self.assertTrue(blocked["blocked"])
+            self.assertIn("invariants.md", blocked["source_scope"]["source_calibration_ignored"])
+
+            result = adc.install_skill(
+                repo,
+                source,
+                apply=True,
+                force=False,
+                hosts="none",
+                allow_unsafe_source=True,
+            )
+            target_invariants = repo / ".agents" / "skills" / "anti-dark-code" / "calibration" / "invariants.md"
+            self.assertTrue(result["applied"])
+            self.assertNotIn("FOREIGN REPO", target_invariants.read_text(encoding="utf-8"))
+            self.assertFalse((repo / ".agents" / "skills" / "anti-dark-code" / "incoming").exists())
+
+    def test_contaminated_calibration_templates_cannot_be_overridden(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            gates_path = source / "assets" / "templates" / "calibration" / "gates.json"
+            gates = json.loads(gates_path.read_text(encoding="utf-8"))
+            gates["execution_policy"]["owner_confirmed_safe_to_execute"] = True
+            gates_path.write_text(json.dumps(gates), encoding="utf-8")
+            repo = base / "target"
+            repo.mkdir()
+
+            plan = adc.install_skill(
+                repo,
+                source,
+                apply=False,
+                force=False,
+                hosts="none",
+                allow_unsafe_source=True,
+            )
+            self.assertTrue(plan["blocked"])
+            self.assertTrue(any("unsafe calibration template" in item for item in plan["blocked_reasons"]))
+            with self.assertRaises(SystemExit):
+                adc.install_skill(
+                    repo,
+                    source,
+                    apply=True,
+                    force=False,
+                    hosts="none",
+                    allow_unsafe_source=True,
+                )
+
+    def test_gate_execution_refuses_foreign_calibration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo_a = base / "repo-a"
+            repo_b = base / "repo-b"
+            repo_a.mkdir()
+            repo_b.mkdir()
+            cal_a = repo_a / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo_a, cal_a)
+            (cal_a / "gates.json").write_text(json.dumps({
+                "schema_version": 1,
+                "execution_policy": {"owner_confirmed_safe_to_execute": True},
+                "gates": [{
+                    "id": "must-not-run",
+                    "level": 0,
+                    "argv": [sys.executable, "-c", "raise SystemExit(99)"],
+                    "enabled": True,
+                    "review_status": "approved",
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                }],
+            }), encoding="utf-8")
+            cal_b = repo_b / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            cal_b.parent.mkdir(parents=True)
+            shutil.copytree(cal_a, cal_b)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = adc.run_gates(repo_b, 0, allow_exec=True, changed_from=None, keep_going=False)
+            self.assertEqual(result, 2)
+            self.assertIn("foreign calibration", output.getvalue())
+            self.assertFalse((repo_b / ".anti-dark-code" / "runs").exists())
+
+    def test_flowback_refuses_foreign_calibration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo_a = base / "repo-a"
+            repo_b = base / "repo-b"
+            repo_a.mkdir()
+            repo_b.mkdir()
+            cal_a = repo_a / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo_a, cal_a)
+            (cal_a / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-003: Local lesson\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: Keep local evidence local.\n"
+                "- Evidence: local test\n"
+                "- Limits: none\n"
+                "- Proposed target: references/15-dogfeeding-flowback.md\n"
+                "- Proposed change: Add the rule.\n",
+                encoding="utf-8",
+            )
+            cal_b = repo_b / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            cal_b.parent.mkdir(parents=True)
+            shutil.copytree(cal_a, cal_b)
+            with self.assertRaises(SystemExit):
+                adc.flowback(repo_b, parent=None, stage_to_parent=False, mark_staged=False)
+
+    def test_flowback_refuses_repo_calibrated_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            (cal / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-004: Parent check\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: Stage only to a clean parent.\n"
+                "- Evidence: local test\n"
+                "- Limits: none\n"
+                "- Proposed target: references/15-dogfeeding-flowback.md\n"
+                "- Proposed change: Add the parent check.\n",
+                encoding="utf-8",
+            )
+            parent = self.copy_clean_skill(base / "parent")
+            parent_cal = parent / "calibration"
+            parent_cal.mkdir()
+            (parent_cal / "invariants.md").write_text("# Repo-local parent\n", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+
+    def test_flowback_refuses_managed_parent_without_calibration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            (cal / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-005: Managed parent check\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: A managed repo copy is not a shared parent.\n"
+                "- Evidence: local test\n"
+                "- Limits: none\n"
+                "- Proposed target: references/15-dogfeeding-flowback.md\n"
+                "- Proposed change: Add the managed-parent check.\n",
+                encoding="utf-8",
+            )
+            parent = self.copy_clean_skill(base / "parent")
+            (parent / ".adc-managed.json").write_text("{}\n", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+
+    def test_general_path_validator_rejects_personal_user_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clean_skill = self.copy_clean_skill(Path(tmp))
+            template = clean_skill / "assets" / "templates" / "calibration" / "README.md"
+            personal_path = "/" + "home/" + "alice/private/repo"
+            template.write_text(template.read_text(encoding="utf-8") + f"\nUse {personal_path}.\n", encoding="utf-8")
+            errors, _ = adc.validate_skill(clean_skill)
+            self.assertTrue(any("personal absolute paths" in item for item in errors))
+
+    def test_operational_guidance_contains_no_project_specific_migration(self) -> None:
+        package_root = Path(__file__).resolve().parents[2]
+        paths = [
+            package_root / "MIGRATION.md",
+            package_root / "README.md",
+            Path(__file__).resolve().parents[1] / "SKILL.md",
+            Path(__file__).resolve().parents[1] / "references" / "13-calibrated-local-mode.md",
+            Path(__file__).resolve().parents[1] / "references" / "15-dogfeeding-flowback.md",
+        ]
+        forbidden_project_name = "chron" + "icle"
+        for path in paths:
+            self.assertNotIn(forbidden_project_name, path.read_text(encoding="utf-8").lower(), str(path))
 
 
 

@@ -23,12 +23,23 @@ import textwrap
 import time
 from pathlib import Path
 from typing import Any, Sequence
+from urllib.parse import urlsplit
 
 SCHEMA_VERSION = 1
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = SKILL_ROOT / "assets" / "verification-capabilities.json"
 CALIBRATION_TEMPLATE_DIR = SKILL_ROOT / "assets" / "templates" / "calibration"
 VERSION = (SKILL_ROOT / "VERSION").read_text(encoding="utf-8").strip() if (SKILL_ROOT / "VERSION").exists() else "unknown"
+SOURCE_SCOPE_FILENAME = "SOURCE-SCOPE.json"
+SOURCE_SCOPE_KIND = "anti-dark-code-core"
+SOURCE_SCOPE_VALUE = "universal"
+REPO_BINDING_FILENAME = "repo-binding.json"
+
+LEGACY_CALIBRATION_REL_PATHS = (
+    (".anti-dark-code", "calibration"),
+    (".claude", "skills", "anti-dark-code", "calibration"),
+    (".gemini", "skills", "anti-dark-code", "calibration"),
+)
 
 IGNORED_DIRS = {
     ".git", ".hg", ".svn", ".idea", ".vscode", ".cache", ".pytest_cache",
@@ -124,6 +135,13 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+\-/]+=*"),
 ]
 
+POSIX_USER_PATH_RE = re.compile(r"(?<![A-Za-z0-9])/(?:home|Users)/([^/\s`\"'<>]+)/")
+WINDOWS_USER_PATH_RE = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Z]:\\Users\\([^\\\s`\"'<>]+)\\")
+PLACEHOLDER_PATH_SEGMENTS = {
+    "<username>", "<user>", "username", "user", "your-user", "your-username",
+    "example", "example-user", "name", "placeholder",
+}
+
 
 def utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -187,6 +205,424 @@ def rel(path: Path, root: Path) -> str:
         return path.relative_to(root).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+def path_is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def calibration_payload_files(path: Path) -> list[Path]:
+    if not path.exists() or not path.is_dir():
+        return []
+    return sorted(
+        item
+        for item in path.rglob("*")
+        if item.is_file()
+        and item.name != ".DS_Store"
+        and item.suffix != ".pyc"
+        and "__pycache__" not in item.parts
+    )
+
+
+def calibration_substantive_files(path: Path) -> list[Path]:
+    return [item for item in calibration_payload_files(path) if item.name != REPO_BINDING_FILENAME]
+
+
+def normalize_git_remote(value: str) -> str:
+    raw = value.strip().replace("\\", "/").rstrip("/")
+    if not raw:
+        return raw
+
+    def strip_git_suffix(path: str) -> str:
+        cleaned = re.sub(r"/+", "/", path.strip("/"))
+        return cleaned[:-4] if cleaned.endswith(".git") else cleaned
+
+    # Keep Windows drive paths out of the SCP-style remote parser.
+    if re.match(r"^[A-Za-z]:/", raw):
+        return strip_git_suffix(os.path.normcase(os.path.normpath(raw)).replace("\\", "/"))
+
+    # Canonicalize common SCP-style Git remotes, such as git@example.com:org/repo.git.
+    if "://" not in raw:
+        match = re.match(r"^(?:[^@/\s]+@)?([^:/\s]+):(.+)$", raw)
+        if match:
+            host = match.group(1).lower()
+            path = strip_git_suffix(match.group(2))
+            return f"{host}/{path}"
+
+    if "://" in raw:
+        try:
+            parsed = urlsplit(raw)
+            host = (parsed.hostname or "").lower()
+            port = parsed.port
+        except ValueError:
+            parsed = None
+            host = ""
+            port = None
+        if parsed and host:
+            default_ports = {"ssh": 22, "https": 443, "http": 80, "git": 9418}
+            port_text = f":{port}" if port and port != default_ports.get(parsed.scheme.lower()) else ""
+            path = strip_git_suffix(parsed.path)
+            return f"{host}{port_text}/{path}"
+
+    return strip_git_suffix(raw)
+
+
+def compute_repository_binding(repo: Path) -> dict[str, Any]:
+    repo = repo.resolve()
+    origin = git_output(repo, ["config", "--get", "remote.origin.url"])
+    roots_raw = git_output(repo, ["rev-list", "--max-parents=0", "HEAD"])
+    roots = sorted({line.strip() for line in (roots_raw or "").splitlines() if line.strip()})
+    is_git = git_output(repo, ["rev-parse", "--is-inside-work-tree"]) == "true"
+    normalized_path = os.path.normcase(str(repo))
+    path_hash = sha256_bytes(normalized_path.encode("utf-8"))
+
+    components: dict[str, Any] = {
+        "origin_present": bool(origin),
+        "origin_sha256": None,
+        "root_commits_present": bool(roots),
+        "root_commits_sha256": None,
+        "path_sha256": None,
+    }
+    identity_payload: dict[str, Any]
+
+    if origin:
+        normalized_origin = normalize_git_remote(origin)
+        components["origin_sha256"] = sha256_bytes(normalized_origin.encode("utf-8"))
+    if roots:
+        roots_text = "\n".join(roots)
+        components["root_commits_sha256"] = sha256_bytes(roots_text.encode("utf-8"))
+
+    if origin:
+        # The canonical remote is the stable identity. Root commits remain hashed
+        # evidence, but they do not change the binding after a first commit or
+        # ordinary history maintenance.
+        identity_payload = {
+            "kind": "git-origin",
+            "origin_sha256": components["origin_sha256"],
+        }
+        identity_method = "git-origin-sha256"
+    elif is_git:
+        components["path_sha256"] = path_hash
+        identity_payload = {"kind": "git-local-path", "path_sha256": path_hash}
+        identity_method = "git-local-path-sha256"
+    else:
+        components["path_sha256"] = path_hash
+        identity_payload = {"kind": "non-git-path", "path_sha256": path_hash}
+        identity_method = "non-git-path-sha256"
+
+    repository_id = "adc-repo-" + normalized_json_hash(identity_payload)[:32]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "binding_status": "bound",
+        "repository_id": repository_id,
+        "identity_method": identity_method,
+        "identity_components": components,
+    }
+
+
+def assess_repository_binding(repo: Path, calibration: Path) -> dict[str, Any]:
+    current = compute_repository_binding(repo)
+    binding_path = calibration / REPO_BINDING_FILENAME
+    all_files = calibration_payload_files(calibration)
+    substantive = calibration_substantive_files(calibration)
+    binding: dict[str, Any] | None = None
+    binding_error: str | None = None
+    if binding_path.exists():
+        try:
+            loaded = json.loads(binding_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                binding = loaded
+            else:
+                binding_error = "repo-binding.json is not a JSON object"
+        except (OSError, json.JSONDecodeError) as exc:
+            binding_error = f"repo-binding.json is invalid: {exc}"
+
+    if not all_files:
+        status = "new"
+    elif binding_error:
+        status = "invalid"
+    elif not binding or binding.get("binding_status") != "bound" or not binding.get("repository_id"):
+        status = "unbound"
+    elif binding.get("repository_id") == current["repository_id"]:
+        status = "match"
+    else:
+        status = "mismatch"
+
+    return {
+        "status": status,
+        "calibration_path": str(calibration),
+        "file_count": len(all_files),
+        "substantive_file_count": len(substantive),
+        "binding_error": binding_error,
+        "stored_repository_id": binding.get("repository_id") if binding else None,
+        "current_repository_id": current["repository_id"],
+        "identity_method": current["identity_method"],
+        "current": current,
+        "binding": binding,
+    }
+
+
+def write_repository_binding(
+    calibration: Path,
+    assessment: dict[str, Any],
+    *,
+    accepted_unbound: bool = False,
+    rebound: bool = False,
+) -> Path:
+    now = utc_now()
+    current = assessment["current"]
+    existing = assessment.get("binding") if isinstance(assessment.get("binding"), dict) else {}
+    raw_previous = existing.get("previous_repository_ids", []) if isinstance(existing, dict) else []
+    previous = list(raw_previous) if isinstance(raw_previous, list) else []
+    old_id = existing.get("repository_id") if isinstance(existing, dict) else None
+    if rebound and old_id and old_id != current["repository_id"]:
+        previous.append({"repository_id": old_id, "replaced_at_utc": now})
+
+    bound_at = existing.get("bound_at_utc") if assessment.get("status") == "match" else now
+    notes = [
+        "This calibration belongs to one repository identity.",
+        "Do not transplant this calibration directory into another repository.",
+    ]
+    if accepted_unbound:
+        notes.append("Legacy unbound calibration was accepted explicitly during migration.")
+    if rebound:
+        notes.append("The repository binding was changed explicitly after identity review.")
+
+    data = {
+        "schema_version": SCHEMA_VERSION,
+        "binding_status": "bound",
+        "repository_id": current["repository_id"],
+        "identity_method": current["identity_method"],
+        "identity_components": current["identity_components"],
+        "bound_at_utc": bound_at,
+        "last_verified_at_utc": now,
+        "previous_repository_ids": previous,
+        "notes": notes,
+    }
+    path = calibration / REPO_BINDING_FILENAME
+    write_json_atomic(path, data)
+    return path
+
+
+def initialize_binding_for_empty_calibration(repo: Path, calibration: Path) -> Path | None:
+    if calibration_payload_files(calibration):
+        return None
+    calibration.mkdir(parents=True, exist_ok=True)
+    assessment = assess_repository_binding(repo, calibration)
+    return write_repository_binding(calibration, assessment)
+
+
+def legacy_calibration_locations(repo: Path, target_calibration: Path) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
+    for parts in LEGACY_CALIBRATION_REL_PATHS:
+        candidate = repo.joinpath(*parts)
+        if candidate.resolve() == target_calibration.resolve() or not candidate.exists():
+            continue
+        files = calibration_payload_files(candidate)
+        if not files:
+            continue
+        assessment = assess_repository_binding(repo, candidate)
+        found.append({
+            "path": candidate.relative_to(repo).as_posix(),
+            "file_count": len(files),
+            "binding_status": assessment["status"],
+            "auto_migration": candidate == repo / ".anti-dark-code" / "calibration",
+        })
+    return found
+
+
+def is_placeholder_path_segment(value: str) -> bool:
+    lowered = value.strip().lower()
+    return (
+        lowered in PLACEHOLDER_PATH_SEGMENTS
+        or "<" in value
+        or "{" in value
+        or "$" in value
+        or "%" in value
+    )
+
+
+def personal_absolute_path_hits(content: str) -> list[str]:
+    hits: list[str] = []
+    for match in POSIX_USER_PATH_RE.finditer(content):
+        if not is_placeholder_path_segment(match.group(1)):
+            hits.append(match.group(0))
+    for match in WINDOWS_USER_PATH_RE.finditer(content):
+        if not is_placeholder_path_segment(match.group(1)):
+            hits.append(match.group(0))
+    return sorted(set(hits))
+
+
+def validate_calibration_templates(template_dir: Path) -> list[str]:
+    errors: list[str] = []
+    if not template_dir.exists() or not template_dir.is_dir():
+        return [f"Calibration templates not found: {template_dir}"]
+
+    binding_path = template_dir / REPO_BINDING_FILENAME
+    if not binding_path.exists():
+        errors.append(f"Missing calibration template {REPO_BINDING_FILENAME}")
+    else:
+        try:
+            binding = json.loads(binding_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"Invalid calibration binding template: {exc}")
+        else:
+            if not isinstance(binding, dict):
+                errors.append("Calibration binding template is not a JSON object")
+            else:
+                if binding.get("binding_status") != "unbound-template":
+                    errors.append("Calibration binding template must remain unbound-template")
+                if binding.get("repository_id") is not None:
+                    errors.append("Calibration binding template contains a repository id")
+                if binding.get("bound_at_utc") is not None or binding.get("last_verified_at_utc") is not None:
+                    errors.append("Calibration binding template contains repository timestamps")
+
+    gates_path = template_dir / "gates.json"
+    if not gates_path.exists():
+        errors.append("Missing calibration template gates.json")
+    else:
+        try:
+            gates_data = json.loads(gates_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"Invalid calibration gate template: {exc}")
+        else:
+            policy = gates_data.get("execution_policy", {}) if isinstance(gates_data, dict) else {}
+            if policy.get("owner_confirmed_safe_to_execute"):
+                errors.append("Calibration gate template enables global execution confirmation")
+            for gate in gates_data.get("gates", []) if isinstance(gates_data, dict) else []:
+                if not isinstance(gate, dict):
+                    errors.append("Calibration gate template contains a non-object gate")
+                    continue
+                if gate.get("enabled"):
+                    errors.append(f"Calibration gate template enables gate {gate.get('id', '?')}")
+                if str(gate.get("review_status", "")).lower() == "approved":
+                    errors.append(f"Calibration gate template pre-approves gate {gate.get('id', '?')}")
+
+    for path in calibration_payload_files(template_dir):
+        if path.suffix.lower() not in TEXT_EXTENSIONS | {".yaml", ".yml"}:
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        hits = personal_absolute_path_hits(content)
+        if hits:
+            errors.append(
+                f"Calibration template {path.relative_to(template_dir)} contains likely personal absolute paths: "
+                + ", ".join(hits)
+            )
+    return errors
+
+
+def inspect_gate_config_for_migration(path: Path) -> dict[str, Any]:
+    result = {
+        "present": path.exists(),
+        "valid": True,
+        "error": None,
+        "enabled_count": 0,
+        "approved_count": 0,
+        "owner_confirmed": False,
+    }
+    if not path.exists():
+        return result
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        result.update({"valid": False, "error": f"invalid gates.json: {exc}"})
+        return result
+    if not isinstance(data, dict) or not isinstance(data.get("gates", []), list):
+        result.update({"valid": False, "error": "gates.json must be an object with a gates array"})
+        return result
+    result["owner_confirmed"] = bool(data.get("execution_policy", {}).get("owner_confirmed_safe_to_execute"))
+    for gate in data.get("gates", []):
+        if not isinstance(gate, dict):
+            result.update({"valid": False, "error": "gates.json contains a non-object gate"})
+            return result
+        if gate.get("enabled"):
+            result["enabled_count"] += 1
+        if str(gate.get("review_status", "")).lower() == "approved":
+            result["approved_count"] += 1
+    return result
+
+
+def reset_gate_approvals(path: Path, reason: str) -> dict[str, Any]:
+    inspection = inspect_gate_config_for_migration(path)
+    if not inspection["present"]:
+        return {**inspection, "reset": False, "reset_gate_count": 0}
+    if not inspection["valid"]:
+        raise SystemExit(f"Cannot reset migrated gate approvals: {inspection['error']}")
+
+    data = read_json(path)
+    policy = data.setdefault("execution_policy", {})
+    policy["owner_confirmed_safe_to_execute"] = False
+    policy["notes"] = (
+        "Gate approvals were reset during migration. Review every exact command in this repository, "
+        "approve gates individually, then reconfirm execution safety."
+    )
+    reset_count = 0
+    for gate in data.get("gates", []):
+        if not isinstance(gate, dict):
+            continue
+        if gate.get("enabled") or str(gate.get("review_status", "")).lower() != "proposed":
+            reset_count += 1
+        gate["enabled"] = False
+        gate["review_status"] = "proposed"
+        gate["migration_review_required"] = reason
+    write_json_atomic(path, data)
+    return {**inspection, "reset": True, "reset_gate_count": reset_count}
+
+
+def inspect_install_source(source: Path, repo: Path) -> dict[str, Any]:
+    marker_path = source / SOURCE_SCOPE_FILENAME
+    marker: dict[str, Any] | None = None
+    marker_error: str | None = None
+    if marker_path.exists():
+        try:
+            loaded = json.loads(marker_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                marker = loaded
+            else:
+                marker_error = f"{SOURCE_SCOPE_FILENAME} is not a JSON object"
+        except (OSError, json.JSONDecodeError) as exc:
+            marker_error = f"{SOURCE_SCOPE_FILENAME} is invalid: {exc}"
+    else:
+        marker_error = f"{SOURCE_SCOPE_FILENAME} is missing"
+
+    marker_valid = bool(
+        marker
+        and marker.get("kind") == SOURCE_SCOPE_KIND
+        and marker.get("scope") == SOURCE_SCOPE_VALUE
+        and marker.get("repo_calibration_transfer") == "prohibited"
+    )
+    if marker and not marker_valid and marker_error is None:
+        marker_error = f"{SOURCE_SCOPE_FILENAME} does not identify a universal Anti-Dark-Code core"
+
+    source_calibration = source / "calibration"
+    source_calibration_files = calibration_payload_files(source_calibration)
+    unsafe_issues: list[str] = []
+    if not marker_valid:
+        unsafe_issues.append(marker_error or "source scope marker is invalid")
+    if path_is_within(source, repo):
+        unsafe_issues.append("source skill is located inside the target repository")
+    if (source / ".adc-managed.json").exists():
+        unsafe_issues.append("source skill contains a repo-local managed-install manifest")
+    if source_calibration_files:
+        unsafe_issues.append("source skill contains repo-owned top-level calibration")
+
+    template_errors = validate_calibration_templates(source / "assets" / "templates" / "calibration")
+    return {
+        "marker_valid": marker_valid,
+        "marker_error": marker_error,
+        "source_inside_target_repo": path_is_within(source, repo),
+        "source_has_managed_install_manifest": (source / ".adc-managed.json").exists(),
+        "source_calibration_ignored": [item.relative_to(source_calibration).as_posix() for item in source_calibration_files],
+        "unsafe_issues": unsafe_issues,
+        "template_errors": template_errors,
+    }
 
 
 def is_adc_internal_relpath(path: str) -> bool:
@@ -615,7 +1051,9 @@ def calibration_dir(repo: Path) -> Path:
 
 
 def write_profile(repo: Path, profile: dict[str, Any]) -> Path:
-    path = calibration_dir(repo) / "repo-profile.json"
+    calibration = calibration_dir(repo)
+    initialize_binding_for_empty_calibration(repo, calibration)
+    path = calibration / "repo-profile.json"
     write_json_atomic(path, profile)
     return path
 
@@ -851,15 +1289,18 @@ def managed_source_files(source: Path) -> dict[str, Path]:
     for current, dirs, names in os.walk(source):
         current_path = Path(current)
         rel_dir = current_path.relative_to(source)
-        dirs[:] = sorted(d for d in dirs if d not in {"calibration", "__pycache__", ".git"})
-        if rel_dir.parts and rel_dir.parts[0] == "calibration":
+        excluded_here = {"__pycache__", ".git"}
+        if not rel_dir.parts:
+            excluded_here.update({"calibration", "incoming"})
+        dirs[:] = sorted(d for d in dirs if d not in excluded_here)
+        if rel_dir.parts and rel_dir.parts[0] in {"calibration", "incoming"}:
             continue
         for name in sorted(names):
             if name in {".adc-managed.json", ".DS_Store"} or name.endswith(".pyc"):
                 continue
             path = current_path / name
             r = path.relative_to(source).as_posix()
-            if r.startswith("calibration/"):
+            if r.startswith("calibration/") or r.startswith("incoming/"):
                 continue
             files[r] = path
     return files
@@ -934,19 +1375,80 @@ def claude_adapter_text() -> str:
     """)
 
 
-def install_skill(repo: Path, source: Path, apply: bool, force: bool, hosts: str) -> dict[str, Any]:
+def install_skill(
+    repo: Path,
+    source: Path,
+    apply: bool,
+    force: bool,
+    hosts: str,
+    *,
+    allow_unsafe_source: bool = False,
+    accept_unbound_calibration: bool = False,
+    rebind_calibration: bool = False,
+) -> dict[str, Any]:
     repo = repo.resolve()
     source = source.resolve()
     target = repo / ".agents" / "skills" / "anti-dark-code"
+    target_calibration = target / "calibration"
+    fallback_calibration = repo / ".anti-dark-code" / "calibration"
     if not (source / "SKILL.md").exists():
         raise SystemExit(f"Source skill is missing SKILL.md: {source}")
     template_dir = source / "assets" / "templates" / "calibration"
     if not template_dir.exists():
         raise SystemExit(f"Source skill is missing calibration templates: {template_dir}")
+
+    source_inspection = inspect_install_source(source, repo)
     source_files = managed_source_files(source)
     if not source_files:
         raise SystemExit(f"Source skill contains no managed files: {source}")
     digest = core_digest(source_files)
+
+    target_calibration_files = calibration_payload_files(target_calibration)
+    fallback_calibration_files = calibration_payload_files(fallback_calibration)
+    if target_calibration_files:
+        binding_source = target_calibration
+    elif fallback_calibration_files:
+        binding_source = fallback_calibration
+    else:
+        binding_source = target_calibration
+    binding = assess_repository_binding(repo, binding_source)
+
+    fallback_action = "none"
+    if fallback_calibration_files:
+        if target_calibration_files:
+            fallback_action = "left-in-place-target-calibration-already-exists"
+        else:
+            fallback_action = "migrate-missing-files"
+
+    gate_reset_required = (
+        fallback_action == "migrate-missing-files"
+        or binding["status"] in {"unbound", "invalid", "mismatch"}
+    )
+    legacy_gate_review = inspect_gate_config_for_migration(binding_source / "gates.json")
+
+    blocked_reasons: list[str] = []
+    if source_inspection["template_errors"]:
+        blocked_reasons.extend(f"unsafe calibration template: {item}" for item in source_inspection["template_errors"])
+    if source_inspection["unsafe_issues"] and not allow_unsafe_source:
+        blocked_reasons.extend(
+            f"untrusted installation source: {item}; use --allow-unsafe-source only after manual review"
+            for item in source_inspection["unsafe_issues"]
+        )
+    if binding["status"] in {"unbound", "invalid"} and not accept_unbound_calibration:
+        blocked_reasons.append(
+            "existing calibration is unbound; review that it belongs to this repository, then use --accept-unbound-calibration"
+        )
+    if binding["status"] == "mismatch" and not rebind_calibration:
+        blocked_reasons.append(
+            "existing calibration is bound to a different repository identity; do not import it unless this is a reviewed move or fork, then use --rebind-calibration"
+        )
+    if gate_reset_required and legacy_gate_review["present"] and not legacy_gate_review["valid"]:
+        blocked_reasons.append(
+            "legacy gate configuration cannot be migrated safely: "
+            + str(legacy_gate_review["error"])
+            + "; repair or quarantine gates.json before migration"
+        )
+
     manifest_path = target / ".adc-managed.json"
     old_manifest = read_json(manifest_path, {}) if manifest_path.exists() else {}
     old_files = old_manifest.get("files", {}) if isinstance(old_manifest, dict) else {}
@@ -992,13 +1494,43 @@ def install_skill(repo: Path, source: Path, apply: bool, force: bool, hosts: str
         "copy_count": len(copies),
         "remove_count": len(removals),
         "conflicts": sorted(set(conflicts)),
+        "blocked": bool(blocked_reasons),
+        "blocked_reasons": blocked_reasons,
+        "source_scope": {
+            "marker_valid": source_inspection["marker_valid"],
+            "marker_error": source_inspection["marker_error"],
+            "source_inside_target_repo": source_inspection["source_inside_target_repo"],
+            "source_has_managed_install_manifest": source_inspection["source_has_managed_install_manifest"],
+            "source_calibration_ignored": source_inspection["source_calibration_ignored"],
+            "unsafe_issues": source_inspection["unsafe_issues"],
+            "unsafe_override_requested": allow_unsafe_source,
+        },
         "calibration_preserved": True,
-        "fallback_calibration_detected": (repo / ".anti-dark-code" / "calibration").exists(),
+        "calibration_binding": {
+            "status": binding["status"],
+            "binding_source": binding_source.relative_to(repo).as_posix(),
+            "stored_repository_id": binding["stored_repository_id"],
+            "current_repository_id": binding["current_repository_id"],
+            "identity_method": binding["identity_method"],
+            "requires_accept_unbound": binding["status"] in {"unbound", "invalid"},
+            "requires_rebind": binding["status"] == "mismatch",
+            "accept_unbound_requested": accept_unbound_calibration,
+            "rebind_requested": rebind_calibration,
+        },
+        "fallback_calibration_detected": bool(fallback_calibration_files),
+        "fallback_calibration_action": fallback_action,
+        "legacy_gate_review": {
+            **legacy_gate_review,
+            "approval_reset_required": gate_reset_required and legacy_gate_review["present"],
+        },
+        "legacy_calibration_locations": legacy_calibration_locations(repo, target_calibration),
         "hosts": hosts,
         "applied": False,
     }
     if not apply:
         return plan
+    if blocked_reasons:
+        raise SystemExit("Installation blocked:\n  " + "\n  ".join(blocked_reasons))
     if conflicts and not force:
         raise SystemExit("Managed-file conflicts detected. Review or rerun with --force:\n  " + "\n  ".join(sorted(set(conflicts))))
 
@@ -1017,13 +1549,32 @@ def install_skill(repo: Path, source: Path, apply: bool, force: bool, hosts: str
 
     installed_files = {r: sha256_file(target / r) for r in sorted(source_files)}
     version = plan["version"]
-    migrated_cal = migrate_fallback_calibration(repo, target)
+    migrated_cal: list[str] = []
+    if fallback_action == "migrate-missing-files":
+        migrated_cal = migrate_fallback_calibration(repo, target)
     created_cal = initialize_calibration(target, template_dir, version, digest)
+    gate_reset = {"present": False, "reset": False, "reset_gate_count": 0}
+    if gate_reset_required:
+        reason = (
+            "fallback calibration moved into the canonical repo skill"
+            if fallback_action == "migrate-missing-files"
+            else f"repository calibration migration status was {binding['status']}"
+        )
+        gate_reset = reset_gate_approvals(target_calibration / "gates.json", reason)
+    binding_path = write_repository_binding(
+        target_calibration,
+        binding,
+        accepted_unbound=binding["status"] in {"unbound", "invalid"},
+        rebound=binding["status"] == "mismatch",
+    )
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "installed_at_utc": utc_now(),
         "source_version": version,
         "source_core_sha256": digest,
+        "source_scope": SOURCE_SCOPE_VALUE,
+        "source_scope_marker_sha256": sha256_file(source / SOURCE_SCOPE_FILENAME) if (source / SOURCE_SCOPE_FILENAME).exists() else None,
+        "repo_binding_required": True,
         "files": installed_files,
         "calibration_ownership": "repo-owned and preserved",
     }
@@ -1038,6 +1589,8 @@ def install_skill(repo: Path, source: Path, apply: bool, force: bool, hosts: str
     plan["applied"] = True
     plan["calibration_migrated"] = migrated_cal
     plan["calibration_created"] = created_cal
+    plan["calibration_binding_written"] = binding_path.relative_to(target).as_posix()
+    plan["migrated_gate_approvals"] = gate_reset
     plan["claude_adapter_created"] = adapter_created
     return plan
 
@@ -1133,6 +1686,16 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     config = read_json(config_path)
     if not isinstance(config, dict) or not isinstance(config.get("gates", []), list):
         raise SystemExit(f"Invalid gate config structure: {config_path}")
+
+    binding = assess_repository_binding(repo, config_path.parent)
+    if binding["status"] != "match":
+        print(
+            "BINDING WARNING: calibration is "
+            f"{binding['status']} for this repository. Migrate, accept, or rebind it before trusting local gates."
+        )
+        if allow_exec:
+            print("REFUSED: deterministic gates cannot execute from unbound or foreign calibration.")
+            return 2
 
     candidates = [
         g for g in config.get("gates", [])
@@ -1359,7 +1922,14 @@ def sanitize_for_proposal(text: str, repo: Path) -> str:
 
 def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged: bool) -> Path:
     repo = repo.resolve()
-    candidate_path = calibration_dir(repo) / "upstream-candidates.md"
+    calibration = calibration_dir(repo)
+    binding = assess_repository_binding(repo, calibration)
+    if binding["status"] != "match":
+        raise SystemExit(
+            f"Flow-back refused because calibration is {binding['status']} for this repository. "
+            "Complete migration or an explicit rebind first."
+        )
+    candidate_path = calibration / "upstream-candidates.md"
     candidates = [c for c in parse_candidates(candidate_path) if c.get("status", "").lower() == "ready"]
     if not candidates:
         raise SystemExit(f"No ready upstream candidates in {candidate_path}")
@@ -1402,6 +1972,9 @@ def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged
         parent = parent.expanduser().resolve()
         if not (parent / "SKILL.md").exists():
             raise SystemExit(f"Parent skill does not look valid: {parent}")
+        parent_scope = inspect_install_source(parent, repo)
+        if parent_scope["unsafe_issues"] or parent_scope["template_errors"]:
+            raise SystemExit("Parent skill is not a clean universal core. Stage the proposal to a reviewed shared source instead.")
         incoming = parent / "incoming"
         incoming.mkdir(parents=True, exist_ok=True)
         shutil.copy2(out_path, incoming / out_path.name)
@@ -1461,6 +2034,30 @@ def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
     if "so Claude can" in text or "so Codex can" in text:
         errors.append("Core description is host-specific")
 
+    scope_path = skill / SOURCE_SCOPE_FILENAME
+    if not scope_path.exists():
+        errors.append(f"Missing {SOURCE_SCOPE_FILENAME}")
+    else:
+        try:
+            scope = json.loads(scope_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"Invalid {SOURCE_SCOPE_FILENAME}: {exc}")
+        else:
+            if not isinstance(scope, dict):
+                errors.append(f"{SOURCE_SCOPE_FILENAME} is not a JSON object")
+            else:
+                if scope.get("kind") != SOURCE_SCOPE_KIND or scope.get("scope") != SOURCE_SCOPE_VALUE:
+                    errors.append(f"{SOURCE_SCOPE_FILENAME} does not identify the universal core")
+                if scope.get("repo_calibration_transfer") != "prohibited":
+                    errors.append(f"{SOURCE_SCOPE_FILENAME} must prohibit repo calibration transfer")
+
+    source_calibration_files = calibration_payload_files(skill / "calibration")
+    if source_calibration_files:
+        errors.append(
+            "Universal core contains repo-owned top-level calibration: "
+            + ", ".join(item.relative_to(skill).as_posix() for item in source_calibration_files)
+        )
+
     artifact_paths = [
         path.relative_to(skill).as_posix()
         for path in skill.rglob("*")
@@ -1513,13 +2110,12 @@ def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
                 continue
             if chr(0x2014) in content or chr(0x2013) in content:
                 dash_files.append(path.relative_to(skill).as_posix())
-            forbidden_paths = ("/home/" + "daniel-boyd", "C:" + "\\Users\\" + "usaft")
-            if any(value in content for value in forbidden_paths):
+            if personal_absolute_path_hits(content):
                 hardcoded_files.append(path.relative_to(skill).as_posix())
     if dash_files:
         errors.append("Non-ASCII em/en dashes found in: " + ", ".join(dash_files))
     if hardcoded_files:
-        errors.append("Developer-specific absolute paths found in: " + ", ".join(hardcoded_files))
+        errors.append("Likely personal absolute paths found in: " + ", ".join(hardcoded_files))
 
     python_files = list((skill / "scripts").glob("*.py")) + list((skill / "tests").glob("*.py"))
     for path in python_files:
@@ -1528,8 +2124,8 @@ def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
         except SyntaxError as exc:
             errors.append(f"Python compile failed for {path.relative_to(skill)}: {exc}")
 
-    if not (skill / "assets" / "templates" / "calibration" / "gates.json").exists():
-        errors.append("Missing calibration gate template")
+    template_errors = validate_calibration_templates(skill / "assets" / "templates" / "calibration")
+    errors.extend(template_errors)
     if not (skill / "references" / "host-adapters.md").exists():
         warnings.append("No host adapter router found")
     if not (skill / "agents" / "openai.yaml").exists():
@@ -1602,7 +2198,16 @@ def command_plan(args: argparse.Namespace) -> int:
 def command_install(args: argparse.Namespace) -> int:
     repo = Path(args.repo).expanduser()
     source = Path(args.source_skill).expanduser() if args.source_skill else SKILL_ROOT
-    plan = install_skill(repo, source, apply=args.apply, force=args.force, hosts=args.hosts)
+    plan = install_skill(
+        repo,
+        source,
+        apply=args.apply,
+        force=args.force,
+        hosts=args.hosts,
+        allow_unsafe_source=args.allow_unsafe_source,
+        accept_unbound_calibration=args.accept_unbound_calibration,
+        rebind_calibration=args.rebind_calibration,
+    )
     print(json.dumps(plan, indent=2))
     if not args.apply:
         print("DRY RUN: add --apply after reviewing conflicts and target paths.")
@@ -1612,7 +2217,16 @@ def command_install(args: argparse.Namespace) -> int:
 def command_bootstrap(args: argparse.Namespace) -> int:
     repo = Path(args.repo).expanduser().resolve()
     source = Path(args.source_skill).expanduser() if args.source_skill else SKILL_ROOT
-    install_plan = install_skill(repo, source, apply=args.apply, force=args.force, hosts=args.hosts)
+    install_plan = install_skill(
+        repo,
+        source,
+        apply=args.apply,
+        force=args.force,
+        hosts=args.hosts,
+        allow_unsafe_source=args.allow_unsafe_source,
+        accept_unbound_calibration=args.accept_unbound_calibration,
+        rebind_calibration=args.rebind_calibration,
+    )
     print(json.dumps(install_plan, indent=2))
     if not args.apply:
         print("DRY RUN: bootstrap did not write or execute repo code. Add --apply to install and generate calibration.")
@@ -1679,6 +2293,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--source-skill")
     p.add_argument("--apply", action="store_true")
     p.add_argument("--force", action="store_true")
+    p.add_argument("--allow-unsafe-source", action="store_true", help="Allow a reviewed legacy or repo-local source. Source calibration is still ignored.")
+    p.add_argument("--accept-unbound-calibration", action="store_true", help="Bind reviewed legacy calibration to this repository.")
+    p.add_argument("--rebind-calibration", action="store_true", help="Rebind calibration after a reviewed repo move, fork, or remote identity change.")
     p.add_argument("--hosts", choices=("auto", "all", "none"), default="auto")
     p.set_defaults(func=command_install)
 
@@ -1687,6 +2304,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--source-skill")
     p.add_argument("--apply", action="store_true")
     p.add_argument("--force", action="store_true")
+    p.add_argument("--allow-unsafe-source", action="store_true", help="Allow a reviewed legacy or repo-local source. Source calibration is still ignored.")
+    p.add_argument("--accept-unbound-calibration", action="store_true", help="Bind reviewed legacy calibration to this repository.")
+    p.add_argument("--rebind-calibration", action="store_true", help="Rebind calibration after a reviewed repo move, fork, or remote identity change.")
     p.add_argument("--hosts", choices=("auto", "all", "none"), default="auto")
     p.add_argument("--max-files", type=int, default=50_000)
     p.add_argument("--content-scan-limit", type=int, default=4_000)

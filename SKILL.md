@@ -2,7 +2,7 @@
 name: anti-dark-code
 description: Model-neutral workflow for mapping, auditing, verifying, and hardening unfamiliar, legacy, fast-growing, or AI-built codebases from evidence instead of guesswork. Use to map architecture and trust boundaries, install repo steering and a calibrated local skill, select deterministic verification capabilities, create compact quality gates and failure packets, audit logging and critical paths, challenge tests and assumptions, preserve localization boundaries, remediate findings safely, or dogfeed repo lessons back into the shared skill. Trigger terms include dark code, anti-dark-code, legacy audit, repo map, verification harness, deterministic testing, mutation testing, fuzzing, UI monkey, unknowns, approval gates, context limits, and reduce AI tokens or credits.
 metadata:
-  version: "2026.08.06-unified.2"
+  version: "2026.08.06-unified.3"
   maintainer: "Daniel Boyd"
 ---
 
@@ -12,8 +12,8 @@ Turn a codebase into an evidence-backed system that agents can understand, chang
 
 The skill has three layers:
 
-1. A model-neutral core under this directory.
-2. A repo-local calibration layer that stores the repo's invariants, system map, gates, coverage, findings, and verification plan.
+1. A model-neutral universal core under this directory, identified by `SOURCE-SCOPE.json`.
+2. A repo-local calibration layer that stores the repo's binding, invariants, system map, gates, coverage, findings, and verification plan.
 3. Thin host addenda for Claude Code, Codex, Gemini CLI, or another agent harness.
 
 Run one bounded pass at a time. Load only the active pass and the small amount of calibration it requires.
@@ -108,6 +108,7 @@ The universal core and repo-local learning have different ownership.
 
 **Repo-owned calibration:** `calibration/`. It may contain:
 
+- `repo-binding.json`
 - `repo-profile.json`
 - `invariants.md`
 - `system-map.md`
@@ -119,6 +120,10 @@ The universal core and repo-local learning have different ownership.
 - `upstream.json`
 
 Read fresh calibration first. Treat stale calibration as a warning, not truth. Update it after a pass when evidence changed.
+
+Calibration is single-repository memory. Never transplant it into another repository. A matching `repo-binding.json` establishes repository identity continuity, not factual freshness.
+
+Install or update the managed core only from a clean universal source. A repo-local copy, populated source calibration, or contaminated calibration template is not a normal installation source.
 
 A repo-local skill may propose a general lesson upstream. It must not directly mutate the developer's shared skill. Flow-back is proposal-only until a human reviews, deduplicates, validates, and promotes it.
 

@@ -7,6 +7,8 @@
   "parent_path": null,
   "notes": [
     "Pass the parent path explicitly or use ADC_PARENT_SKILL when staging a proposal.",
-    "Do not commit personal absolute paths."
-  ]
+    "Do not commit personal absolute paths.",
+    "Flow-back requires repo-binding.json to match the current repository."
+  ],
+  "binding_required": true
 }

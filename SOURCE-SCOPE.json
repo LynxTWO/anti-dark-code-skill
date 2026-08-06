@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "anti-dark-code-core",
+  "scope": "universal",
+  "source_policy": "clean-shared-core-only",
+  "repo_calibration_transfer": "prohibited",
+  "notes": [
+    "This marker identifies a clean universal source core.",
+    "Repo-owned calibration must never be copied from this source into another repository.",
+    "A repo-local installed copy may contain calibration beside the managed core, but it is not a safe installation source without explicit review."
+  ]
+}

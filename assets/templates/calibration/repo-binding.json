@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "binding_status": "unbound-template",
+  "repository_id": null,
+  "identity_method": null,
+  "identity_components": {},
+  "bound_at_utc": null,
+  "last_verified_at_utc": null,
+  "previous_repository_ids": [],
+  "notes": [
+    "The installer replaces this template with a one-repository binding.",
+    "Do not copy a bound calibration directory into another repository."
+  ]
+}
