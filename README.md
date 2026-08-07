@@ -99,6 +99,14 @@ Issues and pull requests are welcome. `main` is protected: all changes land by p
 
 Be aware of what this repository is: **skill text becomes instructions executed by AI assistants with their operator's authority.** A malicious or careless change here would run, in effect, with the hands of everyone who installs it. Contributions are therefore reviewed as executable code, strictly. The same caution applies to you: if you fork this skill, review what you ship.
 
+Contributions are accepted under the project license (inbound equals outbound): by submitting a pull request you license your changes under FSL-1.1-MIT.
+
+## License
+
+**FSL-1.1-MIT** (Functional Source License): use it for anything, including at work and on commercial codebases, and share your changes. The one thing you may not do is sell the skill itself, or a substantially similar product built from it, as a commercial product or service. Each release automatically becomes plain MIT two years after publication. Full text in [LICENSE.md](LICENSE.md).
+
+If this saves you real time and you feel like covering some of my build costs, there is a Sponsor button on the repo. Donations are welcome and never required.
+
 ---
 
 ## What It Does
