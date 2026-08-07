@@ -1,8 +1,105 @@
-# Anti-Dark-Code Skill, Unified 2026-08-06
+# Anti-Dark-Code
 
-This package replaces separate model-specific copies with one model-neutral core, repo-local calibration, optional host adapters, and deterministic local tooling.
+A skill that teaches AI coding assistants (Claude Code, Codex, Gemini CLI, and others) to work on codebases from evidence instead of guesswork: map what actually runs, prove claims or record them as unknowns, hold risky changes behind approval gates, and verify work with deterministic checks instead of confident prose.
 
-Version: `2026.08.06-unified.4`
+- **Plain-language overview**: https://lynxtwo.github.io/anti-dark-code-skill/
+- **Version**: `2026.08.06-unified.4` (see `CHANGELOG.md`)
+
+One model-neutral core, repo-local calibration, and deterministic local tooling. No network calls, no telemetry, no dependencies beyond Python 3 for the optional tooling.
+
+## Quick start if you are new to all of this
+
+You do not need to understand any of the machinery. If you use an AI coding assistant, paste this into it (one line):
+
+```text
+Install the anti-dark-code skill for me: download https://github.com/LynxTWO/anti-dark-code-skill to a temporary folder, place its inner anti-dark-code folder into my assistant's skills directory (~/.claude/skills/ for Claude Code, ~/.agents/skills/ for Codex or Gemini), delete the downloaded copy, and confirm by reading the skill's VERSION file. Then tell me what it can do.
+```
+
+Your assistant will ask permission to run a download command and a copy command. That is normal for this one-time install; approve them. If your assistant says it cannot download things, do the by-hand steps below yourself, then tell it where you put the folder.
+
+Prefer doing it by hand? Open https://github.com/LynxTWO/anti-dark-code-skill in your browser, click the green **Code** button, then **Download ZIP**. Unzip it and copy the inner `anti-dark-code` folder so you end up with:
+
+| Your assistant | Final result |
+|---|---|
+| Claude Code | `~/.claude/skills/anti-dark-code/SKILL.md` exists |
+| Codex or Gemini | `~/.agents/skills/anti-dark-code/SKILL.md` exists |
+
+Three by-hand pitfalls, named so you can dodge them:
+
+- `~` means your home folder (on Windows, `C:\Users\<you>`). Folders starting with a dot are hidden by default: press Cmd+Shift+. in the Mac Finder or Ctrl+H in most Linux file managers to reveal them.
+- If the `skills` folder does not exist yet, create it.
+- If you end up with `anti-dark-code` inside another `anti-dark-code`, move the inner one up a level. A double-nested copy fails silently, with no error anywhere.
+
+If any of that sounds tedious: use the paste method above instead. That is what it is for.
+
+Then close your assistant and open it again inside the folder of the project you care about (skills are discovered when a session starts), and ask things like:
+
+- "Use anti-dark-code to map this project and tell me what actually runs."
+- "Audit this codebase with anti-dark-code before I change anything."
+- "What do we NOT know about this repo? Record the unknowns."
+- "Set up automatic checks for this project and walk me through approving them."
+
+Four things to know, in plain terms:
+
+1. **The checks this skill sets up never run without your approval.** Commands it wants to run are written into a file as proposals; nothing executes until you approve each one and confirm. You can simply never approve anything, and it will only ever look.
+2. **It refuses to guess.** Everything it records is marked as proven, likely, or unknown, with the evidence cited. If it cannot prove something, it says so instead of sounding confident.
+3. **It keeps its notes inside your project.** Maps, checklists, and open questions live in a small folder in the project so the next session remembers. It asks before creating them, and they are ordinary text files you can read and delete.
+4. **It works on any language or stack.** The skill adapts what it checks to what your project actually is.
+
+## Already using an older version?
+
+**If the skill just lives in your assistant's skills folder** (no per-project installs): replacing the folder is the whole upgrade. Paste this into your assistant:
+
+```text
+Update my anti-dark-code skill: replace the anti-dark-code folder in my
+assistant's skills directory with the latest one from
+https://github.com/LynxTWO/anti-dark-code-skill and confirm the new
+version by reading its VERSION file.
+```
+
+**If you installed it into projects** (there is a `.agents/skills/anti-dark-code/` folder inside a repository): upgrade each project by re-running the installer from the new core. It preserves your project's `calibration/` knowledge, verifies the repository binding, and stops on conflicts instead of overwriting:
+
+```bash
+python3 /path/to/new/anti-dark-code/scripts/adc.py install --repo /path/to/repo --hosts all --apply
+```
+
+**If you are coming from a version before repository binding existed** (the old separate Claude and Codex variants, or any copy without `calibration/repo-binding.json`): read `MIGRATION.md` first. The installer will flag your calibration as `unbound` and require an explicit `--accept-unbound-calibration`; accepting deliberately resets every gate to disabled and proposed, because old approvals do not survive migration. That is protection, not breakage: review the gates once and re-approve.
+
+## For senior developers
+
+Everything below this point is the operator manual: the three-layer trust model, deterministic tooling (`adc.py`), repository binding, gate approval semantics, exit codes, and flow-back. The short version of what you are looking at:
+
+- **One universal core, many hosts.** The skill ships as a single model-neutral tree; each assistant discovers it through its own path (symlink or junction at user level). Host-specific behavior lives in small addenda, never in forked cores.
+- **Repo installs are managed and checksummed.** `adc.py bootstrap` places a checksummed core copy (local edits are detected and block the next upgrade rather than being prevented outright) plus a repo-owned `calibration/` overlay (invariants, system map, exact gates, ledgers) that survives core upgrades. Installation and profiling never execute repository code.
+- **Calibration is bound to one repository** by hashed identity. Foreign or unbound calibration is refused for gate execution and flow-back; migration resets all gate approvals by design.
+- **Gates are exact argv arrays with three locks** (per-gate approval, recorded owner confirmation, an explicit exec flag), real exit codes, bounded failure packets, and process-tree timeout kills. Blocked plans exit `2` even in dry runs, so CI can tell clean from blocked.
+- **Knowledge flows one way.** Core flows down into repos; repo lessons flow up only as sanitized, content-hashed proposals into `incoming/` for human review. A compromised repo cannot rewrite the shared skill.
+- **The design rule underneath**: never spend model intelligence on work a compiler, schema, diff, seed, or reviewed deterministic command can settle exactly. Agents do judgment; the computer does mechanics and evidence.
+
+Read next: `anti-dark-code/SKILL.md` (the pass router and evidence rules), `anti-dark-code/references/` (one file per pass), `MIGRATION.md` (adopting or upgrading existing installations), `AUDIT-AND-DESIGN.md` (why it is shaped this way).
+
+### Multi-machine pattern
+
+Clone this repository once per machine, point each host's user-level skills path at the clone's `anti-dark-code/` directory (symlink on Linux and macOS, junction on Windows), and let git be the transport:
+
+```text
+laptop clone  <->  this repository  <->  desktop clone
+     |                                        |
+user-level symlinks                 user-level junctions
+     |                                        |
+repo installs via adc.py            repo installs via adc.py
+     \_______ flowback proposals to incoming/ ______/
+```
+
+Set `ADC_PARENT_SKILL` to your clone's `anti-dark-code/` path so `flowback --stage-to-parent` needs no `--parent` argument. Do not use file-sync services (OneDrive, Dropbox) on the clone; partial syncs and conflict copies corrupt git repositories and will fail this skill's clean-source validation.
+
+## Contributing, and a note on trust
+
+Issues and pull requests are welcome. `main` is protected: all changes land by pull request and are reviewed by the maintainer alone.
+
+Be aware of what this repository is: **skill text becomes instructions executed by AI assistants with their operator's authority.** A malicious or careless change here would run, in effect, with the hands of everyone who installs it. Contributions are therefore reviewed as executable code, strictly. The same caution applies to you: if you fork this skill, review what you ship.
+
+---
 
 ## What It Does
 

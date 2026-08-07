@@ -167,6 +167,7 @@
   .tiercard p { font-size: 0.86rem; margin: 0.2rem 0; color: var(--muted); }
   .tiercard p strong { color: var(--ink); font-weight: 650; }
 
+  .snippet { font-family: var(--mono); font-size: 0.82rem; background: var(--node); border: 1px solid var(--rule); border-radius: 4px; padding: 0.7rem 0.8rem; overflow-x: auto; }
   code { font-family: var(--mono); font-size: 0.86em; background: var(--accent-soft); color: var(--accent); padding: 0.08em 0.35em; border-radius: 3px; }
   ul.clean { padding-left: 1.15rem; margin: 0.5rem 0; }
   ul.clean li { margin: 0.35rem 0; }
@@ -485,6 +486,26 @@
       <li>You only need a one-line answer, not a mapped and recorded pass.</li>
     </ul>
   </div>
+</div>
+
+<h2>How to get it</h2>
+<div class="two">
+  <div class="yes"><h3>New to all of this?</h3>
+    <p>You do not need to understand the machinery. If you use an AI coding assistant, paste this into it:</p>
+    <p class="snippet">Install the anti-dark-code skill for me: download https://github.com/LynxTWO/anti-dark-code-skill to a temporary folder, place its inner anti-dark-code folder into my assistant's skills directory (~/.claude/skills/ for Claude Code, ~/.agents/skills/ for Codex or Gemini), delete the downloaded copy, and confirm by reading the skill's VERSION file. Then tell me what it can do.</p>
+    <p>Your assistant will ask permission to run a download command and a copy command. That is normal for this one-time install; approve them. Afterwards, close your assistant and open it again inside your project, then ask things like "map this project and tell me what actually runs," or "audit this codebase before I change anything."</p>
+    <p>Three reassurances: the checks it sets up never run without your approval; it marks everything it records as proven, likely, or unknown instead of guessing; and it keeps its notes in a small folder inside your project, in ordinary text files it asks before creating.</p>
+  </div>
+  <div class="no"><h3>Senior developer?</h3>
+    <p>One model-neutral core; per-host discovery via user-level symlinks or junctions; managed, checksummed repo installs with a repo-owned calibration overlay; identity-bound calibration; exact argv gates behind three locks with real exit codes; proposal-only flow-back.</p>
+    <p class="snippet">git clone https://github.com/LynxTWO/anti-dark-code-skill<br>cd anti-dark-code-skill<br>python3 anti-dark-code/scripts/adc.py validate<br>python3 anti-dark-code/scripts/adc.py bootstrap --repo &lt;repo&gt; --hosts all<br># review the printed plan, then re-run with --apply</p>
+    <p>The <a href="https://github.com/LynxTWO/anti-dark-code-skill#for-senior-developers">README's operator manual</a> covers the trust model, binding, gate semantics, exit codes, and the multi-machine pattern. Installation and profiling never execute repository code.</p>
+  </div>
+</div>
+
+<div class="callout">
+  <h3>Already on an older version?</h3>
+  <p>If the skill only lives in your assistant's skills folder, replacing that folder with the latest copy is the whole upgrade. If you installed it into projects, re-run the installer from the new core: it preserves each project's calibration and verifies the repository binding. Coming from a version before repository binding existed (the old separate Claude and Codex variants)? Read <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/MIGRATION.md">MIGRATION.md</a> first: the installer will ask you to explicitly accept your legacy calibration, and it resets gate approvals on the way in. That is protection, not breakage. The <a href="https://github.com/LynxTWO/anti-dark-code-skill#already-using-an-older-version">README's upgrade section</a> has the exact commands.</p>
 </div>
 
 <footer>
