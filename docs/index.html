@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Anti-Dark-Code: a staged, evidence-first workflow for mapping, auditing, verifying, and hardening codebases. Plain-language field brief.">
+<title>Anti-Dark-Code: A Plain-Language Brief</title>
+<style>
+  :root {
+    --paper: #EDF1F2;
+    --card: #FFFFFF;
+    --ink: #1A2024;
+    --muted: #58636B;
+    --rule: #D2D9DD;
+    --rule-strong: #B7C0C6;
+    --accent: #0F6157;
+    --accent-soft: #E2EEEC;
+    --signal: #A9531A;
+    --signal-soft: #F4E7DC;
+    --verified: #1F7A4D;
+    --inferred: #9C6A15;
+    --unknown: #667079;
+    --node: #FBFCFC;
+    --sans: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161A; --card: #191F24; --ink: #E4E9EC; --muted: #98A2A9;
+      --rule: #29323A; --rule-strong: #3A454E; --accent: #47B3A6; --accent-soft: #17302E;
+      --signal: #DE8A4C; --signal-soft: #2C2117; --verified: #58B37E; --inferred: #CFA24C;
+      --unknown: #8B949B; --node: #1F262C;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #10161A; --card: #191F24; --ink: #E4E9EC; --muted: #98A2A9;
+    --rule: #29323A; --rule-strong: #3A454E; --accent: #47B3A6; --accent-soft: #17302E;
+    --signal: #DE8A4C; --signal-soft: #2C2117; --verified: #58B37E; --inferred: #CFA24C;
+    --unknown: #8B949B; --node: #1F262C;
+  }
+  :root[data-theme="light"] {
+    --paper: #EDF1F2; --card: #FFFFFF; --ink: #1A2024; --muted: #58636B;
+    --rule: #D2D9DD; --rule-strong: #B7C0C6; --accent: #0F6157; --accent-soft: #E2EEEC;
+    --signal: #A9531A; --signal-soft: #F4E7DC; --verified: #1F7A4D; --inferred: #9C6A15;
+    --unknown: #667079; --node: #FBFCFC;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 16px; line-height: 1.6; margin: 0; padding: 0 1.25rem 5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; }
+  .prose { max-width: 44rem; }
+  h1, h2, h3 { line-height: 1.18; text-wrap: balance; }
+  h1 { font-size: 2.15rem; font-weight: 800; letter-spacing: -0.02em; margin: 0.3rem 0 0.4rem; }
+  h2 {
+    font-size: 1.4rem; font-weight: 750; letter-spacing: -0.01em; margin: 2.9rem 0 0.5rem;
+    padding-top: 1.4rem; border-top: 2px solid var(--rule-strong);
+  }
+  h3 { font-size: 1.06rem; font-weight: 700; margin: 1.6rem 0 0.3rem; }
+  p { margin: 0.6rem 0; }
+  a { color: var(--accent); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  .lede { font-size: 1.16rem; color: var(--ink); max-width: 46rem; }
+  .meta { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; margin-top: 1rem; }
+
+  header.top { padding-top: 2.6rem; }
+  .rule-band {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.4rem 0 0.3rem;
+  }
+  .pill {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.28rem 0.6rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); white-space: nowrap;
+  }
+
+  .callout {
+    background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--accent);
+    padding: 0.9rem 1.1rem; margin: 1.1rem 0; border-radius: 3px;
+  }
+  .callout.warn { border-left-color: var(--signal); background: color-mix(in srgb, var(--signal-soft) 55%, var(--card)); }
+  .callout h3 { margin: 0 0 0.3rem; font-size: 0.98rem; }
+  .callout p { margin: 0.25rem 0; font-size: 0.95rem; }
+
+  /* evidence tiers */
+  .tier { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; padding: 0.05rem 0.4rem; border-radius: 3px; white-space: nowrap; }
+  .tier.v { color: var(--verified); box-shadow: inset 0 0 0 1px var(--verified); }
+  .tier.i { color: var(--inferred); box-shadow: inset 0 0 0 1px var(--inferred); }
+  .tier.u { color: var(--unknown); box-shadow: inset 0 0 0 1px var(--unknown); }
+
+  /* pass list */
+  .passes { display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0; }
+  .fam-label {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 1.1rem 0 0.1rem;
+  }
+  .pass {
+    display: grid; grid-template-columns: 3.1rem 1fr; gap: 0.9rem; align-items: baseline;
+    background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 0.7rem 0.9rem;
+  }
+  .pass .id {
+    font-family: var(--mono); font-size: 1.15rem; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .pass .body .name { font-weight: 700; font-size: 0.98rem; }
+  .pass .body .what { color: var(--muted); font-size: 0.92rem; margin-top: 0.15rem; }
+
+  /* figures / flowcharts */
+  figure { margin: 1.5rem 0; }
+  figcaption { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.7rem; }
+  .chart {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 1.5rem 1.2rem; overflow-x: auto;
+  }
+  .flow { display: flex; flex-direction: column; align-items: center; }
+  .fnode {
+    background: var(--node); border: 1.5px solid var(--rule-strong); border-radius: 5px;
+    padding: 0.6rem 0.95rem; text-align: center; max-width: 30rem; width: 100%;
+  }
+  .fnode .tag { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 0.15rem; }
+  .fnode .txt { font-size: 0.9rem; font-weight: 600; display: block; }
+  .fnode .sub { font-size: 0.8rem; color: var(--muted); font-weight: 400; margin-top: 0.2rem; display: block; }
+  .fnode.accent { border-color: var(--accent); background: var(--accent-soft); }
+  .fnode.signal { border-color: var(--signal); background: color-mix(in srgb, var(--signal-soft) 50%, var(--node)); }
+  .fnode.decision { border-radius: 999px; border-style: dashed; }
+  .conn { width: 2px; height: 22px; background: var(--rule-strong); position: relative; }
+  .conn::after {
+    content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--rule-strong);
+  }
+  .conn.labeled::before {
+    content: attr(data-label); position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 0.62rem; color: var(--muted); white-space: nowrap;
+  }
+  .fan {
+    width: 100%; border: 1.5px dashed var(--accent); border-radius: 6px; padding: 1.4rem 0.9rem 0.9rem;
+    position: relative; margin-top: 0;
+  }
+  .fan-tag {
+    position: absolute; top: -0.62rem; left: 0.9rem; background: var(--card); padding: 0 0.5rem;
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+  }
+  .fan-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 0.6rem; }
+  .branch { display: flex; gap: 1.2rem; width: 100%; justify-content: center; flex-wrap: wrap; }
+  .branch > .flow { flex: 1; min-width: 12rem; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 1rem 1.4rem; margin: 0.9rem 0 0; font-size: 0.82rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 0.9rem; height: 0.9rem; border-radius: 3px; border: 1.5px solid var(--rule-strong); display: inline-block; }
+  .swatch.accent { border-color: var(--accent); background: var(--accent-soft); }
+  .swatch.dash { border-style: dashed; border-radius: 999px; }
+  .swatch.signal { border-color: var(--signal); }
+
+  /* tiers table for GC */
+  .tiergrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.7rem; margin: 1rem 0; }
+  .tiercard { background: var(--card); border: 1px solid var(--rule); border-radius: 5px; padding: 0.85rem 0.95rem; }
+  .tiercard .h { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.35rem; font-weight: 700; }
+  .tiercard.protected .h { color: var(--verified); }
+  .tiercard.cheap .h { color: var(--accent); }
+  .tiercard.expensive .h { color: var(--inferred); }
+  .tiercard.unknownt .h { color: var(--signal); }
+  .tiercard p { font-size: 0.86rem; margin: 0.2rem 0; color: var(--muted); }
+  .tiercard p strong { color: var(--ink); font-weight: 650; }
+
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--accent-soft); color: var(--accent); padding: 0.08em 0.35em; border-radius: 3px; }
+  ul.clean { padding-left: 1.15rem; margin: 0.5rem 0; }
+  ul.clean li { margin: 0.35rem 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .two > div { background: var(--card); border: 1px solid var(--rule); border-radius: 5px; padding: 0.9rem 1rem; }
+  .two h3 { margin-top: 0; }
+  .two.yes h3 { color: var(--verified); }
+  .two.no h3 { color: var(--signal); }
+
+  footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.03em; }
+
+  @media (max-width: 34rem) { .two { grid-template-columns: 1fr; } }
+
+  @media print {
+    :root {
+      --paper: #0E1417; --card: #171E23; --ink: #E9EDEF; --muted: #A3ADB3; --rule: #2A333A;
+      --rule-strong: #414C55; --accent: #57BEB1; --accent-soft: #163230; --signal: #E49559;
+      --signal-soft: #2C2016; --verified: #63BF88; --inferred: #D8AB52; --unknown: #949DA4; --node: #1C242B;
+    }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    @page { margin: 0; }
+    html, body { background: var(--paper) !important; }
+    body { font-size: 11.5pt; padding: 0.5in 0.62in 0.55in; }
+    .wrap { max-width: 100%; }
+    h2 { margin-top: 1.5rem; }
+    figure, .callout, .pass, .tiercard, .chart, .two > div, .fnode { break-inside: avoid; }
+    h1, h2, h3 { break-after: avoid; }
+    .chart { overflow: visible; }
+    a { color: var(--accent); text-decoration: none; }
+    footer { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Field Brief</div>
+  <h1>Anti-Dark-Code</h1>
+  <p class="lede">A staged workflow that turns an unfamiliar or messy codebase into a mapped, documented, evidence-backed one, so an AI (or a person) works from proof instead of guesswork.</p>
+  <div class="rule-band">
+    <span class="pill">Evidence over guessing</span>
+    <span class="pill">One slice at a time</span>
+    <span class="pill">Approval before risky edits</span>
+    <span class="pill">Deterministic first</span>
+    <span class="pill">One core, any host</span>
+    <span class="pill">Optional AI swarm</span>
+  </div>
+  <p class="meta">Plain-language brief. Covers what the skill does, every pass, the evidence rules, the deterministic verification layer, how a repo installs and calibrates its own copy, and how the agent swarm runs when the harness supports it.</p>
+  <p class="meta" style="margin-top:0.5rem;"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/brief/anti-dark-code-brief.pdf">PDF version</a> · MIT-less for now: all rights reserved, read and learn freely</p>
+</header>
+
+<h2>What problem it solves</h2>
+<p class="prose">Every long-lived codebase collects <strong>dark code</strong>: parts that look understandable but hide how the system actually behaves. Unclear ownership, silent side effects, a script that quietly touches production, prose that promises a feature the code never implements. Dark code is dangerous because it makes people confident about things they cannot actually prove.</p>
+<p class="prose">Anti-Dark-Code is the antidote. It gives an AI a fixed set of numbered passes to run, one at a time, each producing durable records the repo keeps. The rule underneath all of it is short: do not guess. Mark every claim as proven, likely, or unknown, and never let a likely claim get written down as a proven one.</p>
+
+<div class="callout">
+  <h3>The one idea to remember</h3>
+  <p>Facts come from evidence in the repo, not from the model's memory or a confident guess. If the code cannot prove it, the skill will not claim it. That single habit is what keeps the whole workflow honest.</p>
+</div>
+
+<h2>The evidence language</h2>
+<p class="prose">Every claim the skill records carries one of three labels. This is the vocabulary the whole workflow shares.</p>
+<div class="passes">
+  <div class="pass"><span class="id"><span class="tier v">verified</span></span><div class="body"><div class="what">Direct repo evidence supports the claim. It cites the exact file, line, command, or document that proves it.</div></div></div>
+  <div class="pass"><span class="id"><span class="tier i">inferred</span></span><div class="body"><div class="what">The evidence is consistent with the claim but does not prove it. The skill names the gap that stops it from being verified.</div></div></div>
+  <div class="pass"><span class="id"><span class="tier u">unknown</span></span><div class="body"><div class="what">Evidence is missing, contradictory, or lives outside the repo (a vendor dashboard, a sibling repo, live telemetry). Recorded, not guessed at.</div></div></div>
+</div>
+<p class="prose">When a check would force a claim down to <span class="tier i">inferred</span>, the skill writes <span class="tier i">inferred</span>. It downgrades rather than rounds up. Anything it cannot resolve becomes a written <span class="tier u">unknown</span> with an owner, a risk level, and the next best check, so nothing quietly disappears.</p>
+
+<h2>The rules that never bend</h2>
+<div class="two">
+  <div>
+    <h3>Work one slice at a time</h3>
+    <p>Run one numbered pass on one bounded slice, finish it, record it, then move on. No interleaving passes. Small, reversible steps beat one sweeping change.</p>
+  </div>
+  <div>
+    <h3>Stop at approval gates</h3>
+    <p>Auth, billing, deletion, secrets, migrations that rewrite saved data, hash or receipt truth: document the finding first, propose the smallest safe edit, and stop for a human before touching it.</p>
+  </div>
+</div>
+<p class="prose">Two more hold across every pass. <strong>Preserve scope honesty:</strong> one clean file does not stand in for a whole mixed system, and out-of-repo control planes are named, not folded into local coverage. <strong>Protect the record:</strong> comments that explain a trust boundary, an ordering rule, or a recovery path are treated as load-bearing and are not silently removed.</p>
+
+<h2>The passes</h2>
+<p class="prose">The skill is a menu of numbered passes grouped into families. A run loads only the one pass it is doing, does that work, reports back, and picks the next. Most passes are read-only or docs-only. Only the remediation pass changes application code, and only after the map, the unknowns, and the approval gates are in place.</p>
+
+<div class="fam-label">Orient</div>
+<div class="passes">
+  <div class="pass"><span class="id">00</span><div class="body"><div class="name">Preflight</div><div class="what">Look before committing. Sniff what kind of repo this is, check whether earlier maps have gone stale, and pick where to start.</div></div></div>
+  <div class="pass"><span class="id">01</span><div class="body"><div class="name">Steering files</div><div class="what">Read and set the operating rules: the AGENTS.md style guidance, approval gates, and sensitive-data rules that govern the repo.</div></div></div>
+</div>
+
+<div class="fam-label">Map</div>
+<div class="passes">
+  <div class="pass"><span class="id">02</span><div class="body"><div class="name">Architecture map</div><div class="what">Draw the real runtime picture: what runs where, where data enters, and where trust changes hands.</div></div></div>
+  <div class="pass"><span class="id">05</span><div class="body"><div class="name">Coverage and slicing</div><div class="what">When the repo is too big for one honest pass, cut it into risk-ranked slices and keep an honest ledger of what is covered, blocked, or still dark.</div></div></div>
+</div>
+
+<div class="fam-label">Harden</div>
+<div class="passes">
+  <div class="pass"><span class="id">03</span><div class="body"><div class="name">Critical-path comments</div><div class="what">Add why-focused comments on the riskiest code, without changing behavior.</div></div></div>
+  <div class="pass"><span class="id">04</span><div class="body"><div class="name">Logging and telemetry audit</div><div class="what">Inspect logs, analytics, and error paths for leaks and over-collection.</div></div></div>
+  <div class="pass"><span class="id">06</span><div class="body"><div class="name">Writing hygiene</div><div class="what">Clean vague, inflated, or sloppy text out of the comments and docs the earlier passes wrote.</div></div></div>
+</div>
+
+<div class="fam-label">Challenge</div>
+<div class="passes">
+  <div class="pass"><span class="id">07</span><div class="body"><div class="name">Adversarial review</div><div class="what">Try to break the current picture. Hunt blind spots, weak trust boundaries, hidden control planes, and coverage that claims more than it proved.</div></div></div>
+  <div class="pass"><span class="id">08</span><div class="body"><div class="name">Scenario stress-test</div><div class="what">Run realistic failure and abuse scenarios against the map to see whether it holds.</div></div></div>
+</div>
+
+<div class="fam-label">Clean up and keep clean</div>
+<div class="passes">
+  <div class="pass"><span class="id">09</span><div class="body"><div class="name">Artifact garbage collection</div><div class="what">Separate the claim from the file, record how to regenerate it, then tier the clutter (logs, snapshots, scratch scripts, stale baselines) and clean it up safely.</div></div></div>
+  <div class="pass"><span class="id">10</span><div class="body"><div class="name">Maintenance harness</div><div class="what">Install guardrails: PR templates, drift checks, and review gates that keep the repo honest over time.</div></div></div>
+  <div class="pass"><span class="id">12</span><div class="body"><div class="name">Transcreation boundary</div><div class="what">Keep language, locale, and copy from becoming hidden runtime truth. Rendered text is a view, not the source of facts.</div></div></div>
+</div>
+
+<div class="fam-label">Fix</div>
+<div class="passes">
+  <div class="pass"><span class="id">11</span><div class="body"><div class="name">Remediation loop</div><div class="what">Turn findings into small, safe, approval-gated fix batches, each with a verification step. This is the only pass that edits application code.</div></div></div>
+</div>
+
+<div class="fam-label">Calibrate and verify</div>
+<div class="passes">
+  <div class="pass"><span class="id">13</span><div class="body"><div class="name">Calibrated local mode</div><div class="what">Install the skill into the repo itself, with a repo-owned calibration layer (invariants, system map, exact gates, coverage and findings ledgers) that every later pass reads first. A known repo stops pretending to be unfamiliar every time a context window resets.</div></div></div>
+  <div class="pass"><span class="id">14</span><div class="body"><div class="name">Deterministic verification planner</div><div class="what">Profile the repo with a bounded script, evaluate all twenty verification capabilities (mutation, fuzzing, goldens, replay, metamorphic properties, fault injection, and more), select the repo-fit subset, and store the exact reviewed commands the computer will run with real exit codes.</div></div></div>
+  <div class="pass"><span class="id">15</span><div class="body"><div class="name">Dogfeeding and flow-back</div><div class="what">Write what a run learned back into the repo's calibration. Lessons general enough to help other repos queue as proposals; a human reviews and promotes them into the shared core. Nothing flows upstream on its own.</div></div></div>
+</div>
+
+<figure>
+  <figcaption>Figure 1: how a repo moves through the passes</figcaption>
+  <div class="chart">
+    <div class="flow">
+      <div class="fnode accent"><span class="tag">Start</span><span class="txt">00 Preflight</span><span class="sub">what kind of repo, what is stale, where to start</span></div>
+      <div class="conn"></div>
+      <div class="fnode decision"><span class="txt">What kind of repo is this?</span></div>
+      <div class="branch">
+        <div class="flow">
+          <div class="conn labeled" data-label="small + new: mini-mode"></div>
+          <div class="fnode"><span class="txt">01 steering, 02 map</span><span class="sub">then the 03 + 06 comment loop, 04 audit, 11 fix</span></div>
+        </div>
+        <div class="flow">
+          <div class="conn labeled" data-label="unfamiliar: full mode"></div>
+          <div class="fnode"><span class="txt">01 Steering, 02 Map</span></div>
+          <div class="conn"></div>
+          <div class="fnode"><span class="txt">05 Slice the big repo</span><span class="sub">risk-ranked, with a coverage ledger</span></div>
+          <div class="conn"></div>
+          <div class="fnode"><span class="txt">03 + 06 comments, 04 audit</span><span class="sub">one slice at a time</span></div>
+          <div class="conn"></div>
+          <div class="fnode"><span class="txt">07 / 08 Challenge the map</span></div>
+          <div class="conn"></div>
+          <div class="fnode"><span class="txt">14 Plan deterministic gates</span><span class="sub">then 09 GC, 10 harness, 12 language</span></div>
+        </div>
+        <div class="flow">
+          <div class="conn labeled" data-label="known + calibrated"></div>
+          <div class="fnode accent"><span class="txt">Read the calibration first</span><span class="sub">invariants, map, gates, ledgers</span></div>
+          <div class="conn"></div>
+          <div class="fnode"><span class="txt">Diff the changed surface</span><span class="sub">earliest relevant pass only; no cold re-crawl</span></div>
+          <div class="conn"></div>
+          <div class="fnode"><span class="txt">Run the exact gates, then 11</span><span class="sub">write learnings back; 15 if a general lesson survived</span></div>
+        </div>
+      </div>
+      <div class="conn"></div>
+      <div class="fnode signal"><span class="tag">Only after the above</span><span class="txt">11 Remediation</span><span class="sub">small approval-gated fixes, each verified</span></div>
+    </div>
+  </div>
+</figure>
+
+<h2>The deterministic layer</h2>
+<p class="prose">The newest rule sits under everything else: <strong>never spend model intelligence on work a compiler, schema, dependency graph, seed, diff, or test runner can settle exactly.</strong> Agents do the judgment. The computer does the mechanics and produces the evidence.</p>
+<p class="prose">A small deterministic tool ships inside the skill (<code>scripts/adc.py</code>, plain Python, no dependencies). It profiles a repo without executing any of its code, evaluates all twenty verification capabilities against what it found, installs and upgrades the repo copy with checksums, runs approved quality gates as exact argument arrays with real exit codes, and stages flow-back proposals. When a gate passes, the result collapses to one line. When it fails, the agent receives a small bounded failure packet, and the full log stays local, pattern-redacted, out of the conversation.</p>
+
+<div class="callout">
+  <h3>Three locks before a gate ever executes</h3>
+  <p>The gate runner is dry-run by default. Execution requires all three: each command individually marked <strong>approved</strong> by the owner, a recorded global <strong>owner confirmation</strong> in the gate file, and the explicit <strong>allow-exec</strong> flag on the invocation. Any new or changed generated gate resets the confirmation, and a gate whose underlying script changed after approval is blocked until re-reviewed.</p>
+</div>
+
+<p class="prose">Gates are organized on a four-level confidence ladder, so a run knows how much verification a moment deserves. It prevents the two classic failures: running almost nothing during development, or running everything after every tiny edit.</p>
+<div class="tiergrid">
+  <div class="tiercard cheap"><div class="h">Level 0: every edit</div><p><strong>Seconds.</strong> Format, typecheck, lint, schema and architecture rules. Cheap enough that skipping it is never worth it.</p></div>
+  <div class="tiercard protected"><div class="h">Level 1: slice done</div><p><strong>A few minutes.</strong> Affected unit and contract tests, focused integration, replay and invariant checks for the touched surface.</p></div>
+  <div class="tiercard expensive"><div class="h">Level 2: pre-merge</div><p><strong>Selective depth.</strong> Property and metamorphic checks, short fuzz runs, changed-module mutation, perf smoke, targeted fault injection.</p></div>
+  <div class="tiercard unknownt"><div class="h">Level 3: scheduled</div><p><strong>The heavy battery.</strong> Full suites, long fuzz and soak campaigns, migration and platform matrices, statistical canaries for emergent behavior.</p></div>
+</div>
+
+<h2>How the AI swarm works</h2>
+<p class="prose">On a harness that can spawn subagents, the skill switches on an <strong>orchestration mode</strong>. This changes only <em>how</em> the work runs, never the pass order, the approval gates, or the evidence rules. The most important boundary: the fan-out lives <strong>inside a single pass</strong>. Many readers, many slices, many verification angles, but still one pass at a time. Passes never run in parallel with each other.</p>
+
+<p class="prose">A pass that fans out follows the same shape every time. Free shell work does the counting. Mid-tier readers do the reading. Independent verifiers try to break each claim. One orchestrator writes the record. A subagent's claim never enters the record as proven on its own word.</p>
+
+<figure>
+  <figcaption>Figure 2: the swarm inside one pass</figcaption>
+  <div class="chart">
+    <div class="flow">
+      <div class="fnode"><span class="tag">Free, plain shell</span><span class="txt">Inventory</span><span class="sub">list files, sizes, git status, grep for references. No paid agent counts things a command can count.</span></div>
+      <div class="conn"></div>
+      <div class="fan">
+        <span class="fan-tag">Runs in parallel: one reader per slice</span>
+        <div class="fan-row">
+          <div class="fnode"><span class="tag">Mid tier</span><span class="txt">Slice A</span></div>
+          <div class="fnode"><span class="tag">Mid tier</span><span class="txt">Slice B</span></div>
+          <div class="fnode"><span class="tag">Mid tier</span><span class="txt">Slice C</span></div>
+          <div class="fnode signal"><span class="tag">One tier up</span><span class="txt">Riskiest slice</span></div>
+        </div>
+      </div>
+      <div class="conn"></div>
+      <div class="fnode"><span class="txt">Each reader returns claims with citations</span><span class="sub">every claim names a file and line, or it is capped at inferred</span></div>
+      <div class="conn"></div>
+      <div class="fan">
+        <span class="fan-tag">Runs in parallel: adversarial verification, scaled by stakes</span>
+        <div class="fan-row">
+          <div class="fnode signal"><span class="tag">Lens 1</span><span class="txt">Refute</span><span class="sub">find why the claim is wrong</span></div>
+          <div class="fnode accent"><span class="tag">Lens 2</span><span class="txt">Reproduce</span><span class="sub">trace the concrete trigger path</span></div>
+        </div>
+      </div>
+      <div class="conn"></div>
+      <div class="fnode decision"><span class="txt">Did the claim survive?</span></div>
+      <div class="branch">
+        <div class="flow">
+          <div class="conn labeled" data-label="survived + re-checked"></div>
+          <div class="fnode"><span class="txt">Promote to</span><span class="sub"><span class="tier v">verified</span></span></div>
+        </div>
+        <div class="flow">
+          <div class="conn labeled" data-label="not re-checked yet"></div>
+          <div class="fnode"><span class="txt">Stays</span><span class="sub"><span class="tier i">inferred</span> with provenance</span></div>
+        </div>
+        <div class="flow">
+          <div class="conn labeled" data-label="refuted"></div>
+          <div class="fnode"><span class="txt">Dropped or logged as</span><span class="sub"><span class="tier u">unknown</span></span></div>
+        </div>
+      </div>
+      <div class="conn"></div>
+      <div class="fnode accent"><span class="tag">Single writer</span><span class="txt">Orchestrator writes the ledger</span><span class="sub">subagents never write shared deliverables; they report back</span></div>
+    </div>
+    <div class="legend">
+      <span><span class="swatch"></span> reader or action</span>
+      <span><span class="swatch accent"></span> orchestrator or reproduce lens</span>
+      <span><span class="swatch signal"></span> higher stakes or refute lens</span>
+      <span><span class="swatch dash"></span> decision</span>
+    </div>
+  </div>
+</figure>
+
+<div class="callout">
+  <h3>The promotion rule, in one line</h3>
+  <p>A subagent's claim enters the record as <span class="tier i">inferred</span>. It becomes <span class="tier v">verified</span> only when the orchestrator personally re-opens the citation, or two independent readers with different angles agree, or a command settles it. Effort is spent re-checking the highest-risk claims first.</p>
+</div>
+
+<h3>Choosing the model, and adjusting mid-run</h3>
+<p class="prose">Model choice is spoken in plain tiers, not product names, so it travels to any harness: cheap-and-wide for the reading, a step up for the riskiest slice, top tier and few calls for synthesis. There are two dials, not one. <strong>Tier</strong> raises the capability ceiling. <strong>Effort</strong> buys more thinking on the same ceiling.</p>
+<p class="prose">Verification produces a free signal for tuning them. At each checkpoint the orchestrator counts how many claims per family survived, then adjusts the next batch:</p>
+<ul class="clean">
+  <li>Claims refuted as <strong>misunderstandings</strong> of how parts interact mean the reader hit a ceiling. Raise the tier, or stop that family and bank what survived.</li>
+  <li>Claims that failed from <strong>shallow coverage</strong> (stopped early, traced one path of four) mean not enough thinking. Raise the effort.</li>
+  <li><strong>No failures</strong> means the recipe works. Change nothing. A winning recipe is not an invitation to tune.</li>
+</ul>
+
+<div class="callout warn">
+  <h3>Budget and recovery are first-class</h3>
+  <p>The orchestrator quotes the fan-out shape (how many agents, at what tier) before launching, especially after any usage limit. Each unit of paid work is its own call with a stable prompt, so if a run dies partway it resumes from cache: completed work replays for free, and only the unfinished calls run again. Progress is read straight from the run journal with shell tools, never by paying an agent to summarize it.</p>
+</div>
+
+<h2>Pass 09 up close: cleaning up without losing anything</h2>
+<p class="prose">Agent-driven work leaves debris the same way old systems leave dark code: gigabytes of logs, hundreds of snapshots, one-off scripts nobody can explain. Pass 09 handles it with one principle first. The lasting value of a generated file is the <strong>claim it supports</strong> plus the <strong>recipe that regenerates it</strong>. Record both, then the file itself drops into one of four tiers and gets handled by the tier's rule, not by a hunch.</p>
+
+<div class="tiergrid">
+  <div class="tiercard protected"><div class="h">Protected</div><p><strong>Never touched.</strong> Anything git-tracked, or named by a steering file (docs, review artifacts, assets, history). A broad "clean it all up" does not override this.</p></div>
+  <div class="tiercard cheap"><div class="h">Regenerable, cheap</div><p><strong>Record the recipe, then remove.</strong> One command or seed rebuilds it fast. Archive as a short-retention fallback, spot-check that it rebuilds, then delete the originals.</p></div>
+  <div class="tiercard expensive"><div class="h">Regenerable, expensive</div><p><strong>Archive first, delete later, never the reverse.</strong> Checksum, compress, verify by re-hashing, add parity data when the archive is the only copy, and ask before removing originals.</p></div>
+  <div class="tiercard unknownt"><div class="h">Unknown provenance</div><p><strong>Hard stop.</strong> Nobody can explain it. Archive it untouched or leave it in place, record an unknown, and ask. Absence of references proves it is unused by current code, not that it is safe to delete.</p></div>
+</div>
+<p class="prose">Deletion is always the second step, never the first. Everything moves through a reversible quarantine, gets verified against a checksum manifest, and only then, with per-group approval, gets removed. A tracked ledger records where each thing went and how to get it back, so a future session can answer that from the record alone.</p>
+
+<h2>One core, many hosts, one truth per repo</h2>
+<p class="prose">The skill used to ship as parallel Claude and Codex variants, and they drifted. It is now <strong>one model-neutral core</strong>. Host differences (how Claude Code, Codex, or Gemini CLI discovers a skill, which tools it prefers) live in small addendum files inside the core, never as separate editable trees.</p>
+<ul class="clean">
+  <li><strong>The shared core</strong> lives in one version-controlled directory. Each host's skill folder is just a pointer to it (a symlink or a thin adapter), so an upgrade happens exactly once. A marker file identifies it as a clean universal source; the installer refuses to install from anything else.</li>
+  <li><strong>The repo copy</strong> is real, not a pointer: installing places a managed, checksummed copy inside the repository so it travels with the code to any machine or CI runner. The managed core is read-only in the repo; local edits surface as conflicts on the next upgrade instead of silently forking.</li>
+  <li><strong>The calibration overlay</strong> is the repo's own memory: invariants, system map, exact gates, coverage and findings ledgers. It is owned by the repo, survives every core upgrade, and is what makes pass 13's calibrated mode possible.</li>
+  <li><strong>The repo binding</strong> stamps the calibration with a hashed identity of its repository (no raw remotes, no personal paths). Calibration copied from another project will not silently run here: gates from unbound or foreign calibration are refused until a human explicitly accepts or rebinds them, and accepting resets every gate back to unapproved.</li>
+</ul>
+
+<div class="callout warn">
+  <h3>The trust barrier</h3>
+  <p>Knowledge flows one way by default: the clean core flows down into repos; repo knowledge stays in its repo. The only path upstream is a sanitized, content-hashed <strong>proposal</strong> staged into the shared core's review inbox, which a human reads, generalizes, and promotes. A compromised or simply overfitted repository cannot rewrite the shared skill and poison every future project.</p>
+</div>
+
+<h2>What you end up with</h2>
+<p class="prose">Every pass reports back the same way: which pass ran on which slice, what was created or updated, what unknowns were recorded, which risks moved, which approval gates were crossed or are still pending, and what to run next. The durable outputs live in the repo:</p>
+<ul class="clean">
+  <li>A <strong>system map</strong> of what runs where and where trust changes hands.</li>
+  <li>A <strong>coverage ledger</strong> that says honestly what is covered, blocked, approval-gated, or still dark.</li>
+  <li><strong>Unknowns files</strong> that preserve every real gap instead of smoothing it over.</li>
+  <li><strong>Why-focused comments</strong> on the critical paths, and a <strong>remediation backlog</strong> of small, safe fixes.</li>
+  <li>A <strong>verification plan</strong> covering all twenty capabilities, and <strong>exact reviewed gates</strong> the computer runs with real exit codes.</li>
+  <li>A <strong>calibration layer</strong> bound to the repo, so the next session starts from recorded truth instead of a cold crawl.</li>
+  <li>A <strong>maintenance harness</strong> so the next change stays honest.</li>
+</ul>
+
+<h2>When to reach for it, and when not</h2>
+<div class="two">
+  <div class="yes"><h3>Reach for it when</h3>
+    <ul class="clean">
+      <li>You inherited a repo nobody fully understands.</li>
+      <li>You need to know what runs where and where the trust boundaries are.</li>
+      <li>You want risky work held behind evidence and approval, not vibes.</li>
+      <li>Generated clutter is piling up and needs safe cleanup.</li>
+      <li>You want future changes to stay safe, not just this one to work.</li>
+    </ul>
+  </div>
+  <div class="no"><h3>Skip it when</h3>
+    <ul class="clean">
+      <li>The task is a quick, well-understood change in code you already know.</li>
+      <li>A regex or a validator can enforce the thing mechanically. Automate it instead.</li>
+      <li>You only need a one-line answer, not a mapped and recorded pass.</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  Anti-Dark-Code field brief, updated 2026-08-06 for the unified core (2026.08.06-unified.4): one model-neutral skill with thin host adapters for Claude, Codex, and Gemini harnesses. Calibrated local mode, the deterministic verification planner, repo binding, proposal-only flow-back, and fail-closed write hardening are the newest additions.
+</footer>
+</div>
+
+</body>
+</html>
