@@ -1,5 +1,16 @@
 # Tooling findings from the 2026-08-06 unified-core migration
 
+## STATUS UPDATE after the 2026.08.06-unified.4 upgrade (same day, later)
+
+v4 closes the ledger. Verified live during the Chronicle upgrade:
+- Item 1 FIXED: repo-side writes fail closed on symlink/junction components (user-level host-discovery symlinks to the shared core remain supported, which is the deployed layout).
+- Item 4 FIXED: blocked gate plans exit 2 in dry-run mode as well.
+- Item 5 FIXED: gates launch in their own process group; timeout does a best-effort process-tree kill (taskkill /T on Windows), recorded in the failure packet.
+- Item 6 FIXED: .agents/skills, .claude/skills, .gemini/skills, .codex/skills excluded from profiling, source identity, and changed-slice routing.
+- v3 new finding (a) FIXED: the unit suite validates a clean temp copy; 48/48 pass from the deployed shared core with staged incoming/ proposals present.
+- v3 new finding (b) FIXED: validate gained distribution/universal/installed/auto modes; --mode installed verifies an installed repo copy via .adc-managed.json, core digest, calibration JSON, link safety, and binding (VALID on Chronicle).
+- Item 7 cosmetics (plan profile-hash staleness, gate id slug collisions, conventional-gate re-verification): not re-verified; the only remaining unchecked items.
+
 ## STATUS UPDATE after the 2026.08.06-unified.3 upgrade (same day)
 
 - FIXED in v3: item 2 (install now preserves assets/templates/calibration, excluding only TOP-LEVEL calibration/ and incoming/) and item 3 (unit suite validates a clean package copy; 32 tests pass with plain python3).
