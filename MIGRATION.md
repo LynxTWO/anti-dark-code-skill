@@ -6,7 +6,7 @@ This guide applies whether the current installation is:
 - an older shared Anti-Dark-Code core
 - a repo-local customized fork
 - a partial installation with only some references or scripts
-- a mixed installation spread across `.agents`, `.claude`, `.gemini`, or `.anti-dark-code`
+- a mixed installation spread across `.agents`, `.claude`, `.gemini`, `.codex`, or `.anti-dark-code`
 - a repository with existing invariants, gates, ledgers, findings, or other local memory
 - a repository with no calibration yet
 
@@ -26,9 +26,11 @@ Common locations include:
 ~/.agents/skills/anti-dark-code/
 ~/.claude/skills/anti-dark-code/
 ~/.gemini/skills/anti-dark-code/
+~/.codex/skills/anti-dark-code/
 <repo>/.agents/skills/anti-dark-code/
 <repo>/.claude/skills/anti-dark-code/
 <repo>/.gemini/skills/anti-dark-code/
+<repo>/.codex/skills/anti-dark-code/
 <repo>/.anti-dark-code/
 ```
 
@@ -45,25 +47,55 @@ A practical layout is:
 ~/.claude/skills/anti-dark-code/    symlink or thin adapter
 ```
 
+A user-level symlink may be used only as a host-discovery alias for the clean shared core. Never symlink a repository's `.agents/skills/anti-dark-code/`, `calibration/`, Claude adapter, or `.anti-dark-code/` run directory to the shared core or another repository. Repo-local managed paths must be real paths. The installer refuses symbolic-link or Windows-junction components and nested link-like entries before dry-run or apply.
+
 The shared core contains `SOURCE-SCOPE.json`. The installer uses that marker to distinguish a clean universal core from an old, unknown, or repo-calibrated source.
 
 Do not put repo-owned `calibration/` beside the shared source core.
 
 Do not merge an old repo-local `SKILL.md`, `references/`, `scripts/`, or `assets/` tree into the clean core. Extract individual general lessons for review instead.
 
-## 3. Validate the Shared Core
+Before migration, replace any symlinked or junction-backed repo-local skill or artifact path with a real directory. Do not solve this by copying another repository's local calibration. Install a fresh managed core, then migrate only reviewed same-repo facts.
 
-Run these commands from the clean shared skill directory:
+## 3. Validate the Correct Layer
+
+Use explicit validation modes during migration.
+
+Validate a clean extracted release or ZIP candidate with strict distribution rules:
 
 ```bash
-cd /path/to/shared/anti-dark-code
-python3 scripts/adc.py validate
+cd /path/to/package/anti-dark-code
+python3 scripts/adc.py validate --mode distribution
 python3 -m unittest discover -s tests -v
 ```
 
-The test suite is expected to pass with ordinary `python3`. `python3 -B` is not required. The tests validate a clean package copy so their own runtime `__pycache__` files do not create a false packaging failure. The strict validator still rejects `__pycache__` and `.pyc` files when they are actually included in a package.
+Distribution mode rejects runtime `incoming/`, repo calibration, managed-install metadata, symlinks or junctions, `__pycache__`, and `.pyc` files.
 
-Stop if validation fails.
+Validate a deployed shared core, which may contain staged proposals under `incoming/`, with:
+
+```bash
+python3 /path/to/shared/anti-dark-code/scripts/adc.py validate \
+  --skill /path/to/shared/anti-dark-code \
+  --mode universal
+```
+
+Universal mode excludes ordinary files in the runtime-only proposal inbox and repo calibration from core policy checks. It rejects symlinked or junction-backed inbox entries because proposal staging must not be redirected. It reports Python runtime caches as warnings. This lets the tests and validator run from a real shared installation rather than assuming a pristine package directory or an outer `MIGRATION.md`.
+
+After installing into a repository, validate that copy with:
+
+```bash
+python3 .agents/skills/anti-dark-code/scripts/adc.py validate \
+  --skill .agents/skills/anti-dark-code \
+  --mode installed
+```
+
+Installed mode verifies `.adc-managed.json` hashes and the core digest, checks the source marker and version, rejects link-like calibration entries, parses local calibration JSON, and confirms that the repository binding matches. A valid installed copy no longer fails merely because it contains ordinary repo-owned calibration.
+
+`--mode auto` detects installed copies from their managed manifest or canonical repo location. Use explicit modes for release automation.
+
+The test suite is expected to pass with ordinary `python3`. `python3 -B` is not required. It builds clean distribution fixtures internally, so test-created `__pycache__` files do not become packaging false positives.
+
+Stop if the selected validation mode fails.
 
 ## 4. Migrate One Repository at a Time
 
@@ -108,12 +140,14 @@ The installer assigns one of these states:
 | `new` | No existing calibration was found | Apply normally |
 | `match` | Calibration belongs to this repository identity | Apply normally |
 | `unbound` | Legacy calibration exists without a binding | Review it, then explicitly accept it |
-| `invalid` | The binding file is malformed or incomplete | Inspect it, recover or quarantine it, then explicitly accept only trusted local facts |
+| `invalid` | The binding file is malformed, incomplete, or contains unsafe entries | Repair it or quarantine the affected calibration. It cannot be accepted automatically |
 | `mismatch` | Calibration is bound to another repository identity | Stop unless this is a verified move, fork, or remote change |
 
 ### Accept trusted legacy calibration
 
 Use this only after confirming the old calibration came from the same repository:
+
+`--accept-unbound-calibration` applies only to the `unbound` state. It does not override an invalid binding or symlink safety failure.
 
 ```bash
 python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
@@ -221,6 +255,8 @@ Then:
 
 A migrated gate never inherits approval from an old document.
 
+Each executed gate runs in a separate process group. A timeout is recorded as gate exit `124`, and the runner makes a best-effort attempt to terminate the entire process tree before returning a failed run. This is containment, not a sandbox.
+
 When the installer accepts unbound calibration, rebinds calibration, or moves fallback calibration into the canonical location, it resets every migrated gate to `enabled: false` and `review_status: proposed`. It also resets global execution confirmation. This is deterministic protection, not merely a documentation rule.
 
 ## 9. Handle Multiple Existing Installations
@@ -234,7 +270,7 @@ When several old copies exist inside the same repository:
 5. Do not let the installer merge two populated calibration stores silently.
 6. Keep old directories read-only until the new calibration is verified.
 
-The installer may detect legacy calibration under `.anti-dark-code`, `.claude`, or `.gemini`. Only the historical `.anti-dark-code/calibration` fallback is eligible for limited missing-file migration, and only when the canonical target does not already contain calibration. Other stores remain visible for manual review.
+The installer may detect legacy calibration under `.anti-dark-code`, `.claude`, `.gemini`, or `.codex`. Only the historical `.anti-dark-code/calibration` fallback is eligible for limited missing-file migration, and only when the canonical target does not already contain calibration. Other stores remain visible for manual review.
 
 ## 10. Treat Customized Old Cores as Donors, Not Sources
 
@@ -254,6 +290,7 @@ The installer blocks a source that:
 - contains a repo-local `.adc-managed.json` installation manifest
 - contains top-level repo calibration
 - contains bound or contaminated calibration templates
+- contains internal symlink or junction entries
 
 `--allow-unsafe-source` exists only for advanced recovery after manual review. Even with that flag, source-side calibration is ignored and never copied. Contaminated calibration templates remain blocked.
 
@@ -284,7 +321,19 @@ After application, verify:
 
 Confirm that the binding status is `match` when assessed in that repository.
 
+Validate the installed copy through its managed manifest and repo binding:
+
+```bash
+python3 .agents/skills/anti-dark-code/scripts/adc.py validate \
+  --skill .agents/skills/anti-dark-code \
+  --mode installed
+```
+
+`--mode auto` also selects installed validation when `.adc-managed.json` is present. Do not validate an installed copy as a universal source. Its repo-owned `calibration/` directory is expected local state, while `.adc-managed.json` is the authority for managed-core integrity.
+
 If calibration was migrated or rebound, inspect `migrated_gate_approvals` in the apply result and confirm every old gate is disabled and proposed.
+
+Do not remove the legacy copy until installed validation passes.
 
 ## 12. Consolidate Host Copies
 
@@ -302,13 +351,17 @@ Do not maintain separate policy trees for each model.
 Check all of the following:
 
 - The shared source has no top-level `calibration/` directory.
+- The repo-local skill, calibration, adapter, and run paths contain no symlink or junction components and no nested link-like entries.
 - The repo-local `repo-binding.json` matches the current repository.
 - No other repository's names, paths, gates, findings, or invariants appear in this repo's calibration.
 - Imported gates remain disabled and proposed until reviewed.
 - `execution_policy.owner_confirmed_safe_to_execute` is false after gate migration.
+- Installed validation passes against `.adc-managed.json` and the repo binding.
 - The managed core matches `.adc-managed.json` or every difference is understood.
 - The repo profile and system map describe this repo, not a donor repo.
 - Flow-back candidates state general rules without private paths or project assumptions.
+
+A blocked dry gate plan returns exit code `2`, even without `--allow-exec`. Treat that as a migration stop, not as a successful no-op.
 
 Run a normal dry gate plan before executing anything:
 
@@ -318,7 +371,7 @@ python3 .agents/skills/anti-dark-code/scripts/adc.py gates \
   --level 1
 ```
 
-Gate execution is refused when calibration is unbound or foreign.
+Gate planning and execution are refused when calibration is unbound, invalid, or foreign. A blocked dry run exits with status `2`; it does not report a successful plan merely because `--allow-exec` was absent.
 
 ## 14. Use Proposal-Only Flow-Back
 

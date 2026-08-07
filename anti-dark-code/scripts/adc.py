@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -39,6 +40,7 @@ LEGACY_CALIBRATION_REL_PATHS = (
     (".anti-dark-code", "calibration"),
     (".claude", "skills", "anti-dark-code", "calibration"),
     (".gemini", "skills", "anti-dark-code", "calibration"),
+    (".codex", "skills", "anti-dark-code", "calibration"),
 )
 
 IGNORED_DIRS = {
@@ -94,15 +96,21 @@ SIGNAL_SCAN_EXCLUDED_NAMES = {
     "Cargo.lock", "Gemfile.lock", "composer.lock", "Podfile.lock",
 }
 
-MANAGED_SKILL_PREFIXES = {
-    (".agents", "skills", "anti-dark-code"),
-    (".claude", "skills", "anti-dark-code"),
+HOST_SKILL_TREE_PREFIXES = {
+    (".agents", "skills"),
+    (".claude", "skills"),
+    (".gemini", "skills"),
+    (".codex", "skills"),
 }
-ADC_INTERNAL_PATH_PREFIXES = (
-    ".agents/skills/anti-dark-code/",
-    ".claude/skills/anti-dark-code/",
+TOOLING_PATH_PREFIXES = (
+    ".agents/skills/",
+    ".claude/skills/",
+    ".gemini/skills/",
+    ".codex/skills/",
     ".anti-dark-code/",
 )
+
+VALIDATION_MODES = ("auto", "distribution", "universal", "installed")
 
 CONTENT_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
     "stateful": (re.compile(r"\b(state|store|reducer|transaction|workflow|state machine)\b", re.I),),
@@ -162,12 +170,50 @@ def read_json(path: Path, default: Any = None) -> Any:
         raise SystemExit(f"Invalid JSON in {path}: {exc}") from exc
 
 
+def path_is_linklike(path: Path) -> bool:
+    """Return True for a symbolic link or a Windows directory junction."""
+    if path.is_symlink():
+        return True
+    is_junction = getattr(path, "is_junction", None)
+    if callable(is_junction) and is_junction():
+        return True
+    os_isjunction = getattr(os.path, "isjunction", None)
+    return bool(callable(os_isjunction) and os_isjunction(path))
+
+
 def write_text_atomic(path: Path, text: str) -> None:
+    if path_is_linklike(path):
+        raise SystemExit(f"Refused atomic write through symlink or junction: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="\n", delete=False, dir=path.parent) as tmp:
-        tmp.write(text)
-        tmp_path = Path(tmp.name)
-    os.replace(tmp_path, path)
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="\n", delete=False, dir=path.parent) as tmp:
+            tmp.write(text)
+            tmp_path = Path(tmp.name)
+        os.replace(tmp_path, path)
+        tmp_path = None
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
+
+
+def copy_file_atomic(source: Path, destination: Path) -> None:
+    """Copy one regular file without following a destination symlink or junction."""
+    if path_is_linklike(source) or not source.is_file():
+        raise SystemExit(f"Refused copy from non-regular, symlink, or junction source: {source}")
+    if path_is_linklike(destination):
+        raise SystemExit(f"Refused copy through destination symlink or junction: {destination}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("wb", delete=False, dir=destination.parent) as tmp:
+            tmp_path = Path(tmp.name)
+        shutil.copy2(source, tmp_path)
+        os.replace(tmp_path, destination)
+        tmp_path = None
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
 
 
 def write_json_atomic(path: Path, data: Any) -> None:
@@ -215,13 +261,87 @@ def path_is_within(path: Path, parent: Path) -> bool:
         return False
 
 
+def lexical_absolute(path: Path) -> Path:
+    """Return an absolute normalized path without resolving symlinks."""
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def symlink_components(path: Path, trusted_root: Path) -> list[Path]:
+    """List existing symlink or junction components between trusted_root and path.
+
+    The check is deliberately lexical. Resolving first would erase the evidence
+    that a repo-local managed path points somewhere else.
+    """
+    root = lexical_absolute(trusted_root)
+    candidate = lexical_absolute(path)
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError as exc:
+        raise SystemExit(f"Managed path escapes trusted root: {candidate} (root {root})") from exc
+
+    hits: list[Path] = []
+    current = root
+    for part in relative.parts:
+        current = current / part
+        try:
+            os.lstat(current)
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise SystemExit(f"Could not inspect managed path component {current}: {exc}") from exc
+        if path_is_linklike(current):
+            hits.append(current)
+    return hits
+
+
+def require_no_symlink_components(path: Path, trusted_root: Path, purpose: str) -> None:
+    hits = symlink_components(path, trusted_root)
+    if not hits:
+        return
+    shown = ", ".join(rel(item, lexical_absolute(trusted_root)) for item in hits)
+    raise SystemExit(
+        f"Refused {purpose}: managed path traverses symlink or junction component(s): {shown}. "
+        "Repo-local Anti-Dark-Code skill, calibration, adapter, and run paths must be real paths."
+    )
+
+
+def tree_symlinks(root: Path, *, excluded_top_level: set[str] | None = None) -> list[Path]:
+    """Return symlinks or junctions under root without following linked directories."""
+    if not root.exists() or not root.is_dir():
+        return []
+    excluded_top_level = excluded_top_level or set()
+    found: list[Path] = []
+    for current, dirs, names in os.walk(root, followlinks=False):
+        current_path = Path(current)
+        relative = current_path.relative_to(root)
+        if relative.parts and relative.parts[0] in excluded_top_level:
+            dirs[:] = []
+            continue
+        kept_dirs: list[str] = []
+        for name in sorted(dirs):
+            path = current_path / name
+            if not relative.parts and name in excluded_top_level:
+                continue
+            if path_is_linklike(path):
+                found.append(path)
+            else:
+                kept_dirs.append(name)
+        dirs[:] = kept_dirs
+        for name in sorted(names):
+            path = current_path / name
+            if path_is_linklike(path):
+                found.append(path)
+    return found
+
+
 def calibration_payload_files(path: Path) -> list[Path]:
-    if not path.exists() or not path.is_dir():
+    if path_is_linklike(path) or not path.exists() or not path.is_dir():
         return []
     return sorted(
         item
         for item in path.rglob("*")
         if item.is_file()
+        and not path_is_linklike(item)
         and item.name != ".DS_Store"
         and item.suffix != ".pyc"
         and "__pycache__" not in item.parts
@@ -327,6 +447,7 @@ def compute_repository_binding(repo: Path) -> dict[str, Any]:
 def assess_repository_binding(repo: Path, calibration: Path) -> dict[str, Any]:
     current = compute_repository_binding(repo)
     binding_path = calibration / REPO_BINDING_FILENAME
+    calibration_symlinks = ([calibration] if path_is_linklike(calibration) else []) + tree_symlinks(calibration)
     all_files = calibration_payload_files(calibration)
     substantive = calibration_substantive_files(calibration)
     binding: dict[str, Any] | None = None
@@ -341,7 +462,12 @@ def assess_repository_binding(repo: Path, calibration: Path) -> dict[str, Any]:
         except (OSError, json.JSONDecodeError) as exc:
             binding_error = f"repo-binding.json is invalid: {exc}"
 
-    if not all_files:
+    if calibration_symlinks:
+        status = "invalid"
+        binding_error = "calibration contains link-like entries: " + ", ".join(
+            rel(item, calibration.parent) for item in calibration_symlinks
+        )
+    elif not all_files:
         status = "new"
     elif binding_error:
         status = "invalid"
@@ -358,6 +484,7 @@ def assess_repository_binding(repo: Path, calibration: Path) -> dict[str, Any]:
         "file_count": len(all_files),
         "substantive_file_count": len(substantive),
         "binding_error": binding_error,
+        "symlink_entries": [rel(item, calibration) for item in calibration_symlinks],
         "stored_repository_id": binding.get("repository_id") if binding else None,
         "current_repository_id": current["repository_id"],
         "identity_method": current["identity_method"],
@@ -373,6 +500,12 @@ def write_repository_binding(
     accepted_unbound: bool = False,
     rebound: bool = False,
 ) -> Path:
+    calibration_symlinks = ([calibration] if path_is_linklike(calibration) else []) + tree_symlinks(calibration)
+    if calibration_symlinks:
+        raise SystemExit(
+            "Refused repository binding write through calibration link-like entries: "
+            + ", ".join(rel(item, calibration.parent) for item in calibration_symlinks)
+        )
     now = utc_now()
     current = assessment["current"]
     existing = assessment.get("binding") if isinstance(assessment.get("binding"), dict) else {}
@@ -461,6 +594,12 @@ def validate_calibration_templates(template_dir: Path) -> list[str]:
     errors: list[str] = []
     if not template_dir.exists() or not template_dir.is_dir():
         return [f"Calibration templates not found: {template_dir}"]
+    template_symlinks = ([template_dir] if path_is_linklike(template_dir) else []) + tree_symlinks(template_dir)
+    if template_symlinks:
+        errors.append(
+            "Calibration templates contain link-like entries: "
+            + ", ".join(rel(item, template_dir) for item in template_symlinks)
+        )
 
     binding_path = template_dir / REPO_BINDING_FILENAME
     if not binding_path.exists():
@@ -603,15 +742,23 @@ def inspect_install_source(source: Path, repo: Path) -> dict[str, Any]:
 
     source_calibration = source / "calibration"
     source_calibration_files = calibration_payload_files(source_calibration)
+    source_calibration_symlinks = ([source_calibration] if path_is_linklike(source_calibration) else []) + tree_symlinks(source_calibration)
+    source_core_symlinks = tree_symlinks(source, excluded_top_level={"calibration", "incoming"})
     unsafe_issues: list[str] = []
+    fatal_issues: list[str] = []
     if not marker_valid:
         unsafe_issues.append(marker_error or "source scope marker is invalid")
     if path_is_within(source, repo):
         unsafe_issues.append("source skill is located inside the target repository")
     if (source / ".adc-managed.json").exists():
         unsafe_issues.append("source skill contains a repo-local managed-install manifest")
-    if source_calibration_files:
+    if source_calibration_files or source_calibration_symlinks:
         unsafe_issues.append("source skill contains repo-owned top-level calibration")
+    if source_core_symlinks:
+        fatal_issues.append(
+            "source core contains link-like entries: "
+            + ", ".join(item.relative_to(source).as_posix() for item in source_core_symlinks)
+        )
 
     template_errors = validate_calibration_templates(source / "assets" / "templates" / "calibration")
     return {
@@ -619,22 +766,32 @@ def inspect_install_source(source: Path, repo: Path) -> dict[str, Any]:
         "marker_error": marker_error,
         "source_inside_target_repo": path_is_within(source, repo),
         "source_has_managed_install_manifest": (source / ".adc-managed.json").exists(),
-        "source_calibration_ignored": [item.relative_to(source_calibration).as_posix() for item in source_calibration_files],
+        "source_calibration_ignored": sorted({
+            item.relative_to(source_calibration).as_posix()
+            for item in [*source_calibration_files, *source_calibration_symlinks]
+            if item != source_calibration
+        }),
         "unsafe_issues": unsafe_issues,
+        "fatal_issues": fatal_issues,
         "template_errors": template_errors,
     }
 
 
-def is_adc_internal_relpath(path: str) -> bool:
+def is_tooling_relpath(path: str) -> bool:
     normalized = path.replace("\\", "/")
     while normalized.startswith("./"):
         normalized = normalized[2:]
     normalized = normalized.lstrip("/")
-    return any(normalized == prefix.rstrip("/") or normalized.startswith(prefix) for prefix in ADC_INTERNAL_PATH_PREFIXES)
+    return any(normalized == prefix.rstrip("/") or normalized.startswith(prefix) for prefix in TOOLING_PATH_PREFIXES)
 
 
-def is_managed_skill_parts(parts: Sequence[str]) -> bool:
-    return any(tuple(parts[:len(prefix)]) == prefix for prefix in MANAGED_SKILL_PREFIXES)
+def is_adc_internal_relpath(path: str) -> bool:
+    """Backward-compatible alias for callers using the v3 helper name."""
+    return is_tooling_relpath(path)
+
+
+def is_host_skill_tree_parts(parts: Sequence[str]) -> bool:
+    return any(tuple(parts[:len(prefix)]) == prefix for prefix in HOST_SKILL_TREE_PREFIXES)
 
 
 def is_ignored(path: Path, root: Path) -> bool:
@@ -642,7 +799,7 @@ def is_ignored(path: Path, root: Path) -> bool:
         parts = path.relative_to(root).parts
     except ValueError:
         parts = path.parts
-    if is_managed_skill_parts(parts):
+    if is_host_skill_tree_parts(parts):
         return True
     return any(part in IGNORED_DIRS for part in parts[:-1])
 
@@ -650,7 +807,7 @@ def is_ignored(path: Path, root: Path) -> bool:
 def iter_repo_files(root: Path, max_files: int = 50_000) -> tuple[list[Path], bool]:
     files: list[Path] = []
     truncated = False
-    for current, dirs, names in os.walk(root):
+    for current, dirs, names in os.walk(root, followlinks=False):
         current_path = Path(current)
         try:
             current_parts = current_path.relative_to(root).parts
@@ -658,11 +815,13 @@ def iter_repo_files(root: Path, max_files: int = 50_000) -> tuple[list[Path], bo
             current_parts = current_path.parts
         dirs[:] = sorted(
             d for d in dirs
-            if d not in IGNORED_DIRS and not is_managed_skill_parts((*current_parts, d))
+            if d not in IGNORED_DIRS
+            and not is_host_skill_tree_parts((*current_parts, d))
+            and not path_is_linklike(current_path / d)
         )
         for name in sorted(names):
             path = current_path / name
-            if is_ignored(path, root):
+            if path_is_linklike(path) or is_ignored(path, root):
                 continue
             files.append(path)
             if len(files) >= max_files:
@@ -718,8 +877,10 @@ def current_source_identity(repo: Path) -> dict[str, Any]:
     branch = git_output(repo, ["rev-parse", "--abbrev-ref", "HEAD"])
     status_raw = git_bytes(repo, [
         "status", "--porcelain=v1", "--untracked-files=all", "-z", "--", ".",
-        ":(exclude).agents/skills/anti-dark-code/**",
-        ":(exclude).claude/skills/anti-dark-code/**",
+        ":(exclude).agents/skills/**",
+        ":(exclude).claude/skills/**",
+        ":(exclude).gemini/skills/**",
+        ":(exclude).codex/skills/**",
         ":(exclude).anti-dark-code/**",
     ])
     return {
@@ -727,7 +888,7 @@ def current_source_identity(repo: Path) -> dict[str, Any]:
         "git_branch": branch,
         "worktree_clean": status_raw == b"" if status_raw is not None else None,
         "worktree_status_sha256": sha256_bytes(status_raw) if status_raw is not None else None,
-        "identity_excludes": list(ADC_INTERNAL_PATH_PREFIXES),
+        "identity_excludes": list(TOOLING_PATH_PREFIXES),
     }
 
 
@@ -907,6 +1068,7 @@ def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_
             "scan_limit": max_files,
             "content_scan_limit": content_scan_limit,
             "ignored_directories": sorted(IGNORED_DIRS),
+            "ignored_skill_trees": sorted("/".join(parts) + "/" for parts in HOST_SKILL_TREE_PREFIXES),
         },
         "repo_types": [],
         "languages": [],
@@ -1045,13 +1207,25 @@ def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_
 
 def calibration_dir(repo: Path) -> Path:
     canonical = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
-    if canonical.exists() or (repo / ".agents" / "skills" / "anti-dark-code").exists():
+    skill_dir = repo / ".agents" / "skills" / "anti-dark-code"
+    if canonical.exists() or path_is_linklike(canonical) or skill_dir.exists() or path_is_linklike(skill_dir):
         return canonical
     return repo / ".anti-dark-code" / "calibration"
 
 
-def write_profile(repo: Path, profile: dict[str, Any]) -> Path:
+def safe_calibration_dir(repo: Path, purpose: str) -> Path:
+    repo = repo.resolve()
     calibration = calibration_dir(repo)
+    require_no_symlink_components(calibration, repo, purpose)
+    nested = tree_symlinks(calibration)
+    if nested:
+        shown = ", ".join(rel(item, repo) for item in nested)
+        raise SystemExit(f"Refused {purpose}: calibration contains link-like entries: {shown}")
+    return calibration
+
+
+def write_profile(repo: Path, profile: dict[str, Any]) -> Path:
+    calibration = safe_calibration_dir(repo, "repository profile write")
     initialize_binding_for_empty_calibration(repo, calibration)
     path = calibration / "repo-profile.json"
     write_json_atomic(path, profile)
@@ -1201,7 +1375,7 @@ def verify_gate_source(repo: Path, gate: dict[str, Any]) -> tuple[bool, str | No
 
 
 def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, int]:
-    path = calibration_dir(repo) / "gates.json"
+    path = safe_calibration_dir(repo, "gate-plan update") / "gates.json"
     if path.exists():
         data = read_json(path)
     else:
@@ -1275,7 +1449,7 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
 
 
 def write_plan(repo: Path, profile: dict[str, Any], plan: dict[str, Any], add_gate_suggestions: bool = True) -> tuple[Path, Path | None, int]:
-    path = calibration_dir(repo) / "verification-plan.json"
+    path = safe_calibration_dir(repo, "verification-plan write") / "verification-plan.json"
     write_json_atomic(path, plan)
     gate_path = None
     added = 0
@@ -1286,19 +1460,24 @@ def write_plan(repo: Path, profile: dict[str, Any], plan: dict[str, Any], add_ga
 
 def managed_source_files(source: Path) -> dict[str, Path]:
     files: dict[str, Path] = {}
-    for current, dirs, names in os.walk(source):
+    for current, dirs, names in os.walk(source, followlinks=False):
         current_path = Path(current)
         rel_dir = current_path.relative_to(source)
         excluded_here = {"__pycache__", ".git"}
         if not rel_dir.parts:
             excluded_here.update({"calibration", "incoming"})
-        dirs[:] = sorted(d for d in dirs if d not in excluded_here)
+        dirs[:] = sorted(
+            d for d in dirs
+            if d not in excluded_here and not path_is_linklike(current_path / d)
+        )
         if rel_dir.parts and rel_dir.parts[0] in {"calibration", "incoming"}:
             continue
         for name in sorted(names):
             if name in {".adc-managed.json", ".DS_Store"} or name.endswith(".pyc"):
                 continue
             path = current_path / name
+            if path_is_linklike(path):
+                continue
             r = path.relative_to(source).as_posix()
             if r.startswith("calibration/") or r.startswith("incoming/"):
                 continue
@@ -1319,32 +1498,50 @@ def migrate_fallback_calibration(repo: Path, target: Path) -> list[str]:
     source = repo / ".anti-dark-code" / "calibration"
     destination = target / "calibration"
     migrated: list[str] = []
+    require_no_symlink_components(source, repo, "legacy calibration migration source")
+    require_no_symlink_components(destination, repo, "legacy calibration migration destination")
     if not source.exists() or source.resolve() == destination.resolve():
         return migrated
+    source_symlinks = tree_symlinks(source)
+    destination_symlinks = tree_symlinks(destination)
+    if source_symlinks or destination_symlinks:
+        shown = ", ".join(rel(item, repo) for item in [*source_symlinks, *destination_symlinks])
+        raise SystemExit(f"Refused legacy calibration migration through link-like entries: {shown}")
     destination.mkdir(parents=True, exist_ok=True)
     for item in sorted(source.iterdir()):
-        if not item.is_file():
+        if not item.is_file() or path_is_linklike(item):
             continue
         dest = destination / item.name
+        require_no_symlink_components(dest, repo, "legacy calibration file migration")
         if dest.exists():
             continue
-        shutil.copy2(item, dest)
+        copy_file_atomic(item, dest)
         migrated.append(dest.relative_to(target).as_posix())
     return migrated
 
 
 def initialize_calibration(target: Path, template_dir: Path, version: str, digest: str) -> list[str]:
-    if not template_dir.exists() or not template_dir.is_dir():
-        raise SystemExit(f"Calibration templates not found: {template_dir}")
+    if path_is_linklike(template_dir) or not template_dir.exists() or not template_dir.is_dir():
+        raise SystemExit(f"Calibration templates not found or unsafe: {template_dir}")
+    template_symlinks = tree_symlinks(template_dir)
+    if template_symlinks:
+        raise SystemExit(
+            "Calibration templates contain link-like entries: "
+            + ", ".join(rel(item, template_dir) for item in template_symlinks)
+        )
     created: list[str] = []
     cal = target / "calibration"
+    if path_is_linklike(cal) or tree_symlinks(cal):
+        raise SystemExit(f"Refused calibration initialization through link-like entries: {cal}")
     cal.mkdir(parents=True, exist_ok=True)
     for template in sorted(template_dir.iterdir()):
-        if not template.is_file():
+        if not template.is_file() or path_is_linklike(template):
             continue
         dest = cal / template.name
+        if path_is_linklike(dest):
+            raise SystemExit(f"Refused calibration template copy through symlink or junction: {dest}")
         if not dest.exists():
-            shutil.copy2(template, dest)
+            copy_file_atomic(template, dest)
             created.append(dest.relative_to(target).as_posix())
     upstream_path = cal / "upstream.json"
     upstream = read_json(upstream_path, {})
@@ -1391,6 +1588,26 @@ def install_skill(
     target = repo / ".agents" / "skills" / "anti-dark-code"
     target_calibration = target / "calibration"
     fallback_calibration = repo / ".anti-dark-code" / "calibration"
+    should_adapter = hosts == "all" or (hosts == "auto" and ((repo / ".claude").exists() or (repo / "CLAUDE.md").exists()))
+    adapter = repo / ".claude" / "skills" / "anti-dark-code" / "SKILL.md"
+    require_no_symlink_components(target, repo, "managed skill installation")
+    require_no_symlink_components(fallback_calibration, repo, "legacy calibration migration")
+    if should_adapter:
+        require_no_symlink_components(adapter, repo, "Claude adapter installation")
+    existing_target_symlinks = tree_symlinks(target)
+    if existing_target_symlinks:
+        shown = ", ".join(rel(item, repo) for item in existing_target_symlinks)
+        raise SystemExit(
+            "Refused managed skill installation: the existing repo-local skill contains link-like entries: "
+            + shown
+        )
+    existing_fallback_symlinks = tree_symlinks(fallback_calibration)
+    if existing_fallback_symlinks:
+        shown = ", ".join(rel(item, repo) for item in existing_fallback_symlinks)
+        raise SystemExit(
+            "Refused legacy calibration migration: the fallback calibration contains link-like entries: "
+            + shown
+        )
     if not (source / "SKILL.md").exists():
         raise SystemExit(f"Source skill is missing SKILL.md: {source}")
     template_dir = source / "assets" / "templates" / "calibration"
@@ -1427,6 +1644,8 @@ def install_skill(
     legacy_gate_review = inspect_gate_config_for_migration(binding_source / "gates.json")
 
     blocked_reasons: list[str] = []
+    if source_inspection["fatal_issues"]:
+        blocked_reasons.extend(f"invalid installation source: {item}" for item in source_inspection["fatal_issues"])
     if source_inspection["template_errors"]:
         blocked_reasons.extend(f"unsafe calibration template: {item}" for item in source_inspection["template_errors"])
     if source_inspection["unsafe_issues"] and not allow_unsafe_source:
@@ -1434,7 +1653,13 @@ def install_skill(
             f"untrusted installation source: {item}; use --allow-unsafe-source only after manual review"
             for item in source_inspection["unsafe_issues"]
         )
-    if binding["status"] in {"unbound", "invalid"} and not accept_unbound_calibration:
+    if binding["status"] == "invalid":
+        blocked_reasons.append(
+            "existing calibration is invalid and cannot be accepted automatically: "
+            + str(binding.get("binding_error") or "unknown validation error")
+            + "; repair or quarantine it before migration"
+        )
+    if binding["status"] == "unbound" and not accept_unbound_calibration:
         blocked_reasons.append(
             "existing calibration is unbound; review that it belongs to this repository, then use --accept-unbound-calibration"
         )
@@ -1450,6 +1675,7 @@ def install_skill(
         )
 
     manifest_path = target / ".adc-managed.json"
+    require_no_symlink_components(manifest_path, repo, "managed-install manifest read/write")
     old_manifest = read_json(manifest_path, {}) if manifest_path.exists() else {}
     old_files = old_manifest.get("files", {}) if isinstance(old_manifest, dict) else {}
     conflicts: list[str] = []
@@ -1458,6 +1684,7 @@ def install_skill(
 
     for r, src in source_files.items():
         dst = target / r
+        require_no_symlink_components(dst, repo, "managed skill update")
         src_hash = sha256_file(src)
         if dst.exists():
             dst_hash = sha256_file(dst)
@@ -1475,13 +1702,12 @@ def install_skill(
         if r in source_files:
             continue
         dst = target / r
+        require_no_symlink_components(dst, repo, "managed skill removal")
         if dst.exists() and sha256_file(dst) == old_hash:
             removals.append(r)
         elif dst.exists():
             conflicts.append(r)
 
-    should_adapter = hosts == "all" or (hosts == "auto" and ((repo / ".claude").exists() or (repo / "CLAUDE.md").exists()))
-    adapter = repo / ".claude" / "skills" / "anti-dark-code" / "SKILL.md"
     expected_adapter = claude_adapter_text()
     if should_adapter and adapter.exists() and adapter.read_text(encoding="utf-8") != expected_adapter and not force:
         conflicts.append(".claude/skills/anti-dark-code/SKILL.md")
@@ -1503,6 +1729,7 @@ def install_skill(
             "source_has_managed_install_manifest": source_inspection["source_has_managed_install_manifest"],
             "source_calibration_ignored": source_inspection["source_calibration_ignored"],
             "unsafe_issues": source_inspection["unsafe_issues"],
+            "fatal_issues": source_inspection["fatal_issues"],
             "unsafe_override_requested": allow_unsafe_source,
         },
         "calibration_preserved": True,
@@ -1512,7 +1739,7 @@ def install_skill(
             "stored_repository_id": binding["stored_repository_id"],
             "current_repository_id": binding["current_repository_id"],
             "identity_method": binding["identity_method"],
-            "requires_accept_unbound": binding["status"] in {"unbound", "invalid"},
+            "requires_accept_unbound": binding["status"] == "unbound",
             "requires_rebind": binding["status"] == "mismatch",
             "accept_unbound_requested": accept_unbound_calibration,
             "rebind_requested": rebind_calibration,
@@ -1534,24 +1761,28 @@ def install_skill(
     if conflicts and not force:
         raise SystemExit("Managed-file conflicts detected. Review or rerun with --force:\n  " + "\n  ".join(sorted(set(conflicts))))
 
+    require_no_symlink_components(target, repo, "managed skill installation apply")
     target.mkdir(parents=True, exist_ok=True)
     for r in removals:
+        removal_path = target / r
+        require_no_symlink_components(removal_path, repo, "managed skill removal apply")
         try:
-            (target / r).unlink()
+            removal_path.unlink()
         except FileNotFoundError:
             pass
     for r, src in source_files.items():
         dst = target / r
-        dst.parent.mkdir(parents=True, exist_ok=True)
+        require_no_symlink_components(dst, repo, "managed skill update apply")
         if dst.exists() and r in conflicts and not force:
             continue
-        shutil.copy2(src, dst)
+        copy_file_atomic(src, dst)
 
     installed_files = {r: sha256_file(target / r) for r in sorted(source_files)}
     version = plan["version"]
     migrated_cal: list[str] = []
     if fallback_action == "migrate-missing-files":
         migrated_cal = migrate_fallback_calibration(repo, target)
+    require_no_symlink_components(target_calibration, repo, "calibration initialization apply")
     created_cal = initialize_calibration(target, template_dir, version, digest)
     gate_reset = {"present": False, "reset": False, "reset_gate_count": 0}
     if gate_reset_required:
@@ -1564,7 +1795,7 @@ def install_skill(
     binding_path = write_repository_binding(
         target_calibration,
         binding,
-        accepted_unbound=binding["status"] in {"unbound", "invalid"},
+        accepted_unbound=binding["status"] == "unbound",
         rebound=binding["status"] == "mismatch",
     )
     manifest = {
@@ -1578,11 +1809,12 @@ def install_skill(
         "files": installed_files,
         "calibration_ownership": "repo-owned and preserved",
     }
+    require_no_symlink_components(manifest_path, repo, "managed-install manifest apply")
     write_json_atomic(manifest_path, manifest)
 
     adapter_created = False
     if should_adapter:
-        adapter.parent.mkdir(parents=True, exist_ok=True)
+        require_no_symlink_components(adapter, repo, "Claude adapter installation apply")
         write_text_atomic(adapter, expected_adapter)
         adapter_created = True
 
@@ -1597,6 +1829,8 @@ def install_skill(
 
 def ensure_run_gitignore(repo: Path) -> None:
     root = repo / ".anti-dark-code"
+    require_no_symlink_components(root / ".gitignore", repo, "run-artifact setup")
+    require_no_symlink_components(root / "runs", repo, "run-artifact setup")
     root.mkdir(parents=True, exist_ok=True)
     path = root / ".gitignore"
     desired = "runs/\n"
@@ -1620,7 +1854,7 @@ def changed_files(repo: Path, ref: str) -> list[str]:
     working_paths = git_paths(repo, ["diff", "--name-only", "HEAD"]) or []
     untracked_paths = git_paths(repo, ["ls-files", "--others", "--exclude-standard"]) or []
     combined = set(base_paths) | set(working_paths) | set(untracked_paths)
-    return sorted(path for path in combined if not is_adc_internal_relpath(path))
+    return sorted(path for path in combined if not is_tooling_relpath(path))
 
 
 def gate_applies(gate: dict[str, Any], changed: Sequence[str] | None) -> bool:
@@ -1678,9 +1912,118 @@ def bounded_log(path: Path, first_n: int = 16, last_n: int = 48) -> list[str]:
     return first + ["... output omitted; redacted log retained locally ..."] + list(last)
 
 
+def gate_popen_kwargs() -> dict[str, Any]:
+    """Launch each gate in its own process group without an interactive stdin."""
+    kwargs: dict[str, Any] = {"stdin": subprocess.DEVNULL}
+    if os.name == "nt":
+        kwargs["creationflags"] = int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+    else:
+        kwargs["start_new_session"] = True
+    return kwargs
+
+
+def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: float = 2.0) -> dict[str, Any]:
+    """Best-effort termination of a timed-out gate and the children it spawned."""
+    result: dict[str, Any] = {
+        "strategy": "windows-process-group" if os.name == "nt" else "posix-process-group",
+        "grace_seconds": grace_seconds,
+        "graceful_signal_sent": False,
+        "forced_kill_sent": False,
+        "errors": [],
+    }
+
+    if os.name == "nt":
+        break_event = getattr(signal, "CTRL_BREAK_EVENT", None)
+        if break_event is not None and proc.poll() is None:
+            try:
+                proc.send_signal(break_event)
+                result["graceful_signal_sent"] = True
+            except (OSError, ValueError) as exc:
+                result["errors"].append(f"CTRL_BREAK_EVENT failed: {exc}")
+        try:
+            proc.wait(timeout=grace_seconds)
+        except subprocess.TimeoutExpired:
+            try:
+                taskkill = subprocess.run(
+                    ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=10,
+                    check=False,
+                )
+                result["forced_kill_sent"] = True
+                result["taskkill_exit_code"] = taskkill.returncode
+            except (FileNotFoundError, OSError, subprocess.TimeoutExpired) as exc:
+                result["errors"].append(f"taskkill failed: {exc}")
+            if proc.poll() is None:
+                try:
+                    proc.kill()
+                    result["forced_kill_sent"] = True
+                except OSError as exc:
+                    result["errors"].append(f"direct kill failed: {exc}")
+        try:
+            proc.wait(timeout=grace_seconds)
+        except subprocess.TimeoutExpired:
+            result["errors"].append("process did not exit after forced termination")
+        result["return_code_after_termination"] = proc.poll()
+        return result
+
+    pgid = proc.pid
+    try:
+        pgid = os.getpgid(proc.pid)
+    except ProcessLookupError:
+        pass
+    except OSError as exc:
+        result["errors"].append(f"could not resolve process group: {exc}")
+
+    try:
+        os.killpg(pgid, signal.SIGTERM)
+        result["graceful_signal_sent"] = True
+    except ProcessLookupError:
+        pass
+    except OSError as exc:
+        result["errors"].append(f"SIGTERM process-group kill failed: {exc}")
+
+    deadline = time.monotonic() + grace_seconds
+    group_alive = True
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(pgid, 0)
+        except ProcessLookupError:
+            group_alive = False
+            break
+        except PermissionError:
+            group_alive = True
+            break
+        time.sleep(0.05)
+
+    if group_alive:
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+            result["forced_kill_sent"] = True
+        except ProcessLookupError:
+            pass
+        except OSError as exc:
+            result["errors"].append(f"SIGKILL process-group kill failed: {exc}")
+
+    try:
+        proc.wait(timeout=grace_seconds)
+    except subprocess.TimeoutExpired:
+        result["errors"].append("process did not exit after process-group termination")
+        try:
+            proc.kill()
+            proc.wait(timeout=grace_seconds)
+            result["forced_kill_sent"] = True
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            result["errors"].append(f"direct fallback kill failed: {exc}")
+    result["return_code_after_termination"] = proc.poll()
+    return result
+
+
 def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None, keep_going: bool) -> int:
     repo = repo.resolve()
-    config_path = calibration_dir(repo) / "gates.json"
+    config_path = safe_calibration_dir(repo, "gate configuration read") / "gates.json"
     if not config_path.exists():
         raise SystemExit(f"Gate config not found: {config_path}")
     config = read_json(config_path)
@@ -1690,12 +2033,11 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     binding = assess_repository_binding(repo, config_path.parent)
     if binding["status"] != "match":
         print(
-            "BINDING WARNING: calibration is "
+            "BLOCKED: calibration is "
             f"{binding['status']} for this repository. Migrate, accept, or rebind it before trusting local gates."
         )
-        if allow_exec:
-            print("REFUSED: deterministic gates cannot execute from unbound or foreign calibration.")
-            return 2
+        print("REFUSED: gate planning and execution cannot use unbound, invalid, or foreign calibration.")
+        return 2
 
     candidates = [
         g for g in config.get("gates", [])
@@ -1719,9 +2061,8 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         print(f"BLOCKED: {len(blocked)} enabled gate(s) need review:")
         for gate, reason in blocked:
             print(f"  {gate.get('id', 'unnamed')}: {reason}")
-        if allow_exec:
-            print("REFUSED: rerun the planner after source changes, then approve each command and reconfirm execution safety.")
-            return 2
+        print("REFUSED: rerun the planner after source changes, then approve each command and reconfirm execution safety.")
+        return 2
 
     if not gates:
         print(f"NO GATES: no approved, enabled, applicable gates at Level {level}. Review {config_path}")
@@ -1741,6 +2082,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         return 2
 
     ensure_run_gitignore(repo)
+    require_no_symlink_components(repo / ".anti-dark-code" / "runs", repo, "gate run creation")
     source_identity = current_source_identity(repo)
     gate_material = [{"id": g.get("id"), "definition": gate_definition_hash(g)} for g in gates]
     input_hash = sha256_bytes(json.dumps({"level": level, "gates": gate_material, "source": source_identity, "changed": changed or []}, sort_keys=True).encode())[:10]
@@ -1808,15 +2150,32 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         exit_code = 124
         timed_out = False
         launch_error: str | None = None
+        timeout_termination: dict[str, Any] | None = None
+        proc: subprocess.Popen[Any] | None = None
         try:
             raw_path.touch(mode=0o600, exist_ok=False)
             with raw_path.open("w", encoding="utf-8", newline="\n") as raw_log:
-                proc = subprocess.run(argv, cwd=cwd, stdout=raw_log, stderr=subprocess.STDOUT, text=True, timeout=timeout_seconds, check=False)
-                exit_code = proc.returncode
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            with raw_path.open("a", encoding="utf-8") as raw_log:
-                raw_log.write(f"\n[anti-dark-code] TIMEOUT after {timeout_seconds}s\n")
+                proc = subprocess.Popen(
+                    argv,
+                    cwd=cwd,
+                    stdout=raw_log,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    **gate_popen_kwargs(),
+                )
+                try:
+                    exit_code = proc.wait(timeout=timeout_seconds)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    timeout_termination = terminate_gate_process_tree(proc)
+                    exit_code = 124
+                    raw_log.write(
+                        f"\n[anti-dark-code] TIMEOUT after {timeout_seconds}s; "
+                        f"termination={timeout_termination['strategy']}\n"
+                    )
+                except KeyboardInterrupt:
+                    terminate_gate_process_tree(proc)
+                    raise
         except FileNotFoundError as exc:
             exit_code = 127
             launch_error = str(exc)
@@ -1849,6 +2208,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
             "level": gate.get("level"),
             "exit_code": exit_code,
             "timed_out": timed_out,
+            "timeout_termination": timeout_termination,
             "launch_error": redact_text(launch_error) if launch_error else None,
             "command": shown_argv,
             "cwd": rel(cwd, repo),
@@ -1922,7 +2282,7 @@ def sanitize_for_proposal(text: str, repo: Path) -> str:
 
 def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged: bool) -> Path:
     repo = repo.resolve()
-    calibration = calibration_dir(repo)
+    calibration = safe_calibration_dir(repo, "flow-back calibration read/write")
     binding = assess_repository_binding(repo, calibration)
     if binding["status"] != "match":
         raise SystemExit(
@@ -1959,6 +2319,7 @@ def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged
     body = "\n".join(lines).rstrip() + "\n"
     digest = sha256_bytes(body.encode("utf-8"))[:12]
     out_dir = repo / ".anti-dark-code" / "flowback"
+    require_no_symlink_components(out_dir, repo, "flow-back proposal write")
     out_path = out_dir / f"flowback-{digest}.md"
     write_text_atomic(out_path, body)
 
@@ -1973,11 +2334,13 @@ def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged
         if not (parent / "SKILL.md").exists():
             raise SystemExit(f"Parent skill does not look valid: {parent}")
         parent_scope = inspect_install_source(parent, repo)
-        if parent_scope["unsafe_issues"] or parent_scope["template_errors"]:
+        if parent_scope["fatal_issues"] or parent_scope["unsafe_issues"] or parent_scope["template_errors"]:
             raise SystemExit("Parent skill is not a clean universal core. Stage the proposal to a reviewed shared source instead.")
         incoming = parent / "incoming"
+        destination = incoming / out_path.name
+        require_no_symlink_components(destination, parent, "shared-core incoming proposal staging")
         incoming.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(out_path, incoming / out_path.name)
+        copy_file_atomic(out_path, destination)
 
     if mark_staged:
         text = candidate_path.read_text(encoding="utf-8")
@@ -1989,13 +2352,164 @@ def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged
     return out_path
 
 
-def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
-    skill = skill.resolve()
+def is_validation_runtime_path(path: Path, skill: Path, mode: str) -> bool:
+    try:
+        relative = path.relative_to(skill)
+    except ValueError:
+        return False
+    if not relative.parts:
+        return False
+    top = relative.parts[0]
+    if mode == "installed":
+        return top in {"calibration", "incoming"} or relative.as_posix() == ".adc-managed.json"
+    if mode == "universal":
+        return top in {"calibration", "incoming"} or relative.as_posix() == ".adc-managed.json"
+    return False
+
+
+def resolve_validation_mode(skill: Path, requested: str = "auto") -> str:
+    if requested == "source":
+        requested = "universal"
+    if requested not in VALIDATION_MODES:
+        raise SystemExit(f"Unknown validation mode: {requested}")
+    if requested != "auto":
+        return requested
+    lexical_skill = lexical_absolute(skill.expanduser())
+    if (lexical_skill / ".adc-managed.json").exists():
+        return "installed"
+    if tuple(lexical_skill.parts[-3:]) == (".agents", "skills", "anti-dark-code"):
+        # The canonical repo-local path is installed mode even when it is an
+        # unsafe symlink. This lets validation report the symlink instead of
+        # silently treating the target as a user-level universal alias.
+        return "installed"
+    return "universal"
+
+
+def installed_repo_root(skill: Path) -> Path | None:
+    if tuple(skill.parts[-3:]) == (".agents", "skills", "anti-dark-code"):
+        return skill.parents[2]
+    return None
+
+
+def validate_installed_manifest(skill: Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
+    manifest_path = skill / ".adc-managed.json"
+    if not manifest_path.exists():
+        return ["Installed validation requires .adc-managed.json"], warnings
+    if path_is_linklike(manifest_path):
+        return ["Installed manifest must not be a symlink or junction"], warnings
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"Invalid installed manifest {manifest_path}: {exc}"], warnings
+    if not isinstance(manifest, dict):
+        return ["Installed manifest is not a JSON object"], warnings
+
+    expected_files = manifest.get("files")
+    if not isinstance(expected_files, dict) or not expected_files:
+        errors.append("Installed manifest has no managed file map")
+        expected_files = {}
+
+    normalized_expected: dict[str, str] = {}
+    for raw_name, raw_hash in expected_files.items():
+        if not isinstance(raw_name, str) or not isinstance(raw_hash, str):
+            errors.append("Installed manifest file entries must map string paths to SHA-256 strings")
+            continue
+        name = raw_name.replace("\\", "/")
+        parts = tuple(part for part in name.split("/") if part)
+        if raw_name.startswith(("/", "\\")) or not parts or any(part in {".", ".."} for part in parts):
+            errors.append(f"Installed manifest contains unsafe managed path: {raw_name}")
+            continue
+        if not re.fullmatch(r"[0-9a-f]{64}", raw_hash):
+            errors.append(f"Installed manifest contains invalid SHA-256 for {raw_name}")
+            continue
+        normalized_expected["/".join(parts)] = raw_hash
+
+    actual_files = managed_source_files(skill)
+    expected_names = set(normalized_expected)
+    actual_names = set(actual_files)
+    for name in sorted(expected_names - actual_names):
+        errors.append(f"Managed installed file is missing: {name}")
+    for name in sorted(actual_names - expected_names):
+        errors.append(f"Unexpected unmanaged core file in installed skill: {name}")
+    for name in sorted(expected_names & actual_names):
+        path = actual_files[name]
+        if path_is_linklike(path):
+            errors.append(f"Managed installed file is a symlink or junction: {name}")
+            continue
+        actual_hash = sha256_file(path)
+        if actual_hash != normalized_expected[name]:
+            errors.append(f"Managed installed file checksum mismatch: {name}")
+
+    if expected_names == actual_names and not any("checksum mismatch" in item for item in errors):
+        expected_core = manifest.get("source_core_sha256")
+        actual_core = core_digest(actual_files)
+        if not isinstance(expected_core, str) or actual_core != expected_core:
+            errors.append("Installed core digest does not match .adc-managed.json")
+
+    version_path = skill / "VERSION"
+    manifest_version = manifest.get("source_version")
+    if version_path.exists() and isinstance(manifest_version, str):
+        installed_version = version_path.read_text(encoding="utf-8").strip()
+        if installed_version != manifest_version:
+            errors.append("Installed VERSION does not match .adc-managed.json")
+
+    marker_path = skill / SOURCE_SCOPE_FILENAME
+    expected_marker_hash = manifest.get("source_scope_marker_sha256")
+    if marker_path.exists() and isinstance(expected_marker_hash, str):
+        if sha256_file(marker_path) != expected_marker_hash:
+            errors.append(f"Installed {SOURCE_SCOPE_FILENAME} checksum mismatch")
+
+    calibration = skill / "calibration"
+    calibration_symlinks = ([calibration] if path_is_linklike(calibration) else []) + tree_symlinks(calibration)
+    if calibration_symlinks:
+        errors.append(
+            "Installed calibration contains link-like entries: "
+            + ", ".join(item.relative_to(skill).as_posix() for item in calibration_symlinks)
+        )
+    calibration_json_paths = (
+        list(calibration.rglob("*.json"))
+        if calibration.exists() and calibration.is_dir() and not path_is_linklike(calibration)
+        else []
+    )
+    for json_path in calibration_json_paths:
+        if path_is_linklike(json_path):
+            errors.append(f"Installed calibration JSON must not be a symlink or junction: {json_path.relative_to(skill)}")
+            continue
+        try:
+            json.loads(json_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"Invalid installed calibration JSON {json_path.relative_to(skill)}: {exc}")
+
+    repo = installed_repo_root(skill)
+    if repo is None:
+        warnings.append("Could not infer repository root for calibration-binding validation")
+    else:
+        binding = assess_repository_binding(repo, skill / "calibration")
+        if binding["status"] != "match":
+            errors.append(
+                f"Installed calibration binding is {binding['status']} for repository {repo}"
+            )
+    return errors, warnings
+
+
+def validate_skill(skill: Path, mode: str = "auto") -> tuple[list[str], list[str]]:
+    requested_skill = skill.expanduser()
+    skill_path_was_symlink = path_is_linklike(requested_skill)
+    validation_mode = resolve_validation_mode(requested_skill, mode)
+    skill = requested_skill.resolve()
+    errors: list[str] = []
+    warnings: list[str] = []
+    if skill_path_was_symlink:
+        if validation_mode in {"distribution", "installed"}:
+            errors.append(f"{validation_mode.capitalize()} skill root must not be a symlink or junction: {requested_skill}")
+        else:
+            warnings.append(f"Universal skill root is reached through a symlink alias: {requested_skill}")
     skill_md = skill / "SKILL.md"
     if not skill_md.exists():
-        return [f"Missing {skill_md}"], warnings
+        errors.append(f"Missing {skill_md}")
+        return errors, warnings
     text = skill_md.read_text(encoding="utf-8")
     lines = text.splitlines()
     if len(lines) > 500:
@@ -2051,22 +2565,70 @@ def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
                 if scope.get("repo_calibration_transfer") != "prohibited":
                     errors.append(f"{SOURCE_SCOPE_FILENAME} must prohibit repo calibration transfer")
 
-    source_calibration_files = calibration_payload_files(skill / "calibration")
-    if source_calibration_files:
+    excluded_symlink_roots = {"calibration", "incoming"} if validation_mode in {"universal", "installed"} else set()
+    core_symlinks = tree_symlinks(skill, excluded_top_level=excluded_symlink_roots)
+    if core_symlinks:
         errors.append(
-            "Universal core contains repo-owned top-level calibration: "
-            + ", ".join(item.relative_to(skill).as_posix() for item in source_calibration_files)
+            "Core contains link-like entries: "
+            + ", ".join(item.relative_to(skill).as_posix() for item in core_symlinks)
         )
+
+    source_calibration = skill / "calibration"
+    source_calibration_files = calibration_payload_files(source_calibration)
+    source_calibration_symlinks = ([source_calibration] if path_is_linklike(source_calibration) else []) + tree_symlinks(source_calibration)
+    incoming_path = skill / "incoming"
+    incoming_entries = calibration_payload_files(incoming_path)
+    incoming_symlinks = ([incoming_path] if path_is_linklike(incoming_path) else []) + tree_symlinks(incoming_path)
+
+    if validation_mode in {"universal", "distribution"}:
+        if (skill / ".adc-managed.json").exists():
+            errors.append("Universal source contains a repo-local .adc-managed.json")
+        if source_calibration_files or source_calibration_symlinks:
+            entries = [item.relative_to(skill).as_posix() for item in source_calibration_files]
+            entries.extend(item.relative_to(skill).as_posix() for item in source_calibration_symlinks)
+            errors.append(
+                "Universal core contains repo-owned top-level calibration: "
+                + ", ".join(sorted(set(entries)))
+            )
+    if validation_mode == "distribution" and (incoming_path.exists() or path_is_linklike(incoming_path)):
+        entries = [item.relative_to(skill).as_posix() for item in incoming_entries]
+        entries.extend(item.relative_to(skill).as_posix() for item in incoming_symlinks)
+        errors.append(
+            "Distribution contains the runtime-only incoming/ inbox"
+            + (": " + ", ".join(sorted(set(entries))) if entries else "")
+        )
+    elif validation_mode == "universal" and incoming_symlinks:
+        errors.append(
+            "Live universal incoming/ inbox contains link-like entries: "
+            + ", ".join(item.relative_to(skill).as_posix() for item in incoming_symlinks)
+        )
+        if incoming_entries:
+            warnings.append(
+                f"Ignored {len(incoming_entries)} staged incoming item(s) while validating the live universal core"
+            )
+    elif validation_mode == "universal" and incoming_entries:
+        warnings.append(
+            f"Ignored {len(incoming_entries)} staged incoming item(s) while validating the live universal core"
+        )
+    elif validation_mode == "installed" and (incoming_path.exists() or path_is_linklike(incoming_path)):
+        errors.append("Installed repo copy must not contain the shared-core incoming/ inbox")
 
     artifact_paths = [
         path.relative_to(skill).as_posix()
         for path in skill.rglob("*")
-        if path.name == "__pycache__" or path.suffix == ".pyc"
+        if not is_validation_runtime_path(path, skill, validation_mode)
+        and (path.name == "__pycache__" or path.suffix == ".pyc")
     ]
     if artifact_paths:
-        errors.append("Generated Python artifacts found in package: " + ", ".join(sorted(artifact_paths)))
+        message = "Generated Python artifacts found in skill tree: " + ", ".join(sorted(artifact_paths))
+        if validation_mode == "distribution":
+            errors.append(message)
+        else:
+            warnings.append(message + f"; ignored in {validation_mode} validation")
 
     for json_path in list(skill.rglob("*.json")):
+        if is_validation_runtime_path(json_path, skill, validation_mode):
+            continue
         try:
             json.loads(json_path.read_text(encoding="utf-8"))
         except Exception as exc:
@@ -2103,6 +2665,8 @@ def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
     dash_files: list[str] = []
     hardcoded_files: list[str] = []
     for path in skill.rglob("*"):
+        if is_validation_runtime_path(path, skill, validation_mode) or path_is_linklike(path):
+            continue
         if path.is_file() and path.suffix.lower() in TEXT_EXTENSIONS | {".yaml", ".yml"}:
             try:
                 content = path.read_text(encoding="utf-8")
@@ -2126,6 +2690,10 @@ def validate_skill(skill: Path) -> tuple[list[str], list[str]]:
 
     template_errors = validate_calibration_templates(skill / "assets" / "templates" / "calibration")
     errors.extend(template_errors)
+    if validation_mode == "installed":
+        installed_errors, installed_warnings = validate_installed_manifest(skill)
+        errors.extend(installed_errors)
+        warnings.extend(installed_warnings)
     if not (skill / "references" / "host-adapters.md").exists():
         warnings.append("No host adapter router found")
     if not (skill / "agents" / "openai.yaml").exists():
@@ -2165,7 +2733,7 @@ def profile_is_fresh(repo: Path, profile: dict[str, Any]) -> bool:
 
 
 def load_or_probe(repo: Path) -> dict[str, Any]:
-    path = calibration_dir(repo) / "repo-profile.json"
+    path = safe_calibration_dir(repo, "repository profile read") / "repo-profile.json"
     if path.exists():
         data = read_json(path)
         if data.get("generated_at_utc") and profile_is_fresh(repo, data):
@@ -2178,7 +2746,7 @@ def command_plan(args: argparse.Namespace) -> int:
     profile = load_or_probe(repo)
     plan = build_plan(profile)
     if args.write:
-        profile_path = calibration_dir(repo) / "repo-profile.json"
+        profile_path = safe_calibration_dir(repo, "repository profile write") / "repo-profile.json"
         if not profile_path.exists() or not profile.get("generated_at_utc"):
             write_profile(repo, profile)
         path, gate_path, added = write_plan(repo, profile, plan, add_gate_suggestions=not args.no_gate_suggestions)
@@ -2257,15 +2825,16 @@ def command_flowback(args: argparse.Namespace) -> int:
 
 def command_validate(args: argparse.Namespace) -> int:
     skill = Path(args.skill).expanduser() if args.skill else SKILL_ROOT
-    errors, warnings = validate_skill(skill)
+    mode = resolve_validation_mode(skill, args.mode)
+    errors, warnings = validate_skill(skill, mode=args.mode)
     for warning in warnings:
         print(f"WARN {warning}")
     for error in errors:
         print(f"ERROR {error}")
     if errors:
-        print(f"INVALID: {len(errors)} error(s), {len(warnings)} warning(s)")
+        print(f"INVALID ({mode}): {len(errors)} error(s), {len(warnings)} warning(s)")
         return 1
-    print(f"VALID: 0 errors, {len(warnings)} warning(s)")
+    print(f"VALID ({mode}): 0 errors, {len(warnings)} warning(s)")
     return 0
 
 
@@ -2327,8 +2896,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--mark-staged", action="store_true")
     p.set_defaults(func=command_flowback)
 
-    p = sub.add_parser("validate", help="Validate skill packaging and catalog")
+    p = sub.add_parser("validate", help="Validate a distribution, live universal core, or installed repo copy")
     p.add_argument("--skill")
+    p.add_argument("--mode", choices=VALIDATION_MODES, default="auto")
     p.set_defaults(func=command_validate)
     return parser
 

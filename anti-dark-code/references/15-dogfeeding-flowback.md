@@ -136,7 +136,9 @@ The parent must:
 
 Staging writes one incoming proposal. It does not modify core references or scripts.
 
-The installer excludes the shared `incoming/` review inbox from repo-local managed copies. A proposal from one repository must not be distributed into other repositories merely because it is awaiting review.
+The installer excludes the shared `incoming/` review inbox from repo-local managed copies. A proposal from one repository must not be distributed into other repositories merely because it is awaiting review. The flow-back writer also refuses symbolic-link or junction-backed parent inbox paths or destination files so a staged proposal cannot be redirected outside the reviewed shared core.
+
+A live shared core with pending proposals should use `adc.py validate --mode universal`. A release candidate must use `adc.py validate --mode distribution`, which rejects the runtime-only inbox.
 
 ## Promotion Gate
 
@@ -149,7 +151,7 @@ Before promotion into the shared skill:
 5. Add or update deterministic tests for any script change.
 6. Check that examples use placeholders rather than real user paths.
 7. Validate cross-host packaging.
-8. Run `adc.py validate` and the skill's unit tests with ordinary `python3`.
+8. Run `adc.py validate --mode universal` against the live shared core, then `adc.py validate --mode distribution` against the clean release candidate, plus the skill's unit tests with ordinary `python3`.
 9. Record the source candidate and the human decision.
 10. Promote in one bounded shared-core change.
 

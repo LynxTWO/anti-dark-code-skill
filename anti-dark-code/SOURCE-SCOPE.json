@@ -7,6 +7,7 @@
   "notes": [
     "This marker identifies a clean universal source core.",
     "Repo-owned calibration must never be copied from this source into another repository.",
-    "A repo-local installed copy may contain calibration beside the managed core, but it is not a safe installation source without explicit review."
+    "A repo-local installed copy may contain calibration beside the managed core, but it is not a safe installation source without explicit review.",
+    "A live universal working copy may contain runtime-only incoming proposals; a distribution candidate must not."
   ]
 }

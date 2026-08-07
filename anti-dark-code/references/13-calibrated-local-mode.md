@@ -89,6 +89,7 @@ The installer blocks a source by default when it:
 - contains a repo-local `.adc-managed.json` installation manifest
 - contains a populated top-level `calibration/` directory
 - contains bound, enabled, pre-approved, path-contaminated, or otherwise unsafe calibration templates
+- contains internal symlink or junction entries
 
 A repo-local installed copy may contain useful local knowledge. That does not make it a safe source for another repository.
 
@@ -103,12 +104,13 @@ Binding states:
 - `new`: no calibration exists yet
 - `match`: calibration belongs to the current repository identity
 - `unbound`: legacy calibration exists without a binding
-- `invalid`: the binding record is malformed
+- `invalid`: the binding record is malformed or contains unsafe entries
 - `mismatch`: calibration belongs to a different repository identity
 
 The installer creates a binding for new calibration.
 
 Legacy unbound calibration requires explicit review and `--accept-unbound-calibration`.
+The flag applies only to the `unbound` state. An invalid binding or symlink-contaminated calibration must be repaired or quarantined.
 
 A deliberate repo move, fork, or remote identity change may require `--rebind-calibration`. Rebinding records the previous hashed id. It must not be used to import unrelated calibration.
 
@@ -272,9 +274,28 @@ Load `host-adapters.md` only after the canonical local copy exists.
 
 Host adapters may change discovery and tool syntax. They must not duplicate or fork core policy.
 
+## Physical Path Isolation
+
+User-level host discovery may use a symlink or adapter that points to the clean shared core. Repo-local managed state may not.
+
+The following repo-local paths must be real paths with no symbolic-link or Windows-junction component and no nested link-like entry:
+
+- `.agents/skills/anti-dark-code/`
+- `.agents/skills/anti-dark-code/calibration/`
+- `.claude/skills/anti-dark-code/SKILL.md`
+- `.anti-dark-code/` run and flow-back artifact paths
+
+This prevents a repository from redirecting writes into the shared core, another repository, or an unrelated filesystem location. The installer checks this rule during both dry-run and apply. Calibration writers, gate artifacts, and flow-back staging also fail closed.
+
+Do not solve host discovery by symlinking the repo's skill directory to the user-level core. Install the managed copy and let host adapters point inward to that canonical repo copy.
+
+## Validation by Layer
+
+Use `validate --mode distribution` for a release candidate, `validate --mode universal` for a live shared core that may contain `incoming/`, and `validate --mode installed` for a repo-local managed copy. Installed validation uses `.adc-managed.json` for core integrity and verifies the repo binding. It does not misclassify expected repo-owned calibration as contamination.
+
 ## Gate and Flow-Back Isolation
 
-Deterministic gate execution is refused when calibration is unbound or mismatched.
+Deterministic gate planning and execution are refused when calibration is unbound, invalid, or mismatched. An enabled applicable gate that is blocked by review or stale source evidence returns exit code `2` even in dry-run mode.
 
 Flow-back is also refused when local calibration does not match the current repository identity.
 
@@ -286,6 +307,7 @@ When staging to a parent, the parent must be a clean universal source core. A re
 - Do not install testing dependencies automatically.
 - Do not overwrite local calibration.
 - Do not overwrite edited core files without surfacing the conflict.
+- Do not allow repo-local managed paths to traverse symbolic links or Windows junctions.
 - Do not place secrets or raw personal paths in committed calibration.
 - Do not copy one repo's calibration into another repo.
 - Do not use a repo-local fork as another repo's normal source.
@@ -307,4 +329,6 @@ Calibrated local mode is complete when:
 - proposed gates are exact argument arrays and remain unexecuted until reviewed
 - migrated gates begin disabled and proposed
 - core update ownership and calibration ownership are documented
+- installed validation passes against `.adc-managed.json` and the current repo binding
+- repo-local managed paths contain no symbolic-link or Windows-junction components and no nested link-like entries
 - flow-back is proposal-only

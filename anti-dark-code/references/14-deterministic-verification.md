@@ -35,7 +35,7 @@ Read:
 python .agents/skills/anti-dark-code/scripts/adc.py probe --repo . --write
 ```
 
-The probe reads file names, manifests, selected small configuration files, and bounded code indicators. It does not execute application code. It records evidence paths and scan limits so the result does not pretend to be a full architecture review.
+The probe reads file names, manifests, selected small configuration files, and bounded code indicators. It does not execute application code. It records evidence paths and scan limits so the result does not pretend to be a full architecture review. It excludes host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/` so tooling does not pollute product-code classification or evidence.
 
 ## Step 2: Evaluate All 20 Capabilities
 
@@ -145,6 +145,7 @@ python .agents/skills/anti-dark-code/scripts/adc.py gates --repo . --level 1 --a
 The runner must:
 
 - use real process exit codes
+- return `2` for a blocked plan even when execution was not requested
 - execute command arrays without a shell
 - run only enabled, individually approved, applicable gates
 - block package-script gates when the approved source definition changed
@@ -152,6 +153,12 @@ The runner must:
 - print a compact success summary
 - emit a bounded failure packet on failure
 - return nonzero when a gate fails
+- launch each executed gate in its own process group
+- make a best-effort attempt to terminate the gate's process tree on timeout
+
+Top-level exit codes are `0` for a valid dry run or all-green execution, `1` for executed gate failures, `2` for a refused plan or execution, and `130` for operator interruption. A timed-out gate is recorded with exit `124` inside its failure packet and makes the overall run fail.
+
+On POSIX systems timeout handling signals the process group. On Windows it uses a new process group and falls back to `taskkill /T /F`. This limits orphaned helpers, but it is not a security sandbox and cannot guarantee termination of a process that deliberately detaches itself.
 
 Do not send full green logs to an agent.
 

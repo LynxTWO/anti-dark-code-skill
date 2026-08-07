@@ -2,7 +2,7 @@
 
 This package replaces separate model-specific copies with one model-neutral core, repo-local calibration, optional host adapters, and deterministic local tooling.
 
-Version: `2026.08.06-unified.3`
+Version: `2026.08.06-unified.4`
 
 ## What It Does
 
@@ -14,6 +14,8 @@ Version: `2026.08.06-unified.3`
 - Gives Claude Code a thin adapter instead of a second editable policy tree.
 - Lets Codex and Gemini CLI use the canonical `.agents/skills` copy.
 - Uses local deterministic scripts for profiling, planning, changed-slice routing, exact gate execution, real exit codes, compact summaries, failure packets, checksums, and flow-back staging.
+- Excludes repo-level host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/` from repository evidence so tooling does not distort repo classification.
+- Returns exit code `2` when a gate plan is blocked, including dry runs, and terminates timed-out gate process trees on a best-effort basis.
 - Keeps source-side repo calibration out of every installation.
 - Prevents repo-local lessons from silently rewriting the shared skill.
 
@@ -77,19 +79,39 @@ ln -s "$SHARED" "$HOME/.claude/skills/anti-dark-code"
 
 Use a directory junction or thin adapter where symlinks are unavailable.
 
+These user-level aliases are only for host discovery of the shared core. Never symlink a repository's `.agents/skills/anti-dark-code/`, its `calibration/`, its Claude adapter, or `.anti-dark-code/` run-artifact paths to the shared core or another location. Repo-local managed paths must be real paths so one repository cannot write into shared or foreign state. The installer fails closed on symbolic-link or Windows-junction components and nested link-like entries.
+
 Do not use a repo-local customized copy as the shared source for another repository.
 
-## Validate the Package
+## Validate the Correct Layer
 
-From the clean shared skill root:
+A release or ZIP candidate must pass strict distribution validation:
 
 ```bash
-cd /path/to/shared/anti-dark-code
-python3 scripts/adc.py validate
+cd /path/to/package/anti-dark-code
+python3 scripts/adc.py validate --mode distribution
 python3 -m unittest discover -s tests -v
 ```
 
-Ordinary `python3` is sufficient. The unit suite validates a clean package copy so its own runtime `__pycache__` does not create a false packaging failure. The strict package validator still rejects `__pycache__` and `.pyc` files that are actually present in the package being validated.
+A live shared core may contain reviewed or pending flow-back proposals under `incoming/`. Validate that working copy with:
+
+```bash
+python3 scripts/adc.py validate --mode universal
+```
+
+Universal validation ignores ordinary proposal files in the runtime-only `incoming/` inbox and reports them as a warning. It rejects symlinked or junction-backed inbox entries because proposal staging must not be redirectable. Distribution validation rejects the entire inbox so proposals cannot leak into a shipped package or repo-local installation.
+
+An installed repository copy carries repo-owned calibration and `.adc-managed.json`. Validate it from the repository root with:
+
+```bash
+python3 .agents/skills/anti-dark-code/scripts/adc.py validate \
+  --skill .agents/skills/anti-dark-code \
+  --mode installed
+```
+
+`--mode auto` detects an installed copy when `.adc-managed.json` is present and treats the canonical repo-local `.agents/skills/anti-dark-code/` path as installed. Installed validation checks managed-core hashes, calibration path safety, and the repository binding while treating ordinary `calibration/` files as local state rather than universal-source contamination.
+
+Ordinary `python3` is sufficient. The unit suite builds clean temporary package fixtures, so its own runtime `__pycache__` does not create a false packaging failure. Distribution validation still rejects `__pycache__` and `.pyc` files that are actually present in a release candidate.
 
 ## Bootstrap a New Repository
 
@@ -112,6 +134,8 @@ python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
 
 Bootstrap does not execute repository code and does not install dependencies.
 
+After application, validate the installed copy with `--mode installed` before trusting repo-local calibration or gates.
+
 ## Migrate an Existing Repository
 
 Read `MIGRATION.md` before applying changes.
@@ -123,6 +147,8 @@ The installer reports whether existing calibration is:
 - `unbound`
 - `invalid`
 - `mismatch`
+
+`--accept-unbound-calibration` applies only to reviewed legacy calibration that has no binding. An `invalid` binding is not accepted by that flag. Repair it or quarantine the affected calibration before migration.
 
 Trusted same-repo legacy calibration requires explicit acceptance:
 
@@ -216,6 +242,7 @@ After every enabled gate is approved, set:
 ```
 
 Any new or changed generated gate resets that confirmation. Package-script gates also carry a source fingerprint, so a changed script is blocked until the plan is refreshed and reapproved.
+A dry gate plan returns exit code `2` when an enabled applicable gate is blocked by review status, stale source evidence, or calibration binding. This lets CI and agent harnesses distinguish a clean plan from a blocked plan without executing repository code.
 
 Then run:
 
@@ -226,7 +253,7 @@ python3 .agents/skills/anti-dark-code/scripts/adc.py gates \
   --allow-exec
 ```
 
-Gate execution is refused if calibration is unbound or belongs to another repository identity.
+Gate planning and execution are refused if calibration is unbound, invalid, or belongs to another repository identity.
 
 For changed-slice routing:
 
@@ -238,7 +265,18 @@ python3 .agents/skills/anti-dark-code/scripts/adc.py gates \
   --allow-exec
 ```
 
-Successful checks collapse to a compact summary. Failures create a bounded JSON packet and retain a pattern-redacted log under `.anti-dark-code/runs/`. Pattern redaction reduces exposure but cannot prove that every sensitive value was removed.
+Successful checks collapse to a compact summary. Failures create a bounded JSON packet and retain a pattern-redacted log under `.anti-dark-code/runs/`. When a gate times out, the runner terminates its POSIX process group or Windows process tree on a best-effort basis and records the termination result in the failure packet. Pattern redaction reduces exposure but cannot prove that every sensitive value was removed.
+
+## Gate Runner Exit and Timeout Semantics
+
+The gate runner uses these top-level exit codes:
+
+- `0`: valid dry-run plan, no applicable gates, or all executed gates passed
+- `1`: one or more executed gates failed, including a timeout recorded as gate exit `124`
+- `2`: planning or execution was refused because calibration, approval, source fingerprints, or owner confirmation were unsafe
+- `130`: interrupted by the operator
+
+A timeout launches each gate in its own process group. On POSIX systems the runner signals the process group. On Windows it uses a new process group and falls back to `taskkill /T /F`. This is best-effort containment, not a sandbox. A child that deliberately detaches from the process group may require stronger operating-system isolation.
 
 ## Dogfeeding and Flow-Back
 

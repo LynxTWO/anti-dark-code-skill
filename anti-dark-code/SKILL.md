@@ -2,7 +2,7 @@
 name: anti-dark-code
 description: Model-neutral workflow for mapping, auditing, verifying, and hardening unfamiliar, legacy, fast-growing, or AI-built codebases from evidence instead of guesswork. Use to map architecture and trust boundaries, install repo steering and a calibrated local skill, select deterministic verification capabilities, create compact quality gates and failure packets, audit logging and critical paths, challenge tests and assumptions, preserve localization boundaries, remediate findings safely, or dogfeed repo lessons back into the shared skill. Trigger terms include dark code, anti-dark-code, legacy audit, repo map, verification harness, deterministic testing, mutation testing, fuzzing, UI monkey, unknowns, approval gates, context limits, and reduce AI tokens or credits.
 metadata:
-  version: "2026.08.06-unified.3"
+  version: "2026.08.06-unified.4"
   maintainer: "Daniel Boyd"
 ---
 
@@ -98,7 +98,9 @@ Use agents for:
 
 Successful deterministic work should collapse to a one-line result. Failed work should emit a bounded failure packet and preserve pattern-redacted logs locally. Do not feed successful logs to an agent unless the compact result is insufficient.
 
-Do not execute repo code merely because a command exists. Inspect what a gate does and obtain the required permission for inherited, unknown, or high-risk repos. The bundled gate runner is dry-run by default and requires an explicit execution flag.
+Do not execute repo code merely because a command exists. Inspect what a gate does and obtain the required permission for inherited, unknown, or high-risk repos. The bundled gate runner is dry-run by default and requires an explicit execution flag. A blocked gate plan returns a nonzero status even in dry-run mode. Timed-out gates are launched in a separate process group and the runner makes a best-effort attempt to terminate the whole process tree.
+
+Repo profiling excludes agent skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`. Skills are tooling inputs, not product-code evidence.
 
 ## Local Calibration Contract
 
@@ -124,6 +126,10 @@ Read fresh calibration first. Treat stale calibration as a warning, not truth. U
 Calibration is single-repository memory. Never transplant it into another repository. A matching `repo-binding.json` establishes repository identity continuity, not factual freshness.
 
 Install or update the managed core only from a clean universal source. A repo-local copy, populated source calibration, or contaminated calibration template is not a normal installation source.
+
+User-level host-discovery aliases may point to the clean shared core. Repo-local managed skill, calibration, adapter, and run-artifact paths must be real directories and files, not symlinks or junction-like indirections. The deterministic installer and writers fail closed when those managed paths contain symbolic-link or Windows-junction components.
+
+Validate release candidates with `validate --mode distribution`, deployed shared cores with `validate --mode universal`, and repo-local managed copies with `validate --mode installed`. Installed integrity comes from `.adc-managed.json` plus the repository binding, not from pretending local calibration is source contamination.
 
 A repo-local skill may propose a general lesson upstream. It must not directly mutate the developer's shared skill. Flow-back is proposal-only until a human reviews, deduplicates, validates, and promotes it.
 

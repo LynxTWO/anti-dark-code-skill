@@ -4,6 +4,32 @@
 
 The source archive names in this audit identify the material reviewed during package design. They are provenance only. They are not installation inputs, transferable calibration, default repository assumptions, or operational migration instructions. Repo-specific content from one archive must remain inside that repository unless a separate lesson is generalized, reviewed, and promoted into the universal core.
 
+## Real-Repo Feedback Verification
+
+A migration against a real repository exposed several issues that synthetic package checks had not covered. Each report was reproduced against version `2026.08.06-unified.3` before changing the implementation.
+
+### Symlink-Blind Writes
+
+Version 3 could follow a repo-local `.agents/skills/anti-dark-code/` symlink and write managed files into the shared or foreign target. Version 4 rejects symbolic-link or Windows-junction components and nested link-like entries for repo-local skill, calibration, adapter, run, migration, and flow-back paths. Managed file copies now use atomic replacement. User-level discovery aliases may still point to the clean shared core because those aliases are not repo-owned state.
+
+### Blocked Dry Runs Returning Success
+
+Version 3 printed that an enabled gate was blocked but returned exit code `0` unless execution had also been requested. Version 4 returns exit code `2` for blocked applicable gates in both dry-run and execution modes. An approved dry run still returns `0` and does not execute code.
+
+### Timeout Orphans
+
+Version 3 timed out only the direct process. A child process could continue after the runner returned. Version 4 launches each gate in a separate process group. On timeout it sends a graceful termination and then a forced process-group or process-tree kill when needed. The failure packet records the strategy and result. This is best-effort containment, not a sandbox.
+
+### Sibling Skill Pollution
+
+Version 3 could count scripts and prose from other repo-level agent skills as product code. Version 4 excludes `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/` from profiling, source identity, and changed-slice routing.
+
+### Distribution-Only Test Assumptions
+
+Version 3 tests could fail when run from a deployed shared core that had staged proposals under `incoming/` or did not have distribution documents in the parent directory. Version 4 builds clean package fixtures inside the suite and makes outer documents optional. It separates validation into distribution, universal, and installed modes.
+
+A distribution must remain pristine. A live universal core may have runtime proposal and Python-cache state without treating that state as shipped policy. An installed repo copy is checked against `.adc-managed.json` and its repository binding rather than being rejected for carrying repo-owned calibration.
+
 ## Direct Answer to the Three Questions
 
 ### 1. Should the 20 techniques be implemented across the general skill?
@@ -225,7 +251,7 @@ Runs install, probe, and plan in one explicit workflow. It still does not execut
 
 ### `gates`
 
-Dry-runs by default. After both command review and recorded owner confirmation, it executes exact argument arrays without shell interpolation, captures real exit codes, stores pattern-redacted logs, prints compact results, and creates a bounded failure packet.
+Dry-runs by default. A blocked applicable plan exits nonzero even without execution. After both command review and recorded owner confirmation, it executes exact argument arrays without shell interpolation, captures real exit codes, stores pattern-redacted logs, prints compact results, and creates a bounded failure packet. Executed gates run in separate process groups so timeout handling can terminate child processes on a best-effort basis.
 
 ### `flowback`
 
@@ -233,7 +259,7 @@ Converts `ready` local lessons into a content-hashed proposal. It can stage that
 
 ### `validate`
 
-Checks frontmatter, references, JSON, capability count, source scope, calibration-template safety, likely personal paths, host neutrality, Python compilation, generated artifacts, and the no-em/no-en-dash style rule.
+Supports separate distribution, universal-core, and installed-copy integrity models. It checks frontmatter, references, JSON, capability count, source scope, calibration-template safety, likely personal paths, host neutrality, Python compilation, generated artifacts, managed checksums, and repository binding as appropriate to the selected mode.
 
 ## Confidence Ladder
 
@@ -263,13 +289,16 @@ Host discovery conventions can evolve. Host addenda are isolated so they can be 
 
 ## Validation Performed
 
-The package validator passed.
+The strict distribution validator passed with zero errors and zero warnings.
 
-The included unit suite passed 32 tests with ordinary `python3`, covering:
+The included unit suite passed 48 tests with ordinary `python3`, covering:
 
-- clean package validation without requiring `python3 -B`
-- strict rejection of packaged `__pycache__` and `.pyc` artifacts
-- frontmatter, capability catalog, source marker, template completeness, path, and host-neutrality checks
+- clean distribution validation without requiring `python3 -B`
+- strict rejection of packaged `__pycache__`, `.pyc`, runtime `incoming/`, top-level calibration, managed-install metadata, and link-like package entries
+- live universal validation with ordinary staged proposals and runtime Python caches treated as warnings
+- rejection of symlinked or junction-backed universal proposal inboxes
+- installed-copy validation through `.adc-managed.json`, managed hashes, core digest, source metadata, local calibration JSON, calibration link safety, and repository binding
+- frontmatter, capability catalog, source marker, template completeness, likely personal paths, and host-neutrality checks
 - deterministic repo probing and all 20 capability decisions
 - package-manager-aware JavaScript gates and unique nested gate ids
 - reduced false positives for ordinary TypeScript exports
@@ -278,20 +307,28 @@ The included unit suite passed 32 tests with ordinary `python3`, covering:
 - explicit acceptance of trusted unbound legacy calibration with migrated gate approvals reset
 - mismatch rejection and explicit reviewed rebinding
 - repo-local and managed-install sources blocked by default
-- source calibration and shared incoming proposals excluded from managed repo copies while nested calibration templates remain installed
+- source calibration and shared incoming proposals excluded from managed repo copies while nested generic calibration templates remain installed
 - contaminated calibration templates blocked even under the unsafe-source recovery flag
 - migration of pre-install fallback calibration into the canonical repo skill
 - proposed gates starting disabled and requiring individual approval
 - package-script fingerprint invalidation after command changes
-- dry-run and executable gate behavior with redacted retained logs and bounded failure packets
+- blocked enabled gates returning exit code `2` during dry-run as well as execution
+- executable gate behavior with pattern-redacted retained logs and bounded failure packets
 - refusal to execute gates without individual approval and global owner confirmation
+- timeout process-group termination with a child-process survival check
+- refusal of repo-local skill roots, managed files, calibration paths, and flow-back destinations that use symlinks or equivalent link-like indirection
+- user-level universal-core aliases remaining valid when universal validation is selected explicitly
 - refusal to execute gates or flow back lessons from foreign calibration
 - refusal to stage flow-back into a repo-calibrated or repo-managed parent
-- changed-slice routing that includes committed, uncommitted, and untracked files
-- profile freshness tracking across dirty worktree changes while ignoring skill-generated artifacts
+- changed-slice routing that includes committed, uncommitted, and untracked product files
+- exclusion of `.agents/skills`, `.claude/skills`, `.gemini/skills`, and `.codex/skills` from profiling, Git source identity, and changed-slice routing
+- profile freshness tracking across dirty worktree changes while ignoring Anti-Dark-Code artifacts
 - proposal-only flow-back with path and secret-like-value redaction
 - general personal-path validation and neutral operational migration guidance
-- repo probes ignoring installed skill files while retaining CI discovery
+
+A separate deployment simulation copied only the shared core into a directory with no outer package documents, staged an `incoming/` proposal, and ran the suite from there. Universal validation passed with the expected runtime warning, and all 48 tests passed. Strict distribution validation rejected that runtime inbox as intended.
+
+A second simulation installed the skill into a generic repository and ran validation and the full unit suite from `.agents/skills/anti-dark-code/`. Installed validation passed against `.adc-managed.json` and the repository binding, and all 48 tests passed with the repo-owned calibration present.
 
 A private migration simulation placed the uploaded repo-specific legacy skill under a synthetic repository's old Claude skill location. The new bootstrap detected that calibration as an unbound legacy store, did not auto-import it, created fresh bound calibration, retained the nested generic calibration templates, and introduced no legacy project name or project-named file into the new calibration.
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026.08.06-unified.4
+
+### Real-Repo Write and Execution Hardening
+
+- Verifies and fixes repo-local symlink-blind writes. Install, calibration, adapter, run-artifact, and flow-back paths now fail closed on symbolic-link or Windows-junction components and nested link-like entries.
+- Keeps user-level host-discovery aliases compatible with a shared universal core while requiring real repo-local managed directories.
+- Uses atomic file replacement for managed-core copies, calibration-template copies, and staged flow-back proposals.
+- Treats invalid or link-contaminated calibration as repair-or-quarantine work instead of allowing `--accept-unbound-calibration` to override it.
+- Makes blocked gate plans return exit code `2` in dry-run mode as well as execution mode.
+- Launches each executed gate in a separate process group and makes a best-effort process-tree termination on timeout.
+- Records timeout termination details in bounded failure packets.
+- Makes auto validation treat the canonical repo-local path as installed state even when that path is an unsafe symlink, so the validation error cannot be hidden by resolving to the shared target.
+
+### Scan Isolation and Validation Modes
+
+- Excludes `.agents/skills`, `.claude/skills`, `.gemini/skills`, and `.codex/skills` from repository profiling, source identity, and changed-slice routing.
+- Detects legacy `.codex/skills/anti-dark-code/calibration` alongside the other supported legacy locations.
+- Adds explicit `distribution`, `universal`, `installed`, and `auto` validation modes.
+- Keeps distribution validation strict against `incoming/`, repo calibration, managed-install metadata, symbolic links or junctions, `__pycache__`, and `.pyc` artifacts.
+- Lets a deployed universal core validate and run its unit suite with staged flow-back proposals and without outer distribution documents.
+- Validates installed repo copies through `.adc-managed.json`, managed-core hashes, the core digest, source metadata, local calibration JSON, calibration link safety, and repository binding.
+- Allows ordinary live-core flow-back proposals while rejecting symlinked or junction-backed `incoming/` inbox entries.
+- Excludes `.codex/skills` from Git worktree identity as well as content scans.
+
+### Migration and Regression Coverage
+
+- Updates repository-neutral migration guidance for symlinked legacy layouts, layered validation, blocked dry-run status, installed-copy integrity, and process-tree timeout behavior.
+- Preserves strict package-artifact checks without requiring `python3 -B`.
+- Adds regression tests for blocked dry runs, installed-copy validation, universal-core `incoming/` isolation, distribution rejection of runtime inboxes, repo-local link refusal, linked flow-back destinations, sibling-skill isolation across profiling and change routing, and timeout process-tree termination.
+
 ## 2026.08.06-unified.3
 
 ### Cross-Repo Calibration Isolation

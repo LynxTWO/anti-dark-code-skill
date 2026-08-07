@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -25,7 +26,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         adc.write_repository_binding(
             calibration,
             assessment,
-            accepted_unbound=assessment["status"] in {"unbound", "invalid"},
+            accepted_unbound=assessment["status"] == "unbound",
             rebound=assessment["status"] == "mismatch",
         )
 
@@ -33,11 +34,11 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         source = Path(__file__).resolve().parents[1]
         destination.mkdir(parents=True, exist_ok=True)
         target = destination / "anti-dark-code"
-        shutil.copytree(
-            source,
-            target,
-            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
-        )
+        target.mkdir()
+        for relative, source_path in adc.managed_source_files(source).items():
+            destination_path = target / relative
+            destination_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, destination_path)
         return target
 
     def make_node_repo(self, root: Path) -> None:
@@ -73,7 +74,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
     def test_skill_validates(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             clean_skill = self.copy_clean_skill(Path(tmp))
-            errors, warnings = adc.validate_skill(clean_skill)
+            errors, warnings = adc.validate_skill(clean_skill, mode="distribution")
             self.assertEqual(errors, [])
             self.assertEqual(warnings, [])
 
@@ -83,14 +84,14 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             cache = clean_skill / "scripts" / "__pycache__"
             cache.mkdir()
             (cache / "adc.cpython-test.pyc").write_bytes(b"not-real-bytecode")
-            errors, _ = adc.validate_skill(clean_skill)
+            errors, _ = adc.validate_skill(clean_skill, mode="distribution")
             self.assertTrue(any("Generated Python artifacts" in item for item in errors))
 
     def test_validator_rejects_missing_gate_template(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             clean_skill = self.copy_clean_skill(Path(tmp))
             (clean_skill / "assets" / "templates" / "calibration" / "gates.json").unlink()
-            errors, _ = adc.validate_skill(clean_skill)
+            errors, _ = adc.validate_skill(clean_skill, mode="distribution")
             self.assertTrue(any("Missing calibration template gates.json" in item for item in errors))
 
     def test_probe_and_plan_evaluate_all_capabilities(self) -> None:
@@ -115,8 +116,10 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_installer_preserves_calibration_and_creates_adapter(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-            source = Path(__file__).resolve().parents[1]
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
+            source = self.copy_clean_skill(base / "source")
             result = adc.install_skill(repo, source, apply=True, force=False, hosts="all")
             self.assertTrue(result["applied"])
             target = repo / ".agents" / "skills" / "anti-dark-code"
@@ -181,12 +184,39 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn("hunter2", full_log.read_text(encoding="utf-8"))
             self.assertEqual(packet["exit_code"], 3)
 
+    def test_gate_dry_run_returns_two_when_enabled_gate_is_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            (cal / "gates.json").write_text(json.dumps({
+                "schema_version": 1,
+                "execution_policy": {"owner_confirmed_safe_to_execute": False},
+                "gates": [{
+                    "id": "needs-review",
+                    "level": 0,
+                    "argv": [sys.executable, "-c", "print('must not run')"],
+                    "enabled": True,
+                    "review_status": "proposed",
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                }],
+            }), encoding="utf-8")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = adc.run_gates(repo, 0, allow_exec=False, changed_from=None, keep_going=False)
+            self.assertEqual(result, 2)
+            self.assertIn("BLOCKED", output.getvalue())
+            self.assertFalse((repo / ".anti-dark-code" / "runs").exists())
+
 
     def test_probe_ignores_installed_skill_and_keeps_github_ci(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
             self.make_node_repo(repo)
-            source = Path(__file__).resolve().parents[1]
+            source = self.copy_clean_skill(base / "source")
             adc.install_skill(repo, source, apply=True, force=False, hosts="all")
             profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
             self.assertEqual(profile["counts"]["total_files"], 4)
@@ -255,7 +285,9 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             )
             out = adc.flowback(repo, parent=None, stage_to_parent=False, mark_staged=False)
             self.assertTrue(out.exists())
-            self.assertIn("Exact command arrays", out.read_text(encoding="utf-8"))
+            proposal_text = out.read_text(encoding="utf-8")
+            self.assertIn("Exact command arrays", proposal_text)
+            self.assertEqual(proposal_text.count("## ADC-LOCAL-001: Exact gates"), 1)
             self.assertFalse((repo / "SKILL.md").exists())
 
     def test_pnpm_runner_and_plain_export_does_not_signal_generated_output(self) -> None:
@@ -341,14 +373,21 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
             self.init_git_repo(repo)
             profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
-            internal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
-            internal.mkdir(parents=True)
-            (internal / "repo-profile.json").write_text("{}\n", encoding="utf-8")
+            for internal in (
+                repo / ".agents" / "skills" / "anti-dark-code" / "calibration",
+                repo / ".claude" / "skills" / "other-skill",
+                repo / ".gemini" / "skills" / "other-skill",
+                repo / ".codex" / "skills" / "other-skill",
+            ):
+                internal.mkdir(parents=True)
+                (internal / "runtime-artifact.json").write_text("{}\n", encoding="utf-8")
             self.assertTrue(adc.profile_is_fresh(repo, profile))
 
     def test_installer_migrates_fallback_calibration(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
             fallback = repo / ".anti-dark-code" / "calibration"
             fallback.mkdir(parents=True)
             (fallback / "invariants.md").write_text("# Existing local truth\n", encoding="utf-8")
@@ -365,9 +404,10 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                     "timeout_seconds": 30,
                 }],
             }), encoding="utf-8")
+            source = self.copy_clean_skill(base / "source")
             result = adc.install_skill(
                 repo,
-                Path(__file__).resolve().parents[1],
+                source,
                 apply=True,
                 force=False,
                 hosts="none",
@@ -410,10 +450,13 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_fresh_install_creates_matching_repo_binding(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
+            source = self.copy_clean_skill(base / "source")
             result = adc.install_skill(
                 repo,
-                Path(__file__).resolve().parents[1],
+                source,
                 apply=True,
                 force=False,
                 hosts="none",
@@ -426,9 +469,11 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_local_git_binding_stays_stable_across_first_commit(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
-            source = Path(__file__).resolve().parents[1]
+            source = self.copy_clean_skill(base / "source")
             adc.install_skill(repo, source, apply=True, force=False, hosts="none")
             calibration = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
             before = json.loads((calibration / "repo-binding.json").read_text(encoding="utf-8"))["repository_id"]
@@ -465,14 +510,17 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_unbound_legacy_calibration_requires_explicit_acceptance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
             calibration = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
             calibration.mkdir(parents=True)
             (calibration / "invariants.md").write_text("# Same repo legacy facts\n", encoding="utf-8")
+            source = self.copy_clean_skill(base / "source")
 
             plan = adc.install_skill(
                 repo,
-                Path(__file__).resolve().parents[1],
+                source,
                 apply=False,
                 force=False,
                 hosts="none",
@@ -482,7 +530,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 adc.install_skill(
                     repo,
-                    Path(__file__).resolve().parents[1],
+                    source,
                     apply=True,
                     force=False,
                     hosts="none",
@@ -490,7 +538,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
             result = adc.install_skill(
                 repo,
-                Path(__file__).resolve().parents[1],
+                source,
                 apply=True,
                 force=False,
                 hosts="none",
@@ -507,7 +555,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             repo_b = base / "repo-b"
             repo_a.mkdir()
             repo_b.mkdir()
-            source = Path(__file__).resolve().parents[1]
+            source = self.copy_clean_skill(base / "source")
             adc.install_skill(repo_a, source, apply=True, force=False, hosts="none")
             cal_a = repo_a / ".agents" / "skills" / "anti-dark-code" / "calibration"
             cal_b = repo_b / ".agents" / "skills" / "anti-dark-code" / "calibration"
@@ -564,7 +612,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             foreign.mkdir()
             (foreign / "invariants.md").write_text("# FOREIGN REPO SECRET ASSUMPTION\n", encoding="utf-8")
             incoming = source / "incoming"
-            incoming.mkdir()
+            incoming.mkdir(exist_ok=True)
             (incoming / "private-proposal.md").write_text("# Local proposal from another repo\n", encoding="utf-8")
             repo = base / "target"
             repo.mkdir()
@@ -647,7 +695,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             with contextlib.redirect_stdout(output):
                 result = adc.run_gates(repo_b, 0, allow_exec=True, changed_from=None, keep_going=False)
             self.assertEqual(result, 2)
-            self.assertIn("foreign calibration", output.getvalue())
+            self.assertIn("calibration is mismatch", output.getvalue())
             self.assertFalse((repo_b / ".anti-dark-code" / "runs").exists())
 
     def test_flowback_refuses_foreign_calibration(self) -> None:
@@ -733,18 +781,346 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             template = clean_skill / "assets" / "templates" / "calibration" / "README.md"
             personal_path = "/" + "home/" + "alice/private/repo"
             template.write_text(template.read_text(encoding="utf-8") + f"\nUse {personal_path}.\n", encoding="utf-8")
-            errors, _ = adc.validate_skill(clean_skill)
+            errors, _ = adc.validate_skill(clean_skill, mode="distribution")
             self.assertTrue(any("personal absolute paths" in item for item in errors))
 
+    def test_legacy_codex_calibration_is_reported_without_auto_migration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            legacy = repo / ".codex" / "skills" / "anti-dark-code" / "calibration"
+            legacy.mkdir(parents=True)
+            (legacy / "invariants.md").write_text("# Same-repo legacy fact\n", encoding="utf-8")
+            target = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            found = adc.legacy_calibration_locations(repo, target)
+            item = next(entry for entry in found if entry["path"].startswith(".codex/"))
+            self.assertFalse(item["auto_migration"])
+            self.assertEqual(item["binding_status"], "unbound")
+
+    def test_source_validation_ignores_flowback_incoming(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clean_skill = self.copy_clean_skill(Path(tmp))
+            incoming = clean_skill / "incoming"
+            incoming.mkdir()
+            personal_path = "/" + "home/" + "alice/private"
+            (incoming / "proposal.md").write_text(
+                f"# Local proposal\n\nUse {personal_path} and an em dash \u2014 here.\n",
+                encoding="utf-8",
+            )
+            errors, warnings = adc.validate_skill(clean_skill, mode="universal")
+            self.assertEqual(errors, [])
+            self.assertTrue(any("staged incoming" in item for item in warnings))
+
+    def test_distribution_validation_rejects_runtime_incoming_inbox(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clean_skill = self.copy_clean_skill(Path(tmp))
+            incoming = clean_skill / "incoming"
+            incoming.mkdir()
+            (incoming / "proposal.md").write_text("# Runtime proposal\n", encoding="utf-8")
+            errors, _ = adc.validate_skill(clean_skill, mode="distribution")
+            self.assertTrue(any("runtime-only incoming" in item for item in errors))
+
+    def test_universal_validation_rejects_symlinked_incoming_inbox(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            clean_skill = self.copy_clean_skill(base / "source")
+            victim = base / "foreign-incoming"
+            victim.mkdir()
+            try:
+                (clean_skill / "incoming").symlink_to(victim, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            errors, _ = adc.validate_skill(clean_skill, mode="universal")
+            self.assertTrue(any("incoming/ inbox contains link-like" in item for item in errors))
+
+    def test_installed_validation_uses_managed_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            repo = base / "repo"
+            repo.mkdir()
+            adc.install_skill(repo, source, apply=True, force=False, hosts="none")
+            installed = repo / ".agents" / "skills" / "anti-dark-code"
+
+            errors, warnings = adc.validate_skill(installed, mode="auto")
+            self.assertEqual(errors, [])
+            self.assertEqual(warnings, [])
+
+            (installed / "SKILL.md").write_text(
+                (installed / "SKILL.md").read_text(encoding="utf-8") + "\nLocal mutation.\n",
+                encoding="utf-8",
+            )
+            errors, _ = adc.validate_skill(installed, mode="installed")
+            self.assertTrue(any("checksum mismatch" in item for item in errors))
+
+    def test_installed_validation_rejects_nested_calibration_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            repo = base / "repo"
+            repo.mkdir()
+            adc.install_skill(repo, source, apply=True, force=False, hosts="none")
+            installed = repo / ".agents" / "skills" / "anti-dark-code"
+            victim = base / "foreign-notes.md"
+            victim.write_text("foreign\n", encoding="utf-8")
+            try:
+                (installed / "calibration" / "foreign-notes.md").symlink_to(victim)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            errors, _ = adc.validate_skill(installed, mode="installed")
+            self.assertTrue(any("calibration contains link-like entries" in item for item in errors))
+
+    def test_installer_refuses_repo_skill_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            repo = base / "repo"
+            victim = base / "shared-core"
+            (repo / ".agents" / "skills").mkdir(parents=True)
+            victim.mkdir()
+            try:
+                (repo / ".agents" / "skills" / "anti-dark-code").symlink_to(victim, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            with self.assertRaises(SystemExit):
+                adc.install_skill(repo, source, apply=False, force=False, hosts="none")
+            with self.assertRaises(SystemExit):
+                adc.install_skill(repo, source, apply=True, force=False, hosts="none")
+            errors, _ = adc.validate_skill(repo / ".agents" / "skills" / "anti-dark-code", mode="auto")
+            self.assertTrue(any("skill root must not be a symlink or junction" in item for item in errors))
+            self.assertFalse((victim / "SKILL.md").exists())
+
+    def test_installer_refuses_nested_managed_file_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = self.copy_clean_skill(base / "source")
+            repo = base / "repo"
+            target = repo / ".agents" / "skills" / "anti-dark-code"
+            target.mkdir(parents=True)
+            victim = base / "victim-skill.md"
+            victim.write_text("unchanged\n", encoding="utf-8")
+            try:
+                (target / "SKILL.md").symlink_to(victim)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            with self.assertRaises(SystemExit):
+                adc.install_skill(repo, source, apply=False, force=False, hosts="none")
+            with self.assertRaises(SystemExit):
+                adc.install_skill(repo, source, apply=True, force=False, hosts="none")
+            self.assertEqual(victim.read_text(encoding="utf-8"), "unchanged\n")
+
+    def test_profile_write_refuses_symlinked_calibration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo = base / "repo"
+            skill = repo / ".agents" / "skills" / "anti-dark-code"
+            victim = base / "foreign-calibration"
+            skill.mkdir(parents=True)
+            victim.mkdir()
+            try:
+                (skill / "calibration").symlink_to(victim, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            with self.assertRaises(SystemExit):
+                adc.write_profile(repo, {"schema_version": 1})
+            self.assertFalse((victim / "repo-profile.json").exists())
+
+    def test_flowback_refuses_symlinked_parent_incoming(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            (cal / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-003: Safe staging\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: Refuse redirected proposal inboxes.\n"
+                "- Evidence: local test\n"
+                "- Limits: symlink-capable filesystems\n"
+                "- Proposed target: references/15-dogfeeding-flowback.md\n"
+                "- Proposed change: Document physical path isolation.\n",
+                encoding="utf-8",
+            )
+            parent = self.copy_clean_skill(base / "parent")
+            victim = base / "foreign-incoming"
+            victim.mkdir()
+            try:
+                (parent / "incoming").symlink_to(victim, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            with self.assertRaises(SystemExit):
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+            self.assertEqual(list(victim.iterdir()), [])
+
+    def test_probe_ignores_all_host_sibling_skill_trees(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("print('product')\n", encoding="utf-8")
+            for root in (
+                repo / ".agents" / "skills" / "other-skill",
+                repo / ".claude" / "skills" / "other-skill",
+                repo / ".gemini" / "skills" / "other-skill",
+                repo / ".codex" / "skills" / "other-skill",
+            ):
+                root.mkdir(parents=True)
+                (root / "noise.py").write_text(
+                    "async worker payment simulation Date.now fetch router component database\n",
+                    encoding="utf-8",
+                )
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            self.assertEqual(profile["counts"]["source_files"], 1)
+            evidence = [
+                item
+                for signal in profile["signals"].values()
+                for item in signal.get("evidence", [])
+            ]
+            self.assertFalse(any("other-skill" in item for item in evidence))
+
+    def test_source_identity_and_changed_slice_ignore_all_host_skill_trees(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "ADC Test"], check=True)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("print('product')\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "src/app.py"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "baseline"], check=True)
+
+            before = adc.current_source_identity(repo)
+            for root in (
+                repo / ".agents" / "skills" / "other-skill",
+                repo / ".claude" / "skills" / "other-skill",
+                repo / ".gemini" / "skills" / "other-skill",
+                repo / ".codex" / "skills" / "other-skill",
+            ):
+                root.mkdir(parents=True)
+                (root / "noise.py").write_text("print('tooling')\n", encoding="utf-8")
+
+            after_skill_only = adc.current_source_identity(repo)
+            self.assertEqual(
+                before["worktree_status_sha256"],
+                after_skill_only["worktree_status_sha256"],
+            )
+            self.assertEqual(adc.changed_files(repo, "HEAD"), [])
+
+            (repo / "src" / "new.py").write_text("print('changed')\n", encoding="utf-8")
+            changed = adc.changed_files(repo, "HEAD")
+            self.assertEqual(changed, ["src/new.py"])
+
+    def test_universal_validation_allows_user_level_symlink_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            clean_skill = self.copy_clean_skill(base / "source")
+            alias = base / "alias"
+            try:
+                alias.symlink_to(clean_skill, target_is_directory=True)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            errors, warnings = adc.validate_skill(alias, mode="universal")
+            self.assertEqual(errors, [])
+            self.assertTrue(any("symlink alias" in item for item in warnings))
+
+            distribution_errors, _ = adc.validate_skill(alias, mode="distribution")
+            self.assertTrue(any("root must not be a symlink" in item for item in distribution_errors))
+
+    def test_timeout_terminates_gate_process_group(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            marker = repo / "grandchild-survived.txt"
+            child = repo / "child.py"
+            parent = repo / "parent.py"
+            child.write_text(
+                "import pathlib, time\n"
+                "time.sleep(2.0)\n"
+                f"pathlib.Path({str(marker)!r}).write_text('survived', encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            parent.write_text(
+                "import subprocess, sys, time\n"
+                f"subprocess.Popen([sys.executable, {str(child)!r}])\n"
+                "time.sleep(10.0)\n",
+                encoding="utf-8",
+            )
+            (cal / "gates.json").write_text(json.dumps({
+                "schema_version": 1,
+                "execution_policy": {"owner_confirmed_safe_to_execute": True},
+                "gates": [{
+                    "id": "timeout-tree",
+                    "level": 0,
+                    "argv": [sys.executable, str(parent)],
+                    "enabled": True,
+                    "review_status": "approved",
+                    "cwd": ".",
+                    "timeout_seconds": 1,
+                }],
+            }), encoding="utf-8")
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False)
+            self.assertEqual(result, 1)
+            time.sleep(2.5)
+            self.assertFalse(marker.exists())
+            packets = list((repo / ".anti-dark-code" / "runs").rglob("ADC-FAIL-*.json"))
+            self.assertEqual(len(packets), 1)
+            packet = json.loads(packets[0].read_text(encoding="utf-8"))
+            self.assertTrue(packet["timed_out"])
+            self.assertIn(packet["timeout_termination"]["strategy"], {
+                "posix-process-group", "windows-process-group"
+            })
+
+    def test_flowback_refuses_symlinked_parent_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            repo = base / "repo"
+            repo.mkdir()
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            (cal / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-006: Destination safety\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: Refuse proposal writes through symlinks.\n"
+                "- Evidence: local test\n"
+                "- Limits: none\n"
+                "- Proposed target: references/15-dogfeeding-flowback.md\n"
+                "- Proposed change: Document the fail-closed rule.\n",
+                encoding="utf-8",
+            )
+            proposal = adc.flowback(repo, parent=None, stage_to_parent=False, mark_staged=False)
+            parent = self.copy_clean_skill(base / "parent")
+            incoming = parent / "incoming"
+            incoming.mkdir()
+            victim = base / "victim.md"
+            victim.write_text("unchanged\n", encoding="utf-8")
+            try:
+                (incoming / proposal.name).symlink_to(victim)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            with self.assertRaises(SystemExit):
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+            self.assertEqual(victim.read_text(encoding="utf-8"), "unchanged\n")
+
     def test_operational_guidance_contains_no_project_specific_migration(self) -> None:
-        package_root = Path(__file__).resolve().parents[2]
+        skill_root = Path(__file__).resolve().parents[1]
+        package_root = skill_root.parent
         paths = [
-            package_root / "MIGRATION.md",
-            package_root / "README.md",
-            Path(__file__).resolve().parents[1] / "SKILL.md",
-            Path(__file__).resolve().parents[1] / "references" / "13-calibrated-local-mode.md",
-            Path(__file__).resolve().parents[1] / "references" / "15-dogfeeding-flowback.md",
+            skill_root / "SKILL.md",
+            skill_root / "references" / "13-calibrated-local-mode.md",
+            skill_root / "references" / "15-dogfeeding-flowback.md",
         ]
+        paths.extend(path for path in (package_root / "MIGRATION.md", package_root / "README.md") if path.exists())
         forbidden_project_name = "chron" + "icle"
         for path in paths:
             self.assertNotIn(forbidden_project_name, path.read_text(encoding="utf-8").lower(), str(path))
