@@ -103,7 +103,9 @@ Contributions are accepted under the project license (inbound equals outbound): 
 
 ## License
 
-**FSL-1.1-MIT** (Functional Source License): use it for anything, including at work and on commercial codebases, and share your changes. The one thing you may not do is sell the skill itself, or a substantially similar product built from it, as a commercial product or service. Each release automatically becomes plain MIT two years after publication. Full text in [LICENSE.md](LICENSE.md).
+**FSL-1.1-MIT** (Functional Source License, a Fair Source license): free for internal use, professional work on commercial codebases, education, research, and redistribution under the license terms. What it restricts: for the first two years after a release is made available, you may not offer that release, or substantially similar functionality built from it, as a competing commercial product or service. On its second anniversary each release automatically converts to plain MIT. During those first two years this is source-available Fair Source, not open source; after conversion it is permissive open source. Full text in [LICENSE.md](LICENSE.md).
+
+Every version is tagged as a GitHub release so its availability date, and therefore its MIT conversion date, is publicly unambiguous.
 
 If this saves you real time and you feel like covering some of my build costs, there is a Sponsor button on the repo. Donations are welcome and never required.
 
