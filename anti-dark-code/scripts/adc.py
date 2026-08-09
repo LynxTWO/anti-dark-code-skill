@@ -184,9 +184,11 @@ FLOWBACK_PUBLIC_REPO_SHAPES = {
     "library", "managed-desktop", "media-processing", "mobile", "monorepo",
     "multi-language", "native-wrapper", "plugin-host", "systems", "web-app",
 }
-FLOWBACK_UNSAFE_MARKUP_RE = re.compile(r"(?is)<\s*(?:script|iframe|object|embed|form|style|img|a)\b")
+FLOWBACK_UNSAFE_MARKUP_RE = re.compile(r"(?is)<\s*(?:/?\s*[A-Za-z]|!|\?)[^>\r\n]*>")
+FLOWBACK_ALLOWED_PLACEHOLDER_RE = re.compile(r"(?i)<(?:repo|home|project|redacted)>")
 FLOWBACK_UNSAFE_SCHEME_RE = re.compile(r"(?i)(?:^|[\s('])(?:file|javascript|data):")
 FLOWBACK_CREDENTIAL_URL_RE = re.compile(r"(?i)https?://[^/\s:@]+:[^/\s@]+@")
+FLOWBACK_COMMIT_ID_RE = re.compile(r"(?i)(?<![0-9a-f])[0-9a-f]{7,64}(?![0-9a-f])")
 FLOWBACK_ABSOLUTE_PATH_RE = re.compile(
     r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]|/(?:home|Users|tmp|var|etc|opt|private|mnt|Volumes)/)"
 )
@@ -2639,6 +2641,7 @@ def sanitize_for_proposal(
             "<project>",
             result,
         )
+    result = FLOWBACK_COMMIT_ID_RE.sub("<redacted>", result)
     return redact_text(result)
 
 
@@ -2649,6 +2652,11 @@ def flowback_candidate_sections(text: str) -> list[tuple[str, str, str]]:
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         sections.append((match.group(1).strip(), match.group(2).strip(), text[match.end():end]))
     return sections
+
+
+def safe_diagnostic_label(value: object) -> str:
+    """Render untrusted names without terminal control characters."""
+    return json.dumps(str(value), ensure_ascii=True)
 
 
 def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bool = False) -> list[str]:
@@ -2683,7 +2691,8 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
 
     if not lines or lines[0] != FLOWBACK_HEADER:
         errors.append("proposal header is missing or invalid")
-    if FLOWBACK_UNSAFE_MARKUP_RE.search(text):
+    markup_scan = FLOWBACK_ALLOWED_PLACEHOLDER_RE.sub("", text)
+    if FLOWBACK_UNSAFE_MARKUP_RE.search(markup_scan):
         errors.append("proposal contains raw active HTML")
     if re.search(r"!\[[^\]]*\]\s*\(", text):
         errors.append("proposal contains a Markdown image embed")
@@ -2691,6 +2700,8 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
         errors.append("proposal contains a disallowed URI scheme")
     if FLOWBACK_CREDENTIAL_URL_RE.search(text):
         errors.append("proposal contains a credential-bearing URL")
+    if public_only and FLOWBACK_COMMIT_ID_RE.search(text):
+        errors.append("proposal contains a raw commit-like identifier")
     if personal_absolute_path_hits(text) or FLOWBACK_ABSOLUTE_PATH_RE.search(text):
         errors.append("proposal contains a likely personal or absolute path")
     if any(redact_line(line) != line for line in text.splitlines()):
@@ -2745,13 +2756,16 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
         errors.append(f"proposal exceeds {FLOWBACK_MAX_CANDIDATES} candidates")
     seen_ids: set[str] = set()
     for candidate_id, title, body in sections:
-        if not FLOWBACK_CANDIDATE_ID_RE.fullmatch(candidate_id):
+        valid_candidate_id = bool(FLOWBACK_CANDIDATE_ID_RE.fullmatch(candidate_id))
+        candidate_label = candidate_id if valid_candidate_id else "<invalid-id>"
+        if not valid_candidate_id:
             errors.append("proposal contains an invalid candidate id")
         elif candidate_id in seen_ids:
             errors.append(f"proposal repeats candidate id {candidate_id}")
-        seen_ids.add(candidate_id)
+        if valid_candidate_id:
+            seen_ids.add(candidate_id)
         if not title or len(title) > 160:
-            errors.append(f"candidate {candidate_id} has an invalid title length")
+            errors.append(f"candidate {candidate_label} has an invalid title length")
         nonempty_body_lines = [line for line in body.splitlines() if line]
         if (
             len(nonempty_body_lines) != len(FLOWBACK_REQUIRED_FIELDS)
@@ -2760,17 +2774,17 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
                 for line, field in zip(nonempty_body_lines, FLOWBACK_REQUIRED_FIELDS)
             )
         ):
-            errors.append(f"candidate {candidate_id} fields must use the canonical generated order and labels")
+            errors.append(f"candidate {candidate_label} fields must use the canonical generated order and labels")
         values: dict[str, str] = {}
         for field in FLOWBACK_REQUIRED_FIELDS:
             matches = re.findall(rf"^-\s+{re.escape(field)}:\s*(.*)$", body, flags=re.M | re.I)
             if len(matches) != 1 or not matches[0].strip():
-                errors.append(f"candidate {candidate_id} must contain exactly one nonempty {field} field")
+                errors.append(f"candidate {candidate_label} must contain exactly one nonempty {field} field")
                 continue
             value = matches[0].strip()
             values[field] = value
             if len(value) > FLOWBACK_MAX_FIELD_CHARS:
-                errors.append(f"candidate {candidate_id} field {field} exceeds {FLOWBACK_MAX_FIELD_CHARS} characters")
+                errors.append(f"candidate {candidate_label} field {field} exceeds {FLOWBACK_MAX_FIELD_CHARS} characters")
         public_scope = values.get("Scope", "").lower()
         allowed_public_scope = (
             public_scope == "repo-agnostic"
@@ -2781,10 +2795,10 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
         )
         if public_only and not allowed_public_scope:
             errors.append(
-                f"candidate {candidate_id} public scope must be repo-agnostic or an approved generic repo-shape"
+                f"candidate {candidate_label} public scope must be repo-agnostic or an approved generic repo-shape"
             )
-        if public_only and not candidate_id.startswith("ADC-LOCAL-"):
-            errors.append(f"candidate {candidate_id} public id must use the repo-agnostic ADC-LOCAL namespace")
+        if public_only and (not valid_candidate_id or not candidate_id.startswith("ADC-LOCAL-")):
+            errors.append(f"candidate {candidate_label} public id must use the repo-agnostic ADC-LOCAL namespace")
         target = values.get("Proposed target", "")
         if target:
             normalized = target.replace("\\", "/")
@@ -2796,19 +2810,22 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
                 or ".." in target_path.parts
                 or target_path.is_absolute()
             ):
-                errors.append(f"candidate {candidate_id} proposed target must be a safe relative path")
+                errors.append(f"candidate {candidate_label} proposed target must be a safe relative path")
     return errors
 
 
 def validate_flowback_proposal(path: Path, public_only: bool = False) -> list[str]:
+    name = safe_diagnostic_label(path.name)
     if not path.exists() or not path.is_file():
-        return [f"proposal is not a regular file: {path.name}"]
+        return [f"proposal is not a regular file: {name}"]
     if path_is_linklike(path):
-        return [f"proposal is link-like: {path.name}"]
+        return [f"proposal is link-like: {name}"]
     try:
+        if path.stat().st_size > FLOWBACK_MAX_BYTES:
+            return [f"proposal exceeds {FLOWBACK_MAX_BYTES} bytes"]
         data = path.read_bytes()
     except OSError:
-        return [f"proposal could not be read: {path.name}"]
+        return [f"proposal could not be read: {name}"]
     return validate_flowback_proposal_bytes(data, path.name, public_only=public_only)
 
 
@@ -2842,7 +2859,7 @@ def validate_incoming(
             ["diff", "--name-only", "--diff-filter=ACMRTUXB", f"{changed_from}...HEAD"],
         )
         if added is None or changed is None or live_changed is None:
-            return [f"could not compare candidate repository with {changed_from}"], []
+            return [f"could not compare candidate repository with {safe_diagnostic_label(changed_from)}"], []
         prefix = f"{skill_rel}/incoming/"
         new_incoming = sorted(path for path in added if path.startswith(prefix))
         changed_incoming = sorted(path for path in live_changed if path.startswith(prefix))
@@ -2860,15 +2877,16 @@ def validate_incoming(
 
     errors: list[str] = []
     for path in paths:
+        name = safe_diagnostic_label(path.name)
         if path.parent != incoming:
-            errors.append(f"proposal must be a direct file in {skill_rel}/incoming: {path.name}")
+            errors.append(f"proposal must be a direct file in {skill_rel}/incoming: {name}")
             continue
         try:
             path.relative_to(incoming)
         except ValueError:
-            errors.append(f"proposal must be inside {skill_rel}/incoming: {path.name}")
+            errors.append(f"proposal must be inside {skill_rel}/incoming: {name}")
             continue
-        errors.extend(f"{path.name}: {error}" for error in validate_flowback_proposal(path, public_only=public_only))
+        errors.extend(f"{name}: {error}" for error in validate_flowback_proposal(path, public_only=public_only))
     return errors, paths
 
 
@@ -2912,11 +2930,10 @@ def flowback(
             "",
         ])
     lines.extend(["This is a proposal only. It does not modify shared core policy.", ""])
-    for candidate in candidates:
+    for candidate_index, candidate in enumerate(candidates, start=1):
         candidate_id = sanitize_for_proposal(candidate["id"], repo, repository_names)
         if public:
-            opaque_id = sha256_bytes(candidate["id"].encode("utf-8"))[:12].upper()
-            candidate_id = f"ADC-LOCAL-{opaque_id}"
+            candidate_id = f"ADC-LOCAL-{candidate_index:03d}"
         title = sanitize_for_proposal(candidate["title"], repo, repository_names)
         lines.extend([
             f"## {candidate_id}: {title}",

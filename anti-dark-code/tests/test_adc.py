@@ -1113,7 +1113,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn(("chron" + "icle").lower(), text.lower())
             self.assertNotIn("hunter2", text)
             self.assertIn("<repo>", text)
-            self.assertRegex(text, r"## ADC-LOCAL-[0-9A-F]{12}: <project> proposal boundary")
+            self.assertIn("## ADC-LOCAL-001: <project> proposal boundary", text)
             self.assertNotIn("ADC-LOCAL-900", text)
             self.assertIn("<redacted>", text)
             self.assertIn(
@@ -1195,9 +1195,15 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             ("windows path", "C:" + "\\Users\\alice\\private", "likely personal or absolute path"),
             ("posix path", "/" + "home/alice/private", "likely personal or absolute path"),
             ("active html", "<script>alert(1)</script>", "raw active HTML"),
+            ("arbitrary html", "<svg onload=alert(1)></svg>", "raw active HTML"),
+            ("html comment", "<!-- hidden -->", "raw active HTML"),
+            ("html declaration", "<!DOCTYPE html>", "raw active HTML"),
+            ("processing instruction", "<?xml version='1.0'?>", "raw active HTML"),
             ("image", "![tracking](https://example.invalid/pixel.png)", "Markdown image embed"),
             ("unsafe scheme", "javascript:alert(1)", "disallowed URI scheme"),
             ("credential url", "https://alice:secret@example.invalid/evidence", "credential-bearing URL"),
+            ("abbreviated commit", "abcdef1", "raw commit-like identifier"),
+            ("raw commit", "a" * 40, "raw commit-like identifier"),
             ("control", "unsafe\x07content", "control or invisible formatting character"),
             ("bidi", "unsafe\u202econtent", "control or invisible formatting character"),
             ("nul", "unsafe\x00content", "NUL byte"),
@@ -1218,6 +1224,34 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         crlf_name = f"flowback-{adc.sha256_bytes(crlf)[:12]}.md"
         errors = adc.validate_flowback_proposal_bytes(crlf, crlf_name, public_only=True)
         self.assertTrue(any("canonical LF newlines" in item for item in errors), errors)
+
+    def test_proposal_diagnostics_escape_untrusted_ids_and_filenames(self) -> None:
+        unsafe_id = "ADC-LOCAL-\x1b[31m"
+        text = self.public_proposal_text([
+            self.public_candidate_block(candidate_id=unsafe_id, title="Bad id"),
+        ])
+        data = text.encode("utf-8")
+        filename = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+        direct_errors = adc.validate_flowback_proposal_bytes(data, filename, public_only=True)
+        self.assertNotIn("\x1b", "\n".join(direct_errors))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            incoming = skill / "incoming"
+            incoming.mkdir(parents=True)
+            unsafe_file = incoming / "flowback-\x1b[31m.md"
+            errors, _ = adc.validate_incoming(
+                repo,
+                skill,
+                changed_from=None,
+                proposal_only=False,
+                public_only=True,
+                explicit_files=[unsafe_file],
+            )
+            diagnostics = "\n".join(errors)
+            self.assertNotIn("\x1b", diagnostics)
+            self.assertIn("\\u001b", diagnostics)
 
     def test_proposal_enforces_bounded_sizes(self) -> None:
         cases: list[tuple[str, str, str]] = []
@@ -1252,6 +1286,12 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 filename = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
                 errors = adc.validate_flowback_proposal_bytes(data, filename, public_only=True)
                 self.assertTrue(any(expected in item for item in errors), errors)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            oversized = Path(tmp) / "flowback-000000000000.md"
+            oversized.write_bytes(b"x" * (adc.FLOWBACK_MAX_BYTES + 1))
+            errors = adc.validate_flowback_proposal(oversized, public_only=True)
+            self.assertEqual(errors, [f"proposal exceeds {adc.FLOWBACK_MAX_BYTES} bytes"])
 
     def test_proposal_rejects_unsafe_targets(self) -> None:
         for target in ("../SKILL.md", "/etc/passwd", "C:\\private\\policy.md", "https://example.invalid/policy"):
@@ -2131,16 +2171,25 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         release_date = version.split("-", 1)[0].replace(".", "-")
         brief = package_root / "brief" / "anti-dark-code-brief.html"
         pdf = package_root / "brief" / "anti-dark-code-brief.pdf"
+        pdf_provenance = package_root / "brief" / "anti-dark-code-brief.pdf.provenance.json"
         website = package_root / "docs" / "index.html"
+        catalog = json.loads(
+            (skill_root / "assets" / "verification-capabilities.json").read_text(encoding="utf-8")
+        )
 
         self.assertIn(f"**Version**: `{version}`", readme.read_text(encoding="utf-8"))
         self.assertIn(f"## {version}", changelog.read_text(encoding="utf-8"))
+        self.assertEqual(catalog["catalog_version"], version)
         for path in (brief, website):
             text = path.read_text(encoding="utf-8")
             self.assertIn(version, text, str(path))
             self.assertIn(f"updated {release_date}", text, str(path))
             self.assertIn('<span class="id">16</span>', text, str(path))
         self.assertTrue(pdf.read_bytes().startswith(b"%PDF-"), str(pdf))
+        provenance = json.loads(pdf_provenance.read_text(encoding="utf-8"))
+        self.assertEqual(provenance["version"], version)
+        self.assertEqual(provenance["source_sha256"], adc.sha256_file(brief))
+        self.assertEqual(provenance["pdf_sha256"], adc.sha256_file(pdf))
 
 
 

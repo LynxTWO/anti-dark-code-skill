@@ -45,7 +45,8 @@ jobs:
           git -C candidate fetch --no-tags ../trusted-base "$BASE_SHA"
           git -C candidate cat-file -e "$BASE_SHA^{commit}"
 
-      - name: Validate receipt and generated summaries
+      - name: Validate an external receipt and generated summaries
+        if: github.event.pull_request.head.repo.full_name != github.repository
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -54,3 +55,15 @@ jobs:
           python3 -B trusted-base/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
             --repo candidate \
             --changed-from "$BASE_SHA"
+
+      - name: Validate an internal receipt or workflow-only maintenance
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          python3 -B trusted-base/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
+            --repo candidate \
+            --changed-from "$BASE_SHA" \
+            --allow-workflow-maintenance

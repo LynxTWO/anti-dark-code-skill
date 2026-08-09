@@ -1055,6 +1055,7 @@ def validate_ledger_change(
     changed_from: str,
     summary_path: Path,
     docs_summary_path: Path,
+    allow_workflow_maintenance: bool = False,
 ) -> tuple[list[str], int]:
     repo = repo.expanduser().resolve()
     ledger = ledger.expanduser().resolve()
@@ -1076,6 +1077,8 @@ def validate_ledger_change(
         return [str(error)], 0
     new_receipts = sorted(path for path in added if path.startswith(ledger_rel))
     if not new_receipts:
+        if allow_workflow_maintenance and set(changed) == {".github/workflows/efficiency-ledger.yml"}:
+            return [], 0
         return ["a receipt PR must add exactly one public ledger receipt"], 0
     expected_prefix = re.escape(ledger_rel)
     if any(not re.fullmatch(expected_prefix + r"efficiency-[0-9a-f]{12}\.json", path) for path in new_receipts):
@@ -1098,7 +1101,9 @@ def validate_ledger_change(
     return [], len(new_receipts)
 
 
-def validate_ledger_pr(*, repo: Path, changed_from: str) -> tuple[list[str], int]:
+def validate_ledger_pr(
+    *, repo: Path, changed_from: str, allow_workflow_maintenance: bool = False
+) -> tuple[list[str], int]:
     root = repo.expanduser().absolute()
     return validate_ledger_change(
         repo=root,
@@ -1106,6 +1111,7 @@ def validate_ledger_pr(*, repo: Path, changed_from: str) -> tuple[list[str], int
         changed_from=changed_from,
         summary_path=root / "metrics" / "summary.json",
         docs_summary_path=root / "docs" / "data" / "efficiency-summary.json",
+        allow_workflow_maintenance=allow_workflow_maintenance,
     )
 
 
@@ -1219,12 +1225,19 @@ def command_aggregate(args: argparse.Namespace) -> int:
 
 
 def command_validate_ledger_pr(args: argparse.Namespace) -> int:
-    errors, additions = validate_ledger_pr(repo=Path(args.repo), changed_from=args.changed_from)
+    errors, additions = validate_ledger_pr(
+        repo=Path(args.repo),
+        changed_from=args.changed_from,
+        allow_workflow_maintenance=args.allow_workflow_maintenance,
+    )
     for error in errors:
         print(f"INVALID ledger change: {error}", file=sys.stderr)
     if errors:
         return 1
-    print("VALID ledger change: one public receipt and both deterministic summaries")
+    if additions:
+        print("VALID ledger change: one public receipt and both deterministic summaries")
+    else:
+        print("VALID internal workflow maintenance: no public receipt claimed")
     return 0
 
 
@@ -1272,6 +1285,7 @@ def build_parser(*, suppress_injected_identity_help: bool = False) -> argparse.A
     ledger_pr = sub.add_parser("validate-ledger-pr", help="Validate one public receipt PR and its generated summaries")
     ledger_pr.add_argument("--repo", required=True)
     ledger_pr.add_argument("--changed-from", required=True)
+    ledger_pr.add_argument("--allow-workflow-maintenance", action="store_true")
     ledger_pr.set_defaults(func=command_validate_ledger_pr)
     return parser
 

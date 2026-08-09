@@ -1,0 +1,8 @@
+{
+  "generator": "Google Chrome 151.0.7922.71 headless print-to-pdf",
+  "pdf_sha256": "1c0faa4cf3dc61df87aa8dd5e9508a102b2a9b58b78523941445dba5d6647c5b",
+  "schema_version": 1,
+  "source_sha256": "9f70cd315b545b6ed9be7b2d89dcb5deace97c4da4b69631d5bfcd0c3215b790",
+  "validated_with": "pdftotext 25.07.0",
+  "version": "2026.08.09-unified.5"
+}

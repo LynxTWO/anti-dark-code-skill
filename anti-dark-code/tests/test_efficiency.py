@@ -469,6 +469,56 @@ class EfficiencyReceiptTests(unittest.TestCase):
             )
             self.assertTrue(any("website summary is stale" in item for item in errors), errors)
 
+    def test_internal_ledger_workflow_maintenance_must_change_only_the_workflow(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            ledger = repo / "metrics" / "ledger"
+            ledger.mkdir(parents=True)
+            summary_path = repo / "metrics" / "summary.json"
+            docs_summary = repo / "docs" / "data" / "efficiency-summary.json"
+            efficiency.write_json_atomic(summary_path, efficiency.empty_summary())
+            efficiency.write_json_atomic(docs_summary, efficiency.empty_summary())
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "tests@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "ADC Tests"], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "base"], check=True)
+            base = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+
+            workflow = repo / ".github" / "workflows" / "efficiency-ledger.yml"
+            workflow.parent.mkdir(parents=True)
+            workflow.write_text("name: maintained ledger workflow\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "maintain workflow"], check=True)
+            errors, additions = efficiency.validate_ledger_change(
+                repo=repo,
+                ledger=ledger,
+                changed_from=base,
+                summary_path=summary_path,
+                docs_summary_path=docs_summary,
+                allow_workflow_maintenance=True,
+            )
+            self.assertEqual(errors, [])
+            self.assertEqual(additions, 0)
+
+            summary_path.write_text("{}\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "mix summary change"], check=True)
+            errors, _ = efficiency.validate_ledger_change(
+                repo=repo,
+                ledger=ledger,
+                changed_from=base,
+                summary_path=summary_path,
+                docs_summary_path=docs_summary,
+                allow_workflow_maintenance=True,
+            )
+            self.assertTrue(any("must add exactly one" in item for item in errors), errors)
+
     def test_validate_ledger_pr_exact_cli_accepts_a_valid_change(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
