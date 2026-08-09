@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026.08.09-unified.5
+
+### Evidence and Assurance Contracts
+
+- Adds a repository-neutral assurance-contract reference for claim closure, finalization, branch activation, hardware capability measurement, nested recovery, transactions, concurrency, subprocesses, native ABI boundaries, lockfiles, provenance, releases, signing, compatibility, UI evidence, providers, and hot paths.
+- Requires terminal coverage labels and explicit dependency, shipping, and end-to-end reachability evidence instead of treating reference search or project inclusion as runtime proof.
+- Tightens negative-search evidence, cleanup safety, self-review of freshly shipped high-risk fixes, calibrated detectors, producer exit-code handling, and shared-worktree orchestration.
+
+### Deterministic Gate Identity
+
+- Adds bounded, reviewed, non-sensitive per-gate environment overlays and an optional sparse-environment mode.
+- Records only environment key names and an opaque execution fingerprint in dry runs, summaries, and failure packets; raw overlay values are omitted and scrubbed from retained child output.
+- Refuses secret-like overlay variable names and bounds variable count and value size.
+- Binds conventional gate proposals to the exact manifest files that produced them and invalidates approval when those files change.
+- Prevents punctuation-normalized package script names from colliding and refreshes stale repository profiles when writing a new plan.
+
+### Mutation and Regression Guidance
+
+- Promotes the bounded mutation-pilot, absolute-count reporting, presentation-surface separation, stale-cache detection, and separate test-typechecking lessons from the incoming proposal inbox.
+- Expands the deterministic suite to 53 passing tests, including regressions for environment privacy and execution, conventional-source staleness, gate-id collisions, and profile refresh.
+
 ## 2026.08.06-unified.4
 
 ### Real-Repo Write and Execution Hardening

@@ -143,6 +143,20 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+\-/]+=*"),
 ]
 
+ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
+SENSITIVE_ENV_NAME_RE = re.compile(
+    r"(?i)(?:^|_)(?:password|passwd|secret|token|api_?key|private_?key|credentials?|auth(?:entication|orization)?|cookie)(?:_|$)"
+)
+ENV_IDENTITY_NAMES = {
+    "APPDATA", "COMSPEC", "DOTNET_ROOT", "DOTNET_ROOT_X86", "HOME", "JAVA_HOME",
+    "LANG", "LANGUAGE", "LOCALAPPDATA", "NODE_PATH", "PATH", "PATHEXT", "PSMODULEPATH",
+    "PYTHONPATH", "SHELL", "SYSTEMROOT", "TEMP", "TMP", "TZ", "USERPROFILE", "WINDIR",
+    "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME",
+}
+MAX_GATE_ENV_VARS = 32
+MAX_GATE_ENV_VALUE_CHARS = 4096
+MAX_GATE_ENV_TOTAL_CHARS = 32768
+
 POSIX_USER_PATH_RE = re.compile(r"(?<![A-Za-z0-9])/(?:home|Users)/([^/\s`\"'<>]+)/")
 WINDOWS_USER_PATH_RE = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Z]:\\Users\\([^\\\s`\"'<>]+)\\")
 PLACEHOLDER_PATH_SEGMENTS = {
@@ -244,6 +258,80 @@ def normalized_json_hash(data: Any, volatile_keys: set[str] | None = None) -> st
 
     payload = json.dumps(clean(data), sort_keys=True, separators=(",", ":")).encode("utf-8")
     return sha256_bytes(payload)
+
+
+def source_set_hash(repo: Path, source_files: Sequence[str]) -> str:
+    """Bind a conventional gate to the exact in-repo files that proposed it."""
+    root = repo.resolve()
+    entries: list[dict[str, str]] = []
+    for item in sorted(set(source_files)):
+        lexical = root / item
+        resolved = lexical.resolve()
+        try:
+            resolved.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(f"source file escapes repo: {item}") from exc
+        if path_is_linklike(lexical) or not resolved.is_file():
+            raise ValueError(f"source file is missing or link-like: {item}")
+        entries.append({"path": Path(item).as_posix(), "sha256": sha256_file(resolved)})
+    if not entries:
+        raise ValueError("source file set is empty")
+    return normalized_json_hash(entries)
+
+
+def gate_environment(gate: dict[str, Any]) -> tuple[dict[str, str], dict[str, Any], list[str]]:
+    """Build a reviewed gate environment and a value-free public identity record."""
+    inherit_env = gate.get("inherit_env", True)
+    if not isinstance(inherit_env, bool):
+        raise ValueError("inherit_env must be true or false")
+    overlay = gate.get("env", {})
+    if overlay is None:
+        overlay = {}
+    if not isinstance(overlay, dict):
+        raise ValueError("env must be an object of string names and values")
+    if len(overlay) > MAX_GATE_ENV_VARS:
+        raise ValueError(f"env may contain at most {MAX_GATE_ENV_VARS} variables")
+
+    reviewed_overlay: dict[str, str] = {}
+    total_chars = 0
+    for name, value in overlay.items():
+        if not isinstance(name, str) or not ENV_NAME_RE.fullmatch(name):
+            raise ValueError(f"invalid environment variable name: {name!r}")
+        if SENSITIVE_ENV_NAME_RE.search(name):
+            raise ValueError(f"sensitive environment variable names are not allowed in env: {name}")
+        if not isinstance(value, str):
+            raise ValueError(f"environment variable {name} must have a string value")
+        if len(value) > MAX_GATE_ENV_VALUE_CHARS:
+            raise ValueError(f"environment variable {name} exceeds {MAX_GATE_ENV_VALUE_CHARS} characters")
+        total_chars += len(name) + len(value)
+        normalized_name = name.upper() if os.name == "nt" else name
+        if normalized_name in reviewed_overlay:
+            raise ValueError(f"duplicate environment variable after platform normalization: {name}")
+        reviewed_overlay[normalized_name] = value
+    if total_chars > MAX_GATE_ENV_TOTAL_CHARS:
+        raise ValueError(f"env exceeds {MAX_GATE_ENV_TOTAL_CHARS} total characters")
+
+    process_env = (
+        {(name.upper() if os.name == "nt" else name): value for name, value in os.environ.items()}
+        if inherit_env else {}
+    )
+    process_env.update(reviewed_overlay)
+    overlay_names = set(reviewed_overlay)
+    identity_names = sorted(
+        name for name in process_env
+        if name in overlay_names or name.upper() in ENV_IDENTITY_NAMES or name.upper().startswith("LC_")
+    )
+    identity_material = [{"name": name, "value": process_env[name]} for name in identity_names]
+    public = {
+        "inherit_env": inherit_env,
+        "overlay_keys": sorted(reviewed_overlay),
+        "identity_keys": identity_names,
+        "fingerprint": "sha256:" + normalized_json_hash(identity_material)[:20],
+    }
+    literal_redactions = sorted(
+        {value for value in reviewed_overlay.values() if value}, key=len, reverse=True
+    )
+    return process_env, public, literal_redactions
 
 
 def rel(path: Path, root: Path) -> str:
@@ -979,6 +1067,11 @@ def parse_package_json(path: Path, repo: Path, profile: dict[str, Any]) -> None:
         if level is None:
             continue
         script_slug = re.sub(r"[^a-z0-9]+", "-", lname).strip("-")
+        # Lossy punctuation normalization can collapse distinct names such as
+        # test:unit and test_unit. Keep simple ids readable, but suffix every
+        # changed spelling so the id stays unique even if sibling scripts move.
+        if script_slug != lname:
+            script_slug += "-" + sha256_bytes(lname.encode("utf-8"))[:8]
         cwd_rel = rel(path.parent, repo) or "."
         scope_slug = re.sub(r"[^a-z0-9]+", "-", cwd_rel.lower()).strip("-")
         gate_id = f"{runner}-{script_slug}" if cwd_rel == "." else f"{runner}-{scope_slug}-{script_slug}"
@@ -1008,37 +1101,52 @@ def parse_package_json(path: Path, repo: Path, profile: dict[str, Any]) -> None:
             add_evidence(profile["signals"], "property_tool_present", package_rel)
 
 
-def add_conventional_commands(repo: Path, profile: dict[str, Any], manifests: set[str]) -> None:
+def add_conventional_commands(
+    repo: Path,
+    profile: dict[str, Any],
+    manifest_paths: Sequence[str],
+    terraform_paths: Sequence[str],
+) -> None:
+    manifests = {Path(item).name for item in manifest_paths}
     existing_ids = {item["id"] for item in profile["exact_commands"]}
 
-    def add(item: dict[str, Any]) -> None:
+    def add(item: dict[str, Any], source_files: Sequence[str]) -> None:
         if item["id"] not in existing_ids:
+            exact_sources = sorted(set(source_files))
+            item["source_files"] = exact_sources
+            item["source_definition_sha256"] = source_set_hash(repo, exact_sources)
             profile["exact_commands"].append(item)
             existing_ids.add(item["id"])
 
     if "pyproject.toml" in manifests or "requirements.txt" in manifests:
         add({"id":"python-pytest", "level":3, "argv":[sys.executable, "-m", "pytest"], "enabled":False,
              "source":"conventional candidate from Python manifest", "confidence":"inferred", "timeout_seconds":900,
-             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]})
+             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]},
+            [item for item in manifest_paths if Path(item).name in {"pyproject.toml", "requirements.txt"}])
     if "Cargo.toml" in manifests:
         add({"id":"cargo-check", "level":0, "argv":["cargo", "check", "--all-targets"], "enabled":False,
              "source":"conventional candidate from Cargo.toml", "confidence":"inferred", "timeout_seconds":600,
-             "resource_class":"medium", "cwd":".", "include_globs":[], "exclude_globs":[]})
+             "resource_class":"medium", "cwd":".", "include_globs":[], "exclude_globs":[]},
+            [item for item in manifest_paths if Path(item).name == "Cargo.toml"])
         add({"id":"cargo-test", "level":3, "argv":["cargo", "test", "--all-targets"], "enabled":False,
              "source":"conventional candidate from Cargo.toml", "confidence":"inferred", "timeout_seconds":1200,
-             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]})
+             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]},
+            [item for item in manifest_paths if Path(item).name == "Cargo.toml"])
     if "go.mod" in manifests:
         add({"id":"go-test", "level":3, "argv":["go", "test", "./..."], "enabled":False,
              "source":"conventional candidate from go.mod", "confidence":"inferred", "timeout_seconds":900,
-             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]})
+             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]},
+            [item for item in manifest_paths if Path(item).name == "go.mod"])
     if any(name.endswith(".sln") or name.endswith(".csproj") for name in manifests):
         add({"id":"dotnet-test", "level":3, "argv":["dotnet", "test"], "enabled":False,
              "source":"conventional candidate from .NET manifest", "confidence":"inferred", "timeout_seconds":1200,
-             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]})
-    if any(name.endswith(".tf") for name in manifests) or "terraform" in profile.get("repo_types", []):
+             "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]},
+            [item for item in manifest_paths if item.endswith((".sln", ".csproj"))])
+    if terraform_paths or "terraform" in profile.get("repo_types", []):
         add({"id":"terraform-fmt", "level":0, "argv":["terraform", "fmt", "-check", "-recursive"], "enabled":False,
              "source":"conventional candidate from Terraform files", "confidence":"inferred", "timeout_seconds":180,
-             "resource_class":"light", "cwd":".", "include_globs":["**/*.tf"], "exclude_globs":[]})
+             "resource_class":"light", "cwd":".", "include_globs":["**/*.tf"], "exclude_globs":[]},
+            terraform_paths)
 
 
 def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_000) -> dict[str, Any]:
@@ -1193,9 +1301,8 @@ def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_
     }
 
     # Add conventional candidates only after type classification.
-    if any(path.suffix.lower() == ".tf" for path in files):
-        manifest_basenames.add("*.tf")
-    add_conventional_commands(repo, profile, manifest_basenames)
+    terraform_paths = sorted(rel(path, repo) for path in files if path.suffix.lower() == ".tf")
+    add_conventional_commands(repo, profile, sorted(set(manifests)), terraform_paths)
     profile["exact_commands"] = sorted(profile["exact_commands"], key=lambda x: (x["level"], x["id"], x.get("cwd", ".")))
 
     # Normalize signals. Absence is unknown under a bounded scan, not verified false.
@@ -1343,7 +1450,7 @@ def gate_definition_hash(gate: dict[str, Any]) -> str:
         key: gate.get(key)
         for key in (
             "level", "argv", "source", "source_definition_sha256", "confidence", "timeout_seconds",
-            "resource_class", "cwd", "include_globs", "exclude_globs"
+            "source_files", "resource_class", "cwd", "include_globs", "exclude_globs", "inherit_env", "env"
         )
     }
     return normalized_json_hash(material)
@@ -1352,6 +1459,21 @@ def gate_definition_hash(gate: dict[str, Any]) -> str:
 def verify_gate_source(repo: Path, gate: dict[str, Any]) -> tuple[bool, str | None]:
     source = str(gate.get("source") or "")
     expected = gate.get("source_definition_sha256")
+    source_files = gate.get("source_files")
+    if source_files is not None:
+        if not isinstance(source_files, list) or not source_files or not expected:
+            return False, "source_files requires a nonempty string array and source_definition_sha256"
+        if not all(isinstance(item, str) and item for item in source_files):
+            return False, "source_files must be a nonempty string array"
+        try:
+            actual = source_set_hash(repo, source_files)
+        except (OSError, ValueError) as exc:
+            return False, str(exc)
+        if actual != expected:
+            return False, "conventional gate source files changed after approval"
+        return True, None
+    if source.startswith("conventional candidate"):
+        return False, "conventional gate lacks a source-file binding; rerun the planner and review it"
     if "#scripts." not in source or not expected:
         return True, None
     path_text, script_name = source.split("#scripts.", 1)
@@ -1431,12 +1553,12 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
             continue
         gate_id = str(gate.get("id") or "")
         source = str(gate.get("source") or "")
-        if "#scripts." not in source or gate_id in current_ids:
+        if ("#scripts." not in source and not gate.get("source_files")) or gate_id in current_ids:
             continue
         if str(gate.get("review_status", "")).lower() != "stale" or gate.get("enabled"):
             gate["enabled"] = False
             gate["review_status"] = "stale"
-            gate["notes"] = "The source package script was not found in the latest deterministic profile. Reconfirm or remove this gate."
+            gate["notes"] = "The deterministic source definition was not found in the latest profile. Reconfirm or remove this gate."
             changed += 1
 
     if changed:
@@ -1887,11 +2009,26 @@ def redact_argv(argv: Sequence[str]) -> list[str]:
     return [redact_line(value) for value in argv]
 
 
-def redact_log_file(raw_path: Path, redacted_path: Path) -> None:
+def redact_literal_values(text: str, literal_values: Sequence[str]) -> str:
+    result = text
+    for value in literal_values:
+        if len(value) < 4 and value.isalnum():
+            result = re.sub(
+                rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])",
+                "<redacted-env-value>",
+                result,
+            )
+        else:
+            result = result.replace(value, "<redacted-env-value>")
+    return result
+
+
+def redact_log_file(raw_path: Path, redacted_path: Path, literal_values: Sequence[str] = ()) -> None:
     redacted_path.parent.mkdir(parents=True, exist_ok=True)
     with raw_path.open("r", encoding="utf-8", errors="replace") as source, redacted_path.open("w", encoding="utf-8", newline="\n") as destination:
         for line in source:
-            destination.write(redact_line(line) + "\n")
+            redacted = redact_line(line)
+            destination.write(redact_literal_values(redacted, literal_values) + "\n")
 
 
 def bounded_log(path: Path, first_n: int = 16, last_n: int = 48) -> list[str]:
@@ -2047,6 +2184,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     candidates = [g for g in candidates if gate_applies(g, changed)]
     blocked: list[tuple[dict[str, Any], str]] = []
     gates: list[dict[str, Any]] = []
+    runtime_environments: dict[int, tuple[dict[str, str], dict[str, Any], list[str]]] = {}
     for gate in candidates:
         if str(gate.get("review_status", "")).lower() != "approved":
             blocked.append((gate, f"review_status={gate.get('review_status', 'missing')}"))
@@ -2054,6 +2192,11 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         source_ok, source_reason = verify_gate_source(repo, gate)
         if not source_ok:
             blocked.append((gate, source_reason or "source definition is stale"))
+            continue
+        try:
+            runtime_environments[id(gate)] = gate_environment(gate)
+        except ValueError as exc:
+            blocked.append((gate, str(exc)))
             continue
         gates.append(gate)
 
@@ -2071,7 +2214,13 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     print(f"GATE PLAN: {len(gates)} approved gate(s), Level <= {level}, execute={'yes' if allow_exec else 'no'}")
     for gate in gates:
         shown_argv = redact_argv(gate.get("argv", []) if isinstance(gate.get("argv"), list) else [])
-        print(f"  L{gate.get('level')} {gate.get('id')}: {json.dumps(shown_argv)} cwd={gate.get('cwd', '.')} resource={gate.get('resource_class', 'unknown')}")
+        environment_identity = runtime_environments[id(gate)][1]
+        print(
+            f"  L{gate.get('level')} {gate.get('id')}: {json.dumps(shown_argv)} "
+            f"cwd={gate.get('cwd', '.')} resource={gate.get('resource_class', 'unknown')} "
+            f"env={environment_identity['fingerprint']} inherit={str(environment_identity['inherit_env']).lower()} "
+            f"overlay_keys={json.dumps(environment_identity['overlay_keys'])}"
+        )
     if not allow_exec:
         print("DRY RUN: add --allow-exec only after command behavior, repo ownership, and machine cost are reviewed.")
         return 0
@@ -2084,7 +2233,14 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     ensure_run_gitignore(repo)
     require_no_symlink_components(repo / ".anti-dark-code" / "runs", repo, "gate run creation")
     source_identity = current_source_identity(repo)
-    gate_material = [{"id": g.get("id"), "definition": gate_definition_hash(g)} for g in gates]
+    gate_material = [
+        {
+            "id": g.get("id"),
+            "definition": gate_definition_hash(g),
+            "environment": runtime_environments[id(g)][1]["fingerprint"],
+        }
+        for g in gates
+    ]
     input_hash = sha256_bytes(json.dumps({"level": level, "gates": gate_material, "source": source_identity, "changed": changed or []}, sort_keys=True).encode())[:10]
     run_id = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "-" + input_hash
     run_dir = repo / ".anti-dark-code" / "runs" / run_id
@@ -2094,7 +2250,8 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     started_all = time.monotonic()
 
     def record_config_failure(gate_id: str, gate: dict[str, Any], message: str) -> None:
-        core = {"gate": gate_id, "config_error": message, "source": source_identity}
+        environment_identity = runtime_environments.get(id(gate), ({}, {}, []))[1]
+        core = {"gate": gate_id, "config_error": message, "source": source_identity, "environment": environment_identity.get("fingerprint")}
         failure_id = "ADC-FAIL-" + sha256_bytes(json.dumps(core, sort_keys=True).encode())[:12]
         packet = {
             "schema_version": SCHEMA_VERSION,
@@ -2106,6 +2263,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
             "command": redact_argv(gate.get("argv", []) if isinstance(gate.get("argv"), list) else []),
             "cwd": str(gate.get("cwd", ".")),
             "source_identity": source_identity,
+            "environment_identity": environment_identity or None,
             "changed_files": changed or [],
             "bounded_output": [],
             "redaction_note": "Command fields were pattern-redacted. Review the local gate config directly.",
@@ -2117,6 +2275,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
 
     for gate in gates:
         gate_id = str(gate.get("id") or "unnamed")
+        process_env, environment_identity, environment_redactions = runtime_environments[id(gate)]
         argv = gate.get("argv")
         if not isinstance(argv, list) or not argv or not all(isinstance(x, str) and x for x in argv):
             record_config_failure(gate_id, gate, "invalid argv array")
@@ -2158,6 +2317,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
                 proc = subprocess.Popen(
                     argv,
                     cwd=cwd,
+                    env=process_env,
                     stdout=raw_log,
                     stderr=subprocess.STDOUT,
                     text=True,
@@ -2187,7 +2347,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         finally:
             if raw_path.exists():
                 try:
-                    redact_log_file(raw_path, log_path)
+                    redact_log_file(raw_path, log_path, environment_redactions)
                 finally:
                     raw_path.unlink(missing_ok=True)
 
@@ -2198,7 +2358,13 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
             continue
 
         bounded = bounded_log(log_path)
-        failure_core = {"gate": gate_id, "exit": exit_code, "source": source_identity, "tail": bounded[-12:]}
+        failure_core = {
+            "gate": gate_id,
+            "exit": exit_code,
+            "source": source_identity,
+            "environment": environment_identity["fingerprint"],
+            "tail": bounded[-12:],
+        }
         failure_id = "ADC-FAIL-" + sha256_bytes(json.dumps(failure_core, sort_keys=True).encode())[:12]
         shown_argv = redact_argv(argv)
         packet = {
@@ -2219,6 +2385,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
             "actual": f"exit code {exit_code}",
             "seed": None,
             "source_identity": source_identity,
+            "environment_identity": environment_identity,
             "changed_files": changed or [],
             "replay_command": " ".join(json.dumps(x) for x in shown_argv),
             "replay_command_redacted": shown_argv != argv,
@@ -2239,6 +2406,10 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         "run_id": run_id,
         "level": level,
         "source_identity": source_identity,
+        "environment_identities": [
+            {"gate_id": str(g.get("id") or "unnamed"), **runtime_environments[id(g)][1]}
+            for g in gates
+        ],
         "changed_from": changed_from,
         "changed_files": changed or [],
         "passed": passed,
@@ -2746,9 +2917,7 @@ def command_plan(args: argparse.Namespace) -> int:
     profile = load_or_probe(repo)
     plan = build_plan(profile)
     if args.write:
-        profile_path = safe_calibration_dir(repo, "repository profile write") / "repo-profile.json"
-        if not profile_path.exists() or not profile.get("generated_at_utc"):
-            write_profile(repo, profile)
+        write_profile(repo, profile)
         path, gate_path, added = write_plan(repo, profile, plan, add_gate_suggestions=not args.no_gate_suggestions)
         print(f"WROTE {path}")
         if gate_path:

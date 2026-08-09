@@ -1,5 +1,7 @@
 # Anti-Dark-Code Flow-Back Proposal
 
+Promotion status: promoted in `2026.08.09-unified.5` to the assurance contracts, deterministic gate runner, failure packets, tests, and orchestration guidance.
+
 Source repo identity: `b0d0864b6512e72d196ee373e37325fa77461318`
 Installed skill version: `2026.08.06-unified.4`
 

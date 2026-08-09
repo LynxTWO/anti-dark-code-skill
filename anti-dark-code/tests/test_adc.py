@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import contextlib
 import importlib.util
 import io
@@ -184,6 +185,67 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn("hunter2", full_log.read_text(encoding="utf-8"))
             self.assertEqual(packet["exit_code"], 3)
 
+    def test_gate_environment_overlay_is_used_but_not_recorded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            marker = "opaque-environment-marker-93284"
+            (cal / "gates.json").write_text(json.dumps({
+                "schema_version": 1,
+                "execution_policy": {"owner_confirmed_safe_to_execute": True},
+                "gates": [{
+                    "id": "env-fail",
+                    "level": 0,
+                    "argv": [sys.executable, "-c", "import os; print(os.environ['ADC_TEST_MODE']); raise SystemExit(4)"],
+                    "enabled": True,
+                    "review_status": "approved",
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                    "inherit_env": True,
+                    "env": {"ADC_TEST_MODE": marker},
+                }],
+            }), encoding="utf-8")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=False, changed_from=None, keep_going=False), 0)
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            packet_path = next((repo / ".anti-dark-code" / "runs").rglob("ADC-FAIL-*.json"))
+            packet_text = packet_path.read_text(encoding="utf-8")
+            packet = json.loads(packet_text)
+            self.assertNotIn(marker, packet_text)
+            self.assertIn("<redacted-env-value>", "\n".join(packet["bounded_output"]))
+            self.assertEqual(packet["environment_identity"]["overlay_keys"], ["ADC_TEST_MODE"])
+            self.assertRegex(packet["environment_identity"]["fingerprint"], r"^sha256:[0-9a-f]{20}$")
+            summary = json.loads((packet_path.parent / "summary.json").read_text(encoding="utf-8"))
+            self.assertNotIn(marker, json.dumps(summary))
+
+    def test_gate_environment_refuses_sensitive_overlay_names(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            (cal / "gates.json").write_text(json.dumps({
+                "schema_version": 1,
+                "execution_policy": {"owner_confirmed_safe_to_execute": False},
+                "gates": [{
+                    "id": "unsafe-env",
+                    "level": 0,
+                    "argv": [sys.executable, "-c", "print('must not run')"],
+                    "enabled": True,
+                    "review_status": "approved",
+                    "cwd": ".",
+                    "timeout_seconds": 30,
+                    "env": {"SERVICE_API_TOKEN": "not-recorded"},
+                }],
+            }), encoding="utf-8")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = adc.run_gates(repo, 0, allow_exec=False, changed_from=None, keep_going=False)
+            self.assertEqual(result, 2)
+            self.assertIn("sensitive environment variable", output.getvalue())
+            self.assertFalse((repo / ".anti-dark-code" / "runs").exists())
+
     def test_gate_dry_run_returns_two_when_enabled_gate_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -238,6 +300,65 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertIn("npm-lint", ids)
             self.assertIn("npm-packages-a-lint", ids)
             self.assertIn("npm-packages-b-lint", ids)
+
+    def test_package_gate_ids_resist_punctuation_collisions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "package.json").write_text(json.dumps({
+                "name": "fixture",
+                "scripts": {
+                    "test:unit": "jest tests/colon",
+                    "test_unit": "jest tests/underscore",
+                    "test-unit": "jest tests/hyphen",
+                },
+            }), encoding="utf-8")
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            ids = [item["id"] for item in profile["exact_commands"]]
+            self.assertEqual(len(ids), 3)
+            self.assertEqual(len(ids), len(set(ids)))
+            self.assertIn("npm-test-unit", ids)
+            self.assertEqual(sum(item.startswith("npm-test-unit-") for item in ids), 2)
+
+    def test_conventional_gate_is_bound_to_manifest_contents(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            manifest = repo / "pyproject.toml"
+            manifest.write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            gate = next(item for item in profile["exact_commands"] if item["id"] == "python-pytest")
+            self.assertEqual(gate["source_files"], ["pyproject.toml"])
+            self.assertEqual(adc.verify_gate_source(repo, gate), (True, None))
+            unbound = dict(gate)
+            unbound.pop("source_files")
+            unbound.pop("source_definition_sha256")
+            source_ok, reason = adc.verify_gate_source(repo, unbound)
+            self.assertFalse(source_ok)
+            self.assertIn("lacks a source-file binding", reason or "")
+            manifest.write_text("[project]\nname = 'changed'\n", encoding="utf-8")
+            source_ok, reason = adc.verify_gate_source(repo, gate)
+            self.assertFalse(source_ok)
+            self.assertIn("changed after approval", reason or "")
+
+    def test_plan_write_refreshes_a_stale_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            stale = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            stale["source_identity"]["git_commit"] = "0" * 40
+            stale["repo_types"] = ["stale-marker"]
+            (cal / "repo-profile.json").write_text(json.dumps(stale), encoding="utf-8")
+            args = argparse.Namespace(repo=str(repo), write=True, json=False, no_gate_suggestions=True)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.command_plan(args), 0)
+            refreshed = json.loads((cal / "repo-profile.json").read_text(encoding="utf-8"))
+            self.assertNotEqual(refreshed["repo_types"], ["stale-marker"])
+            self.assertEqual(
+                refreshed["source_identity"]["git_commit"],
+                adc.current_source_identity(repo)["git_commit"],
+            )
 
     def test_gate_runner_refuses_unconfirmed_execution(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

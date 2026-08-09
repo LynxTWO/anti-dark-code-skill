@@ -4,6 +4,14 @@ Use this reference whenever another pass tells you to record an unknown, label e
 
 **Mode:** definitional. No code changes. No deliverables produced from this file alone.
 
+## Contents
+
+- Confidence and negative-search evidence
+- Risk, status, classification, and diagnostic labels
+- Unknowns, verification capabilities, and sensitive-data shapes
+- Approval gates, calibrated paths, and default paths
+- Writing rules
+
 ## Confidence levels
 
 Use exactly these three labels. Do not invent intermediates.
@@ -13,6 +21,21 @@ Use exactly these three labels. Do not invent intermediates.
 - `unknown` - repo evidence is missing, contradictory, or only available outside the repo (vendor console, sibling repo, runtime telemetry).
 
 Downgrade rather than flatten. If a check would force `inferred`, do not write `verified`.
+
+### Negative-search evidence
+
+Every negative search records:
+
+- the exact scope and query
+- the candidate-file count
+- the finding count
+- excluded file types or trees that could hold the same behavior
+
+Name the counting unit. Report matching-file count when repeated hits in one file could mislead, and occurrence count when multiple matches on one line matter. Never compare unlike units across passes.
+
+Zero candidate files means the surface was not examined. Record it as `unknown` or `unscanned`; never translate it into "clean," "absent," "pure managed," or another negative claim. A nonzero candidate count with zero findings proves only that the searched pattern was absent from those candidates.
+
+Verify that the search command opens candidate files. Do not pipe a filename listing into a content search and treat the result as a content scan. Search the scoped tree directly with matching globs, or pass enumerated paths as file arguments through a delimiter-safe mechanism. Spot-check a known-positive fixture or sentinel before trusting a whole-repo zero.
 
 ## Risk levels
 
@@ -32,6 +55,7 @@ Use exactly these four labels. Pick the one that matches the worst plausible bla
 - `commented` - critical-path comments added
 - `audited` - logging or telemetry audit complete
 - `reviewed` - adversarial or scenario pass ran
+- `tested` - bounded automated or runtime evidence ran; record the exact scope, counts, skips, and untested boundary
 - `deferred` - skipped on purpose; reason recorded
 - `excluded` - will not get code-level passes (generated, vendored, mirrored, binary, engine-owned serialized)
 - `approval-gated` - needs explicit human approval before any further edit
@@ -60,6 +84,19 @@ Use alongside status. A single area can carry more than one label.
 - `external-control-plane`
 - `cross-repo-boundary`
 - `approval-gated`
+
+## Diagnostic outcome labels
+
+Keep validation blockers separate from source findings:
+
+- `source defect` - the supported target reached the relevant behavior and produced a reproducible source-level failure
+- `unexercised path` - the check did not discover, enable, invoke, or observe the target behavior
+- `toolchain blocker` - a required SDK, compiler, workload, reference assembly, or build tool was unavailable
+- `native dependency blocker` - a required native library, SDK, driver, executable, or architecture-specific artifact was unavailable
+- `capability unavailable` - the environment lacks the optional runtime, service, hardware, permission, or format needed for the check
+- `external-state blocker` - proof depends on a vendor console, sibling repo, credential, network service, or other state outside the checked repo
+
+Record the command, target tuple, observed failure, and next best check. A missing prerequisite is not evidence that source is defective, and an unexercised path is not a passing path.
 
 ## Unknowns entry shape
 

@@ -1,9 +1,6 @@
 ---
 name: anti-dark-code
 description: Model-neutral workflow for mapping, auditing, verifying, and hardening unfamiliar, legacy, fast-growing, or AI-built codebases from evidence instead of guesswork. Use to map architecture and trust boundaries, install repo steering and a calibrated local skill, select deterministic verification capabilities, create compact quality gates and failure packets, audit logging and critical paths, challenge tests and assumptions, preserve localization boundaries, remediate findings safely, or dogfeed repo lessons back into the shared skill. Trigger terms include dark code, anti-dark-code, legacy audit, repo map, verification harness, deterministic testing, mutation testing, fuzzing, UI monkey, unknowns, approval gates, context limits, and reduce AI tokens or credits.
-metadata:
-  version: "2026.08.06-unified.4"
-  maintainer: "Daniel Boyd"
 ---
 
 # Anti-Dark-Code
@@ -71,6 +68,7 @@ Passes `13` through `15` extend the original audit workflow. They do not replace
 - `references/orchestration-mode.md` is a runnable fan-out mode. It changes execution shape, not pass order or evidence rules.
 - `references/verification-capabilities.md` defines the 20 capabilities and their evidence requirements.
 - `references/repo-verification-profiles.md` adapts those capabilities by repo type.
+- `references/assurance-contracts.md` contains claim, recovery, publication, native-runtime, provenance, and UI-policy checklists. Load only the sections that match the active finding.
 - `references/host-adapters.md` routes to the host-specific addendum. Load only the addendum for the active harness.
 - `references/example-stress-test-report.md` is an example, not a pass.
 - `assets/templates/` files load only when creating the matching artifact.
@@ -176,6 +174,7 @@ Mini-mode still requires honest unknowns and a compact verification plan. Small 
 - Test changes in the same patch as production changes need extra scrutiny. Reject skipped tests, weaker assertions, unexplained snapshot updates, broad new mocks, or inflated timeouts as silent fixes.
 - Every reproduced failure should become a minimized seed, trace, fixture, property, or regression test when practical.
 - Keep random exploration, model-based workflows, fuzzing, and human intuition. They find different failures.
+- Load `references/assurance-contracts.md` before accepting a strong claim such as verified, bit-exact, atomic, repaired, complete, safe, available, or release-ready.
 
 ### Approval Gates
 

@@ -13,6 +13,7 @@
   "actual": null,
   "seed": null,
   "source_identity": null,
+  "environment_identity": null,
   "changed_files": [],
   "replay_command": null,
   "bounded_output": [],

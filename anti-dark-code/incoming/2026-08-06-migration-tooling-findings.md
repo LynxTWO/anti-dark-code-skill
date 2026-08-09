@@ -1,5 +1,9 @@
 # Tooling findings from the 2026-08-06 unified-core migration
 
+## PROMOTION STATUS (2026.08.09-unified.5)
+
+Closed. The three remaining cosmetic findings now have regressions: plan writes refresh the stored profile, punctuation-normalized package-script IDs cannot collide, and conventional gates are bound to the exact source-manifest set and invalidated when it changes.
+
 ## STATUS UPDATE after the 2026.08.06-unified.4 upgrade (same day, later)
 
 v4 closes the ledger. Verified live during the Chronicle upgrade:

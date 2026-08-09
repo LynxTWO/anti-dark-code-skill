@@ -1,5 +1,7 @@
 # Anti-Dark-Code Flow-Back Proposal
 
+Promotion status: promoted in `2026.08.09-unified.5` to the adversarial-review and maintenance-harness references.
+
 Source repo identity: `06595e2df2f962e79a20604a7f213b48d1325998`
 Installed skill version: `2026.08.06-unified.3`
 

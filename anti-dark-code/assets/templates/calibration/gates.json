@@ -2,7 +2,7 @@
   "schema_version": 1,
   "execution_policy": {
     "owner_confirmed_safe_to_execute": false,
-    "notes": "Generated gates start disabled and proposed. Approve each enabled gate, then reconfirm execution safety. The runner is dry-run unless --allow-exec is supplied."
+    "notes": "Generated gates start disabled and proposed. Approve each enabled gate, then reconfirm execution safety. The runner is dry-run unless --allow-exec is supplied. Gate env maps accept reviewed non-sensitive string overrides only; inherit_env defaults to true."
   },
   "machine": {
     "notes": [],

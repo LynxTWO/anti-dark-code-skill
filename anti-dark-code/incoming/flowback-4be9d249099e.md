@@ -1,5 +1,7 @@
 # Anti-Dark-Code Flow-Back Proposal
 
+Promotion status: promoted in `2026.08.09-unified.5` to deterministic mutation, exit-code, cache-invalidation, and test-typechecking guidance.
+
 Source repo identity: `279f97277b71eccd5d9375aa47325b25d40200c1`
 Installed skill version: `2026.08.06-unified.4`
 

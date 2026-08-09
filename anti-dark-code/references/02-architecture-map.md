@@ -88,6 +88,41 @@ For each:
 - who calls it or what triggers it
 - what data or side effects it owns
 
+### 2a. Dependency, shipping, and reachability graphs
+
+Mixed and plugin-based repositories have several different graphs. Name the graph before calling a project, library, module, plugin, codec, binary, model, or optional feature referenced, unreferenced, reachable, imported, or dead:
+
+- solution or workspace membership, including configuration and architecture mappings
+- static project, package, module, or source references
+- dynamic discovery through registries, reflection, manifests, dependency injection, or directory scans
+- copy, package, publish, deployment, or release rules
+- runtime native-library, external-process, driver, model, asset, or SDK dependencies
+
+A node outside one graph may remain live through another. Do not infer a build blocker merely because a generated binary is absent from a clean checkout. Trace its source, build target, pinned dependency, preparation step, expected output, and packaging consumer.
+
+#### End-to-end reachability proof
+
+Trace every applicable link before assigning a terminal reachability label:
+
+1. implementation source and language or native boundary, including candidate-file and finding counts for negative searches
+2. build target, configuration, framework, and architecture mapping
+3. copy, package, publish, or deployment rule
+4. discovery, registration, reflection, manifest, or loader path
+5. native library, external process, driver, model, asset, or SDK dependency and expected location
+6. default and user-controlled enablement or selection
+7. invocation from a real entrypoint
+8. observed build, package, load, selection, and invocation for the exact target tuple
+
+Stop at the first broken or unproven link and name it. Text can prove configuration, but a behavioral reachability claim remains `inferred` until observed. Failure in one target tuple does not prove the feature unreachable in every supported tuple.
+
+Use these terminal descriptions:
+
+- `reachable-observed` - every applicable link, including link 8, was observed for the named tuple
+- `configured-not-observed` - links 1 through 7 are evidenced, but link 8 was not observed
+- `blocked-at-link-N` - a required link is proven absent or failed for the named tuple
+- `unknown-at-link-N` - evidence for the link was unavailable
+- `not-applicable` - the link genuinely does not apply; state why
+
 ### 3. Interface surface
 
 Map the ways the system is entered: REST routes, GraphQL operations, gRPC methods, message topics and consumers, webhooks, CLI commands, scheduled tasks, UI actions that trigger backend flows, public library APIs, package scripts or task targets that touch live systems, notebooks or support tools that can read or write live state, editor import or build hooks when they affect shipped behavior, CI or CD jobs, release scripts, migration runners that can deploy, seed, migrate, backfill, or repair live state.

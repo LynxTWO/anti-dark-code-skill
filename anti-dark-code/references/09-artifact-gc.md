@@ -35,6 +35,12 @@ An artifact nobody can explain is dark data, the same failure as dark code. The 
 5. **Execute staged.** Quarantine first (move, reversible), verify archives against the manifest, then delete originals only where approved. Two phases, always. Never a bare delete as the first action on anything with nonzero regeneration cost. When disk pressure motivated the pass, quarantine to a different volume: moving bytes around a full disk relieves nothing, and an off-volume quarantine already frees space without waiting on any delete approval.
 6. **Guard against regrowth.** Propose gitignore additions for the recurring artifact paths and a durable definition of what counts as local dev state in this repo. Steering-file edits are proposed, not applied; steering files are themselves protected.
 
+Before recursive cleanup, resolve the exact target and every existing parent component. Reject symlink, junction, mount-point, or reparse-point targets and ancestors unless that traversal was separately named and approved. Walk descendants without following links and refuse recursion when a link-like descendant exists. Lexical containment and a safe-looking prefix do not make a recursive operation safe.
+
+Keep evidence output outside the artifact it describes. Validate caller-supplied artifact names as one filename, not a relative path, and recheck each destination leaf immediately before writing. A safe output directory does not make an existing receipt link safe.
+
+Keep source provenance separate from build residue. Hash source inputs, classify generated intermediates by type and count, and never silently omit or traverse a link-like entry during artifact hashing.
+
 ## Deliverables
 
 - `docs/maintenance/artifact-gc-ledger-<date>.md` - one row per group: tier, size, evidence found, action taken, archive location, checksums, retention expiry date.
@@ -53,6 +59,7 @@ Do not place the ledger inside a protected folder it catalogues.
 - Distill first. If the claim or recipe is not recorded, the artifact is not yet eligible for any tier but protected.
 - One tier per ledger row. Split a mixed group (final versus intermediate checkpoints, cited versus uncited outputs) into tier-uniform rows instead of forcing one tier onto all of it.
 - Artifacts form chains. Record depends-on in the manifest, and never delete a dependency before its dependents are regenerated, archived, or approved for deletion themselves. A cheap regeneration recipe that points at a deleted input is not cheap.
+- Recheck target, descendants, and evidence leaves for link-like redirection immediately before mutation.
 
 ## Acceptance checklist
 
