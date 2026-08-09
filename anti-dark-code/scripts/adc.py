@@ -2693,7 +2693,7 @@ def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bo
         errors.append("proposal header is missing or invalid")
     markup_scan = FLOWBACK_ALLOWED_PLACEHOLDER_RE.sub("", text)
     if FLOWBACK_UNSAFE_MARKUP_RE.search(markup_scan):
-        errors.append("proposal contains raw active HTML")
+        errors.append("proposal contains raw HTML markup")
     if re.search(r"!\[[^\]]*\]\s*\(", text):
         errors.append("proposal contains a Markdown image embed")
     if FLOWBACK_UNSAFE_SCHEME_RE.search(text):
