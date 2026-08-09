@@ -12,6 +12,7 @@ import collections
 import datetime as dt
 import fnmatch
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -22,7 +23,9 @@ import sys
 import tempfile
 import textwrap
 import time
+import unicodedata
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Any, Sequence
 from urllib.parse import urlsplit
 
@@ -163,6 +166,29 @@ PLACEHOLDER_PATH_SEGMENTS = {
     "<username>", "<user>", "username", "user", "your-user", "your-username",
     "example", "example-user", "name", "placeholder",
 }
+
+FLOWBACK_HEADER = "# Anti-Dark-Code Flow-Back Proposal"
+FLOWBACK_REQUIRED_FIELDS = (
+    "Scope", "Lesson", "Evidence", "Limits", "Proposed target", "Proposed change",
+)
+FLOWBACK_MAX_BYTES = 64 * 1024
+FLOWBACK_MAX_LINES = 800
+FLOWBACK_MAX_LINE_CHARS = 4096
+FLOWBACK_MAX_CANDIDATES = 20
+FLOWBACK_MAX_FIELD_CHARS = 4096
+FLOWBACK_FILENAME_RE = re.compile(r"^flowback-([0-9a-f]{12})\.md$")
+FLOWBACK_CANDIDATE_ID_RE = re.compile(r"^ADC-[A-Z0-9][A-Z0-9-]{2,63}$")
+FLOWBACK_PUBLIC_REPO_SHAPES = {
+    "api-service", "cli", "data-pipeline", "desktop", "embedded", "game",
+    "library", "managed-desktop", "media-processing", "mobile", "monorepo",
+    "multi-language", "native-wrapper", "plugin-host", "systems", "web-app",
+}
+FLOWBACK_UNSAFE_MARKUP_RE = re.compile(r"(?is)<\s*(?:script|iframe|object|embed|form|style|img|a)\b")
+FLOWBACK_UNSAFE_SCHEME_RE = re.compile(r"(?i)(?:^|[\s('])(?:file|javascript|data):")
+FLOWBACK_CREDENTIAL_URL_RE = re.compile(r"(?i)https?://[^/\s:@]+:[^/\s@]+@")
+FLOWBACK_ABSOLUTE_PATH_RE = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]|/(?:home|Users|tmp|var|etc|opt|private|mnt|Volumes)/)"
+)
 
 
 def utc_now() -> str:
@@ -1955,13 +1981,17 @@ def ensure_run_gitignore(repo: Path) -> None:
     require_no_symlink_components(root / "runs", repo, "run-artifact setup")
     root.mkdir(parents=True, exist_ok=True)
     path = root / ".gitignore"
-    desired = "runs/\n"
+    required_entries = ("runs/", "efficiency/", "flowback/")
+    desired = "".join(f"{entry}\n" for entry in required_entries)
     if not path.exists():
         write_text_atomic(path, desired)
     else:
         text = path.read_text(encoding="utf-8")
-        if "runs/" not in text.splitlines():
-            write_text_atomic(path, text.rstrip("\n") + "\nruns/\n")
+        present = set(text.splitlines())
+        missing = [entry for entry in required_entries if entry not in present]
+        if missing:
+            suffix = "".join(f"{entry}\n" for entry in missing)
+            write_text_atomic(path, text.rstrip("\n") + "\n" + suffix)
 
 
 def changed_files(repo: Path, ref: str) -> list[str]:
@@ -2443,16 +2473,296 @@ def parse_candidates(path: Path) -> list[dict[str, str]]:
     return candidates
 
 
-def sanitize_for_proposal(text: str, repo: Path) -> str:
-    result = text.replace(str(repo.resolve()), "<repo>")
-    home = str(Path.home())
-    if home and home != "/":
-        result = result.replace(home, "<home>")
+def replace_path_variants(text: str, path: Path, replacement: str) -> str:
+    """Replace common slash and case variants without exposing the matched value."""
+    raw = str(path.resolve())
+    variants = {raw, raw.replace("\\", "/"), raw.replace("/", "\\")}
+    result = text
+    for value in sorted((item for item in variants if item and item != "/"), key=len, reverse=True):
+        result = re.sub(re.escape(value), replacement, result, flags=re.I)
+    return result
+
+
+def repository_name_variants(repo: Path) -> list[str]:
+    """Return bounded names the local repository exposes without returning its owner."""
+    names: set[str] = {repo.resolve().name}
+    origin = git_output(repo, ["config", "--get", "remote.origin.url"])
+    if origin:
+        normalized = normalize_git_remote(origin)
+        leaf = normalized.rstrip("/").rsplit("/", 1)[-1]
+        if leaf:
+            names.add(leaf)
+    expanded: set[str] = set()
+    generic = {
+        "app", "application", "client", "code", "core", "dev", "engine", "project",
+        "repo", "repository", "server", "skill", "source", "tool", "tools",
+    }
+    for name in names:
+        clean = re.sub(r"(?i)(?:[-_.](?:v?\d+(?:\.\d+)*|20\d{2}))+$", "", name.removesuffix(".git"))
+        for value in {name, clean, re.sub(r"[-_.]+", " ", clean), re.sub(r"[-_.]+", "", clean)}:
+            value = value.strip()
+            if len(value) >= 4:
+                expanded.add(value)
+        for token in re.split(r"[-_.\s]+", clean):
+            if len(token) >= 5 and token.lower() not in generic:
+                expanded.add(token)
+    return sorted(expanded, key=lambda item: (-len(item), item.lower()))
+
+
+def sanitize_for_proposal(
+    text: str,
+    repo: Path,
+    repository_names: Sequence[str] | None = None,
+) -> str:
+    result = replace_path_variants(str(text), repo, "<repo>")
+    result = replace_path_variants(result, Path.home(), "<home>")
+    for name in repository_names if repository_names is not None else repository_name_variants(repo):
+        result = re.sub(
+            rf"(?i)(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])",
+            "<project>",
+            result,
+        )
     return redact_text(result)
 
 
-def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged: bool) -> Path:
+def flowback_candidate_sections(text: str) -> list[tuple[str, str, str]]:
+    matches = list(re.finditer(r"^##\s+([^:\n]+):\s*(.+)$", text, flags=re.M))
+    sections: list[tuple[str, str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections.append((match.group(1).strip(), match.group(2).strip(), text[match.end():end]))
+    return sections
+
+
+def validate_flowback_proposal_bytes(data: bytes, filename: str, public_only: bool = False) -> list[str]:
+    """Validate one proposal as bounded, untrusted data without echoing its contents."""
+    errors: list[str] = []
+    if len(data) > FLOWBACK_MAX_BYTES:
+        errors.append(f"proposal exceeds {FLOWBACK_MAX_BYTES} bytes")
+    if b"\x00" in data:
+        errors.append("proposal contains a NUL byte")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return errors + ["proposal is not valid UTF-8"]
+
+    if "\r" in text:
+        errors.append("proposal must use canonical LF newlines")
+    if not text.endswith("\n"):
+        errors.append("proposal must end with a newline")
+    lines = text.splitlines()
+    if len(lines) > FLOWBACK_MAX_LINES:
+        errors.append(f"proposal exceeds {FLOWBACK_MAX_LINES} lines")
+    if any(len(line) > FLOWBACK_MAX_LINE_CHARS for line in lines):
+        errors.append(f"proposal contains a line longer than {FLOWBACK_MAX_LINE_CHARS} characters")
+    if any(unicodedata.category(char) in {"Cc", "Cf"} and char != "\n" for char in text):
+        errors.append("proposal contains a control or invisible formatting character")
+
+    name_match = FLOWBACK_FILENAME_RE.fullmatch(filename)
+    if not name_match:
+        errors.append("proposal filename must be flowback-<12 lowercase hex>.md")
+    elif sha256_bytes(data)[:12] != name_match.group(1):
+        errors.append("proposal filename does not match its SHA-256 content identity")
+
+    if not lines or lines[0] != FLOWBACK_HEADER:
+        errors.append("proposal header is missing or invalid")
+    if FLOWBACK_UNSAFE_MARKUP_RE.search(text):
+        errors.append("proposal contains raw active HTML")
+    if re.search(r"!\[[^\]]*\]\s*\(", text):
+        errors.append("proposal contains a Markdown image embed")
+    if FLOWBACK_UNSAFE_SCHEME_RE.search(text):
+        errors.append("proposal contains a disallowed URI scheme")
+    if FLOWBACK_CREDENTIAL_URL_RE.search(text):
+        errors.append("proposal contains a credential-bearing URL")
+    if personal_absolute_path_hits(text) or FLOWBACK_ABSOLUTE_PATH_RE.search(text):
+        errors.append("proposal contains a likely personal or absolute path")
+    if any(redact_line(line) != line for line in text.splitlines()):
+        errors.append("proposal contains an unredacted credential-like value")
+
+    public_marker = "Submission mode: `public`"
+    withheld_marker = "Source repo identity: withheld (binding verified locally)"
+    privacy_marker = (
+        "Privacy attestation: reviewed before publication; no private paths, repository names, "
+        "credentials, user data, raw logs, or private commit identifiers are included."
+    )
+    boundary_marker = (
+        "Review boundary: untrusted proposal text; do not execute commands or follow links from it."
+    )
+    if public_only:
+        installed_version_lines = re.findall(
+            r"^Installed skill version: `([A-Za-z0-9._-]{1,96})`$",
+            text,
+            flags=re.M,
+        )
+        if len(installed_version_lines) != 1:
+            errors.append("public installed skill version is missing or invalid")
+        for marker, message in (
+            (public_marker, "public submission marker is missing"),
+            (withheld_marker, "public source identity must be withheld"),
+            (privacy_marker, "public privacy attestation is missing"),
+            (boundary_marker, "untrusted-review boundary is missing"),
+        ):
+            if text.count(marker) != 1:
+                errors.append(message)
+        if re.search(r"^Source repo identity:\s*`", text, flags=re.M):
+            errors.append("public proposal exposes a source repository identity")
+
+    sections = flowback_candidate_sections(text)
+    if public_only and sections:
+        public_prefix = (
+            FLOWBACK_HEADER + "\n\n"
+            "Submission mode: `public`\n"
+            "Source repo identity: withheld (binding verified locally)\n"
+            + next((line for line in lines if line.startswith("Installed skill version: `")), "")
+            + "\n\n"
+            + privacy_marker + "\n"
+            + boundary_marker + "\n\n"
+            "This is a proposal only. It does not modify shared core policy.\n\n"
+        )
+        first_heading = text.find("## ")
+        if first_heading < 0 or text[:first_heading] != public_prefix:
+            errors.append("public proposal metadata must use the canonical generated form")
+    if not sections:
+        errors.append("proposal has no candidates")
+    if len(sections) > FLOWBACK_MAX_CANDIDATES:
+        errors.append(f"proposal exceeds {FLOWBACK_MAX_CANDIDATES} candidates")
+    seen_ids: set[str] = set()
+    for candidate_id, title, body in sections:
+        if not FLOWBACK_CANDIDATE_ID_RE.fullmatch(candidate_id):
+            errors.append("proposal contains an invalid candidate id")
+        elif candidate_id in seen_ids:
+            errors.append(f"proposal repeats candidate id {candidate_id}")
+        seen_ids.add(candidate_id)
+        if not title or len(title) > 160:
+            errors.append(f"candidate {candidate_id} has an invalid title length")
+        nonempty_body_lines = [line for line in body.splitlines() if line]
+        if (
+            len(nonempty_body_lines) != len(FLOWBACK_REQUIRED_FIELDS)
+            or any(
+                not line.startswith(f"- {field}: ")
+                for line, field in zip(nonempty_body_lines, FLOWBACK_REQUIRED_FIELDS)
+            )
+        ):
+            errors.append(f"candidate {candidate_id} fields must use the canonical generated order and labels")
+        values: dict[str, str] = {}
+        for field in FLOWBACK_REQUIRED_FIELDS:
+            matches = re.findall(rf"^-\s+{re.escape(field)}:\s*(.*)$", body, flags=re.M | re.I)
+            if len(matches) != 1 or not matches[0].strip():
+                errors.append(f"candidate {candidate_id} must contain exactly one nonempty {field} field")
+                continue
+            value = matches[0].strip()
+            values[field] = value
+            if len(value) > FLOWBACK_MAX_FIELD_CHARS:
+                errors.append(f"candidate {candidate_id} field {field} exceeds {FLOWBACK_MAX_FIELD_CHARS} characters")
+        public_scope = values.get("Scope", "").lower()
+        allowed_public_scope = (
+            public_scope == "repo-agnostic"
+            or (
+                public_scope.startswith("repo-shape:")
+                and public_scope.removeprefix("repo-shape:") in FLOWBACK_PUBLIC_REPO_SHAPES
+            )
+        )
+        if public_only and not allowed_public_scope:
+            errors.append(
+                f"candidate {candidate_id} public scope must be repo-agnostic or an approved generic repo-shape"
+            )
+        if public_only and not candidate_id.startswith("ADC-LOCAL-"):
+            errors.append(f"candidate {candidate_id} public id must use the repo-agnostic ADC-LOCAL namespace")
+        target = values.get("Proposed target", "")
+        if target:
+            normalized = target.replace("\\", "/")
+            target_path = PurePosixPath(normalized)
+            if (
+                not re.fullmatch(r"[A-Za-z0-9._/-]+", normalized)
+                or normalized.startswith("/")
+                or re.match(r"^[A-Za-z]:", normalized)
+                or ".." in target_path.parts
+                or target_path.is_absolute()
+            ):
+                errors.append(f"candidate {candidate_id} proposed target must be a safe relative path")
+    return errors
+
+
+def validate_flowback_proposal(path: Path, public_only: bool = False) -> list[str]:
+    if not path.exists() or not path.is_file():
+        return [f"proposal is not a regular file: {path.name}"]
+    if path_is_linklike(path):
+        return [f"proposal is link-like: {path.name}"]
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return [f"proposal could not be read: {path.name}"]
+    return validate_flowback_proposal_bytes(data, path.name, public_only=public_only)
+
+
+def validate_incoming(
+    repo: Path,
+    skill: Path,
+    changed_from: str | None,
+    proposal_only: bool,
+    public_only: bool,
+    explicit_files: Sequence[Path] = (),
+) -> tuple[list[str], list[Path]]:
+    """Validate new incoming proposal files; candidate content is never executed."""
+    repo = repo.expanduser().resolve()
+    skill = skill.expanduser().resolve()
+    try:
+        skill_rel = skill.relative_to(repo).as_posix()
+    except ValueError:
+        return ["skill path must be inside the candidate repository"], []
+    incoming = skill / "incoming"
+    if path_is_linklike(incoming):
+        return ["incoming proposal directory is link-like"], []
+
+    paths: list[Path]
+    if explicit_files:
+        paths = [lexical_absolute(item.expanduser()) for item in explicit_files]
+    elif changed_from:
+        added = git_paths(repo, ["diff", "--name-only", "--diff-filter=A", f"{changed_from}...HEAD"])
+        changed = git_paths(repo, ["diff", "--name-only", f"{changed_from}...HEAD"])
+        live_changed = git_paths(
+            repo,
+            ["diff", "--name-only", "--diff-filter=ACMRTUXB", f"{changed_from}...HEAD"],
+        )
+        if added is None or changed is None or live_changed is None:
+            return [f"could not compare candidate repository with {changed_from}"], []
+        prefix = f"{skill_rel}/incoming/"
+        new_incoming = sorted(path for path in added if path.startswith(prefix))
+        changed_incoming = sorted(path for path in live_changed if path.startswith(prefix))
+        if not new_incoming:
+            if changed_incoming:
+                return ["existing incoming proposals are immutable; retire them by deletion or add a new content-hashed proposal"], []
+            return [], []
+        if proposal_only and (len(new_incoming) != 1 or set(changed) != set(new_incoming)):
+            return ["a public proposal PR must add exactly one incoming proposal file and change nothing else"], []
+        paths = [repo / item for item in new_incoming]
+    else:
+        paths = sorted(incoming.glob("flowback-*.md")) if incoming.exists() else []
+
+    errors: list[str] = []
+    for path in paths:
+        if path.parent != incoming:
+            errors.append(f"proposal must be a direct file in {skill_rel}/incoming: {path.name}")
+            continue
+        try:
+            path.relative_to(incoming)
+        except ValueError:
+            errors.append(f"proposal must be inside {skill_rel}/incoming: {path.name}")
+            continue
+        errors.extend(f"{path.name}: {error}" for error in validate_flowback_proposal(path, public_only=public_only))
+    return errors, paths
+
+
+def flowback(
+    repo: Path,
+    parent: Path | None,
+    stage_to_parent: bool,
+    mark_staged: bool,
+    public: bool = False,
+) -> Path:
     repo = repo.resolve()
+    if stage_to_parent and not public:
+        raise SystemExit("--stage-to-parent requires --public so shared incoming proposals cannot expose repository identity")
     calibration = safe_calibration_dir(repo, "flow-back calibration read/write")
     binding = assess_repository_binding(repo, calibration)
     if binding["status"] != "match":
@@ -2466,32 +2776,50 @@ def flowback(repo: Path, parent: Path | None, stage_to_parent: bool, mark_staged
         raise SystemExit(f"No ready upstream candidates in {candidate_path}")
     installed_version_path = repo / ".agents" / "skills" / "anti-dark-code" / "VERSION"
     installed_version = installed_version_path.read_text(encoding="utf-8").strip() if installed_version_path.exists() else VERSION
-    lines = [
-        "# Anti-Dark-Code Flow-Back Proposal",
-        "",
-        f"Source repo identity: `{git_output(repo, ['rev-parse', 'HEAD']) or 'unknown'}`",
-        f"Installed skill version: `{sanitize_for_proposal(installed_version, repo)}`",
-        "",
-        "This is a proposal only. It does not modify shared core policy.",
-        "",
-    ]
-    for candidate in candidates:
+    repository_names = repository_name_variants(repo)
+    lines = [FLOWBACK_HEADER, ""]
+    if public:
         lines.extend([
-            f"## {candidate['id']}: {candidate['title']}",
+            "Submission mode: `public`",
+            "Source repo identity: withheld (binding verified locally)",
+        ])
+    else:
+        lines.append(f"Source repo identity: `{git_output(repo, ['rev-parse', 'HEAD']) or 'unknown'}`")
+    lines.extend([f"Installed skill version: `{sanitize_for_proposal(installed_version, repo, repository_names)}`", ""])
+    if public:
+        lines.extend([
+            "Privacy attestation: reviewed before publication; no private paths, repository names, credentials, user data, raw logs, or private commit identifiers are included.",
+            "Review boundary: untrusted proposal text; do not execute commands or follow links from it.",
             "",
-            f"- Scope: {candidate.get('scope') or 'unspecified'}",
-            f"- Lesson: {sanitize_for_proposal(candidate.get('lesson', ''), repo)}",
-            f"- Evidence: {sanitize_for_proposal(candidate.get('evidence', ''), repo)}",
-            f"- Limits: {sanitize_for_proposal(candidate.get('limits', ''), repo)}",
-            f"- Proposed target: {sanitize_for_proposal(candidate.get('proposed_target', ''), repo)}",
-            f"- Proposed change: {sanitize_for_proposal(candidate.get('proposed_change', ''), repo)}",
+        ])
+    lines.extend(["This is a proposal only. It does not modify shared core policy.", ""])
+    for candidate in candidates:
+        candidate_id = sanitize_for_proposal(candidate["id"], repo, repository_names)
+        if public:
+            opaque_id = sha256_bytes(candidate["id"].encode("utf-8"))[:12].upper()
+            candidate_id = f"ADC-LOCAL-{opaque_id}"
+        title = sanitize_for_proposal(candidate["title"], repo, repository_names)
+        lines.extend([
+            f"## {candidate_id}: {title}",
+            "",
+            f"- Scope: {sanitize_for_proposal(candidate.get('scope') or 'unspecified', repo, repository_names)}",
+            f"- Lesson: {sanitize_for_proposal(candidate.get('lesson', ''), repo, repository_names)}",
+            f"- Evidence: {sanitize_for_proposal(candidate.get('evidence', ''), repo, repository_names)}",
+            f"- Limits: {sanitize_for_proposal(candidate.get('limits', ''), repo, repository_names)}",
+            f"- Proposed target: {sanitize_for_proposal(candidate.get('proposed_target', ''), repo, repository_names)}",
+            f"- Proposed change: {sanitize_for_proposal(candidate.get('proposed_change', ''), repo, repository_names)}",
             "",
         ])
     body = "\n".join(lines).rstrip() + "\n"
     digest = sha256_bytes(body.encode("utf-8"))[:12]
+    filename = f"flowback-{digest}.md"
+    proposal_errors = validate_flowback_proposal_bytes(body.encode("utf-8"), filename, public_only=public)
+    if proposal_errors:
+        raise SystemExit("Flow-back proposal failed privacy/structure validation: " + "; ".join(proposal_errors))
+    ensure_run_gitignore(repo)
     out_dir = repo / ".anti-dark-code" / "flowback"
     require_no_symlink_components(out_dir, repo, "flow-back proposal write")
-    out_path = out_dir / f"flowback-{digest}.md"
+    out_path = out_dir / filename
     write_text_atomic(out_path, body)
 
     if stage_to_parent:
@@ -2985,11 +3313,80 @@ def command_gates(args: argparse.Namespace) -> int:
 
 def command_flowback(args: argparse.Namespace) -> int:
     parent = Path(args.parent).expanduser() if args.parent else None
-    path = flowback(Path(args.repo), parent, args.stage_to_parent, args.mark_staged)
+    path = flowback(Path(args.repo), parent, args.stage_to_parent, args.mark_staged, public=args.public)
     print(f"WROTE {path}")
     if args.stage_to_parent:
         print("STAGED proposal in parent incoming directory. Shared core was not modified.")
+    if args.public:
+        print("PUBLIC proposal validated. Review it locally before git add, push, or pull request.")
     return 0
+
+
+def command_validate_incoming(args: argparse.Namespace) -> int:
+    repo = Path(args.repo)
+    skill = Path(args.skill) if args.skill else repo / "anti-dark-code"
+    errors, paths = validate_incoming(
+        repo,
+        skill,
+        args.changed_from,
+        args.proposal_only,
+        args.public_only,
+        tuple(Path(item) for item in args.file),
+    )
+    for error in errors:
+        print(f"ERROR {error}")
+    if errors:
+        print(f"INVALID incoming: {len(errors)} error(s); {len(paths)} proposal file(s) inspected")
+        return 1
+    if not paths:
+        print("VALID incoming: no newly added proposal files")
+    else:
+        print(f"VALID incoming: {len(paths)} proposal file(s); contents treated as untrusted data")
+    return 0
+
+
+def load_efficiency_helper() -> Any:
+    helper_path = Path(__file__).with_name("adc_efficiency.py")
+    spec = importlib.util.spec_from_file_location("adc_efficiency", helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"Could not load efficiency helper: {helper_path}")
+    module = importlib.util.module_from_spec(spec)
+    previous_bytecode_setting = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous_bytecode_setting
+    return module
+
+
+def command_efficiency(args: argparse.Namespace) -> int:
+    forwarded = list(args.efficiency_args)
+    if not forwarded:
+        print("Usage: adc.py efficiency {record,pair,validate,export,aggregate,validate-ledger-pr} ...")
+        return 2
+    if forwarded[0] == "record":
+        if "--skill-version" in forwarded or "--core-sha256" in forwarded:
+            print("REFUSED: adc.py binds efficiency receipts to its own version and core digest", file=sys.stderr)
+            return 2
+        forwarded.extend(["--skill-version", VERSION])
+        forwarded.extend(["--core-sha256", core_digest(managed_source_files(SKILL_ROOT))])
+        if not any(item in {"-h", "--help"} for item in forwarded):
+            try:
+                out_index = forwarded.index("--out") + 1
+                output_path = Path(forwarded[out_index]).expanduser().resolve()
+            except (ValueError, IndexError):
+                output_path = None
+            git_root = git_output(Path.cwd(), ["rev-parse", "--show-toplevel"])
+            if git_root and output_path is not None:
+                root_path = Path(git_root).resolve()
+                try:
+                    output_rel = output_path.relative_to(root_path)
+                except ValueError:
+                    output_rel = None
+                if output_rel is not None and output_rel.parts[:2] == (".anti-dark-code", "efficiency"):
+                    ensure_run_gitignore(root_path)
+    return int(load_efficiency_helper().main(forwarded, suppress_injected_identity_help=True))
 
 
 def command_validate(args: argparse.Namespace) -> int:
@@ -3063,7 +3460,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--parent")
     p.add_argument("--stage-to-parent", action="store_true")
     p.add_argument("--mark-staged", action="store_true")
+    p.add_argument("--public", action="store_true", help="Withhold source identity and add public privacy/review attestations")
     p.set_defaults(func=command_flowback)
+
+    p = sub.add_parser("validate-incoming", help="Validate bounded incoming proposal files as untrusted data")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--skill")
+    p.add_argument("--changed-from")
+    p.add_argument("--proposal-only", action="store_true", help="When a proposal is added, require exactly one added file and no other changes")
+    p.add_argument("--public-only", action="store_true", help="Require public privacy and quarantine attestations")
+    p.add_argument("--file", action="append", default=[], help="Validate an explicit proposal file; may be repeated")
+    p.set_defaults(func=command_validate_incoming)
+
+    p = sub.add_parser("efficiency", help="Create opt-in local usage receipts and controlled token comparisons")
+    p.add_argument("efficiency_args", nargs=argparse.REMAINDER)
+    p.set_defaults(func=command_efficiency)
 
     p = sub.add_parser("validate", help="Validate a distribution, live universal core, or installed repo copy")
     p.add_argument("--skill")

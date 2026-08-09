@@ -1,0 +1,79 @@
+name: Generalized flow-back proposal
+description: Suggest a repo-agnostic or generic repo-shape lesson without publishing local details.
+title: "proposal: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public and is treated as untrusted input. Do not paste logs, prompts, source, screenshots, repository or customer names, commit ids, private links, paths, machine names, or credentials. An accepted issue is generalized and promoted separately; it never edits the skill automatically.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Generalized scope
+      description: Select only the reusable scope; do not enter the proving repository's name.
+      options:
+        - Repo-agnostic
+        - repo-shape:api-service
+        - repo-shape:cli
+        - repo-shape:data-pipeline
+        - repo-shape:desktop
+        - repo-shape:embedded
+        - repo-shape:game
+        - repo-shape:library
+        - repo-shape:managed-desktop
+        - repo-shape:media-processing
+        - repo-shape:mobile
+        - repo-shape:monorepo
+        - repo-shape:multi-language
+        - repo-shape:native-wrapper
+        - repo-shape:plugin-host
+        - repo-shape:systems
+        - repo-shape:web-app
+    validations:
+      required: true
+  - type: textarea
+    id: lesson
+    attributes:
+      label: General lesson
+      description: State the reusable rule without naming the proving repository.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Generalized evidence
+      description: Describe the failure class and deterministic evidence using public links or opaque local finding ids only.
+    validations:
+      required: true
+  - type: textarea
+    id: limits
+    attributes:
+      label: Limits
+      description: Where might this lesson not apply?
+    validations:
+      required: true
+  - type: input
+    id: proposed_target
+    attributes:
+      label: Proposed target
+      description: A safe relative core path or capability, never a local path.
+      placeholder: references/14-deterministic-verification.md
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: Smallest proposed change
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Public-data attestation
+      options:
+        - label: I reviewed this text and removed repository names, private identifiers, paths, user data, raw logs, and credentials.
+          required: true
+        - label: I understand this issue is a proposal only and will not be executed or promoted automatically.
+          required: true
+        - label: I license this contribution under the repository's FSL-1.1-MIT license.
+          required: true

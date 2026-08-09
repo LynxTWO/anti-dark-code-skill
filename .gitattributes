@@ -1,0 +1,6 @@
+# Content-hashed public inputs must retain canonical bytes across platforms.
+anti-dark-code/** text eol=lf
+anti-dark-code/incoming/*.md text eol=lf
+metrics/ledger/*.json text eol=lf
+metrics/summary.json text eol=lf
+docs/data/*.json text eol=lf

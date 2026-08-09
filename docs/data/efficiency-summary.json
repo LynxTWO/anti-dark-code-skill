@@ -1,0 +1,12 @@
+{
+  "as_of_month": null,
+  "claim_boundary": "Actual usage is not savings. Token deltas appear only for quality-qualified controlled pairs and are not combined across provider/model/adapter/usage-semantics/task-class strata.",
+  "measurement_scope": "community-self-reported receipts; not provider-attested",
+  "receipt_counts": {
+    "actual_usage": 0,
+    "controlled_pairs": 0,
+    "duplicates_ignored": 0
+  },
+  "schema_version": 1,
+  "strata": []
+}

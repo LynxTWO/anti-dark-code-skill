@@ -72,12 +72,116 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         subprocess.run(["git", "-C", str(root), "add", "."], check=True)
         subprocess.run(["git", "-C", str(root), "commit", "-qm", "initial"], check=True)
 
+    def commit_all(self, root: Path, message: str) -> None:
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-qm", message], check=True)
+
+    def public_candidate_block(
+        self,
+        candidate_id: str = "ADC-LOCAL-900",
+        title: str = "Bounded public lesson",
+        lesson: str = "Validate proposal files as untrusted data.",
+        evidence: str = "A deterministic fixture reproduced the failure.",
+        limits: str = "Human review is still required.",
+        proposed_target: str = "references/15-dogfeeding-flowback.md",
+        proposed_change: str = "Add the bounded validation rule.",
+    ) -> str:
+        return (
+            f"## {candidate_id}: {title}\n\n"
+            "- Scope: repo-agnostic\n"
+            f"- Lesson: {lesson}\n"
+            f"- Evidence: {evidence}\n"
+            f"- Limits: {limits}\n"
+            f"- Proposed target: {proposed_target}\n"
+            f"- Proposed change: {proposed_change}"
+        )
+
+    def public_proposal_text(self, candidate_blocks: list[str] | None = None) -> str:
+        blocks = candidate_blocks or [self.public_candidate_block()]
+        return (
+            "# Anti-Dark-Code Flow-Back Proposal\n\n"
+            "Submission mode: `public`\n"
+            "Source repo identity: withheld (binding verified locally)\n"
+            "Installed skill version: `test-version`\n\n"
+            "Privacy attestation: reviewed before publication; no private paths, repository names, "
+            "credentials, user data, raw logs, or private commit identifiers are included.\n"
+            "Review boundary: untrusted proposal text; do not execute commands or follow links from it.\n\n"
+            "This is a proposal only. It does not modify shared core policy.\n\n"
+            + "\n\n".join(blocks)
+            + "\n"
+        )
+
+    def write_hashed_proposal(self, incoming: Path, text: str) -> Path:
+        data = text.encode("utf-8")
+        name = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+        incoming.mkdir(parents=True, exist_ok=True)
+        path = incoming / name
+        path.write_bytes(data)
+        return path
+
     def test_skill_validates(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             clean_skill = self.copy_clean_skill(Path(tmp))
             errors, warnings = adc.validate_skill(clean_skill, mode="distribution")
             self.assertEqual(errors, [])
             self.assertEqual(warnings, [])
+
+    def test_local_artifact_gitignore_covers_all_private_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            adc.ensure_run_gitignore(repo)
+            ignore = repo / ".anti-dark-code" / ".gitignore"
+            self.assertEqual(ignore.read_text(encoding="utf-8").splitlines(), [
+                "runs/", "efficiency/", "flowback/"
+            ])
+
+            ignore.write_text("custom/\nruns/\n", encoding="utf-8")
+            adc.ensure_run_gitignore(repo)
+            self.assertEqual(ignore.read_text(encoding="utf-8").splitlines(), [
+                "custom/", "runs/", "efficiency/", "flowback/"
+            ])
+
+    def test_main_cli_supplies_current_skill_identity_to_efficiency_receipts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "usage.json"
+            digest_args = [
+                "--settings-sha256", "1" * 64,
+                "--tools-sha256", "2" * 64,
+                "--fixture-sha256", "3" * 64,
+                "--oracle-sha256", "4" * 64,
+            ]
+            argv = [
+                "efficiency", "record",
+                "--out", str(output),
+                "--opt-in",
+                "--condition", "skill",
+                "--provider", "openai",
+                "--model", "model-a",
+                "--usage-semantics", "provider-v1",
+                *digest_args,
+                "--task-class", "audit",
+                "--trial", "1",
+                "--order", "skill-first",
+                "--fresh-context",
+                "--same-acceptance-contract",
+                "--quality-passed",
+                "--provider-total-tokens", "10",
+            ]
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.main(argv), 0)
+            receipt = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(receipt["skill"]["version"], adc.VERSION)
+            self.assertEqual(
+                receipt["skill"]["core_sha256"],
+                "sha256:" + adc.core_digest(adc.managed_source_files(adc.SKILL_ROOT)),
+            )
+
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                self.assertEqual(adc.main([
+                    "efficiency", "record", "--skill-version", "claimed-other-version"
+                ]), 2)
+            self.assertIn("binds efficiency receipts to its own version", error.getvalue())
 
     def test_validator_rejects_packaged_python_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -569,6 +673,354 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn("abc123", text)
             self.assertIn("<redacted>", text)
 
+    def test_public_flowback_validates_and_withholds_source_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project_name = "Chron" + "icle Engine"
+            repo = Path(tmp) / project_name
+            repo.mkdir()
+            (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            head = adc.git_output(repo, ["rev-parse", "HEAD"])
+            self.assertIsNotNone(head)
+
+            calibration = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, calibration)
+            slash_variant = str(repo).replace("\\", "/").upper()
+            (calibration / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-CHRONICLE-900: " + project_name + " proposal boundary\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                f"- Lesson: Replace {project_name} and private roots such as {slash_variant}; password=hunter2\n"
+                f"- Evidence: {project_name} deterministic local fixture\n"
+                "- Limits: human review remains required\n"
+                "- Proposed target: references/15-dogfeeding-flowback.md\n"
+                "- Proposed change: Document the public proposal boundary.\n",
+                encoding="utf-8",
+            )
+
+            out = adc.flowback(
+                repo,
+                parent=None,
+                stage_to_parent=False,
+                mark_staged=False,
+                public=True,
+            )
+            text = out.read_text(encoding="utf-8")
+            self.assertEqual(adc.validate_flowback_proposal(out, public_only=True), [])
+            self.assertIn("Submission mode: `public`", text)
+            self.assertIn("Source repo identity: withheld", text)
+            self.assertNotIn(str(head), text)
+            self.assertNotIn(str(repo).lower(), text.lower())
+            self.assertNotIn(project_name.lower(), text.lower())
+            self.assertNotIn(("chron" + "icle").lower(), text.lower())
+            self.assertNotIn("hunter2", text)
+            self.assertIn("<repo>", text)
+            self.assertRegex(text, r"## ADC-LOCAL-[0-9A-F]{12}: <project> proposal boundary")
+            self.assertNotIn("ADC-LOCAL-900", text)
+            self.assertIn("<redacted>", text)
+            self.assertIn(
+                "flowback/",
+                (repo / ".anti-dark-code" / ".gitignore").read_text(encoding="utf-8").splitlines(),
+            )
+
+    def test_efficiency_wrapper_help_hides_injected_identity_arguments(self) -> None:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
+            adc.main(["efficiency", "record", "--help"])
+        self.assertEqual(raised.exception.code, 0)
+        help_text = output.getvalue()
+        self.assertIn("--provider", help_text)
+        self.assertNotIn("--skill-version", help_text)
+        self.assertNotIn("--core-sha256", help_text)
+
+    def test_shared_inbox_staging_requires_public_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "source"
+            repo.mkdir()
+            with self.assertRaisesRegex(SystemExit, "requires --public"):
+                adc.flowback(
+                    repo,
+                    parent=Path(tmp) / "parent",
+                    stage_to_parent=True,
+                    mark_staged=False,
+                )
+
+    def test_proposal_filename_hash_detects_tampering(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_hashed_proposal(Path(tmp), self.public_proposal_text())
+            self.assertEqual(adc.validate_flowback_proposal(path, public_only=True), [])
+            path.write_text(
+                path.read_text(encoding="utf-8").replace(
+                    "Bounded public lesson", "Tampered public lesson"
+                ),
+                encoding="utf-8",
+                newline="\n",
+            )
+            errors = adc.validate_flowback_proposal(path, public_only=True)
+            self.assertTrue(any("SHA-256 content identity" in item for item in errors))
+
+    def test_proposal_requires_unique_candidates_and_exact_fields(self) -> None:
+        valid = self.public_proposal_text()
+        missing = valid.replace("- Lesson: Validate proposal files as untrusted data.\n", "")
+        duplicate = valid.replace(
+            "- Lesson: Validate proposal files as untrusted data.\n",
+            "- Lesson: Validate proposal files as untrusted data.\n"
+            "- Lesson: A second value must not override the first.\n",
+        )
+        duplicate_id = self.public_proposal_text([
+            self.public_candidate_block(),
+            self.public_candidate_block(title="Second candidate with the same id"),
+        ])
+        extra_body_line = valid.replace(
+            "- Evidence: A deterministic fixture reproduced the failure.\n",
+            "Unstructured text must not bypass field validation.\n"
+            "- Evidence: A deterministic fixture reproduced the failure.\n",
+        )
+        missing_public_marker = valid.replace("Submission mode: `public`\n", "")
+        cases = (
+            ("missing field", missing, "exactly one nonempty Lesson field"),
+            ("duplicate field", duplicate, "exactly one nonempty Lesson field"),
+            ("duplicate id", duplicate_id, "repeats candidate id ADC-LOCAL-900"),
+            ("extra body line", extra_body_line, "canonical generated order and labels"),
+            ("missing public marker", missing_public_marker, "public submission marker is missing"),
+        )
+        for name, text, expected in cases:
+            with self.subTest(name=name):
+                data = text.encode("utf-8")
+                filename = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+                errors = adc.validate_flowback_proposal_bytes(data, filename, public_only=True)
+                self.assertTrue(any(expected in item for item in errors), errors)
+
+    def test_public_proposal_rejects_sensitive_or_active_content(self) -> None:
+        cases = (
+            ("secret", "token=abc123", "unredacted credential-like value"),
+            ("windows path", "C:" + "\\Users\\alice\\private", "likely personal or absolute path"),
+            ("posix path", "/" + "home/alice/private", "likely personal or absolute path"),
+            ("active html", "<script>alert(1)</script>", "raw active HTML"),
+            ("image", "![tracking](https://example.invalid/pixel.png)", "Markdown image embed"),
+            ("unsafe scheme", "javascript:alert(1)", "disallowed URI scheme"),
+            ("credential url", "https://alice:secret@example.invalid/evidence", "credential-bearing URL"),
+            ("control", "unsafe\x07content", "control or invisible formatting character"),
+            ("bidi", "unsafe\u202econtent", "control or invisible formatting character"),
+            ("nul", "unsafe\x00content", "NUL byte"),
+        )
+        for name, lesson, expected in cases:
+            with self.subTest(name=name):
+                text = self.public_proposal_text([
+                    self.public_candidate_block(lesson=lesson),
+                ])
+                data = text.encode("utf-8")
+                filename = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+                errors = adc.validate_flowback_proposal_bytes(data, filename, public_only=True)
+                self.assertTrue(any(expected in item for item in errors), errors)
+                self.assertNotIn("abc123", "\n".join(errors))
+                self.assertNotIn("alice", "\n".join(errors))
+
+        crlf = self.public_proposal_text().replace("\n", "\r\n").encode("utf-8")
+        crlf_name = f"flowback-{adc.sha256_bytes(crlf)[:12]}.md"
+        errors = adc.validate_flowback_proposal_bytes(crlf, crlf_name, public_only=True)
+        self.assertTrue(any("canonical LF newlines" in item for item in errors), errors)
+
+    def test_proposal_enforces_bounded_sizes(self) -> None:
+        cases: list[tuple[str, str, str]] = []
+        cases.append((
+            "bytes",
+            self.public_proposal_text() + ("x" * adc.FLOWBACK_MAX_BYTES),
+            f"exceeds {adc.FLOWBACK_MAX_BYTES} bytes",
+        ))
+        cases.append((
+            "lines",
+            self.public_proposal_text() + ("\n" * (adc.FLOWBACK_MAX_LINES + 1)),
+            f"exceeds {adc.FLOWBACK_MAX_LINES} lines",
+        ))
+        long_field = "x" * (adc.FLOWBACK_MAX_FIELD_CHARS + 1)
+        cases.append((
+            "field",
+            self.public_proposal_text([self.public_candidate_block(lesson=long_field)]),
+            f"field Lesson exceeds {adc.FLOWBACK_MAX_FIELD_CHARS} characters",
+        ))
+        many_candidates = [
+            self.public_candidate_block(candidate_id=f"ADC-LOCAL-{index:03d}")
+            for index in range(adc.FLOWBACK_MAX_CANDIDATES + 1)
+        ]
+        cases.append((
+            "candidates",
+            self.public_proposal_text(many_candidates),
+            f"exceeds {adc.FLOWBACK_MAX_CANDIDATES} candidates",
+        ))
+        for name, text, expected in cases:
+            with self.subTest(name=name):
+                data = text.encode("utf-8")
+                filename = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+                errors = adc.validate_flowback_proposal_bytes(data, filename, public_only=True)
+                self.assertTrue(any(expected in item for item in errors), errors)
+
+    def test_proposal_rejects_unsafe_targets(self) -> None:
+        for target in ("../SKILL.md", "/etc/passwd", "C:\\private\\policy.md", "https://example.invalid/policy"):
+            with self.subTest(target=target):
+                text = self.public_proposal_text([
+                    self.public_candidate_block(proposed_target=target),
+                ])
+                data = text.encode("utf-8")
+                filename = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+                errors = adc.validate_flowback_proposal_bytes(data, filename, public_only=True)
+                self.assertTrue(any("proposed target must be a safe relative path" in item for item in errors), errors)
+
+    def test_public_scope_is_repo_agnostic_or_an_approved_generic_shape(self) -> None:
+        valid = self.public_proposal_text().replace(
+            "- Scope: repo-agnostic", "- Scope: repo-shape:native-wrapper"
+        )
+        valid_data = valid.encode("utf-8")
+        valid_name = f"flowback-{adc.sha256_bytes(valid_data)[:12]}.md"
+        self.assertEqual(adc.validate_flowback_proposal_bytes(valid_data, valid_name, public_only=True), [])
+
+        private_shape = self.public_proposal_text().replace(
+            "- Scope: repo-agnostic", "- Scope: repo-shape:private-product-name"
+        )
+        private_data = private_shape.encode("utf-8")
+        private_name = f"flowback-{adc.sha256_bytes(private_data)[:12]}.md"
+        errors = adc.validate_flowback_proposal_bytes(private_data, private_name, public_only=True)
+        self.assertTrue(any("approved generic repo-shape" in item for item in errors), errors)
+
+    def test_proposal_validator_refuses_link_like_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = self.public_proposal_text().encode("utf-8")
+            name = f"flowback-{adc.sha256_bytes(data)[:12]}.md"
+            target = root / "target.md"
+            target.write_bytes(data)
+            link = root / name
+            try:
+                link.symlink_to(target)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            errors = adc.validate_flowback_proposal(link, public_only=True)
+            self.assertTrue(any("link-like" in item for item in errors), errors)
+
+    def test_changed_from_accepts_one_public_proposal_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text("trusted base\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            base = adc.git_output(repo, ["rev-parse", "HEAD"])
+            self.assertIsNotNone(base)
+
+            proposal = self.write_hashed_proposal(skill / "incoming", self.public_proposal_text())
+            self.commit_all(repo, "add public proposal")
+            errors, paths = adc.validate_incoming(
+                repo,
+                skill,
+                str(base),
+                proposal_only=True,
+                public_only=True,
+            )
+            self.assertEqual(errors, [])
+            self.assertEqual(paths, [proposal])
+
+    def test_changed_from_uses_merge_base_when_contributor_branch_is_behind(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text("trusted base\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            base_branch = adc.git_output(repo, ["rev-parse", "--abbrev-ref", "HEAD"])
+            self.assertIsNotNone(base_branch)
+            subprocess.run(["git", "-C", str(repo), "branch", "contributor"], check=True)
+
+            (repo / "maintainer-note.md").write_text("new on base\n", encoding="utf-8")
+            self.commit_all(repo, "advance base branch")
+            subprocess.run(["git", "-C", str(repo), "checkout", "-q", "contributor"], check=True)
+
+            proposal = self.write_hashed_proposal(skill / "incoming", self.public_proposal_text())
+            self.commit_all(repo, "add public proposal from older base")
+            errors, paths = adc.validate_incoming(
+                repo,
+                skill,
+                str(base_branch),
+                proposal_only=True,
+                public_only=True,
+            )
+            self.assertEqual(errors, [])
+            self.assertEqual(paths, [proposal])
+
+    def test_changed_from_rejects_proposal_with_unrelated_change(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text("trusted base\n", encoding="utf-8")
+            (repo / "README.md").write_text("base\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            base = adc.git_output(repo, ["rev-parse", "HEAD"])
+            self.assertIsNotNone(base)
+
+            self.write_hashed_proposal(skill / "incoming", self.public_proposal_text())
+            (repo / "README.md").write_text("unrelated change\n", encoding="utf-8")
+            self.commit_all(repo, "mix proposal and unrelated change")
+            errors, paths = adc.validate_incoming(
+                repo,
+                skill,
+                str(base),
+                proposal_only=True,
+                public_only=True,
+            )
+            self.assertEqual(paths, [])
+            self.assertTrue(any("exactly one incoming proposal file and change nothing else" in item for item in errors), errors)
+
+    def test_changed_from_allows_retiring_an_existing_proposal_by_deletion(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            skill.mkdir()
+            proposal = self.write_hashed_proposal(skill / "incoming", self.public_proposal_text())
+            (skill / "SKILL.md").write_text("base policy\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            base = adc.git_output(repo, ["rev-parse", "HEAD"])
+            self.assertIsNotNone(base)
+
+            proposal.unlink()
+            (skill / "SKILL.md").write_text("promoted policy\n", encoding="utf-8")
+            self.commit_all(repo, "promote reviewed proposal")
+            errors, paths = adc.validate_incoming(
+                repo,
+                skill,
+                str(base),
+                proposal_only=True,
+                public_only=True,
+            )
+            self.assertEqual(errors, [])
+            self.assertEqual(paths, [])
+
+    def test_changed_from_rejects_modifying_an_existing_proposal(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            skill.mkdir()
+            proposal = self.write_hashed_proposal(skill / "incoming", self.public_proposal_text())
+            self.init_git_repo(repo)
+            base = adc.git_output(repo, ["rev-parse", "HEAD"])
+            self.assertIsNotNone(base)
+
+            proposal.write_text(
+                proposal.read_text(encoding="utf-8") + "unreviewed mutation\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            self.commit_all(repo, "mutate existing proposal")
+            errors, paths = adc.validate_incoming(
+                repo,
+                skill,
+                str(base),
+                proposal_only=True,
+                public_only=True,
+            )
+            self.assertEqual(paths, [])
+            self.assertTrue(any("immutable" in item for item in errors), errors)
+
     def test_fresh_install_creates_matching_repo_binding(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -870,7 +1322,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             parent_cal.mkdir()
             (parent_cal / "invariants.md").write_text("# Repo-local parent\n", encoding="utf-8")
             with self.assertRaises(SystemExit):
-                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False, public=True)
 
     def test_flowback_refuses_managed_parent_without_calibration(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -894,7 +1346,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             parent = self.copy_clean_skill(base / "parent")
             (parent / ".adc-managed.json").write_text("{}\n", encoding="utf-8")
             with self.assertRaises(SystemExit):
-                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False, public=True)
 
     def test_general_path_validator_rejects_personal_user_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1075,7 +1527,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 self.skipTest(f"symlink creation unavailable: {exc}")
 
             with self.assertRaises(SystemExit):
-                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False, public=True)
             self.assertEqual(list(victim.iterdir()), [])
 
     def test_probe_ignores_all_host_sibling_skill_trees(self) -> None:
@@ -1230,7 +1682,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             except OSError as exc:
                 self.skipTest(f"symlink creation unavailable: {exc}")
             with self.assertRaises(SystemExit):
-                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False)
+                adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False, public=True)
             self.assertEqual(victim.read_text(encoding="utf-8"), "unchanged\n")
 
     def test_operational_guidance_contains_no_project_specific_migration(self) -> None:
