@@ -145,6 +145,10 @@ Challenge:
 
 For emergent regressions, prefer a deterministic output-counting probe, a parent-commit or baseline diff, and one configuration or content unit unwired at a time before broad code reading.
 
+### Review freshly shipped fixes independently
+
+Budget a bounded adversarial follow-up for detector logic, instrumentation, trust-boundary adapters, platform integration, and other changes whose own tests may share the same mistaken model as the implementation. Give the challenger the changed artifact, contracts, and raw evidence, not the author's conclusion. Require an independently observed failure or falsifier before opening a new finding. Scale this review by risk; it is not a mandatory fan-out for every small edit.
+
 ## Rules
 
 - No application code changes.

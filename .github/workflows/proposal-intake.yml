@@ -1,0 +1,71 @@
+name: Proposal intake
+
+on:
+  pull_request_target:
+    paths:
+      - "anti-dark-code/incoming/**"
+      - ".github/workflows/proposal-intake.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-incoming:
+    name: Validate incoming proposals
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out trusted base validator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted-base
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true # Candidate files are parsed only as data by the trusted-base validator.
+
+      - name: Make the trusted base available to the candidate diff
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git -C candidate fetch --no-tags ../trusted-base "$BASE_SHA"
+          git -C candidate cat-file -e "$BASE_SHA^{commit}"
+
+      - name: Validate an external public proposal with the trusted base
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          python3 -B trusted-base/anti-dark-code/scripts/adc.py validate-incoming \
+            --repo candidate \
+            --skill candidate/anti-dark-code \
+            --changed-from "$BASE_SHA" \
+            --proposal-only \
+            --public-only
+
+      - name: Validate internal inbox maintenance with the trusted base
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          python3 -B trusted-base/anti-dark-code/scripts/adc.py validate-incoming \
+            --repo candidate \
+            --skill candidate/anti-dark-code \
+            --changed-from "$BASE_SHA" \
+            --public-only

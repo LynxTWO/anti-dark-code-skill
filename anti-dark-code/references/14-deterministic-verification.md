@@ -112,6 +112,8 @@ Good gate entry:
   "review_status": "approved",
   "source": "package.json#scripts.typecheck",
   "source_definition_sha256": "<hash captured by the deterministic probe>",
+  "inherit_env": true,
+  "env": {"DOTNET_CLI_TELEMETRY_OPTOUT": "1"},
   "timeout_seconds": 180,
   "include_globs": ["src/**/*.ts", "src/**/*.tsx"],
   "resource_class": "light"
@@ -121,6 +123,8 @@ Good gate entry:
 Use `include_globs` and `exclude_globs` for change impact. Keep full-suite and soak gates marked heavy. Record hardware restrictions, remote runners, and commands that reach external systems.
 
 Never put secrets in command arguments or failure packets.
+
+`inherit_env` defaults to `true`. Set it to `false` only when the command has been proven to run in a deliberately sparse environment. The optional `env` object accepts a bounded set of reviewed, non-sensitive string overrides; secret-like variable names are refused. Run artifacts record the overlay key names and an opaque fingerprint of execution-relevant environment state, never the raw overlay values. If a child prints an overlay value, the retained log replaces that literal value before preservation.
 
 ## Step 5: Run Deterministically and Keep Output Small
 
@@ -155,12 +159,29 @@ The runner must:
 - return nonzero when a gate fails
 - launch each executed gate in its own process group
 - make a best-effort attempt to terminate the gate's process tree on timeout
+- apply only reviewed, non-sensitive environment overlays and record a bounded opaque environment fingerprint when command resolution depends on inherited state
 
 Top-level exit codes are `0` for a valid dry run or all-green execution, `1` for executed gate failures, `2` for a refused plan or execution, and `130` for operator interruption. A timed-out gate is recorded with exit `124` inside its failure packet and makes the overall run fail.
 
 On POSIX systems timeout handling signals the process group. On Windows it uses a new process group and falls back to `taskkill /T /F`. This limits orphaned helpers, but it is not a security sandbox and cannot guarantee termination of a process that deliberately detaches itself.
 
 Do not send full green logs to an agent.
+
+### Shell exit-code contract
+
+Judge a gate by the producer's real exit code. A pipeline normally reports its last command, so `gate | tail`, `gate | grep`, and similar summaries can turn failure into success. Capture output to a file and retain the producer status, use the shell's explicit pipeline-status facility, or execute an argument array without a shell. Test the failure path of every wrapper that summarizes gate output.
+
+### Mutation-testing calibration
+
+Start with the smallest high-stakes pure semantic module that has a stable oracle. Record source lines, test count, mutant count, elapsed time, survivors, no-coverage mutants, timeouts, and errors before expanding scope. A whole-repo first run can hide useful signal in cost.
+
+Keep semantic decisions separate from presentation catalogs, labels, descriptors, and compatibility metadata. Mutating a display-only declaration can create equivalent or low-value mutants that inflate the denominator. Test catalog shape directly, but target mutation gates at behavior whose changed outcome can be falsified.
+
+Report absolute counts beside the score. A perfect score over a tiny denominator is narrow evidence, while a lower score may be dominated by equivalent or no-coverage mutants. Classify each survivor as missing assertion, missing reachability, equivalent mutation, excluded presentation surface, timeout, or tool error before changing thresholds.
+
+Treat unexpectedly fast incremental mutation runs as suspect after fixture-only or data-only test edits. Clean the mutation cache and rerun when the tool cannot prove that test content invalidated prior verdicts.
+
+Typecheck newly authored test batteries separately when the runner transpiles without type information. Passing transformed tests can still assert against shapes the production type system rejects.
 
 ## Step 6: Convert Failures into Memory
 

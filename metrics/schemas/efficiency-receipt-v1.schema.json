@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/LynxTWO/anti-dark-code-skill/main/metrics/schemas/efficiency-receipt-v1.schema.json",
+  "title": "Anti-Dark-Code efficiency receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "visibility",
+    "evidence_label",
+    "created_month",
+    "skill",
+    "study",
+    "measurement",
+    "controls",
+    "quality",
+    "privacy",
+    "receipt_id",
+    "integrity"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "receipt_type": {"enum": ["actual_usage", "controlled_pair"]},
+    "visibility": {"enum": ["local", "public"]},
+    "evidence_label": {"const": "community-self-reported"},
+    "created_month": {"type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"},
+    "skill": {"$ref": "#/$defs/skill"},
+    "study": {"$ref": "#/$defs/study"},
+    "measurement": {"type": "object"},
+    "controls": {"type": "object"},
+    "quality": {"type": "object"},
+    "source_receipts": {"$ref": "#/$defs/sourceReceipts"},
+    "privacy": {"$ref": "#/$defs/privacy"},
+    "receipt_id": {"$ref": "#/$defs/sha256"},
+    "integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"receipt_type": {"const": "actual_usage"}}},
+      "then": {
+        "properties": {
+          "measurement": {"$ref": "#/$defs/actualMeasurement"},
+          "quality": {"$ref": "#/$defs/actualQuality"},
+          "source_receipts": false
+        }
+      },
+      "else": {
+        "properties": {
+          "measurement": {"$ref": "#/$defs/pairMeasurement"},
+          "quality": {"$ref": "#/$defs/pairQuality"},
+          "controls": {
+            "properties": {
+              "fresh_context": {"const": true},
+              "same_acceptance_contract": {"const": true}
+            },
+            "required": ["fresh_context", "same_acceptance_contract"]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"visibility": {"const": "local"}}},
+      "then": {"properties": {"controls": {"$ref": "#/$defs/localControls"}}},
+      "else": {"properties": {"controls": {"$ref": "#/$defs/publicControls"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt_type": {"const": "controlled_pair"},
+          "visibility": {"const": "local"}
+        },
+        "required": ["receipt_type", "visibility"]
+      },
+      "then": {"required": ["source_receipts"]},
+      "else": {"properties": {"source_receipts": false}}
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "plainString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "nullableCount": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 1000000000000
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000000000
+    },
+    "delta": {
+      "type": ["integer", "null"],
+      "minimum": -1000000000000,
+      "maximum": 1000000000000
+    },
+    "skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "core_sha256"],
+      "properties": {
+        "version": {"type": "string", "minLength": 1, "maxLength": 96},
+        "core_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "study": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_class", "trial", "order"],
+      "properties": {
+        "task_class": {"enum": ["map", "audit", "verify", "remediate", "install", "other"]},
+        "trial": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "order": {"enum": ["skill-first", "baseline-first"]}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "call_count",
+        "input_tokens",
+        "cache_read_input_tokens",
+        "cache_write_input_tokens",
+        "output_tokens",
+        "reasoning_tokens",
+        "tool_prompt_tokens",
+        "provider_total_tokens"
+      ],
+      "properties": {
+        "call_count": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "input_tokens": {"$ref": "#/$defs/nullableCount"},
+        "cache_read_input_tokens": {"$ref": "#/$defs/nullableCount"},
+        "cache_write_input_tokens": {"$ref": "#/$defs/nullableCount"},
+        "output_tokens": {"$ref": "#/$defs/nullableCount"},
+        "reasoning_tokens": {"$ref": "#/$defs/nullableCount"},
+        "tool_prompt_tokens": {"$ref": "#/$defs/nullableCount"},
+        "provider_total_tokens": {"$ref": "#/$defs/count"}
+      }
+    },
+    "tokenDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_tokens",
+        "cache_read_input_tokens",
+        "cache_write_input_tokens",
+        "output_tokens",
+        "reasoning_tokens",
+        "tool_prompt_tokens",
+        "provider_total_tokens"
+      ],
+      "properties": {
+        "input_tokens": {"$ref": "#/$defs/delta"},
+        "cache_read_input_tokens": {"$ref": "#/$defs/delta"},
+        "cache_write_input_tokens": {"$ref": "#/$defs/delta"},
+        "output_tokens": {"$ref": "#/$defs/delta"},
+        "reasoning_tokens": {"$ref": "#/$defs/delta"},
+        "tool_prompt_tokens": {"$ref": "#/$defs/delta"},
+        "provider_total_tokens": {
+          "type": "integer",
+          "minimum": -1000000000000,
+          "maximum": 1000000000000
+        }
+      }
+    },
+    "measurementIdentity": {
+      "type": "object",
+      "properties": {
+        "provider": {"$ref": "#/$defs/slug"},
+        "model": {"$ref": "#/$defs/plainString"},
+        "adapter_version": {"$ref": "#/$defs/slug"},
+        "usage_semantics": {"$ref": "#/$defs/slug"}
+      }
+    },
+    "actualMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "condition",
+        "provider",
+        "model",
+        "adapter_version",
+        "usage_semantics",
+        "usage"
+      ],
+      "properties": {
+        "source": {"const": "host-reported"},
+        "condition": {"enum": ["skill", "baseline"]},
+        "provider": {"$ref": "#/$defs/slug"},
+        "model": {"$ref": "#/$defs/plainString"},
+        "adapter_version": {"$ref": "#/$defs/slug"},
+        "usage_semantics": {"$ref": "#/$defs/slug"},
+        "usage": {"$ref": "#/$defs/usage"}
+      }
+    },
+    "pairMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "provider",
+        "model",
+        "adapter_version",
+        "usage_semantics",
+        "skill_usage",
+        "baseline_usage",
+        "token_delta",
+        "percent_provider_total_delta"
+      ],
+      "properties": {
+        "source": {"const": "controlled-pair"},
+        "provider": {"$ref": "#/$defs/slug"},
+        "model": {"$ref": "#/$defs/plainString"},
+        "adapter_version": {"$ref": "#/$defs/slug"},
+        "usage_semantics": {"$ref": "#/$defs/slug"},
+        "skill_usage": {"$ref": "#/$defs/usage"},
+        "baseline_usage": {"$ref": "#/$defs/usage"},
+        "token_delta": {"$ref": "#/$defs/tokenDelta"},
+        "percent_provider_total_delta": {"type": ["number", "null"]}
+      }
+    },
+    "localControls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "settings_sha256",
+        "tools_sha256",
+        "fixture_sha256",
+        "oracle_sha256",
+        "fresh_context",
+        "same_acceptance_contract"
+      ],
+      "properties": {
+        "settings_sha256": {"$ref": "#/$defs/sha256"},
+        "tools_sha256": {"$ref": "#/$defs/sha256"},
+        "fixture_sha256": {"$ref": "#/$defs/sha256"},
+        "oracle_sha256": {"$ref": "#/$defs/sha256"},
+        "fresh_context": {"type": "boolean"},
+        "same_acceptance_contract": {"type": "boolean"}
+      }
+    },
+    "publicControls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comparison_sha256", "fresh_context", "same_acceptance_contract"],
+      "properties": {
+        "comparison_sha256": {"$ref": "#/$defs/sha256"},
+        "fresh_context": {"type": "boolean"},
+        "same_acceptance_contract": {"type": "boolean"}
+      }
+    },
+    "actualQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed"],
+      "properties": {"passed": {"type": "boolean"}}
+    },
+    "pairQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill_passed", "baseline_passed", "same_acceptance_contract"],
+      "properties": {
+        "skill_passed": {"const": true},
+        "baseline_passed": {"const": true},
+        "same_acceptance_contract": {"const": true}
+      }
+    },
+    "sourceReceipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill_receipt_id", "baseline_receipt_id"],
+      "properties": {
+        "skill_receipt_id": {"$ref": "#/$defs/sha256"},
+        "baseline_receipt_id": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "explicit_opt_in",
+        "contains_content",
+        "contains_paths",
+        "contains_repo_or_user_identifiers"
+      ],
+      "properties": {
+        "explicit_opt_in": {"const": true},
+        "contains_content": {"const": false},
+        "contains_paths": {"const": false},
+        "contains_repo_or_user_identifiers": {"const": false}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "canonical_payload_sha256", "note"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "canonical_payload_sha256": {"$ref": "#/$defs/sha256"},
+        "note": {"const": "Content integrity only; this is not an authenticity attestation."}
+      }
+    }
+  }
+}

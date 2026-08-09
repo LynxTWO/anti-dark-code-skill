@@ -177,9 +177,32 @@
   .two.yes h3 { color: var(--verified); }
   .two.no h3 { color: var(--signal); }
 
+  .efficiency-panel {
+    display: grid; grid-template-columns: minmax(10rem, 0.7fr) minmax(16rem, 1.3fr); gap: 1rem;
+    background: var(--card); border: 1px solid var(--rule); border-radius: 5px; padding: 0.9rem 1rem;
+    margin: 1rem 0;
+  }
+  .efficiency-panel .measure {
+    font-family: var(--mono); font-size: 1.35rem; line-height: 1.2; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .efficiency-panel .label {
+    display: block; margin-top: 0.3rem; font-family: var(--mono); font-size: 0.68rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  }
+  .efficiency-panel .status { margin: 0; font-size: 0.92rem; color: var(--muted); }
+  .efficiency-strata { grid-column: 1 / -1; display: grid; gap: 0.55rem; }
+  .efficiency-strata[hidden] { display: none; }
+  .efficiency-stratum {
+    display: grid; grid-template-columns: minmax(12rem, 0.9fr) minmax(16rem, 1.1fr); gap: 0.8rem;
+    border-top: 1px solid var(--rule); padding-top: 0.55rem;
+  }
+  .efficiency-stratum .identity { font-family: var(--mono); font-size: 0.76rem; color: var(--ink); overflow-wrap: anywhere; }
+  .efficiency-stratum .result { font-size: 0.82rem; color: var(--muted); }
+
   footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.03em; }
 
-  @media (max-width: 34rem) { .two { grid-template-columns: 1fr; } }
+  @media (max-width: 34rem) { .two, .efficiency-panel, .efficiency-stratum { grid-template-columns: 1fr; } }
 
   @media print {
     :root {
@@ -296,6 +319,7 @@
   <div class="pass"><span class="id">13</span><div class="body"><div class="name">Calibrated local mode</div><div class="what">Install the skill into the repo itself, with a repo-owned calibration layer (invariants, system map, exact gates, coverage and findings ledgers) that every later pass reads first. A known repo stops pretending to be unfamiliar every time a context window resets.</div></div></div>
   <div class="pass"><span class="id">14</span><div class="body"><div class="name">Deterministic verification planner</div><div class="what">Profile the repo with a bounded script, evaluate all twenty verification capabilities (mutation, fuzzing, goldens, replay, metamorphic properties, fault injection, and more), select the repo-fit subset, and store the exact reviewed commands the computer will run with real exit codes.</div></div></div>
   <div class="pass"><span class="id">15</span><div class="body"><div class="name">Dogfeeding and flow-back</div><div class="what">Write what a run learned back into the repo's calibration. Lessons general enough to help other repos queue as proposals; a human reviews and promotes them into the shared core. Nothing flows upstream on its own.</div></div></div>
+  <div class="pass"><span class="id">16</span><div class="body"><div class="name">Community feedback and efficiency evidence</div><div class="what">Publish only sanitized, repository-neutral proposals or explicit opt-in measurement receipts. Public submissions remain untrusted data, and token savings are reported only from quality-qualified controlled pairs.</div></div></div>
 </div>
 
 <figure>
@@ -448,12 +472,26 @@
   <li><strong>The shared core</strong> lives in one version-controlled directory. Each host's skill folder is just a pointer to it (a symlink or a thin adapter), so an upgrade happens exactly once. A marker file identifies it as a clean universal source; the installer refuses to install from anything else.</li>
   <li><strong>The repo copy</strong> is real, not a pointer: installing places a managed, checksummed copy inside the repository so it travels with the code to any machine or CI runner. The managed core is read-only in the repo; local edits surface as conflicts on the next upgrade instead of silently forking.</li>
   <li><strong>The calibration overlay</strong> is the repo's own memory: invariants, system map, exact gates, coverage and findings ledgers. It is owned by the repo, survives every core upgrade, and is what makes pass 13's calibrated mode possible.</li>
+  <li><strong>The upgrade preview</strong> is read-only: before an install changes anything, it reports which deterministic gates would change and whether owner approval would reset. A reviewed repo-owned gate survives a bounded refresh while its exact source binding still verifies.</li>
   <li><strong>The repo binding</strong> stamps the calibration with a hashed identity of its repository (no raw remotes, no personal paths). Calibration copied from another project will not silently run here: gates from unbound or foreign calibration are refused until a human explicitly accepts or rebinds them, and accepting resets every gate back to unapproved.</li>
 </ul>
 
 <div class="callout warn">
   <h3>The trust barrier</h3>
   <p>Knowledge flows one way by default: the clean core flows down into repos; repo knowledge stays in its repo. The only path upstream is a sanitized, content-hashed <strong>proposal</strong> staged into the shared core's review inbox, which a human reads, generalizes, and promotes. A compromised or simply overfitted repository cannot rewrite the shared skill and poison every future project.</p>
+</div>
+
+<h2>Token efficiency, without make-believe math</h2>
+<p class="prose">Exact savings before this measurement protocol existed are <span class="tier u">unmeasured</span>. The skill makes no automatic network calls and sends no telemetry. If a host reports the tokens used during one assisted run, that is <strong>usage</strong>, not proof of savings.</p>
+<p class="prose">A tokens-saved claim requires a quality-qualified controlled pair: the same provider, model, counter method and adapter, equivalent task and repository state, equivalent tool access, the same acceptance contract with both outcomes passing, and one run with the skill compared with one baseline run without it. Tokenizer or context-compaction estimates are useful engineering proxies, but remain separate from provider-reported token counts. Public community receipts are opt-in and self-reported, never provider-attested.</p>
+
+<div class="efficiency-panel" id="efficiency-summary" aria-live="polite">
+  <div>
+    <div class="measure" id="efficiency-pair-count">Not published</div>
+    <span class="label">quality-qualified controlled pairs</span>
+  </div>
+  <p class="status" id="efficiency-status">The public brief works without metrics data. When a validated summary is published, this panel reports its paired sample count without turning unpaired usage or estimates into a savings claim.</p>
+  <div class="efficiency-strata" id="efficiency-strata" hidden></div>
 </div>
 
 <h2>What you end up with</h2>
@@ -509,9 +547,83 @@
 </div>
 
 <footer>
-  Anti-Dark-Code field brief, updated 2026-08-06 for the unified core (2026.08.06-unified.4): one model-neutral skill with thin host adapters for Claude, Codex, and Gemini harnesses. Calibrated local mode, the deterministic verification planner, repo binding, proposal-only flow-back, and fail-closed write hardening are the newest additions.
+  Anti-Dark-Code field brief, updated 2026-08-09 for the unified core (2026.08.09-unified.5): one model-neutral skill with thin host adapters for Claude, Codex, and Gemini harnesses. Assurance contracts, bounded public proposal intake, and opt-in efficiency receipts are the newest additions.
 </footer>
 </div>
 
+<script>
+  (function () {
+    "use strict";
+    var count = document.getElementById("efficiency-pair-count");
+    var status = document.getElementById("efficiency-status");
+    var strataPanel = document.getElementById("efficiency-strata");
+    if (!count || !status || !strataPanel || typeof fetch !== "function") return;
+
+    function safeInteger(value) {
+      return Number.isSafeInteger(value) && value >= 0;
+    }
+
+    function shortText(value) {
+      if (typeof value !== "string" || value.length < 1 || value.length > 160) throw new Error("invalid label");
+      return value;
+    }
+
+    function signed(value) {
+      return value > 0 ? "+" + String(value) : String(value);
+    }
+
+    fetch("data/efficiency-summary.json", { cache: "no-store" })
+      .then(function (response) {
+        if (!response.ok) throw new Error("summary unavailable");
+        return response.json();
+      })
+      .then(function (summary) {
+        var counts = summary && summary.receipt_counts;
+        var pairs = counts && counts.controlled_pairs;
+        var actual = counts && counts.actual_usage;
+        var strata = summary && summary.strata;
+        if (!safeInteger(pairs) || !safeInteger(actual) || !Array.isArray(strata)) throw new Error("invalid summary");
+        count.textContent = String(pairs);
+        status.textContent = pairs === 0
+          ? "No public quality-qualified controlled pairs have been published yet; historical exact savings remain unmeasured."
+          : pairs + " self-reported, quality-qualified controlled " + (pairs === 1 ? "pair is" : "pairs are") + " published. Per-stratum deltas appear below; no cross-provider/model/adapter/usage-semantics/task-class total is calculated.";
+        if (actual > 0) status.textContent += " " + actual + " unpaired usage " + (actual === 1 ? "receipt is" : "receipts are") + " recorded separately and not called savings.";
+
+        var pairedStrata = strata.filter(function (stratum) {
+          return stratum && stratum.controlled_pairs && stratum.controlled_pairs.pairs > 0;
+        });
+        pairedStrata.slice(0, 24).forEach(function (stratum) {
+          var result = stratum.controlled_pairs;
+          var pairCount = result.pairs;
+          var delta = result.quality_qualified_token_delta;
+          var positive = result.positive_delta_pairs;
+          var zero = result.zero_delta_pairs;
+          var negative = result.negative_delta_pairs;
+          var median = result.median_percent_provider_total_delta;
+          if (!safeInteger(pairCount) || !Number.isSafeInteger(delta) || !safeInteger(positive) || !safeInteger(zero) || !safeInteger(negative) || positive + zero + negative !== pairCount || (median !== null && !Number.isFinite(median))) throw new Error("invalid stratum");
+
+          var row = document.createElement("div");
+          row.className = "efficiency-stratum";
+          var identity = document.createElement("div");
+          identity.className = "identity";
+          identity.textContent = shortText(stratum.provider) + " / " + shortText(stratum.model) + " / " + shortText(stratum.adapter_version) + " / " + shortText(stratum.usage_semantics) + " / " + shortText(stratum.task_class);
+          var details = document.createElement("div");
+          details.className = "result";
+          details.textContent = pairCount + " " + (pairCount === 1 ? "pair" : "pairs") + " | paired token delta (baseline - skill) " + signed(delta) + " | median " + (median === null ? "n/a" : signed(median) + "%") + " | fewer/equal/more-token pairs " + positive + "/" + zero + "/" + negative;
+          row.appendChild(identity);
+          row.appendChild(details);
+          strataPanel.appendChild(row);
+        });
+        if (pairedStrata.length > 0) strataPanel.hidden = false;
+        if (pairedStrata.length > 24) status.textContent += " The first 24 strata are shown.";
+      })
+      .catch(function () {
+        count.textContent = "Not published";
+        status.textContent = "No validated public summary is available here. Historical exact savings remain unmeasured.";
+        strataPanel.replaceChildren();
+        strataPanel.hidden = true;
+      });
+  }());
+</script>
 </body>
 </html>

@@ -3,9 +3,9 @@
 A skill that teaches AI coding assistants (Claude Code, Codex, Gemini CLI, and others) to work on codebases from evidence instead of guesswork: map what actually runs, prove claims or record them as unknowns, hold risky changes behind approval gates, and verify work with deterministic checks instead of confident prose.
 
 - **Plain-language overview**: https://lynxtwo.github.io/anti-dark-code-skill/
-- **Version**: `2026.08.06-unified.4` (see `CHANGELOG.md`)
+- **Version**: `2026.08.09-unified.5` (see `CHANGELOG.md`)
 
-One model-neutral core, repo-local calibration, and deterministic local tooling. No network calls, no telemetry, no dependencies beyond Python 3 for the optional tooling.
+One model-neutral core, repo-local calibration, and deterministic local tooling. No automatic network calls, telemetry, or submission, and no dependencies beyond Python 3 for the optional tooling. Optional efficiency receipts are created only by an explicit local command and remain local until a person exports and submits one.
 
 ## Quick start if you are new to all of this
 
@@ -91,11 +91,15 @@ repo installs via adc.py            repo installs via adc.py
      \_______ flowback proposals to incoming/ ______/
 ```
 
-Set `ADC_PARENT_SKILL` to your clone's `anti-dark-code/` path so `flowback --stage-to-parent` needs no `--parent` argument. Do not use file-sync services (OneDrive, Dropbox) on the clone; partial syncs and conflict copies corrupt git repositories and will fail this skill's clean-source validation.
+Set `ADC_PARENT_SKILL` to your clone's `anti-dark-code/` path so `flowback --stage-to-parent --public` needs no `--parent` argument. Do not use file-sync services (OneDrive, Dropbox) on the clone; partial syncs and conflict copies corrupt git repositories and will fail this skill's clean-source validation.
 
 ## Contributing, and a note on trust
 
 Issues and pull requests are welcome. `main` is protected: all changes land by pull request and are reviewed by the maintainer alone.
+
+People using the skill in other repositories can contribute generalized lessons without granting their assistant access to this repository. Generate a sanitized proposal locally, stage it into an `anti-dark-code-skill` fork, review it as plain text, and submit the one new file under `anti-dark-code/incoming/`. The trusted-base pull-request check parses that file as data and never executes contributor scripts. See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact workflow and public-data boundary.
+
+Community members may also submit opt-in, privacy-stripped efficiency receipts. Actual usage is not called savings; only quality-qualified controlled pairs can report a token delta, and public results stay separated by provider, model, adapter/counter semantics, and task class. Historical exact savings before this protocol are unmeasured. The live summary appears in the [public brief](https://lynxtwo.github.io/anti-dark-code-skill/) and its source is under [`metrics/`](metrics/).
 
 Be aware of what this repository is: **skill text becomes instructions executed by AI assistants with their operator's authority.** A malicious or careless change here would run, in effect, with the hands of everyone who installs it. Contributions are therefore reviewed as executable code, strictly. The same caution applies to you: if you fork this skill, review what you ship.
 
@@ -120,7 +124,7 @@ If this saves you real time and you feel like covering some of my build costs, t
 - Binds calibration to one hashed repository identity to prevent accidental cross-repo transfer.
 - Gives Claude Code a thin adapter instead of a second editable policy tree.
 - Lets Codex and Gemini CLI use the canonical `.agents/skills` copy.
-- Uses local deterministic scripts for profiling, planning, changed-slice routing, exact gate execution, real exit codes, compact summaries, failure packets, checksums, and flow-back staging.
+- Uses local deterministic scripts for profiling, planning, changed-slice routing, exact gate execution, real exit codes, compact summaries, failure packets, checksums, validated flow-back staging, and opt-in efficiency receipts.
 - Excludes repo-level host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/` from repository evidence so tooling does not distort repo classification.
 - Returns exit code `2` when a gate plan is blocked, including dry runs, and terminates timed-out gate process trees on a best-effort basis.
 - Keeps source-side repo calibration out of every installation.
@@ -147,12 +151,11 @@ General lessons may flow upward only as reviewed proposals.
 ## Package Layout
 
 ```text
-Anti-Dark-Code-Skill-Unified-2026-08-06/
+anti-dark-code-skill/
   README.md
   AUDIT-AND-DESIGN.md
   MIGRATION.md
   CHANGELOG.md
-  MANIFEST.sha256
   anti-dark-code/
     SKILL.md
     VERSION
@@ -161,7 +164,9 @@ Anti-Dark-Code-Skill-Unified-2026-08-06/
     references/
     assets/
     scripts/adc.py
+    scripts/adc_efficiency.py
     tests/test_adc.py
+    tests/test_efficiency.py
 ```
 
 `SOURCE-SCOPE.json` identifies the directory as a clean universal source core. A populated top-level `calibration/` directory does not belong in that shared source.
@@ -239,7 +244,7 @@ python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
   --apply
 ```
 
-Bootstrap does not execute repository code and does not install dependencies.
+Bootstrap does not execute repository code and does not install dependencies. The dry run performs the same bounded, read-only profile used by apply and reports each affected gate, its reason, the total change count, and whether owner confirmation would be reset; it does not write calibration. Approved repo-owned gates survive refresh when their exact source binding still verifies, even when a bounded scan does not rediscover them.
 
 After application, validate the installed copy with `--mode installed` before trusting repo-local calibration or gates.
 
@@ -349,6 +354,7 @@ After every enabled gate is approved, set:
 ```
 
 Any new or changed generated gate resets that confirmation. Package-script gates also carry a source fingerprint, so a changed script is blocked until the plan is refreshed and reapproved.
+A repo's `calibration/gates.json` is the owner-controlled trust record, not a tamper-evident signature. Review changes to its command, cwd, environment, globs, level, timeout, enablement, and approval fields as one unit. Never execute gate calibration taken from an untrusted branch merely because its booleans say approved; a writer able to alter the trust record can alter both the command and its approval. Exact source bindings detect later source drift, not malicious rewrites of the approval record itself.
 A dry gate plan returns exit code `2` when an enabled applicable gate is blocked by review status, stale source evidence, or calibration binding. This lets CI and agent harnesses distinguish a clean plan from a blocked plan without executing repository code.
 
 Then run:
@@ -407,10 +413,13 @@ To place a proposal in the clean shared skill's `incoming/` folder:
 python3 .agents/skills/anti-dark-code/scripts/adc.py flowback \
   --repo . \
   --parent /path/to/shared/anti-dark-code \
-  --stage-to-parent
+  --stage-to-parent \
+  --public
 ```
 
-Flow-back requires matching repo calibration and a clean universal parent. It does not edit shared core files. Promotion remains a human-reviewed change.
+For an outside contribution, point `--parent` at the `anti-dark-code/` directory in your fork, inspect the generated file before publishing it, validate the file directly with `validate-incoming --file ... --public-only`, then commit it and run the separate `--changed-from ... --proposal-only --public-only` pull-request-shape check. Open a pull request containing only that new proposal. Full commands and the privacy checklist are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Flow-back requires matching repo calibration and a clean universal parent. It does not edit shared core files. The `incoming/` directory is an untrusted quarantine excluded from installed copies and release packages. Promotion remains a separate human-reviewed change.
 
 ## Core Safety Rules
 

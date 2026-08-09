@@ -393,10 +393,11 @@ To place it in the clean shared core's review inbox:
 python3 .agents/skills/anti-dark-code/scripts/adc.py flowback \
   --repo . \
   --parent /path/to/shared/anti-dark-code \
-  --stage-to-parent
+  --stage-to-parent \
+  --public
 ```
 
-Flow-back refuses unbound or foreign calibration. It also refuses a parent that is not a clean universal core.
+Flow-back refuses unbound or foreign calibration. It also refuses a parent that is not a clean universal core, and shared-inbox staging requires public mode so repository names and source commit identity do not enter the quarantine.
 
 The proposal does not edit shared references or scripts. Promotion remains a separate human-reviewed and tested change.
 

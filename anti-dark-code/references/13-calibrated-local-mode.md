@@ -166,6 +166,10 @@ python3 scripts/adc.py bootstrap \
   --apply
 ```
 
+The dry run must preview the bounded profile's affected gate ids, actions, reasons, and change count without writing calibration. It must state whether owner confirmation would reset. Preserve an approved repo-owned gate when its exact source binding still verifies; absence from a bounded discovery scan is not evidence that the gate disappeared. Invalidate it when the bound source command or source set changes or is removed.
+
+`calibration/gates.json` is an owner-controlled trust record, not a signature. Review its command definition and approval state together, and never execute calibration supplied by an untrusted branch. Source fingerprints detect drift outside that record; they cannot make a trust record tamper-proof when the same writer can change both the command and approval fields.
+
 After installation:
 
 ```bash

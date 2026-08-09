@@ -39,6 +39,7 @@ If those inputs are missing or stale, refresh them first. Do not build remediati
 - `06-writing-hygiene.md` after any step that writes comments, docs, commit text, PR notes, ADRs, or unknowns files
 - `combined-03-06-loop.md` for bounded slice-by-slice comment loops with immediate cleanup
 - `12-transcreation-boundary.md` when a backlog item involves locale, copy ownership, authored content, generated prose, saved text, or source-language assumptions
+- `assurance-contracts.md` when a fix carries a verification, recovery, publication, native-runtime, provenance, compatibility, or user-visible policy claim
 
 ## Step 0: Preflight and stale-artifact check
 
@@ -119,6 +120,8 @@ Before editing, create or update `docs/review/safe-fix-plan.md` with, for each s
 - rollback note
 - observability note if relevant
 - whether the item is comment-only, docs-only, or behavior-preserving code cleanup
+
+Load only the matching sections of `assurance-contracts.md` before implementing or accepting a strong claim. Its checklists refine this step; they do not broaden approval or execution permission.
 
 Edit rules:
 - keep changes small and single-purpose

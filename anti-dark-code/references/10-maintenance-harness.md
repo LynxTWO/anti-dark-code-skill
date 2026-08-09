@@ -180,6 +180,21 @@ Reviewer guidance:
 
 Do not label a human review habit as an automated guarantee.
 
+### 9a. Prove gate work and shipped artifact shape
+
+A checked CI box or zero exit code is not enough. Where the repo has tests, multiple targets, plugins, native dependencies, generated outputs, or release packaging, make the gate prove the expected work occurred:
+
+- assert discovered and executed test counts, including a zero-discovery failure
+- assert expected target, configuration, platform, and architecture tuples
+- assert required artifact members, versions, sizes, hashes, and provenance receipts
+- assert expected plugin or dynamic-discovery registrations
+- assert warning or policy baselines against the logs that produced collected bytes
+- retain the real producer exit code instead of a summarizer or output-filter exit code
+
+Keep assertions scoped. A manifest proves its declared shape, not that every feature works. An allowlisted failure is tracked debt, not healthy behavior.
+
+Calibrate detector thresholds against clean and known-bad fixtures. A lint that reports routine clean behavior trains reviewers to ignore it. Record why the threshold separates meaningful drift, keep a positive fixture that crosses it, and review threshold changes as behavior changes.
+
 ### 10. Add repo-fit comment continuity checks
 
 When the repo has a fit place for automation, add the lightest useful validator for protected comment continuity.

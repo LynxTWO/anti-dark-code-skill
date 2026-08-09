@@ -14,6 +14,10 @@ If the harness has no subagent facility, skip this file entirely. Every pass run
 - Subagents inherit the pass mode. In read-only passes they must not build, test, migrate, push, or execute repo code.
 - Do not force `verified` where the stack cannot be safely exercised. Record the next best check instead.
 
+## Shared-worktree ownership
+
+When agents share one worktree, assign non-overlapping write ownership before fan-out. Keep shared deliverables and integration files under the orchestrator. Do not let two agents format, generate, clean, restore, or build into the same mutable output tree concurrently. After fan-out, inspect the complete worktree diff rather than assuming each report names every visible edit.
+
 ## What runs where
 
 | Work | Runs as |
@@ -28,12 +32,14 @@ Omitting a model choice usually inherits the session model, often the most expen
 
 ### Gate truth
 
-Repo gates (build, test, lint, validators) are free ground truth, but they execute repo code. Only run them when the user owns the repo or has said it is safe to execute. On an inherited or unknown repo, read the package scripts and CI definitions first and record what the gates would do.
+Repo gates (build, test, lint, validators) provide deterministic repo evidence, but they execute repo code. Only run them when the user owns the repo or has said it is safe to execute. On an inherited or unknown repo, read package scripts and CI definitions first and record what the gates would do.
 
 When gates do run:
 
 - Run long gates in the background before launching the fan-out so they overlap it.
 - Capture the real exit code. `cmd 2>&1 | tail` reports tail's exit code, so a red suite reads as success. Use `${PIPESTATUS[0]}`, a `--json` output file, or grep the summary line.
+- Serialize producers and consumers that share an output tree or dependency file. Parallelism is safe only when mutable outputs are disjoint or one side is read-only after the producer completes.
+- In PowerShell, use `$LASTEXITCODE` for a native child process. For an in-session script, use terminating errors with `try`/`catch` or inspect `$?`; stale native status is not script status.
 - Anything a gate proves needs no agent verification. Record it as `verified` with the command as evidence.
 
 ## Deterministic verification planner integration
