@@ -6,6 +6,7 @@ on:
       - "metrics/ledger/**"
       - "metrics/summary.json"
       - "docs/data/efficiency-summary.json"
+      - ".github/workflows/efficiency-ledger.yml"
 
 permissions:
   contents: read

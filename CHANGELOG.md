@@ -15,11 +15,14 @@
 - Refuses secret-like overlay variable names and bounds variable count and value size.
 - Binds conventional gate proposals to the exact manifest files that produced them and invalidates approval when those files change.
 - Prevents punctuation-normalized package script names from colliding and refreshes stale repository profiles when writing a new plan.
+- Preserves approved repo-owned or auto-discovered gates across bounded profile refreshes when their exact source binding still verifies, while invalidating changed bindings and disappeared unbound auto-discovered gates.
+- Makes bootstrap dry runs preview bounded gate changes and any owner-confirmation reset without writing calibration.
+- Ships a subtree `.gitattributes` rule so checksummed managed installs retain LF bytes on Windows checkouts.
 
 ### Mutation and Regression Guidance
 
 - Promotes the bounded mutation-pilot, absolute-count reporting, presentation-surface separation, stale-cache detection, and separate test-typechecking lessons from the incoming proposal inbox.
-- Expands the deterministic suite to 101 tests, including regressions for environment privacy and execution, conventional-source staleness, gate-id collisions, profile refresh, public proposal intake, opaque public ids, immutable quarantined proposals, qualified-pair controls, canonical summaries, wrapper help, adapter/counter-semantics separation, and opt-in efficiency receipts.
+- Expands the deterministic suite to 111 tests, including regressions for environment privacy and execution, exact-bound gate preservation and invalidation, bounded-profile omissions, canonical fresh/migrated bootstrap previews, package-runner replacements, managed-install LF stability under `core.autocrlf=true`, conventional-source staleness, gate-id collisions, profile refresh, public proposal intake, workflow-only contribution rejection, opaque public ids, immutable quarantined proposals, qualified-pair controls, canonical summaries, release-surface synchronization, wrapper help, adapter/counter-semantics separation, and opt-in efficiency receipts.
 
 ### Public Proposal Intake
 

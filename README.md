@@ -244,7 +244,7 @@ python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
   --apply
 ```
 
-Bootstrap does not execute repository code and does not install dependencies.
+Bootstrap does not execute repository code and does not install dependencies. The dry run performs the same bounded, read-only profile used by apply and reports each affected gate, its reason, the total change count, and whether owner confirmation would be reset; it does not write calibration. Approved repo-owned gates survive refresh when their exact source binding still verifies, even when a bounded scan does not rediscover them.
 
 After application, validate the installed copy with `--mode installed` before trusting repo-local calibration or gates.
 
@@ -354,6 +354,7 @@ After every enabled gate is approved, set:
 ```
 
 Any new or changed generated gate resets that confirmation. Package-script gates also carry a source fingerprint, so a changed script is blocked until the plan is refreshed and reapproved.
+A repo's `calibration/gates.json` is the owner-controlled trust record, not a tamper-evident signature. Review changes to its command, cwd, environment, globs, level, timeout, enablement, and approval fields as one unit. Never execute gate calibration taken from an untrusted branch merely because its booleans say approved; a writer able to alter the trust record can alter both the command and its approval. Exact source bindings detect later source drift, not malicious rewrites of the approval record itself.
 A dry gate plan returns exit code `2` when an enabled applicable gate is blocked by review status, stale source evidence, or calibration binding. This lets CI and agent harnesses distinguish a clean plan from a blocked plan without executing repository code.
 
 Then run:

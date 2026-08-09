@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import copy
 import datetime as dt
 import fnmatch
 import hashlib
@@ -297,7 +298,14 @@ def source_set_hash(repo: Path, source_files: Sequence[str]) -> str:
             resolved.relative_to(root)
         except ValueError as exc:
             raise ValueError(f"source file escapes repo: {item}") from exc
-        if path_is_linklike(lexical) or not resolved.is_file():
+        try:
+            linked_components = symlink_components(lexical, root)
+        except SystemExit as exc:
+            raise ValueError(str(exc)) from exc
+        if linked_components:
+            shown = ", ".join(rel(path, root) for path in linked_components)
+            raise ValueError(f"source file traverses link-like component(s): {shown}")
+        if not resolved.is_file():
             raise ValueError(f"source file is missing or link-like: {item}")
         entries.append({"path": Path(item).as_posix(), "sha256": sha256_file(resolved)})
     if not entries:
@@ -790,6 +798,10 @@ def inspect_gate_config_for_migration(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict) or not isinstance(data.get("gates", []), list):
         result.update({"valid": False, "error": "gates.json must be an object with a gates array"})
         return result
+    duplicate_ids = duplicate_gate_ids(data.get("gates", []))
+    if duplicate_ids:
+        result.update({"valid": False, "error": f"gates.json contains duplicate ids: {', '.join(duplicate_ids)}"})
+        return result
     result["owner_confirmed"] = bool(data.get("execution_policy", {}).get("owner_confirmed_safe_to_execute"))
     for gate in data.get("gates", []):
         if not isinstance(gate, dict):
@@ -810,6 +822,12 @@ def reset_gate_approvals(path: Path, reason: str) -> dict[str, Any]:
         raise SystemExit(f"Cannot reset migrated gate approvals: {inspection['error']}")
 
     data = read_json(path)
+    reset_count = reset_gate_approvals_data(data, reason)
+    write_json_atomic(path, data)
+    return {**inspection, "reset": True, "reset_gate_count": reset_count}
+
+
+def reset_gate_approvals_data(data: dict[str, Any], reason: str) -> int:
     policy = data.setdefault("execution_policy", {})
     policy["owner_confirmed_safe_to_execute"] = False
     policy["notes"] = (
@@ -825,8 +843,7 @@ def reset_gate_approvals(path: Path, reason: str) -> dict[str, Any]:
         gate["enabled"] = False
         gate["review_status"] = "proposed"
         gate["migration_review_required"] = reason
-    write_json_atomic(path, data)
-    return {**inspection, "reset": True, "reset_gate_count": reset_count}
+    return reset_count
 
 
 def inspect_install_source(source: Path, repo: Path) -> dict[str, Any]:
@@ -1482,6 +1499,19 @@ def gate_definition_hash(gate: dict[str, Any]) -> str:
     return normalized_json_hash(material)
 
 
+def duplicate_gate_ids(gates: Sequence[Any]) -> list[str]:
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for gate in gates:
+        if not isinstance(gate, dict) or not gate.get("id"):
+            continue
+        gate_id = str(gate["id"])
+        if gate_id in seen:
+            duplicates.add(gate_id)
+        seen.add(gate_id)
+    return sorted(duplicates)
+
+
 def verify_gate_source(repo: Path, gate: dict[str, Any]) -> tuple[bool, str | None]:
     source = str(gate.get("source") or "")
     expected = gate.get("source_definition_sha256")
@@ -1503,7 +1533,15 @@ def verify_gate_source(repo: Path, gate: dict[str, Any]) -> tuple[bool, str | No
     if "#scripts." not in source or not expected:
         return True, None
     path_text, script_name = source.split("#scripts.", 1)
-    package_path = (repo / path_text).resolve()
+    lexical_package_path = repo / path_text
+    try:
+        linked_components = symlink_components(lexical_package_path, repo)
+    except SystemExit as exc:
+        return False, str(exc)
+    if linked_components:
+        shown = ", ".join(rel(path, repo) for path in linked_components)
+        return False, f"source package path traverses link-like component(s): {shown}"
+    package_path = lexical_package_path.resolve()
     try:
         package_path.relative_to(repo.resolve())
     except ValueError:
@@ -1522,9 +1560,22 @@ def verify_gate_source(repo: Path, gate: dict[str, Any]) -> tuple[bool, str | No
     return True, None
 
 
-def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, int]:
-    path = safe_calibration_dir(repo, "gate-plan update") / "gates.json"
-    if path.exists():
+def merge_gate_suggestions(
+    repo: Path,
+    profile: dict[str, Any],
+    *,
+    write: bool = True,
+    change_details: list[dict[str, str]] | None = None,
+    gate_path: Path | None = None,
+    gate_data: dict[str, Any] | None = None,
+) -> tuple[Path, int]:
+    path = gate_path or (safe_calibration_dir(repo, "gate-plan update") / "gates.json")
+    require_no_symlink_components(path, repo, "gate-plan update")
+    if gate_data is not None:
+        if write:
+            raise ValueError("gate_data is preview-only; use write=False")
+        data = copy.deepcopy(gate_data)
+    elif path.exists():
         data = read_json(path)
     else:
         data = read_json(CALIBRATION_TEMPLATE_DIR / "gates.json")
@@ -1534,6 +1585,9 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
     gates = data.setdefault("gates", [])
     if not isinstance(gates, list):
         raise SystemExit(f"gates must be an array: {path}")
+    duplicate_ids = duplicate_gate_ids(gates)
+    if duplicate_ids:
+        raise SystemExit(f"gates contains duplicate ids: {', '.join(duplicate_ids)}")
 
     by_id = {
         str(g.get("id")): g
@@ -1541,6 +1595,7 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
         if isinstance(g, dict) and g.get("id")
     }
     current_ids: set[str] = set()
+    current_package_sources: dict[str, str] = {}
     changed = 0
 
     for command in profile.get("exact_commands", []):
@@ -1548,6 +1603,9 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
             continue
         gate_id = str(command["id"])
         current_ids.add(gate_id)
+        command_source = str(command.get("source") or "")
+        if "#scripts." in command_source:
+            current_package_sources[command_source] = gate_id
         proposal = dict(command)
         proposal["enabled"] = False
         proposal["review_status"] = "proposed"
@@ -1557,6 +1615,12 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
             gates.append(proposal)
             by_id[gate_id] = proposal
             changed += 1
+            if change_details is not None:
+                change_details.append({
+                    "gate_id": gate_id,
+                    "action": "proposed",
+                    "reason": "new exact command discovered",
+                })
             continue
 
         old_hash = gate_definition_hash(existing)
@@ -1569,30 +1633,78 @@ def merge_gate_suggestions(repo: Path, profile: dict[str, Any]) -> tuple[Path, i
             if preserved_notes:
                 existing["owner_notes"] = preserved_notes
             changed += 1
+            if change_details is not None:
+                change_details.append({
+                    "gate_id": gate_id,
+                    "action": "definition_changed",
+                    "reason": "the discovered command definition changed",
+                })
         elif str(existing.get("review_status", "")).lower() == "proposed" and existing.get("enabled"):
             existing["enabled"] = False
             changed += 1
+            if change_details is not None:
+                change_details.append({
+                    "gate_id": gate_id,
+                    "action": "proposal_disabled",
+                    "reason": "a proposed gate cannot be enabled before approval",
+                })
 
-    # A generated package-script gate that disappeared is no longer verified.
+    # Absence from a bounded profile is not proof that a gate disappeared.
+    # Preserve any exact-bound gate while its binding verifies. Invalidate an
+    # absent auto-discovered gate only when its binding fails or it never had one.
     for gate in gates:
         if not isinstance(gate, dict):
             continue
         gate_id = str(gate.get("id") or "")
         source = str(gate.get("source") or "")
-        if ("#scripts." not in source and not gate.get("source_files")) or gate_id in current_ids:
+        if gate_id in current_ids:
+            continue
+        if str(gate.get("review_status", "")).lower() == "proposed" and gate.get("enabled"):
+            gate["enabled"] = False
+            changed += 1
+            if change_details is not None:
+                change_details.append({
+                    "gate_id": gate_id,
+                    "action": "proposal_disabled",
+                    "reason": "a proposed gate cannot be enabled before approval",
+                })
+        auto_discovered = "#scripts." in source or source.startswith("conventional candidate")
+        replacement_id = current_package_sources.get(source)
+        superseded = bool(replacement_id and replacement_id != gate_id)
+        has_exact_binding = gate.get("source_files") is not None or (
+            "#scripts." in source and bool(gate.get("source_definition_sha256"))
+        )
+        source_error: str | None = None
+        if superseded:
+            source_error = f"superseded by current gate {replacement_id} for the same package script"
+        elif has_exact_binding:
+            source_ok, source_error = verify_gate_source(repo, gate)
+            if source_ok:
+                continue
+        elif not auto_discovered:
             continue
         if str(gate.get("review_status", "")).lower() != "stale" or gate.get("enabled"):
             gate["enabled"] = False
             gate["review_status"] = "stale"
-            gate["notes"] = "The deterministic source definition was not found in the latest profile. Reconfirm or remove this gate."
+            if source_error:
+                gate["notes"] = f"The exact source binding no longer verifies: {source_error}. Reconfirm or remove this gate."
+            else:
+                gate["notes"] = "The deterministic source definition was not found in the latest profile. Reconfirm or remove this gate."
             changed += 1
+            if change_details is not None:
+                change_details.append({
+                    "gate_id": gate_id,
+                    "action": "marked_stale",
+                    "reason": source_error or "auto-discovered gate is absent and has no exact binding",
+                })
 
     if changed:
         policy["owner_confirmed_safe_to_execute"] = False
         policy["notes"] = "Gate definitions changed. Review and approve individual gates, then reconfirm execution safety."
 
     gates.sort(key=lambda x: (gate_level(x) if isinstance(x, dict) else 99, str(x.get("id", "")) if isinstance(x, dict) else ""))
-    write_json_atomic(path, data)
+    if write and (changed or not path.exists()):
+        write_json_atomic(path, data)
     return path, changed
 
 
@@ -1880,7 +1992,7 @@ def install_skill(
             "fatal_issues": source_inspection["fatal_issues"],
             "unsafe_override_requested": allow_unsafe_source,
         },
-        "calibration_preserved": True,
+        "calibration_store_preserved": True,
         "calibration_binding": {
             "status": binding["status"],
             "binding_source": binding_source.relative_to(repo).as_posix(),
@@ -1896,7 +2008,7 @@ def install_skill(
         "fallback_calibration_action": fallback_action,
         "legacy_gate_review": {
             **legacy_gate_review,
-            "approval_reset_required": gate_reset_required and legacy_gate_review["present"],
+            "migration_approval_reset_required": gate_reset_required and legacy_gate_review["present"],
         },
         "legacy_calibration_locations": legacy_calibration_locations(repo, target_calibration),
         "hosts": hosts,
@@ -2196,6 +2308,11 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     config = read_json(config_path)
     if not isinstance(config, dict) or not isinstance(config.get("gates", []), list):
         raise SystemExit(f"Invalid gate config structure: {config_path}")
+    duplicate_ids = duplicate_gate_ids(config.get("gates", []))
+    if duplicate_ids:
+        print(f"BLOCKED: gates.json contains duplicate gate ids: {', '.join(duplicate_ids)}")
+        print("REFUSED: every gate id must identify exactly one reviewed command.")
+        return 2
 
     binding = assess_repository_binding(repo, config_path.parent)
     if binding["status"] != "match":
@@ -2732,6 +2849,8 @@ def validate_incoming(
         if not new_incoming:
             if changed_incoming:
                 return ["existing incoming proposals are immutable; retire them by deletion or add a new content-hashed proposal"], []
+            if proposal_only:
+                return ["a public proposal PR must add exactly one incoming proposal file and change nothing else"], []
             return [], []
         if proposal_only and (len(new_incoming) != 1 or set(changed) != set(new_incoming)):
             return ["a public proposal PR must add exactly one incoming proposal file and change nothing else"], []
@@ -3279,6 +3398,69 @@ def command_install(args: argparse.Namespace) -> int:
     return 0
 
 
+def preview_bootstrap_calibration(
+    repo: Path,
+    source: Path,
+    profile: dict[str, Any],
+    install_plan: dict[str, Any],
+) -> dict[str, Any]:
+    canonical_path = repo / ".agents" / "skills" / "anti-dark-code" / "calibration" / "gates.json"
+    fallback_path = repo / ".anti-dark-code" / "calibration" / "gates.json"
+    template_path = source / "assets" / "templates" / "calibration" / "gates.json"
+    require_no_symlink_components(canonical_path, repo, "bootstrap gate preview")
+    require_no_symlink_components(fallback_path, repo, "bootstrap gate preview")
+    if canonical_path.exists():
+        baseline_path = canonical_path
+    elif install_plan.get("fallback_calibration_action") == "migrate-missing-files" and fallback_path.exists():
+        baseline_path = fallback_path
+    else:
+        baseline_path = template_path
+    baseline = read_json(baseline_path)
+    if not isinstance(baseline, dict):
+        raise SystemExit(f"Gate preview baseline must be a JSON object: {baseline_path}")
+
+    legacy_review = install_plan.get("legacy_gate_review", {})
+    migration_reset_required = bool(legacy_review.get("migration_approval_reset_required"))
+    migration_reset_count = 0
+    if migration_reset_required:
+        reason = (
+            "fallback calibration moved into the canonical repo skill"
+            if install_plan.get("fallback_calibration_action") == "migrate-missing-files"
+            else f"repository calibration migration status was {install_plan.get('calibration_binding', {}).get('status')}"
+        )
+        migration_reset_count = reset_gate_approvals_data(baseline, reason)
+
+    gate_change_details: list[dict[str, str]] = []
+    _, gate_changes = merge_gate_suggestions(
+        repo,
+        profile,
+        write=False,
+        change_details=gate_change_details,
+        gate_path=canonical_path,
+        gate_data=baseline,
+    )
+    owner_was_confirmed = bool(legacy_review.get("owner_confirmed"))
+    return {
+        "gate_config": rel(canonical_path, repo),
+        "baseline": (
+            "canonical"
+            if baseline_path == canonical_path
+            else "migrated-fallback"
+            if baseline_path == fallback_path
+            else "source-template"
+        ),
+        "profile_exact_gate_count": len(profile.get("exact_commands", [])),
+        "migration_approval_reset_required": migration_reset_required,
+        "migration_reset_gate_count": migration_reset_count,
+        "gate_change_count": gate_changes,
+        "gate_changes": gate_change_details,
+        "owner_confirmation_will_reset": bool(
+            owner_was_confirmed and (migration_reset_required or gate_changes)
+        ),
+        "writes_performed": False,
+    }
+
+
 def command_bootstrap(args: argparse.Namespace) -> int:
     repo = Path(args.repo).expanduser().resolve()
     source = Path(args.source_skill).expanduser() if args.source_skill else SKILL_ROOT
@@ -3292,10 +3474,18 @@ def command_bootstrap(args: argparse.Namespace) -> int:
         accept_unbound_calibration=args.accept_unbound_calibration,
         rebind_calibration=args.rebind_calibration,
     )
-    print(json.dumps(install_plan, indent=2))
     if not args.apply:
+        profile = probe_repo(repo, max_files=args.max_files, content_scan_limit=args.content_scan_limit)
+        install_plan["bootstrap_calibration_preview"] = preview_bootstrap_calibration(
+            repo,
+            source.resolve(),
+            profile,
+            install_plan,
+        )
+        print(json.dumps(install_plan, indent=2))
         print("DRY RUN: bootstrap did not write or execute repo code. Add --apply to install and generate calibration.")
         return 0
+    print(json.dumps(install_plan, indent=2))
     profile = probe_repo(repo, max_files=args.max_files, content_scan_limit=args.content_scan_limit)
     profile_path = write_profile(repo, profile)
     plan = build_plan(profile)
