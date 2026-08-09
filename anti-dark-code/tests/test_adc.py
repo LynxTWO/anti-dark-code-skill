@@ -933,6 +933,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
     def test_managed_subtree_keeps_lf_and_valid_digest_with_autocrlf(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
+            clean_source = self.copy_clean_skill(base / "clean-source")
             source_repo = base / "source-repo"
             source_repo.mkdir()
             subprocess.run(["git", "init", "-q", str(source_repo)], check=True)
@@ -943,7 +944,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 "git", "-C", str(source_repo), "remote", "add", "origin",
                 "https://example.invalid/managed-install.git",
             ], check=True)
-            adc.install_skill(source_repo, adc.SKILL_ROOT, apply=True, force=False, hosts="none")
+            adc.install_skill(source_repo, clean_source, apply=True, force=False, hosts="none")
             self.commit_all(source_repo, "install managed skill")
 
             checkout = base / "checkout"
