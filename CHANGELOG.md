@@ -19,7 +19,7 @@
 ### Mutation and Regression Guidance
 
 - Promotes the bounded mutation-pilot, absolute-count reporting, presentation-surface separation, stale-cache detection, and separate test-typechecking lessons from the incoming proposal inbox.
-- Expands the deterministic suite to 53 passing tests, including regressions for environment privacy and execution, conventional-source staleness, gate-id collisions, and profile refresh.
+- Expands the deterministic suite to 53 tests, including regressions for environment privacy and execution, conventional-source staleness, gate-id collisions, and profile refresh.
 
 ## 2026.08.06-unified.4
 
