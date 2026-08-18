@@ -100,6 +100,18 @@ For behavior findings, prefer a failing invariant, exact diff, seed replay, mini
 
 The implementation agent should not own the only verification opinion. Use the finding-class rules in pass `07` and deterministic gates in pass `14`.
 
+### Characterizing a component outside the repo
+
+When the misbehaving component sits outside the repo (a device, a driver, a third-party service, a vendored engine), the reproduction forms above stop short: the repo can be instrumented, the component cannot. Its error code is usually the only evidence. Characterize the component before reclassifying its failures. A matrix run before the edit beats a classification rule changed on one sample.
+
+Run a bounded probe matrix that varies one request parameter at a time across several inputs, with a known-good peer, a prior version, or a second instance as a control. The control is what separates a component fault from a request the caller got wrong. Probe an isolated, disposable, or owned instance. If the only reachable instance is production, shared, metered, or someone else's, the probe is an approval-gated action rather than a free one.
+
+Then shape the fix to what the matrix showed:
+
+- Prefer changing the request over reinterpreting the failure code. Reshaping a request plan leaves the classifier honest. Widening a retry or tolerate list weakens it for every other caller, including callers the probe never covered.
+- Scope the workaround to the exact identity the probe covered (vendor, model, firmware or version), and gate it on a condition the code can check at runtime. An identity the code cannot observe is an unconditional workaround wearing a scope label. Cite the probe receipt in the code comment.
+- A probe separates request shape from component state. It does not separate cause from coincidence. A failure that repeats at every probed shape is a state problem, and its cause stays `inferred` until an independent second incident or a control run rules the alternatives out.
+
 ## Step 2: Implement safe fixes in bounded batches
 
 Use `docs/review/remediation-backlog.md` and the coverage ledger.
@@ -144,6 +156,22 @@ Commit guidance:
 - do not let a commit sprawl across unrelated slices
 - after each commit or small batch, update the plan, coverage ledger, and unknowns notes before moving on
 - if clean commit boundaries are impossible, stop early and ask for review
+
+### Moves and extractions
+
+A rename or extraction is only half-checked. Symbolic references - imports, types, call sites - are the half a refactoring tool rewrites, and a compiler, type checker, or failed import catches most of what it misses. References held as text sit outside that graph: a path or filename inside a string survives the move unchanged and stays green until something runs it. The weaker the static checking in the language, the more of the move lands in that unchecked half.
+
+The usual holders are release and CI scripts, coverage, lint, and container build configs, dynamic loaders that resolve modules or classes by name, docs citing exact paths, and tests or guards that read source files from disk to assert ordering or invariants.
+
+Before a move or extraction is called done:
+
+- sweep specific to broad: the old relative path first, then the old directory segment, then the bare basename. A path assembled from parts never matches the full path, and the basename alone is the noisiest of the three.
+- confirm the basename is distinctive before acting on basename hits. Repeated names are normal (`Program.cs`, `index.ts`, `__init__.py`, `main.go`), and a hit may belong to a different file that did not move. Editing that one is a new bug, not a repair.
+- cover the test, script, workflow, config, and docs trees, not just the source tree. Exclude build output and vendored trees or the sweep drowns in its own artifacts.
+- treat every surviving hit as a required edit or a recorded decision.
+- close the sweep in the same change as the move where you can, and before the wave ends at the latest. Rerun it after each follow-up move, where stragglers cluster.
+
+A green build after a move proves the symbols resolved. It does not prove the move is complete, and where there is no build step it proves nothing at all.
 
 ### TODO lifecycle
 
