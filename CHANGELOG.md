@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.08.18-unified.5.1
+
+### License Provenance
+
+- Ships the FSL-1.1-MIT license text inside the distributed core (`anti-dark-code/LICENSE.md`) so every managed install carries the license with the software, as the license's Redistribution clause requires. Root `LICENSE.md` remains the repository copy; the core copy is byte-identical.
+- No reference, template, script, or policy changes from 2026.08.09-unified.5.
+
 ## 2026.08.09-unified.5
 
 ### Evidence and Assurance Contracts
