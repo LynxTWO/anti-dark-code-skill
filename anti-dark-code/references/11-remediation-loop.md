@@ -138,6 +138,10 @@ Load only the matching sections of `assurance-contracts.md` before implementing 
 Edit rules:
 - keep changes small and single-purpose
 - do not bundle unrelated fixes
+- fix exactly the set a gate or finding names; a wider sweep re-derives the gate's file
+  classification without its exclusions, so if a broader cleanup is intended it must
+  invoke the gate's own classifier, never approximate it (binary artifacts under a
+  text rule are the sharp case: a sweeping fixer mutates them every time)
 - keep unknowns explicit
 - stop and document if a selected item turns out to touch a protected area or hidden control-plane path
 - update `docs/unknowns/` if new uncertainty appears
