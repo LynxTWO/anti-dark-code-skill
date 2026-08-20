@@ -81,7 +81,9 @@ No receipt is uploaded automatically. A public contribution is an ordinary revie
 
 ## Recording Actual Usage
 
-Use the standard-library helper through the main CLI. The wrapper supplies the installed skill version and managed-core digest:
+For a per-change work measure rather than a study, `scripts/work_receipt.py` sums token usage, tool calls, and the covered time window from agent-session transcripts and prints a compact WORK line for a pull-request body. Token counts are measured; a human-equivalent effort figure may accompany them only when labeled an estimate. Measured numbers and estimates never blend. The receipt reads transcripts as untrusted data and never prints their content.
+
+For efficiency studies, use the standard-library helper through the main CLI. The wrapper supplies the installed skill version and managed-core digest:
 
 ```bash
 python3 anti-dark-code/scripts/adc.py efficiency record \

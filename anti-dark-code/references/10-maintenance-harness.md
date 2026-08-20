@@ -195,6 +195,11 @@ Keep assertions scoped. A manifest proves its declared shape, not that every fea
 
 Calibrate detector thresholds against clean and known-bad fixtures. A lint that reports routine clean behavior trains reviewers to ignore it. Record why the threshold separates meaningful drift, keep a positive fixture that crosses it, and review threshold changes as behavior changes.
 
+### 9b. Control the harness environment and audited state
+
+- Keep verification artifacts that need exclusive file access out of trees that developer tooling indexes. Editors, language servers, indexers, and sync clients hold transient handles, and a cleanup or rename step then fails intermittently with timeouts that read as flaky gates. Put scratch and gate artifacts in a dedicated untracked directory the tooling ignores. Where a handle-enumeration mechanism exists, use it to diagnose contention before blaming the gate; where none exists, treat absence of contention as unproven rather than ruled out.
+- Treat audited dependency state as read-only during builds. Where lock files are audited evidence, a routine build that implicitly restores or rewrites them silently mutates the evidence and invalidates the audit. Name the frozen or no-restore flag for the repo's package manager in the harness prerequisites, run verification builds with it, and gate on an unchanged lock-file hash.
+
 ### 10. Add repo-fit comment continuity checks
 
 When the repo has a fit place for automation, add the lightest useful validator for protected comment continuity.

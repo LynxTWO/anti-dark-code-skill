@@ -515,6 +515,58 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertEqual(proposal_text.count("## ADC-LOCAL-001: Exact gates"), 1)
             self.assertFalse((repo / "SKILL.md").exists())
 
+    def test_parse_candidates_preserves_wrapped_field_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "upstream-candidates.md"
+            path.write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-001: Wrapped lesson survives staging\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: A revert-mutation proof restores the code by checkout, and\n"
+                "  an uncommitted unit is silently destroyed when the checkout runs,\n"
+                "  so the proof must start from a committed baseline.\n"
+                "- Evidence: three proofs on one module, each recorded\n"
+                "  with its closing green run.\n"
+                "- Limits: one incident.\n"
+                "- Proposed target: references/11-remediation-loop.md\n"
+                "- Proposed change: require a committed baseline\n"
+                "  before any revert-mutation proof.\n\n"
+                "Valid statuses: `observing`, `ready`, `staged`, `promoted`, `rejected`.\n",
+                encoding="utf-8"
+            )
+            candidate = adc.parse_candidates(path)[0]
+            self.assertIn("committed baseline", candidate["lesson"])
+            self.assertIn("silently destroyed", candidate["lesson"])
+            self.assertIn("closing green run", candidate["evidence"])
+            self.assertIn("before any revert-mutation proof", candidate["proposed_change"])
+            self.assertNotIn("Valid statuses", candidate["proposed_change"])
+            self.assertNotIn("\n", candidate["lesson"])
+
+    def test_binding_mismatch_detail_names_failed_component(self) -> None:
+        assessment = {
+            "binding": {
+                "identity_components": {
+                    "origin_sha256": "aaa",
+                    "root_commits_sha256": "rrr"
+                }
+            },
+            "current": {
+                "identity_components": {
+                    "origin_sha256": "bbb",
+                    "root_commits_sha256": "rrr"
+                }
+            }
+        }
+        detail = adc.binding_mismatch_detail(assessment)
+        self.assertIn("remote identity: differ", detail)
+        self.assertIn("root commits: match", detail)
+        self.assertIn("move, fork, or rename", detail)
+        assessment["current"]["identity_components"]["root_commits_sha256"] = "zzz"
+        detail = adc.binding_mismatch_detail(assessment)
+        self.assertIn("root commits: differ", detail)
+        self.assertNotIn("move, fork, or rename", detail)
+
     def test_pnpm_runner_and_plain_export_does_not_signal_generated_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

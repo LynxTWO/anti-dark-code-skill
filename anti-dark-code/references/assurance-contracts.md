@@ -37,6 +37,10 @@ Separate outcome proof from branch-activation proof. A green end-to-end result d
 
 When proof moves across a copy, metadata rewrite, rename, upload, or publication boundary, carry an immutable receipt that binds the exact output set and semantic oracle. Revalidate it at the new boundary or explicitly clear the claim. Prevent time-of-check/time-of-use gaps with an appropriate lease over the bytes being hashed, copied, or reopened.
 
+Verify an isolation property, never the request that asked for it. Sandboxing, isolation, and privilege-restriction interfaces can accept a request and silently not enforce it, and the same request can be enforced on one host and be a no-op on the next. The probe must observe the property in context: attempt exactly what the boundary must prevent and require an observed denial, in every environment the claim covers. Reading back the configuration that requested the isolation is not evidence. Where the probe cannot run, the claim stays `inferred` and the gap is named.
+
+Treat self-certification as an anti-pattern. A checker satisfied by editing the artifact it checks is a ritual, not evidence; a review-closure signal pinned to a literal the author can update in the same edit certifies nothing. Bind closure signals to something outside the artifact under review: a second artifact, a recorded run, or a reviewer identity. Substitute a check that would fail if the claimed review had not actually happened.
+
 ## Measured hardware and nested recovery
 
 Use this section when correctness depends on device capability, timing, cache behavior, boundary reads, media state, or persisted calibration.

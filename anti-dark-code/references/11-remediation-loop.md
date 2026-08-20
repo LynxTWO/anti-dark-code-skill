@@ -253,6 +253,16 @@ When the fix changes tests, snapshots, fixtures, timeouts, mocks, coverage, muta
 - reject skip, delete, broaden, or re-record changes made only to obtain green
 - have a verifier review the test change separately from the implementation
 - preserve the pre-fix reproducer when it remains useful
+- require every fix that widens a detector, rule set, or matcher to ship a guard case that fails if the widening is reverted, with the guard's red run recorded before the fix lands
+- require the fix set to equal the set the gate names: repair exactly the artifacts the failing gate listed, rerun the gate, and treat any other artifact the rule also matches as a new finding rather than a widened fix
+
+## Step 4b: Prove guards with revert-mutation checks
+
+A guard is proven by a controlled failure, not by a green run. When stakes justify it, run a revert-mutation proof: undo the fix, watch the guard go red, restore the fix, watch it go green. Three rules keep the proof honest:
+
+- Run the proof against a committed baseline. Restoring code by version-control checkout discards uncommitted work, so a proof on a new, uncommitted unit can measure a tree that never existed and silently destroy the unit it tested. Commit or otherwise durably preserve the code first, and close with a green run on the exact tree that will ship; the closing green run is the load-bearing half.
+- Expect three outcomes, not two. The suite can go red, stay green, or never return. A hang after a mutation is a defect in the code under test (an unbounded wait, a cleanup that never fires), not a defect in the proof. Bound the wait with an honestly chosen limit and record a hang as its own finding.
+- A surviving mutant demands a diagnosis, and the diagnosis is a finding. The possibilities are a missing test or untested behavior, and either way the gap gets recorded before the corpus or thresholds change. Distinguishing an equivalent mutant from a missing test takes judgment; write the classification down rather than letting the survivor disappear.
 
 ## Step 5: Re-run the verification loop on touched slices only
 

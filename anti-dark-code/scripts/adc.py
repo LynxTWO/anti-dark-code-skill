@@ -617,6 +617,29 @@ def assess_repository_binding(repo: Path, calibration: Path) -> dict[str, Any]:
     }
 
 
+def binding_mismatch_detail(assessment: dict[str, Any]) -> str:
+    """Name which identity component failed so a reviewed move or fork is distinguishable from foreign calibration."""
+    stored = (assessment.get("binding") or {}).get("identity_components") or {}
+    current = (assessment.get("current") or {}).get("identity_components") or {}
+    parts: list[str] = []
+    roots_match = False
+    for key, label in (("origin_sha256", "remote identity"), ("root_commits_sha256", "root commits")):
+        stored_value = stored.get(key)
+        current_value = current.get(key)
+        if not stored_value or not current_value:
+            parts.append(f"{label}: unknown")
+        elif stored_value == current_value:
+            parts.append(f"{label}: match")
+            if key == "root_commits_sha256":
+                roots_match = True
+        else:
+            parts.append(f"{label}: differ")
+    detail = "; ".join(parts)
+    if roots_match:
+        detail += "; matching root commits suggest a move, fork, or rename rather than foreign calibration"
+    return f" ({detail})"
+
+
 def write_repository_binding(
     calibration: Path,
     assessment: dict[str, Any],
@@ -1927,7 +1950,9 @@ def install_skill(
         )
     if binding["status"] == "mismatch" and not rebind_calibration:
         blocked_reasons.append(
-            "existing calibration is bound to a different repository identity; do not import it unless this is a reviewed move or fork, then use --rebind-calibration"
+            "existing calibration is bound to a different repository identity"
+            + binding_mismatch_detail(binding)
+            + "; do not import it unless this is a reviewed move or fork, then use --rebind-calibration"
         )
     if gate_reset_required and legacy_gate_review["present"] and not legacy_gate_review["valid"]:
         blocked_reasons.append(
@@ -2586,8 +2611,18 @@ def parse_candidates(path: Path) -> list[dict[str, str]]:
         body = text[start:end]
         fields: dict[str, str] = {"id": match.group(1).strip(), "title": match.group(2).strip(), "body": body.strip()}
         for field in ("Status", "Scope", "Lesson", "Evidence", "Limits", "Proposed target", "Proposed change"):
-            field_match = re.search(rf"^-\s+{re.escape(field)}:\s*(.*)$", body, flags=re.M | re.I)
-            fields[field.lower().replace(" ", "_")] = field_match.group(1).strip() if field_match else ""
+            # Capture wrapped continuation lines until a blank line, the next
+            # bullet, or a heading; a first-line-only capture silently truncates
+            # multi-line fields when the proposal is staged.
+            field_match = re.search(
+                rf"^-\s+{re.escape(field)}:\s*(.*(?:\n(?!\s*$)(?!-\s)(?!#).*)*)",
+                body,
+                flags=re.M | re.I,
+            )
+            raw_value = field_match.group(1) if field_match else ""
+            fields[field.lower().replace(" ", "_")] = " ".join(
+                part.strip() for part in raw_value.splitlines() if part.strip()
+            )
         candidates.append(fields)
     return candidates
 
@@ -2903,8 +2938,9 @@ def flowback(
     calibration = safe_calibration_dir(repo, "flow-back calibration read/write")
     binding = assess_repository_binding(repo, calibration)
     if binding["status"] != "match":
+        mismatch_detail = binding_mismatch_detail(binding) if binding["status"] == "mismatch" else ""
         raise SystemExit(
-            f"Flow-back refused because calibration is {binding['status']} for this repository. "
+            f"Flow-back refused because calibration is {binding['status']}{mismatch_detail} for this repository. "
             "Complete migration or an explicit rebind first."
         )
     candidate_path = calibration / "upstream-candidates.md"

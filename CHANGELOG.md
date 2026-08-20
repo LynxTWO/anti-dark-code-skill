@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.08.20-unified.6
+
+### Promoted Lessons
+
+- Promotes the eight verification lessons from proposal `flowback-0a6794d23314` and the six mutation-discipline lessons from proposal `flowback-52ed79f5435b` into the references: unfalsifiable checks as a named finding class with a falsifying-input test (`07-adversarial-review.md`), guard cases for widening fixes and gate-named fix sets plus a revert-mutation proof discipline covering committed baselines, hang-as-third-outcome, and surviving-mutant diagnosis (`11-remediation-loop.md`), isolation-property probes and the self-certification anti-pattern (`assurance-contracts.md`), harness environment contention and audited dependency-lock state (`10-maintenance-harness.md`), audited-set evidence as its own claim (`00-conventions.md`), record-equality and child-context handoff cautions in gate authoring (`14-deterministic-verification.md`), and per-component repository-identity reporting (`15-dogfeeding-flowback.md` plus `adc.py`, which now names whether the remote identity or the root commits failed a binding check while remaining fail-closed).
+- Both source proposals were staged with truncated multi-line fields (see the fix below), so the promoted text was reconstructed from titles, surviving fragments, and proposed targets. Source repositories should re-stage any lesson whose promoted form lost substance.
+- Promotes the determinism lesson queued by a calibrated repository: ordering keyed on a parsed value is not total over raw representations; canonical comparators tie-break on the raw representation and determinism suites include a fixture pair of distinct representations of one parsed value (`14-deterministic-verification.md`, `07-adversarial-review.md`).
+- Merges five field-tested reference sections from the maintainer's working branch: exclusion and single-owner claims need live second-claimant probes and untested else branches fail closed (`07-adversarial-review.md`), history rewrites strand cited identifiers (`09-artifact-gc.md`), self-matching process selectors (`10-maintenance-harness.md`), characterizing components outside the repo and sweeping text references after moves (`11-remediation-loop.md`), and capability-restricting build flags (`14-deterministic-verification.md`).
+- Removes both fully promoted proposals from the pending inbox; Git history retains the review record.
+
+### Tooling
+
+- Fixes flow-back staging truncation: `parse_candidates` now preserves wrapped continuation lines in candidate fields instead of keeping only each field's first line, with a regression test. Previously staged public proposals carried first-line-only fields.
+- Adds `scripts/work_receipt.py`: a stdlib-only helper that sums token usage, tool calls, and the covered time window from agent-session transcripts and prints a measured WORK line for a pull-request body. Documented in `16-community-feedback-and-efficiency.md`; measured numbers and human-equivalent estimates never blend.
+- Expands the deterministic suite to 122 tests, including the continuation-line regression, per-component binding detail, and four work-receipt cases.
+
+### Release Surfaces
+
+- Adds the README banner, updates every release surface to `2026.08.20-unified.6`, and repairs the README version line that `2026.08.18-unified.5.1` failed to bump (its release predated running the release-surface test; the test caught it after the fact).
+
 ## 2026.08.18-unified.5.1
 
 ### License Provenance

@@ -128,6 +128,7 @@ Scale verification to the way the claim can be settled.
 - Performance claim: require a fixed workload, baseline, and budget.
 - Security or privacy claim: trace a concrete source, transformation, sink, and guard.
 - Exclusion, locking, or single-owner claim (file locks, share modes, mutexes, unique constraints, distributed locks): run a live second-claimant probe in every environment the claim covers and require an observed denial, because the enforcement is supplied by the operating system, filesystem, database engine, or service tier rather than by the calling code, and the same call can be enforced in one and a silent no-op in the next. A passing denial in one environment does not transfer to another; where the primitive cannot be proven, choose explicitly between failing closed and declaring the guarantee absent, and never let it degrade silently.
+- Determinism or canonical-output claim: shuffle the inputs and require byte-identical serialized output, and include a fixture pair of distinct raw representations of one parsed value (two offset spellings of one instant, two spellings of one number), because ordering keyed on a parsed value is not total over raw representations and can pass a shuffle test by luck.
 
 Verifiers receive the claim and evidence, not the finder's persuasive explanation.
 
@@ -152,6 +153,10 @@ For platform, architecture, or runtime branches, read the else branch as an unst
 ### Review freshly shipped fixes independently
 
 Budget a bounded adversarial follow-up for detector logic, instrumentation, trust-boundary adapters, platform integration, and other changes whose own tests may share the same mistaken model as the implementation. Give the challenger the changed artifact, contracts, and raw evidence, not the author's conclusion. Require an independently observed failure or falsifier before opening a new finding. Scale this review by risk; it is not a mandatory fan-out for every small edit.
+
+### Unfalsifiable checks are a named defect class
+
+An assertion that no execution can fail is worse than a missing assertion, because it manufactures confidence while verifying nothing. Treat one as a finding, not a style nit. Recurring shapes: a value compared to itself or to the expression that produced it; a tolerance or threshold wider than the reachable range; a check inside a branch no input reaches; a matcher that accepts every candidate; a verifier reading back state written for that verifier's benefit. The test for the class is the falsifying input: name the concrete input or state that would make the check fail. A check whose author cannot name one gets rewritten or removed. The exception is a deliberate restatement of a property already proven elsewhere, which may stand when recorded as documentation rather than verification. Deterministic gates share this rule; see the gate-authoring cautions in `14-deterministic-verification.md`.
 
 ## Rules
 

@@ -126,6 +126,11 @@ Never put secrets in command arguments or failure packets.
 
 `inherit_env` defaults to `true`. Set it to `false` only when the command has been proven to run in a deliberately sparse environment. The optional `env` object accepts a bounded set of reviewed, non-sensitive string overrides; secret-like variable names are refused. Run artifacts record the overlay key names and an opaque fingerprint of execution-relevant environment state, never the raw overlay values. If a child prints an overlay value, the retained log replaces that literal value before preservation.
 
+Two gate-authoring cautions on comparisons and handoffs:
+
+- Equality assertions over records that contain collections can silently compare references instead of contents. In runtimes where a record or value type delegates member equality to the collection's default equality, two structurally identical payloads compare unequal, and the gate's verdict stops tracking content. Compare serialized canonical forms or compare element-wise, and prove the comparison with a fixture pair that is structurally equal but reference-distinct.
+- A value produced in a child context must cross the boundary as an artifact. When verification runs part of its work in a separate process, container, sandbox, or shell, a result assigned to a variable inside the child dies with the child, and the parent then reports whatever its own scope held. Hand results back as a file, an exit code, or a serialized stream the parent reads, and prove the handoff with a case that fails when the artifact is absent.
+
 ### Capability-restricting build flags
 
 A build flag chosen for release can remove a runtime capability from every build, including builds that never ship. The code still compiles, so the loss surfaces only when a dependent line executes.
@@ -200,6 +205,10 @@ Report absolute counts beside the score. A perfect score over a tiny denominator
 Treat unexpectedly fast incremental mutation runs as suspect after fixture-only or data-only test edits. Clean the mutation cache and rerun when the tool cannot prove that test content invalidated prior verdicts.
 
 Typecheck newly authored test batteries separately when the runner transpiles without type information. Passing transformed tests can still assert against shapes the production type system rejects.
+
+### Canonical-output determinism
+
+Ordering keyed on a parsed or normalized value is not total over raw representations. Two distinct raw spellings can parse equal (a timestamp with a different offset, a number with trailing zeros, a case-folded key), so a shuffle-stability test can pass while output order inside the equal class still follows input order. Tie-break canonical comparators on the raw representation after the parsed comparison, or reject equivalent-but-distinct representations at the input boundary, and never let the choice fall through silently. Every determinism suite includes a fixture pair of distinct raw representations of one parsed value and requires byte-identical canonical output across shuffles.
 
 ## Step 6: Convert Failures into Memory
 

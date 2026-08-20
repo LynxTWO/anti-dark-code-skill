@@ -37,6 +37,10 @@ Zero candidate files means the surface was not examined. Record it as `unknown` 
 
 Verify that the search command opens candidate files. Do not pipe a filename listing into a content search and treat the result as a content scan. Search the scoped tree directly with matching globs, or pass enumerated paths as file arguments through a delimiter-safe mechanism. Spot-check a known-positive fixture or sentinel before trusting a whole-repo zero.
 
+### Audited-set evidence
+
+Producers passing in sequence and an audit certifying them as a set are different claims. Per-gate evidence proves each producer ran green on its own inputs. Audited-set evidence proves that a separate step checked the set's correspondence (counts match, references resolve, no member is missing or stale) and emitted a durable artifact saying so. Never report a passing sequence as an audited set. Where an audit step exists, cite its artifact; where none exists, the set-level claim stays `inferred` at best.
+
 ## Risk levels
 
 Use exactly these four labels. Pick the one that matches the worst plausible blast radius if the issue is real.
