@@ -61,6 +61,27 @@ Do not place the ledger inside a protected folder it catalogues.
 - Artifacts form chains. Record depends-on in the manifest, and never delete a dependency before its dependents are regenerated, archived, or approved for deletion themselves. A cheap regeneration recipe that points at a deleted input is not cheap.
 - Recheck target, descendants, and evidence leaves for link-like redirection immediately before mutation.
 
+## History rewrites and other identifier changes
+
+A history rewrite is an evidence event, not a cleanup. Rewriting commits changes every id that docs, receipts, lockfiles, submodule pins, and release evidence cite, so the citations survive while the objects they name do not. The same rule covers any operation that re-mints recorded identifiers: id migrations, artifact re-signing, tag or release renumbering.
+
+This pass never performs the rewrite and never force-pushes. Repo history stays protected. What this pass does is inventory what the rewrite will strand and hand the owner that list.
+
+Start with a cheap existence check: does anything outside the object store cite these ids? Grep docs, lockfiles, pins, CI config, and release evidence for id-shaped tokens. A repo that cites none of its own ids is done here and needs none of what follows.
+
+When ids are cited and the owner directs a rewrite, require all of this before the force-push:
+
+- **Prove the content is unchanged.** Compare the tree sequence old versus new and record the result. A message-only rewrite must leave every non-gitlink tree entry identical.
+- **Keep the old-to-new map as a tracked artifact.** It is the only thing that can later repair a citation, a pin, or a branch that missed the rewrite. Rewrite tools write the map into a scratch directory that the next clean wipes; a map you did not commit is a map you do not have.
+- **Remap every pin that points at the rewritten repo,** in sibling repos and submodules as well, and prove each remapped pin resolves in the new history.
+- **Sweep citations across every repo that cites this one,** not only the rewritten one. Record how many citations in how many files moved, and write a dated note saying why the ids changed.
+- **Decide, per artifact, what happens to evidence citing pre-rewrite ids.** Withdrawing an unconsumed artifact is cheap. Withdrawing a published one breaks downstream pins and lockfiles and is usually worse than the dangling citation, so annotate it with a pointer to the rewrite note instead. Either way the decision is recorded. What is not allowed is evidence that silently resolves to nothing.
+- **State what the rewrite cannot remove.** Hosts keep old objects reachable from merged or closed change requests, and existing clones keep them on any local branch nobody rewrote. Verify retention per host and per clone instead of assuming. When the rewrite existed to remove a secret, this limb is a security action rather than a footnote: the secret is still readable, so rotate it and treat the rewrite as containment, not deletion.
+
+Remapping pins and sweeping citations in other repos are edits to protected content. Propose them and take the same per-repo approval this pass requires everywhere else.
+
+The dated note is the deliverable. If a later reader cannot tell from the repo why a cited id changed, the rewrite produced dark data.
+
 ## Acceptance checklist
 
 - every artifact group has a ledger row with a tier and evidence labels

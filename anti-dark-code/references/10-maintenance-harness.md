@@ -331,6 +331,20 @@ Pick the branches that match the repo. A mixed repo may need more than one.
 - Failure packets and retained logs use pattern-based redaction. They still require care before sharing.
 - The harness distinguishes configured checks from checks actually run.
 - Managed skill core and repo-owned calibration are not mixed.
+- Never select a process by full command line for a destructive action.
+
+## Self-matching process selectors
+
+A harness normally runs an agent command through an interpreter wrapper (`bash -c`, `cmd.exe /c`, `powershell -Command`) whose own argument list contains the command text. Any selector that matches full command lines therefore also matches the caller's own wrapper. This fires even when no process of the intended kind is running, so an ordinary cleanup step can terminate the agent's shell while the real target is absent.
+
+- Do not use a full-command-line selector to signal or terminate. `pkill -f` and `Get-CimInstance Win32_Process | Where-Object CommandLine -match ... | Stop-Process` both select the caller.
+- Prefer a process id captured when the harness spawned the process. A saved id cannot match the caller.
+- To reach a process the agent did not spawn, resolve the pattern to ids first, drop the current process and its ancestors, then signal only what remains.
+- Treat name matching (`pkill -x`, `killall`, `Stop-Process -Name`) as a last resort. It still hits the caller when the target name equals the harness interpreter, and it hits unrelated work when the name is a shared runtime such as a language interpreter. Confirm the real name with `ps -o comm=` or the platform equivalent; some systems compare a truncated name, and a launcher can carry a different name than the binary it starts.
+- Keep a destructive process action in its own call. A wrapper terminated by a signal abandons the rest of its chain, so queued build, test, or commit steps never run and their silence is easily misread as success.
+- Full-command-line search stays appropriate for read-only inspection, where the caller's own wrapper is an expected result.
+
+Measured on a POSIX host: an interpreter wrapper running a full-command-line kill terminated itself on a signal and skipped every later step in the same call, while the id-resolving form with self and ancestor exclusion completed normally. The exit status varies by host and signal, so do not treat any single number as the signature.
 
 ## Acceptance checklist
 

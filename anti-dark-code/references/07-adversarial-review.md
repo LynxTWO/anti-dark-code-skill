@@ -127,6 +127,7 @@ Scale verification to the way the claim can be settled.
 - Architecture or cycle claim: use a dependency graph, import rule, or AST check before agent debate.
 - Performance claim: require a fixed workload, baseline, and budget.
 - Security or privacy claim: trace a concrete source, transformation, sink, and guard.
+- Exclusion, locking, or single-owner claim (file locks, share modes, mutexes, unique constraints, distributed locks): run a live second-claimant probe in every environment the claim covers and require an observed denial, because the enforcement is supplied by the operating system, filesystem, database engine, or service tier rather than by the calling code, and the same call can be enforced in one and a silent no-op in the next. A passing denial in one environment does not transfer to another; where the primitive cannot be proven, choose explicitly between failing closed and declaring the guarantee absent, and never let it degrade silently.
 
 Verifiers receive the claim and evidence, not the finder's persuasive explanation.
 
@@ -142,8 +143,11 @@ Challenge:
 - diagnostics that accidentally feed authoritative behavior
 - architecture exceptions with no owner, expiry, or finding id
 - test edits that make a red patch green by weakening the contract
+- two-way platform, architecture, or runtime splits whose else branch routes an untested third target down another target's assumptions
 
 For emergent regressions, prefer a deterministic output-counting probe, a parent-commit or baseline diff, and one configuration or content unit unwired at a time before broad code reading.
+
+For platform, architecture, or runtime branches, read the else branch as an unstated claim that no third target exists. Family identifiers hide the gap: one identifier can match several targets that share a name but not a capability. Separate a deliberate portable fallback, which needs nothing the unlisted target lacks, from a branch that quietly depends on a sibling's capability. The second kind usually half-works instead of crashing, and the worst cases fail open, leaving an exclusion or permission mechanism that excludes nobody. Require each branch to name the targets it was built and tested on, then make unlisted targets fail closed on operations (refuse and say why) and honest on observations (report nothing rather than fabricate). Audit these branches before adding a target, not after.
 
 ### Review freshly shipped fixes independently
 
