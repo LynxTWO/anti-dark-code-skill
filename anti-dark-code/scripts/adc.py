@@ -544,7 +544,14 @@ def compute_repository_binding(repo: Path) -> dict[str, Any]:
     roots = sorted({line.strip() for line in (roots_raw or "").splitlines() if line.strip()})
     is_git = git_output(repo, ["rev-parse", "--is-inside-work-tree"]) == "true"
     normalized_path = os.path.normcase(str(repo))
-    path_hash = sha256_bytes(normalized_path.encode("utf-8"))
+    # os.fsencode, not str.encode("utf-8"). Under an ASCII filesystem encoding
+    # (LC_ALL=C) a repository path outside that encoding decodes to surrogates,
+    # and encoding those back strictly raises "surrogates not allowed", so the
+    # binding cannot be computed at all for a repository under a non-ASCII
+    # directory. fsencode reverses the same transform the path arrived through.
+    # For a path the platform could represent, this produces identical bytes, so
+    # existing bindings keep their digests.
+    path_hash = sha256_bytes(os.fsencode(normalized_path))
 
     components: dict[str, Any] = {
         "origin_present": bool(origin),
@@ -557,7 +564,9 @@ def compute_repository_binding(repo: Path) -> dict[str, Any]:
 
     if origin:
         normalized_origin = normalize_git_remote(origin)
-        components["origin_sha256"] = sha256_bytes(normalized_origin.encode("utf-8"))
+        # surrogateescape to match how git_output decoded it; a remote URL that is
+        # not valid UTF-8 round-trips to its original bytes instead of raising.
+        components["origin_sha256"] = sha256_bytes(normalized_origin.encode("utf-8", "surrogateescape"))
     if roots:
         roots_text = "\n".join(roots)
         components["root_commits_sha256"] = sha256_bytes(roots_text.encode("utf-8"))
