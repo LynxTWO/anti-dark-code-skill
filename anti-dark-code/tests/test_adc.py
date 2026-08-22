@@ -376,7 +376,13 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             spawner = (
                 "import subprocess, sys, time\n"
                 f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
-                f"open(r'{marker}', 'w').write('alive')\"])\n"
+                # as_posix, because this path is embedded two string levels deep and
+                # the outer level is not raw. A Windows temp path under C:/Users reaches
+                # the gate's parser as a truncated unicode escape, and the gate dies of a
+                # SyntaxError instead of hanging, so the bound never fires and the test
+                # reports the wrong thing. Forward slashes carry no escapes at any level
+                # and open() accepts them on Windows.
+                f"open(r'{marker.as_posix()}', 'w').write('alive')\"])\n"
                 "time.sleep(120)\n"
             )
             self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
@@ -429,7 +435,13 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             spawner = (
                 "import subprocess, sys, time\n"
                 f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
-                f"open(r'{marker}', 'w').write('alive')\"])\n"
+                # as_posix, because this path is embedded two string levels deep and
+                # the outer level is not raw. A Windows temp path under C:/Users reaches
+                # the gate's parser as a truncated unicode escape, and the gate dies of a
+                # SyntaxError instead of hanging, so the bound never fires and the test
+                # reports the wrong thing. Forward slashes carry no escapes at any level
+                # and open() accepts them on Windows.
+                f"open(r'{marker.as_posix()}', 'w').write('alive')\"])\n"
                 "time.sleep(120)\n"
             )
             self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
