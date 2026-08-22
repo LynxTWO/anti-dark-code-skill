@@ -96,3 +96,50 @@ jobs:
           git archive HEAD | tar -x -C "$extract"
           python -B "$extract/anti-dark-code/scripts/adc.py" \
             validate --skill "$extract/anti-dark-code" --mode distribution
+
+  # The single context branch protection should require.
+  #
+  # Protection pins required checks by exact name, so listing every matrix leg
+  # there makes the settings page a second implementation of this file's matrix:
+  # rename a job or change the matrix and the old names stop reporting, leaving
+  # pull requests waiting forever on checks that no longer exist. That is the
+  # standing drift risk SKILL.md names under "prefer one canonical rule
+  # implementation".
+  #
+  # This job is the one stable name. The matrix above stays the only authority on
+  # what actually runs, and it can change freely without touching protection.
+  #
+  # The duplication does not disappear, it moves: `needs` still has to name every
+  # job that must pass. That is the point. It now lives beside the jobs it
+  # governs, changes in the same commit, and shows up in review, instead of
+  # sitting in a settings page no diff ever touches.
+  required:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [suite, distribution]
+    # always(), so this reports a verdict even when a dependency fails or is
+    # skipped. That makes explicitly checking each result mandatory: without the
+    # loop below this job would succeed no matter what happened upstream, which
+    # is precisely the check-that-cannot-fail class in 07-adversarial-review.md.
+    if: always()
+
+    steps:
+      - name: Refuse unless every required job succeeded
+        shell: bash
+        env:
+          SUITE_RESULT: ${{ needs.suite.result }}
+          DISTRIBUTION_RESULT: ${{ needs.distribution.result }}
+        run: |
+          set -euo pipefail
+          echo "suite=${SUITE_RESULT} distribution=${DISTRIBUTION_RESULT}"
+          failed=0
+          for entry in "suite=${SUITE_RESULT}" "distribution=${DISTRIBUTION_RESULT}"; do
+            if [ "${entry#*=}" != "success" ]; then
+              echo "required job did not succeed: ${entry}"
+              failed=1
+            fi
+          done
+          # A matrix job's result is the aggregate of its legs, so one red
+          # platform lands here as failure even though the others passed.
+          exit "$failed"
