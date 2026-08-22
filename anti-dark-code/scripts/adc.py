@@ -2918,7 +2918,16 @@ def validate_incoming(
             ["diff", "--name-only", "--diff-filter=ACMRTUXB", f"{changed_from}...HEAD"],
         )
         if added is None or changed is None or live_changed is None:
-            return [f"could not compare candidate repository with {safe_diagnostic_label(changed_from)}"], []
+            # The usual cause is a bounded checkout: these comparisons are
+            # three-dot and need a merge base, which a shallow candidate whose
+            # branch point predates the fetch window does not have. Fails closed
+            # either way; name the remedy so the contributor is not left guessing
+            # at what looks like an unexplained refusal.
+            return [
+                f"could not compare candidate repository with {safe_diagnostic_label(changed_from)}: "
+                "no merge base is reachable, which usually means the branch point is older than the "
+                "checkout depth. Rebase the proposal on a recent base, or deepen the checkout."
+            ], []
         prefix = f"{skill_rel}/incoming/"
         new_incoming = sorted(path for path in added if path.startswith(prefix))
         changed_incoming = sorted(path for path in live_changed if path.startswith(prefix))

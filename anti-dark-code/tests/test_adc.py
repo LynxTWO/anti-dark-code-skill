@@ -1410,6 +1410,37 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertEqual(errors, [])
             self.assertEqual(paths, [proposal])
 
+    def test_changed_from_without_a_merge_base_fails_closed_and_names_the_remedy(self) -> None:
+        # A bounded checkout depth can leave the candidate shallow with no merge
+        # base. These comparisons are three-dot, so they fail rather than falling
+        # back to two-dot, and the workflows' fetch-depth bound depends on that
+        # being understood: an earlier comment claimed a two-dot fallback covered
+        # this case, and no such fallback exists on this path.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            skill = repo / "anti-dark-code"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text("trusted base\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            self.write_hashed_proposal(skill / "incoming", self.public_proposal_text())
+            self.commit_all(repo, "add public proposal")
+
+            # A commit id that is well formed and simply not reachable stands in
+            # for a branch point outside the fetch window.
+            unreachable = "0" * 40
+            errors, paths = adc.validate_incoming(
+                repo,
+                skill,
+                unreachable,
+                proposal_only=True,
+                public_only=True,
+            )
+            self.assertEqual(paths, [])
+            self.assertEqual(len(errors), 1)
+            self.assertIn("could not compare candidate repository", errors[0])
+            self.assertIn("no merge base", errors[0])
+            self.assertIn("Rebase", errors[0])
+
     def test_changed_from_uses_merge_base_when_contributor_branch_is_behind(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
