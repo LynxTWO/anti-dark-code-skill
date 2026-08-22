@@ -13,6 +13,14 @@ import time
 import unittest
 from pathlib import Path
 
+# macOS puts temporary directories under /var, which is a symlink to /private/var.
+# The managed-path guards in this skill refuse to write through a link-like path
+# component, by design, so every test that builds a repository in the default temp
+# root fails there for a reason unrelated to the behaviour under test. Resolve the
+# temp root once, so the guards police the real path. A no-op where the platform's
+# temp directory is already canonical.
+tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "adc.py"
 spec = importlib.util.spec_from_file_location("adc", SCRIPT)
 assert spec and spec.loader
