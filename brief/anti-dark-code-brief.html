@@ -97,6 +97,11 @@
     display: grid; grid-template-columns: 3.1rem 1fr; gap: 0.9rem; align-items: baseline;
     background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 0.7rem 0.9rem;
   }
+  /* Evidence-label rows put a `verified`/`inferred`/`unknown` chip in the id
+     column instead of a two-digit pass number. Those chips are wider than the
+     3.1rem number track, so they overflowed it and collided with the body text.
+     Widen the track for just those rows, keeping all three chips aligned. */
+  .passes.evidence .pass { grid-template-columns: 5rem 1fr; }
   .pass .id {
     font-family: var(--mono); font-size: 1.15rem; font-weight: 700; color: var(--accent);
     font-variant-numeric: tabular-nums;
@@ -221,7 +226,7 @@
 
 <h2>The evidence language</h2>
 <p class="prose">Every claim the skill records carries one of three labels. This is the vocabulary the whole workflow shares.</p>
-<div class="passes">
+<div class="passes evidence">
   <div class="pass"><span class="id"><span class="tier v">verified</span></span><div class="body"><div class="what">Direct repo evidence supports the claim. It cites the exact file, line, command, or document that proves it.</div></div></div>
   <div class="pass"><span class="id"><span class="tier i">inferred</span></span><div class="body"><div class="what">The evidence is consistent with the claim but does not prove it. The skill names the gap that stops it from being verified.</div></div></div>
   <div class="pass"><span class="id"><span class="tier u">unknown</span></span><div class="body"><div class="what">Evidence is missing, contradictory, or lives outside the repo (a vendor dashboard, a sibling repo, live telemetry). Recorded, not guessed at.</div></div></div>
