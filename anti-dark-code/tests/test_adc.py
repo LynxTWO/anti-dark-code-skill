@@ -741,8 +741,14 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
             core = self.copy_clean_skill(Path(tmp) / "pkg")
             baseline = set(adc.managed_source_files(core))
-            (core / "references" / "linked-dir").symlink_to(outside / "nested", target_is_directory=True)
-            (core / "references" / "linked-file.md").symlink_to(outside / "secret.txt")
+            try:
+                (core / "references" / "linked-dir").symlink_to(outside / "nested", target_is_directory=True)
+                (core / "references" / "linked-file.md").symlink_to(outside / "secret.txt")
+            except (OSError, NotImplementedError) as exc:
+                # Windows needs SeCreateSymbolicLinkPrivilege, held only by an
+                # administrator or under Developer Mode. Every other symlink test
+                # in this file skips the same way rather than failing the run.
+                self.skipTest(f"symlink creation unavailable: {exc}")
 
             packaged = adc.managed_source_files(core)
             self.assertEqual(set(packaged), baseline)
@@ -761,8 +767,21 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
             # A file listed as changed whose diff carries no content lines, such as a
             # mode change, has no undescribed content and must not be reported.
-            (core / "references" / "00-conventions.md").chmod(0o755)
-            self.commit_all(root, "mode change only")
+            # Stage the mode in the index rather than on disk. Windows sets
+            # core.fileMode=false and os.chmod there only toggles the read-only
+            # flag, so a filesystem chmod produces nothing for git to commit and
+            # the commit fails with "nothing to commit". update-index carries the
+            # mode directly and yields the same content-free diff on every
+            # platform. commit_all is not used here because its `git add .` would
+            # re-stage the unchanged working-tree mode and undo this.
+            subprocess.run(
+                ["git", "-C", str(root), "update-index", "--chmod=+x", reference],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(root), "commit", "-qm", "mode change only"],
+                check=True,
+            )
             subprocess.run(["git", "-C", str(root), "tag", "v1.1.0-test"], check=True)
             self.assertTrue(
                 adc.only_version_churn(root, "v1.0.0-test", "v1.1.0-test", reference, {"1.0.0-test"})
