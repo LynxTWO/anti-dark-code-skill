@@ -4,3 +4,6 @@ anti-dark-code/incoming/*.md text eol=lf
 metrics/ledger/*.json text eol=lf
 metrics/summary.json text eol=lf
 docs/data/*.json text eol=lf
+brief/*.html text eol=lf
+brief/*.provenance.json text eol=lf
+brief/*.pdf -text
