@@ -35,8 +35,12 @@ jobs:
           # Bounded, because a fork controls this history and fetch-depth: 0 lets
           # it choose how much a privileged runner downloads. A receipt sits a
           # few commits off a recent base, so this keeps the merge base present
-          # for the three-dot diff. If it ever falls outside the window, the
-          # validator's existing two-dot fallback still computes a changed set.
+          # for the three-dot diff that validate-incoming and validate-ledger-pr
+          # both require. Neither falls back to a two-dot diff: if the branch
+          # point is older than this window the candidate is shallow, no merge
+          # base exists, and validation fails closed asking the contributor to
+          # rebase on a recent base. Measured: a branch one commit off the base
+          # needs depth 2, and depth 1 is the shallowest that fails.
           fetch-depth: 50
           persist-credentials: false
           allow-unsafe-pr-checkout: true # Candidate files are parsed only as data by the trusted-base validator.
