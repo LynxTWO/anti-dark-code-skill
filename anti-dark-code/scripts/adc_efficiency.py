@@ -682,6 +682,13 @@ def create_controlled_pair(
         },
         "controls": copy.deepcopy(skill["controls"]),
         "quality": {
+            # Restatements, not fresh assertions. The per-receipt loop above
+            # refuses any input whose quality.passed or controls.
+            # same_acceptance_contract is not exactly True, so a pair cannot
+            # reach this point with either property false. Cited here because a
+            # boolean literal standing in for a captured outcome is otherwise
+            # indistinguishable from an unfalsifiable check; see the restatement
+            # rule in references/07-adversarial-review.md.
             "skill_passed": True,
             "baseline_passed": True,
             "same_acceptance_contract": True,
