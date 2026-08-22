@@ -32,12 +32,13 @@ Two independent audit passes produced these findings, the second run specificall
 
 ### Hardening
 
-- Bounds the untrusted-fork history that the proposal-intake and efficiency-ledger workflows download onto a privileged runner. Both checked the candidate out with `fetch-depth: 0`, which lets a fork choose how much work the runner does. A bounded depth keeps the merge base present for the normal case, and the validator's existing two-dot fallback still computes a changed set if a proposal ever falls outside the window. Like any workflow change, this is unverified until it runs on the default branch.
+- Bounds the untrusted-fork history that the proposal-intake workflow downloads onto a privileged runner. It checked the candidate out with `fetch-depth: 0`, which lets a fork choose how much work the runner does. A bounded depth keeps the merge base present for the normal case, and the validator's existing two-dot fallback still computes a changed set if a proposal ever falls outside the window. Like any workflow change, this is unverified until it runs on the default branch. The identical change to the efficiency-ledger workflow is deferred to a follow-up, because that workflow triggers on edits to itself and the ledger validator on the default branch cannot yet accept a change that combines it with anything else.
+- Fixes that validator. `validate-ledger-pr` accepted a receipt-free change only when the changeset was exactly `.github/workflows/efficiency-ledger.yml`, so it refused every legitimate combined change, including one that also edits the sibling intake workflow. It now passes any change that adds no receipt and touches neither the ledger nor either generated summary, and still refuses ledger data or a summary that moves without a new receipt. `--allow-workflow-maintenance` is accepted for compatibility and no longer consulted, because a deployed workflow still passes it. Found by this release's own pull request failing CI.
 - Replaces the one non-ASCII character in the shipped skill, an arrow in the system-map template, against this skill's own ASCII-only writing rule.
 
 ### Tests
 
-- 123 tests, of which 112 pass and 11 skip on this host. Adds a fixture-pair regression proving PDF normalization collapses timestamp differences while preserving content differences, which goes red if the normalization is reduced to an identity function, and extends the release-surface test to the normalized digest.
+- 125 tests, of which 114 pass and 11 skip on this host. Adds a fixture-pair regression proving PDF normalization collapses timestamp differences while preserving content differences, which goes red if the normalization is reduced to an identity function, and extends the release-surface test to the normalized digest.
 
 ## 2026.08.20-unified.6
 

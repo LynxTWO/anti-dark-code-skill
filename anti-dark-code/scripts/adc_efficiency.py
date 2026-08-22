@@ -1062,7 +1062,11 @@ def validate_ledger_change(
     changed_from: str,
     summary_path: Path,
     docs_summary_path: Path,
-    allow_workflow_maintenance: bool = False,
+    # Accepted and no longer consulted. It used to carve out a changeset that was
+    # exactly this workflow file; the ledger-surface test below is strictly wider
+    # and covers that case. Kept because a deployed workflow still passes it, and
+    # removing it would turn an in-flight run into an unrecognized-argument error.
+    allow_workflow_maintenance: bool = False,  # noqa: ARG001
 ) -> tuple[list[str], int]:
     repo = repo.expanduser().resolve()
     ledger = ledger.expanduser().resolve()
@@ -1084,8 +1088,22 @@ def validate_ledger_change(
         return [str(error)], 0
     new_receipts = sorted(path for path in added if path.startswith(ledger_rel))
     if not new_receipts:
-        if allow_workflow_maintenance and set(changed) == {".github/workflows/efficiency-ledger.yml"}:
+        # This validator judges the shape of a receipt contribution. A change that
+        # adds no receipt and leaves the ledger and both generated summaries
+        # untouched is not a receipt contribution at all, so there is nothing here
+        # to accept or refuse, whatever else it changes. Requiring the changeset to
+        # be exactly the workflow file rejected every legitimate combined change,
+        # including one that also edits the sibling intake workflow.
+        touched_ledger_surface = {
+            path
+            for path in changed
+            if path.startswith(ledger_rel) or path in {summary_rel, docs_summary_rel}
+        }
+        if not touched_ledger_surface:
             return [], 0
+        # Ledger data or a generated summary moved without a new receipt. That is
+        # the case worth refusing: an edit to an existing receipt, or a summary
+        # written by hand instead of regenerated from the complete ledger.
         return ["a receipt PR must add exactly one public ledger receipt"], 0
     expected_prefix = re.escape(ledger_rel)
     if any(not re.fullmatch(expected_prefix + r"efficiency-[0-9a-f]{12}\.json", path) for path in new_receipts):
@@ -1292,7 +1310,11 @@ def build_parser(*, suppress_injected_identity_help: bool = False) -> argparse.A
     ledger_pr = sub.add_parser("validate-ledger-pr", help="Validate one public receipt PR and its generated summaries")
     ledger_pr.add_argument("--repo", required=True)
     ledger_pr.add_argument("--changed-from", required=True)
-    ledger_pr.add_argument("--allow-workflow-maintenance", action="store_true")
+    ledger_pr.add_argument(
+        "--allow-workflow-maintenance",
+        action="store_true",
+        help="Accepted for compatibility and no longer consulted; a change that touches no ledger receipt or generated summary now passes on its own.",
+    )
     ledger_pr.set_defaults(func=command_validate_ledger_pr)
     return parser
 
