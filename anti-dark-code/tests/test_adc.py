@@ -332,6 +332,25 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         self.assertEqual(len(packets), 1, "expected exactly one failure packet")
         return json.loads(packets[0].read_text(encoding="utf-8"))
 
+    def assert_timed_out(self, repo: Path) -> None:
+        """Assert the bound fired, and say why when it did not.
+
+        "1 != 124" names the symptom and hides the cause. A gate that exits on
+        its own instead of being bounded has usually failed to launch or died
+        early, and the packet already records which. Report that here rather
+        than sending the next reader back to CI for another round trip.
+        """
+        packet = self.only_packet(repo)
+        self.assertEqual(
+            packet["exit_code"],
+            124,
+            "gate was not bounded: "
+            f"timed_out={packet.get('timed_out')!r} "
+            f"launch_error={packet.get('launch_error')!r} "
+            f"termination={packet.get('timeout_termination')!r} "
+            f"output={packet.get('bounded_output')!r}",
+        )
+
     def test_a_hung_gate_times_out_and_is_recorded_as_such(self) -> None:
         """A gate that never returns must fail on a bound, not wait forever."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -342,7 +361,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
             elapsed = time.monotonic() - started
             self.assertLess(elapsed, 60, "the timeout did not bound the run")
-            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+            self.assert_timed_out(repo)
 
     def test_a_timed_out_gate_takes_its_orphan_children_with_it(self) -> None:
         """The claim this repository makes is process-tree termination, not child termination.
@@ -363,7 +382,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
-            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+            self.assert_timed_out(repo)
 
             # Outlive the grandchild's own sleep. If the process group was not
             # terminated, it wakes up here and writes the marker.
@@ -389,7 +408,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
             self.assertLess(time.monotonic() - started, 60, "SIGTERM was ignored and nothing escalated")
-            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+            self.assert_timed_out(repo)
 
     def test_windows_forced_tree_kill_is_exercised_when_the_graceful_signal_fails(self) -> None:
         """The Windows escalation carries its own claim and needs its own test.
@@ -425,7 +444,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             finally:
                 if real_break is not None:
                     signal.CTRL_BREAK_EVENT = real_break
-            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+            self.assert_timed_out(repo)
             time.sleep(9)
             self.assertFalse(
                 marker.exists(),
