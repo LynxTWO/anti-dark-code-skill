@@ -1,6 +1,28 @@
 # Changelog
 
+## 2026.08.22-unified.8
+
+A provenance release. It supersedes `2026.08.22-unified.7` for distribution and changes no reference text relative to the current core.
+
+Two defects in the `unified.7` release made that tag unusable as a distribution source, both found by an independent reviewer at a consuming repository:
+
+- **The `v2026.08.22-unified.7` tag does not reproduce the core that was distributed from it.** Two commits landed on the release branch after the tag and both touch the distributed core (`scripts/adc.py`, `tests/test_adc.py`). A managed install taken from the branch tip therefore carried post-tag bytes while recording `2026.08.22-unified.7` as its source version. Extracting the tag yields core digest `511dfaf51f01b2ba677bb7f421c2f19a...`; the distributed bytes hash to `575383c9383dbe13521c229ab15dd571...`. A version string that does not bind to specific bytes is a claim, not evidence.
+- **The `unified.7` notes state "It adds no new lessons," which is inaccurate.** That release also carried ADC-LOCAL-015, a separately promoted new lesson adding the new-producer checklist to `references/14-deterministic-verification.md`. It was promoted on its own branch before the release commit and was never described in the release section.
+
+This release states the full contents of the current core plainly:
+
+- **Recovered repairs (from `unified.7`).** The fourteen lessons that `unified.6` promoted from truncated proposals were re-staged from their source and their reconstructions repaired across `00-conventions.md`, `07-adversarial-review.md`, `10-maintenance-harness.md`, `11-remediation-loop.md`, `15-dogfeeding-flowback.md`, and `assurance-contracts.md`. Unchanged here; see the `unified.7` section for the itemized repairs.
+- **Separately promoted lesson (from `unified.7`, previously undisclosed).** ADC-LOCAL-015 adds the new-producer checklist to `references/14-deterministic-verification.md`: a gate added to an audited evidence family is not done when it passes, but when the audit validates its record inside the set, the producer invalidates any standing audit before writing, and the record obeys the family's evidence canon.
+- **Tooling fixes (after the `unified.7` tag).** `scripts/adc.py` now names the remedy when a proposal comparison cannot reach a merge base, instead of returning an unexplained refusal, with regression coverage in `tests/test_adc.py`.
+
+### Release Integrity
+
+- The distributed core at tag `v2026.08.22-unified.8` has core digest `b554a5a481b6f58caa111546f3309759412d38dc7520b8c10534a391427130de`, verified by extracting the tag into a clean directory and recomputing, not by reading the working tree.
+- Consumers should install from a tag, never from a branch tip, and may compare their `.adc-managed.json` `source_core_sha256` against the digest published above.
+
 ## 2026.08.22-unified.7
+
+**Erratum, added in `unified.8`:** two claims in this section are inaccurate and are corrected there rather than rewritten here. This release also carried ADC-LOCAL-015, a separately promoted new lesson, so "adds no new lessons" describes only the repair scope. The `v2026.08.22-unified.7` tag also does not reproduce the core distributed from this release; use `2026.08.22-unified.8` or later as a distribution source.
 
 A correctness release. `2026.08.20-unified.6` promoted fourteen lessons from proposals whose multi-line fields had been truncated in staging, so their reference text was reconstructed from titles and surviving fragments. The full proposals were re-staged afterwards. This release compares the reconstructions against the restored sources and repairs what the reconstruction lost. It adds no new lessons.
 
