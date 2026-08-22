@@ -330,6 +330,42 @@ The repository owns `calibration/`.
 
 `repo-binding.json` prevents silent reuse in another repository. It stores hashes, not the raw Git remote or a personal path.
 
+## Install From a Release, Not a Branch Tip
+
+A version string is a claim; only a digest bound to an immutable ref is evidence. Installing from a working tree that has moved past its tag records a version the tag no longer reproduces, and nothing downstream can tell.
+
+The installer therefore refuses a source whose checkout is not at a release tag, or whose working tree is dirty:
+
+```text
+installation source is not at a release tag ...; a moving source records a version
+string the tag does not reproduce. Install from a tag or a clean extract of one,
+or pass --allow-untagged-source after review
+```
+
+Install from a tag, or from a clean extract of one, which is what a release download already is:
+
+```bash
+git -C /path/to/skill-repo archive v<version> | tar -x -C /tmp/adc-src
+python3 /tmp/adc-src/anti-dark-code/scripts/adc.py install \
+  --repo /path/to/repo --source-skill /tmp/adc-src/anti-dark-code --apply \
+  --expect-core-digest <digest published with that release>
+```
+
+`--expect-core-digest` refuses the install unless the source hashes to the digest the release published, so the install is checkable rather than trusted. The resulting `.adc-managed.json` records that digest as `source_core_sha256`, and a reviewer can compare it against the release without rerunning anything. `--allow-untagged-source` exists for deliberate work against an unreleased core; it is a review decision, not a default.
+
+## Verify a Release Before Publishing It
+
+A release is a producer, and its output needs the same audit as any other. `release-check` asks the tag to answer for itself rather than trusting the working tree that produced it:
+
+```bash
+python3 anti-dark-code/scripts/adc.py release-check \
+  --repo . --tag v<version> --expect-core-digest <digest>
+```
+
+It extracts the tag, recomputes the core digest, runs distribution validation against that extract, and reports any file under `references/` or `assets/` that changed since the previous tag without being named in the new release notes. Mechanical version-string churn is ignored so the check stays worth reading. Exit code is nonzero when any part fails.
+
+Run the test suite in a separate extract. Running it inside the directory being validated leaves generated Python artifacts that fail distribution validation, which is the same "keep verification artifacts out of trees tooling indexes" rule this skill applies elsewhere.
+
 ## Review the Generated Calibration
 
 The most important files are:

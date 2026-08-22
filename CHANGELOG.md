@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+Not a release. These land in the next tagged version.
+
+### Release and Install Provenance
+
+Four guards, added after `unified.7` shipped a tag that did not reproduce the core distributed from it and notes that did not describe everything the release carried. Both defects were found by an independent reviewer at a consuming repository, and neither was caught by anything in this repository, because nothing checked them.
+
+- **The installer refuses a source that is not at a release tag.** `install` and `bootstrap` classify the source as `git-tag`, `git-untagged`, `git-dirty`, or `non-git` and block the two moving kinds unless `--allow-untagged-source` is passed after review. A plain extract stays allowed: it cannot drift. This is the guard that would have stopped the original mistake.
+- **`--expect-core-digest` binds an install to a published release.** The installer refuses unless the source core hashes to the expected digest, and the recorded `source_core_sha256` then lets a reviewer check the install against the release without rerunning anything.
+- **`release-check` verifies a tag against itself.** It extracts the tag, recomputes the core digest, optionally compares it to the digest the release publishes, runs distribution validation on that extract, and returns nonzero on failure. Verifying a release by reading the working tree that produced it proves nothing about the tag.
+- **Release notes must describe what the release changed.** `release-check` reports every file under `references/` or `assets/` that changed since the previous tag without being named in the new notes. Mechanical version-string churn is ignored so the check stays worth reading. Run against the historical tags, this reports the `unified.7` digest mismatch and its undescribed template change, and passes `unified.8`.
+
+The deterministic suite grows to 132 tests, including source-provenance classification across all four source kinds, both installer refusals, tag-reproduction failure and success, an undescribed reference change, and the version-churn exclusion.
+
 ## 2026.08.22-unified.8
 
 A provenance release. It supersedes `2026.08.22-unified.7` for distribution and changes no reference text relative to the current core.

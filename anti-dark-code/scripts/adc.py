@@ -14,10 +14,12 @@ import datetime as dt
 import fnmatch
 import hashlib
 import importlib.util
+import io
 import json
 import os
 import re
 import signal
+import tarfile
 import shutil
 import subprocess
 import sys
@@ -1794,6 +1796,155 @@ def managed_source_files(source: Path) -> dict[str, Path]:
     return files
 
 
+def only_version_churn(repo: Path, previous: str, tag: str, path: str, versions: set[str]) -> bool:
+    """True when every changed line in a file carries a release version string."""
+    if not versions:
+        return False
+    diff = git_output(repo, ["diff", "--unified=0", f"{previous}..{tag}", "--", path]) or ""
+    changed = [
+        line for line in diff.splitlines()
+        if line[:1] in {"+", "-"} and not line.startswith(("+++", "---"))
+    ]
+    if not changed:
+        return True
+    return all(any(version in line for version in versions) for line in changed)
+
+
+def changelog_section(text: str, version: str) -> str | None:
+    """Return the notes for one version, from its heading to the next same-level heading."""
+    lines = text.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() == f"## {version}":
+            start = index + 1
+            break
+    if start is None:
+        return None
+    end = len(lines)
+    for index in range(start, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    return "\n".join(lines[start:end])
+
+
+def release_check(
+    repo: Path,
+    tag: str,
+    expect_core_digest: str | None = None,
+    previous_tag: str | None = None,
+) -> dict[str, Any]:
+    """Gate a release on its own tag rather than on the working tree that produced it.
+
+    Three questions the tag must answer for itself: does extracting it reproduce the
+    digest the release publishes, does that extract pass distribution validation, and
+    does every reference or asset it changed since the previous tag get named in its
+    own notes. The extract is read-only here; running a test suite inside the directory
+    under validation would create artifacts that fail it.
+    """
+    repo = repo.resolve()
+    findings: dict[str, Any] = {
+        "tag": tag,
+        "previous_tag": previous_tag,
+        "core_digest": None,
+        "digest_expected": expect_core_digest.strip().lower() if expect_core_digest else None,
+        "digest_match": None,
+        "distribution_valid": None,
+        "distribution_errors": [],
+        "undescribed_files": [],
+        "errors": [],
+        "ok": False,
+    }
+    if not git_output(repo, ["rev-parse", "--verify", f"{tag}^{{commit}}"]):
+        findings["errors"].append(f"tag is not present in the repository: {safe_diagnostic_label(tag)}")
+        return findings
+
+    with tempfile.TemporaryDirectory() as tmp:
+        extract = Path(tmp) / "tag"
+        extract.mkdir()
+        archive = git_bytes(repo, ["archive", tag], timeout=120)
+        if archive is None:
+            findings["errors"].append("could not extract the tag for verification")
+            return findings
+        try:
+            with tarfile.open(fileobj=io.BytesIO(archive)) as bundle:
+                bundle.extractall(extract, filter="data")
+        except (tarfile.TarError, OSError) as exc:
+            findings["errors"].append(f"could not read the tag archive: {exc.__class__.__name__}")
+            return findings
+
+        core = extract / "anti-dark-code"
+        if not (core / "VERSION").exists():
+            findings["errors"].append("the tag does not contain a distributable core at anti-dark-code/")
+            return findings
+
+        findings["core_digest"] = core_digest(managed_source_files(core))
+        if findings["digest_expected"] is not None:
+            findings["digest_match"] = findings["core_digest"] == findings["digest_expected"]
+
+        errors, _warnings = validate_skill(core, "distribution")
+        findings["distribution_valid"] = not errors
+        findings["distribution_errors"] = list(errors)
+
+        version = (core / "VERSION").read_text(encoding="utf-8").strip()
+        findings["version"] = version
+        changelog = extract / "CHANGELOG.md"
+        section = changelog_section(changelog.read_text(encoding="utf-8"), version) if changelog.exists() else None
+        if section is None:
+            findings["errors"].append(f"CHANGELOG.md has no section for version {version}")
+        else:
+            previous = previous_tag or git_output(repo, ["describe", "--tags", "--abbrev=0", f"{tag}^"])
+            findings["previous_tag"] = previous
+            if previous:
+                changed = git_output(
+                    repo,
+                    ["diff", "--name-only", f"{previous}..{tag}", "--",
+                     "anti-dark-code/references", "anti-dark-code/assets"],
+                ) or ""
+                previous_version = None
+                previous_core_version = git_output(repo, ["show", f"{previous}:anti-dark-code/VERSION"])
+                if previous_core_version:
+                    previous_version = previous_core_version.strip()
+                version_tokens = {token for token in (version, previous_version) if token}
+                for path in sorted({line.strip() for line in changed.splitlines() if line.strip()}):
+                    relative = path.split("anti-dark-code/", 1)[-1]
+                    if relative in section or Path(relative).name in section:
+                        continue
+                    # A mechanical version bump is not a change the notes owe the
+                    # reader; flagging it would train reviewers to ignore this gate.
+                    if only_version_churn(repo, previous, tag, path, version_tokens):
+                        continue
+                    findings["undescribed_files"].append(relative)
+
+    findings["ok"] = (
+        not findings["errors"]
+        and not findings["undescribed_files"]
+        and bool(findings["distribution_valid"])
+        and findings["digest_match"] is not False
+    )
+    return findings
+
+
+def assess_source_provenance(source: Path) -> dict[str, Any]:
+    """Classify how immutable an installation source is, and digest what it would ship.
+
+    A working tree can move; a tag and a plain extract cannot. Installing from a
+    branch tip records a version string the tag no longer reproduces, which makes
+    the recorded version a claim rather than evidence. Callers use `kind` to refuse
+    a moving source and `core_digest` to bind the install to a published release.
+    """
+    source = source.resolve()
+    digest = core_digest(managed_source_files(source))
+    if not git_output(source, ["rev-parse", "--show-toplevel"]):
+        return {"kind": "non-git", "tag": None, "dirty": False, "core_digest": digest}
+    if git_output(source, ["status", "--porcelain", "--", str(source)]):
+        return {"kind": "git-dirty", "tag": None, "dirty": True, "core_digest": digest}
+    tag = git_output(source, ["describe", "--tags", "--exact-match", "HEAD"])
+    if tag:
+        return {"kind": "git-tag", "tag": tag, "dirty": False, "core_digest": digest}
+    return {"kind": "git-untagged", "tag": None, "dirty": False, "core_digest": digest}
+
+
 def core_digest(files: dict[str, Path]) -> str:
     h = hashlib.sha256()
     for r, path in sorted(files.items()):
@@ -1891,6 +2042,8 @@ def install_skill(
     allow_unsafe_source: bool = False,
     accept_unbound_calibration: bool = False,
     rebind_calibration: bool = False,
+    allow_untagged_source: bool = False,
+    expect_core_digest: str | None = None,
 ) -> dict[str, Any]:
     repo = repo.resolve()
     source = source.resolve()
@@ -1952,7 +2105,28 @@ def install_skill(
     )
     legacy_gate_review = inspect_gate_config_for_migration(binding_source / "gates.json")
 
+    provenance = assess_source_provenance(source)
+    expected = expect_core_digest.strip().lower() if expect_core_digest else None
+    provenance["digest_expected"] = expected
+    provenance["digest_expected_match"] = None if expected is None else provenance["core_digest"] == expected
+
     blocked_reasons: list[str] = []
+    if provenance["kind"] in {"git-untagged", "git-dirty"} and not allow_untagged_source:
+        detail = (
+            "its working tree has uncommitted changes"
+            if provenance["kind"] == "git-dirty"
+            else "its checkout is not at a release tag"
+        )
+        blocked_reasons.append(
+            f"installation source is not at a release tag ({detail}); a moving source records a version "
+            "string the tag does not reproduce. Install from a tag or a clean extract of one, or pass "
+            "--allow-untagged-source after review"
+        )
+    if provenance["digest_expected_match"] is False:
+        blocked_reasons.append(
+            "installation source does not match the expected release digest; "
+            f"source is {provenance['core_digest']}"
+        )
     if source_inspection["fatal_issues"]:
         blocked_reasons.extend(f"invalid installation source: {item}" for item in source_inspection["fatal_issues"])
     if source_inspection["template_errors"]:
@@ -2033,6 +2207,7 @@ def install_skill(
         "conflicts": sorted(set(conflicts)),
         "blocked": bool(blocked_reasons),
         "blocked_reasons": blocked_reasons,
+        "source_provenance": provenance,
         "source_scope": {
             "marker_valid": source_inspection["marker_valid"],
             "marker_error": source_inspection["marker_error"],
@@ -3477,6 +3652,8 @@ def command_install(args: argparse.Namespace) -> int:
         allow_unsafe_source=args.allow_unsafe_source,
         accept_unbound_calibration=args.accept_unbound_calibration,
         rebind_calibration=args.rebind_calibration,
+        allow_untagged_source=getattr(args, "allow_untagged_source", False),
+        expect_core_digest=getattr(args, "expect_core_digest", None),
     )
     print(json.dumps(plan, indent=2))
     if not args.apply:
@@ -3665,6 +3842,28 @@ def command_efficiency(args: argparse.Namespace) -> int:
     return int(load_efficiency_helper().main(forwarded, suppress_injected_identity_help=True))
 
 
+def command_release_check(args: argparse.Namespace) -> int:
+    findings = release_check(
+        Path(args.repo).expanduser(),
+        args.tag,
+        expect_core_digest=args.expect_core_digest,
+        previous_tag=args.previous_tag,
+    )
+    print(json.dumps(findings, indent=2))
+    if findings["ok"]:
+        print(f"RELEASE OK: {args.tag} reproduces its core and describes its own changes")
+        return 0
+    for item in findings["errors"]:
+        print(f"ERROR {item}")
+    if findings["digest_match"] is False:
+        print(f"ERROR tag core digest {findings['core_digest']} does not match the expected release digest")
+    for item in findings["distribution_errors"]:
+        print(f"ERROR distribution validation: {item}")
+    for item in findings["undescribed_files"]:
+        print(f"ERROR changed but not described in the release notes: {item}")
+    return 1
+
+
 def command_validate(args: argparse.Namespace) -> int:
     skill = Path(args.skill).expanduser() if args.skill else SKILL_ROOT
     mode = resolve_validation_mode(skill, args.mode)
@@ -3707,6 +3906,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-unsafe-source", action="store_true", help="Allow a reviewed legacy or repo-local source. Source calibration is still ignored.")
     p.add_argument("--accept-unbound-calibration", action="store_true", help="Bind reviewed legacy calibration to this repository.")
     p.add_argument("--rebind-calibration", action="store_true", help="Rebind calibration after a reviewed repo move, fork, or remote identity change.")
+    p.add_argument("--allow-untagged-source", action="store_true", help="Install from a working tree that is not at a release tag. A moving source records a version the tag does not reproduce.")
+    p.add_argument("--expect-core-digest", help="Refuse the install unless the source core hashes to this published release digest.")
     p.add_argument("--hosts", choices=("auto", "all", "none"), default="auto")
     p.set_defaults(func=command_install)
 
@@ -3718,6 +3919,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-unsafe-source", action="store_true", help="Allow a reviewed legacy or repo-local source. Source calibration is still ignored.")
     p.add_argument("--accept-unbound-calibration", action="store_true", help="Bind reviewed legacy calibration to this repository.")
     p.add_argument("--rebind-calibration", action="store_true", help="Rebind calibration after a reviewed repo move, fork, or remote identity change.")
+    p.add_argument("--allow-untagged-source", action="store_true", help="Install from a working tree that is not at a release tag. A moving source records a version the tag does not reproduce.")
+    p.add_argument("--expect-core-digest", help="Refuse the install unless the source core hashes to this published release digest.")
     p.add_argument("--hosts", choices=("auto", "all", "none"), default="auto")
     p.add_argument("--max-files", type=int, default=50_000)
     p.add_argument("--content-scan-limit", type=int, default=4_000)
@@ -3751,6 +3954,13 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("efficiency", help="Create opt-in local usage receipts and controlled token comparisons")
     p.add_argument("efficiency_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_efficiency)
+
+    p = sub.add_parser("release-check", help="Verify a release tag reproduces its core and describes its own changes")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--tag", required=True)
+    p.add_argument("--expect-core-digest")
+    p.add_argument("--previous-tag")
+    p.set_defaults(func=command_release_check)
 
     p = sub.add_parser("validate", help="Validate a distribution, live universal core, or installed repo copy")
     p.add_argument("--skill")
