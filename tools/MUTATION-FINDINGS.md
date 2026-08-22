@@ -102,8 +102,71 @@ The harness copies the repository into a scratch tree before mutating, bounds ev
 with a timeout, reports a hang as its own outcome, and refuses to report anything at all
 unless the unmutated suite passes first.
 
-## Not yet mutated
+## Round 3: fuzzing the untrusted input boundary
 
-`run_gates` and the process-termination path, the binding functions, and
-`validate_flowback_proposal_bytes`. The proposal validator is the repository's untrusted
-input boundary and deserves fuzzing rather than mutation alone.
+`validate_flowback_proposal_bytes` is the only function here that reads a file written by a
+stranger. Proposals arrive as pull requests, and this repository's own README says skill text
+becomes instructions executed by an assistant with its operator's authority. That pairing is
+why this boundary is fuzzed rather than sampled.
+
+Harness: `tools/fuzz_proposal_validator.py`, standard library only, deterministic by seed. It
+checks four invariants, each a real failure mode:
+
+- **I1 never raises.** A crash on hostile bytes is a denial of service against contributors'
+  pull-request checks, and an exception escaping into a broad handler can read as a pass.
+- **I2 never hangs.** The validator runs several regular expressions over attacker-controlled
+  text, and catastrophic backtracking is the classic way a validator becomes a weapon. Bounded
+  with a real interval timer, because backtracking does not yield to a thread timeout.
+- **I3 fails closed.** Anything that is not byte-for-byte a known-good proposal must produce at
+  least one error. An empty error list means accepted.
+- **I4 can still say yes.** A known-good proposal must validate clean, or the other three
+  invariants are satisfied by a validator that rejects everything and proves nothing.
+
+Result: **19,000 inputs across five seeds, zero failures.** No crash, no hang, nothing junk
+accepted. Strategies covered bit-flips and splices of a valid proposal, uniformly random bytes,
+truncations, filename attacks including traversal, and an adversarial fragment set: terminal
+escapes, bidirectional overrides, zero-width joiners, homoglyph domains, credential shapes,
+private-key headers, HTML and image embeds, disallowed URI schemes, NUL bytes, invalid UTF-8,
+oversized lines, and nested groups chosen to provoke backtracking.
+
+The harness earned its I4 invariant immediately: the inbox also holds a hand-written local-mode
+proposal, which is legitimately not a valid public submission. Treating it as a control produced
+a false failure, so seeds are now selected by validating them first.
+
+A bounded, self-contained version runs in the suite as
+`test_proposal_validator_survives_hostile_input`, generating its control through the real
+`flowback` path so the test does not depend on inbox contents.
+
+One finding landed against this repository rather than the validator: an early fixture embedded
+a literal personal-looking absolute path, and the skill's own personal-path detector correctly
+flagged its distributed source. The fixture now assembles that string at runtime.
+
+## Round 4: fault injection on gate termination
+
+`run_gates` executes reviewed commands with a timeout and claims **process-tree** termination.
+`references/assurance-contracts.md` requires that a claim be proven by observation rather than
+asserted, so it is.
+
+Three injected faults:
+
+- **A gate that never returns** must fail on its bound and be recorded as exit `124`, not wait.
+- **A gate that spawns a background process and then hangs.** This is the shape that separates
+  process-tree termination from child termination: killing only the direct child leaves the
+  grandchild running, and it keeps running after the gate is reported failed. The test waits past
+  the grandchild's own sleep and asserts its marker file was never written.
+- **A gate that ignores `SIGTERM`.** Polite termination is a request; the bound has to hold when
+  it is refused, so the run must still finish and record `124`.
+
+All three pass. More usefully, the orphan test was proven to have teeth: replacing
+`os.killpg(pgid, ...)` with `proc.terminate()` and `proc.kill()` in a scratch copy makes it fail
+with `a grandchild outlived the timed-out gate: the process tree was not terminated`. A
+termination test that has never been watched failing is indistinguishable from one that asserts
+nothing.
+
+## Not yet covered
+
+The binding functions (`compute_repository_binding`, `assess_repository_binding`) have not been
+mutated. Windows process-tree termination through `taskkill` is untested here; the POSIX path is
+proven and the Windows path remains `inferred`. A gate that deliberately detaches from its
+process group with `setsid` is a documented limitation rather than a defect, and is not asserted
+either way.
