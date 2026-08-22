@@ -5,6 +5,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import shlex
 import shutil
 import subprocess
 import sys
@@ -489,6 +490,178 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertEqual(result, 2)
             self.assertIn("REFUSED", output.getvalue())
             self.assertFalse((repo / ".anti-dark-code" / "runs").exists())
+
+    def make_skill_repo(self, root: Path, version: str, changelog_body: str) -> Path:
+        """A minimal release repository: a distributable core plus a root CHANGELOG."""
+        root.mkdir(parents=True, exist_ok=True)
+        core = self.copy_clean_skill(root)
+        (core / "VERSION").write_text(f"{version}\n", encoding="utf-8")
+        (root / "CHANGELOG.md").write_text(changelog_body, encoding="utf-8")
+        self.init_git_repo(root)
+        return core
+
+    def test_source_provenance_classifies_tag_untagged_dirty_and_non_git(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nNotes.\n")
+
+            untagged = adc.assess_source_provenance(core)
+            self.assertEqual(untagged["kind"], "git-untagged")
+            self.assertIsNone(untagged["tag"])
+            self.assertEqual(len(untagged["core_digest"]), 64)
+
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+            tagged = adc.assess_source_provenance(core)
+            self.assertEqual(tagged["kind"], "git-tag")
+            self.assertEqual(tagged["tag"], "v1.0.0-test")
+            self.assertEqual(tagged["core_digest"], untagged["core_digest"])
+
+            (core / "SKILL.md").write_text("dirtied\n", encoding="utf-8")
+            dirty = adc.assess_source_provenance(core)
+            self.assertEqual(dirty["kind"], "git-dirty")
+            self.assertTrue(dirty["dirty"])
+            self.assertNotEqual(dirty["core_digest"], tagged["core_digest"])
+
+            extract = Path(tmp) / "extract"
+            extract.mkdir()
+            subprocess.run(
+                f"git -C {shlex.quote(str(root))} archive v1.0.0-test | tar -x -C {shlex.quote(str(extract))}",
+                shell=True, check=True,
+            )
+            plain = adc.assess_source_provenance(extract / "anti-dark-code")
+            self.assertEqual(plain["kind"], "non-git")
+            self.assertEqual(plain["core_digest"], tagged["core_digest"])
+
+    def test_install_refuses_an_untagged_or_dirty_source_without_override(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nNotes.\n")
+            repo = Path(tmp) / "consumer"
+            repo.mkdir()
+            (repo / "README.md").write_text("consumer\n", encoding="utf-8")
+            self.init_git_repo(repo)
+
+            with self.assertRaises(SystemExit) as refused:
+                adc.install_skill(repo, core, apply=True, force=False, hosts="none")
+            self.assertIn("not at a release tag", str(refused.exception))
+
+            plan = adc.install_skill(
+                repo, core, apply=True, force=False, hosts="none", allow_untagged_source=True
+            )
+            self.assertFalse(plan["blocked"])
+            self.assertEqual(plan["source_provenance"]["kind"], "git-untagged")
+
+    def test_install_verifies_an_expected_core_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nNotes.\n")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+            repo = Path(tmp) / "consumer"
+            repo.mkdir()
+            (repo / "README.md").write_text("consumer\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            actual = adc.assess_source_provenance(core)["core_digest"]
+
+            with self.assertRaises(SystemExit) as refused:
+                adc.install_skill(
+                    repo, core, apply=True, force=False, hosts="none", expect_core_digest="0" * 64
+                )
+            self.assertIn("does not match the expected release digest", str(refused.exception))
+
+            plan = adc.install_skill(
+                repo, core, apply=True, force=False, hosts="none", expect_core_digest=actual
+            )
+            self.assertFalse(plan["blocked"])
+            self.assertTrue(plan["source_provenance"]["digest_expected_match"])
+
+    def test_release_check_requires_the_tag_to_reproduce_the_published_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nNotes.\n")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+            tagged_digest = adc.assess_source_provenance(core)["core_digest"]
+
+            # The exact defect this gate exists for: the branch moves past the tag.
+            (core / "SKILL.md").write_text("post-tag drift\n", encoding="utf-8")
+            self.commit_all(root, "post-tag change to the distributed core")
+            self.assertNotEqual(adc.assess_source_provenance(core)["core_digest"], tagged_digest)
+
+            matching = adc.release_check(root, "v1.0.0-test", expect_core_digest=tagged_digest)
+            self.assertTrue(matching["digest_match"])
+            self.assertEqual(matching["core_digest"], tagged_digest)
+
+            drifted = adc.release_check(
+                root, "v1.0.0-test", expect_core_digest=adc.assess_source_provenance(core)["core_digest"]
+            )
+            self.assertFalse(drifted["digest_match"])
+            self.assertFalse(drifted["ok"])
+
+    def test_release_check_names_reference_changes_the_notes_never_describe(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nFirst.\n")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+
+            # A silently shipped lesson: a reference changes, the notes never say so.
+            reference = core / "references" / "14-deterministic-verification.md"
+            reference.write_text(reference.read_text(encoding="utf-8") + "\nA new rule.\n", encoding="utf-8")
+            (core / "VERSION").write_text("1.1.0-test\n", encoding="utf-8")
+            (root / "CHANGELOG.md").write_text(
+                "# Changelog\n\n## 1.1.0-test\n\nRoutine maintenance.\n\n## 1.0.0-test\n\nFirst.\n",
+                encoding="utf-8",
+            )
+            self.commit_all(root, "promote a lesson without describing it")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.1.0-test"], check=True)
+
+            silent = adc.release_check(root, "v1.1.0-test")
+            self.assertIn("references/14-deterministic-verification.md", silent["undescribed_files"])
+            self.assertFalse(silent["ok"])
+
+            (root / "CHANGELOG.md").write_text(
+                "# Changelog\n\n## 1.1.0-test\n\nAdds a rule to "
+                "`references/14-deterministic-verification.md`.\n\n## 1.0.0-test\n\nFirst.\n",
+                encoding="utf-8",
+            )
+            self.commit_all(root, "describe the promotion")
+            subprocess.run(["git", "-C", str(root), "tag", "-f", "v1.1.0-test"], check=True)
+            described = adc.release_check(root, "v1.1.0-test")
+            self.assertEqual(described["undescribed_files"], [])
+            self.assertTrue(described["ok"])
+
+    def test_release_check_ignores_mechanical_version_churn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nFirst.\n")
+            catalog = core / "assets" / "verification-capabilities.json"
+            catalog.write_text(json.dumps({"catalog_version": "1.0.0-test"}, indent=2) + "\n", encoding="utf-8")
+            self.commit_all(root, "seed catalog")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+
+            # Only the version string moves: the notes owe the reader nothing.
+            catalog.write_text(json.dumps({"catalog_version": "1.1.0-test"}, indent=2) + "\n", encoding="utf-8")
+            (core / "VERSION").write_text("1.1.0-test\n", encoding="utf-8")
+            (root / "CHANGELOG.md").write_text(
+                "# Changelog\n\n## 1.1.0-test\n\nRoutine.\n\n## 1.0.0-test\n\nFirst.\n", encoding="utf-8"
+            )
+            self.commit_all(root, "bump")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.1.0-test"], check=True)
+            self.assertEqual(adc.release_check(root, "v1.1.0-test")["undescribed_files"], [])
+
+            # A substantive change to the same file is still reported.
+            catalog.write_text(
+                json.dumps({"catalog_version": "1.2.0-test", "capabilities": ["new"]}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            (core / "VERSION").write_text("1.2.0-test\n", encoding="utf-8")
+            (root / "CHANGELOG.md").write_text(
+                "# Changelog\n\n## 1.2.0-test\n\nRoutine.\n\n## 1.1.0-test\n\nRoutine.\n", encoding="utf-8"
+            )
+            self.commit_all(root, "add a capability without describing it")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.2.0-test"], check=True)
+            self.assertIn(
+                "assets/verification-capabilities.json",
+                adc.release_check(root, "v1.2.0-test")["undescribed_files"],
+            )
 
     def test_flowback_is_proposal_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
