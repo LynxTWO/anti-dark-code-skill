@@ -1961,6 +1961,17 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             # skill's own writing rule in 00-conventions.md.
             subject = "\u3042\u308a\u304c\u3068\u3046"
             branch = "feature/\u6a5f\u80fd"
+            # Where the filesystem encoding cannot represent these, git cannot even
+            # receive them as arguments, so there is nothing to measure. That is a
+            # property of the environment, not a defect, and it is the same reason
+            # the symlink tests here skip rather than fail.
+            try:
+                subject.encode(sys.getfilesystemencoding())
+                branch.encode(sys.getfilesystemencoding())
+            except UnicodeEncodeError:
+                self.skipTest(
+                    f"filesystem encoding {sys.getfilesystemencoding()} cannot carry the fixture"
+                )
             subprocess.run(
                 ["git", "-C", str(repo), "commit", "-q", "--allow-empty", "-m", subject], check=True
             )

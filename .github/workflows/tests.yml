@@ -98,9 +98,31 @@ jobs:
             validate --skill "$extract/anti-dark-code" --mode distribution
 
   hostile-environment:
-    name: Hostile environment
+    name: Hostile environment (${{ matrix.label }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Two environments that exist, rather than one that cannot. An ASCII
+          # locale with non-ASCII paths is self-contradictory: a system whose
+          # paths are non-ASCII has a locale that can represent them. Combining
+          # them only proves that fixtures needing non-ASCII I/O cannot run
+          # where the filesystem encoding forbids it, which is not a defect.
+          - label: C locale
+            locale: "C"
+            utf8: "0"
+            tmpname: "adc-plain-temp"
+          - label: international paths
+            locale: "C.UTF-8"
+            utf8: "1"
+            # A space and non-ASCII characters, deliberate test data rather than
+            # punctuation drift. A backslash-u escape would create a directory
+            # literally named "é" and would test nothing. This file is not
+            # part of the distributed skill, where the ASCII-only rule applies.
+            tmpname: "adc hostile é中"
 
     steps:
       - name: Check out the candidate
@@ -122,32 +144,19 @@ jobs:
       - name: Run the suite where the platform is unhelpful
         shell: bash
         env:
-          # Every runner in the matrix above defaults to UTF-8, so none of them
-          # exercises the decoding path that a default Windows install or an
-          # LC_ALL=C server takes. git speaks UTF-8 regardless.
-          LC_ALL: C
-          LANG: C
-          PYTHONUTF8: "0"
+          LC_ALL: ${{ matrix.locale }}
+          LANG: ${{ matrix.locale }}
+          PYTHONUTF8: ${{ matrix.utf8 }}
           PYTHONCOERCECLOCALE: "0"
         run: |
           set -euo pipefail
-          # A temp root with a space and a non-ASCII component. The two non-ASCII
-          # characters below are deliberate test data, not punctuation drift: a
-          # backslash-u escape would only create a directory literally named
-          # "é" and would test nothing. This file is not part of the
-          # distributed skill, where the ASCII-only writing rule applies.
-          #
-          # Path shape has
-          # already produced one real defect here: a Windows path under C:/Users
-          # reached a nested string as a truncated unicode escape and killed the
-          # gate it was supposed to time out.
-          hostile="${RUNNER_TEMP}/adc hostile é中"
+          hostile="${RUNNER_TEMP}/${{ matrix.tmpname }}"
           mkdir -p "${hostile}"
           export TMPDIR="${hostile}"
           # Line-ending rewriting on checkout, the setting that made a fixture
           # digest disagree with the archive it came from.
           git config core.autocrlf true
-          python -c "import locale, tempfile; print('locale', locale.getpreferredencoding(False)); print('tmp', tempfile.gettempdir())"
+          python -c "import locale, sys, tempfile; print('locale', locale.getpreferredencoding(False)); print('fsenc', sys.getfilesystemencoding()); print('tmp', tempfile.gettempdir())"
           python -m pytest anti-dark-code/tests -q
 
   # The single context branch protection should require.
