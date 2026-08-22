@@ -5,10 +5,10 @@ import contextlib
 import importlib.util
 import io
 import json
-import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import unittest
@@ -31,6 +31,18 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             accepted_unbound=assessment["status"] == "unbound",
             rebound=assessment["status"] == "mismatch",
         )
+
+    @staticmethod
+    def write_lf(path: Path, text: str) -> None:
+        """Write bytes exactly as given, without the platform's newline translation.
+
+        Path.write_text translates "\\n" to the platform separator, so on Windows a
+        fixture lands as CRLF while git stores and re-extracts it as LF under this
+        repository's `text=auto eol=lf`. Any check that digests the working tree and
+        compares it against an archive of the same commit then reports false drift.
+        Use this wherever a fixture's exact bytes are part of what a test asserts.
+        """
+        path.write_text(text, encoding="utf-8", newline="\n")
 
     def copy_clean_skill(self, destination: Path) -> Path:
         source = Path(__file__).resolve().parents[1]
@@ -495,8 +507,8 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         """A minimal release repository: a distributable core plus a root CHANGELOG."""
         root.mkdir(parents=True, exist_ok=True)
         core = self.copy_clean_skill(root)
-        (core / "VERSION").write_text(f"{version}\n", encoding="utf-8")
-        (root / "CHANGELOG.md").write_text(changelog_body, encoding="utf-8")
+        self.write_lf(core / "VERSION", f"{version}\n")
+        self.write_lf(root / "CHANGELOG.md", changelog_body)
         self.init_git_repo(root)
         return core
 
@@ -524,10 +536,16 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
             extract = Path(tmp) / "extract"
             extract.mkdir()
-            subprocess.run(
-                f"git -C {shlex.quote(str(root))} archive v1.0.0-test | tar -x -C {shlex.quote(str(extract))}",
-                shell=True, check=True,
-            )
+            # Extract in-process, the way release_check does. Piping git archive
+            # into the tar binary fails on Windows, where GNU tar reads a
+            # backslashed drive path as a remote host spec, and a shell pipeline
+            # would report tar's status rather than git's in any case.
+            archive = subprocess.run(
+                ["git", "-C", str(root), "archive", "v1.0.0-test"],
+                check=True, capture_output=True,
+            ).stdout
+            with tarfile.open(fileobj=io.BytesIO(archive)) as bundle:
+                bundle.extractall(extract, filter="data")
             plain = adc.assess_source_provenance(extract / "anti-dark-code")
             self.assertEqual(plain["kind"], "non-git")
             self.assertEqual(plain["core_digest"], tagged["core_digest"])
