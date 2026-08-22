@@ -691,6 +691,17 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertFalse(tagged["dirty"])
             self.assertEqual(tagged["core_digest"], untagged["core_digest"])
 
+            # Excluded directories are not shipped, so work in progress there must not
+            # be called dirty: it cannot change a single byte the install carries.
+            (core / "incoming").mkdir(exist_ok=True)
+            (core / "incoming" / "flowback-draft.md").write_text("draft\n", encoding="utf-8")
+            (core / "calibration").mkdir(exist_ok=True)
+            (core / "calibration" / "notes.md").write_text("local\n", encoding="utf-8")
+            still_tagged = adc.assess_source_provenance(core)
+            self.assertEqual(still_tagged["kind"], "git-tag")
+            self.assertFalse(still_tagged["dirty"])
+            self.assertEqual(still_tagged["core_digest"], tagged["core_digest"])
+
             (core / "SKILL.md").write_text("dirtied\n", encoding="utf-8")
             dirty = adc.assess_source_provenance(core)
             self.assertEqual(dirty["kind"], "git-dirty")
