@@ -2212,6 +2212,25 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         for path in paths:
             self.assertNotIn(forbidden_project_name, path.read_text(encoding="utf-8").lower(), str(path))
 
+    def test_pdf_normalization_collapses_only_generation_timestamps(self) -> None:
+        # Fixture pair: identical documents rendered at different wall-clock times.
+        # Raw bytes differ, normalized bytes must not. If normalize_pdf_bytes were
+        # reverted to the identity function, the second assertion goes red.
+        render_a = (
+            b"%PDF-1.4\n<</Producer (Skia/PDF m151)\n"
+            b"/CreationDate (D:20260822110333+00'00')\n"
+            b"/ModDate (D:20260822110333+00'00')>>\nbody bytes\n"
+        )
+        render_b = render_a.replace(b"20260822110333", b"20260101000000")
+        self.assertNotEqual(render_a, render_b)
+        self.assertEqual(adc.normalize_pdf_bytes(render_a), adc.normalize_pdf_bytes(render_b))
+
+        # Content differences must still survive normalization, or the digest
+        # would be satisfied by any document at all.
+        altered = render_a.replace(b"body bytes", b"other bytes")
+        self.assertNotEqual(adc.normalize_pdf_bytes(render_a), adc.normalize_pdf_bytes(altered))
+        self.assertNotIn(b"20260822110333", adc.normalize_pdf_bytes(render_a))
+
     def test_source_release_surfaces_match_canonical_version(self) -> None:
         skill_root = Path(__file__).resolve().parents[1]
         package_root = skill_root.parent
@@ -2243,6 +2262,12 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         self.assertEqual(provenance["version"], version)
         self.assertEqual(provenance["source_sha256"], adc.sha256_file(brief))
         self.assertEqual(provenance["pdf_sha256"], adc.sha256_file(pdf))
+        # pdf_sha256 identifies this exact artifact and can never be reproduced,
+        # because every render restamps the timestamps. The normalized digest is
+        # the reproducibility claim: a re-render of this brief must match it.
+        # Both are integrity checks over committed bytes. Neither proves the PDF
+        # was regenerated from the current HTML; only an actual re-render does.
+        self.assertEqual(provenance["normalized_pdf_sha256"], adc.normalized_pdf_sha256(pdf))
 
 
 

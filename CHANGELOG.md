@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026.08.22-unified.7
+
+A correctness release. `2026.08.20-unified.6` promoted fourteen lessons from proposals whose multi-line fields had been truncated in staging, so their reference text was reconstructed from titles and surviving fragments. The full proposals were re-staged afterwards. This release compares the reconstructions against the restored sources and repairs what the reconstruction lost. It adds no new lessons.
+
+Two independent audit passes produced these findings, the second run specifically to falsify the first. The second pass refuted one claim outright and narrowed two others; those corrections are reflected below.
+
+### Repaired Promotions
+
+- `11-remediation-loop.md`: the revert-mutation baseline rule described the wrong failure. Version control cannot restore a file it does not track, so on a new unit the restoring checkout fails with an unknown-pathspec error and the mutation stays in place. The text said the checkout destroys the unit instead. The danger is a mutation that survives the revert, and the closing green run is what exposes it.
+- `11-remediation-loop.md`: the surviving-mutant rule offered "a missing test or untested behavior" as its two possibilities. Those are the same thing, which made the sentence an instance of the unfalsifiable-check class this skill defines. The alternatives are a missing test or an equivalent mutant, and the equivalent-mutant response was absent entirely: the mutated code was not load bearing, so the honest close is to delete the dead branch, name which mechanism really owns the behavior, and re-prove with a load-bearing mutation. The unit is not done until one goes red.
+- `11-remediation-loop.md`: hang-as-third-outcome kept the bounding requirement but lost the reason and the remedy. A hang is worse evidence than a pass because it also blocks every later proof, and the fix is to bound cleanup waits downstream of a mutated safety action and surface expiry as a typed failure.
+- `11-remediation-loop.md`: the guard-case rule lost its placement. A guard belongs in the finding's own smallest-safe-step rather than in follow-up work, must cover the form the change newly catches rather than one that already worked, and a probe an author ran once is not a guard because it does not run again.
+- `07-adversarial-review.md`: three of the five field-observed shapes of the unfalsifiable-check class had been replaced by three plausible but unobserved ones. The observed shapes are restored. Two obligations were missing: naming the class requires sweeping the whole verification surface, because a remediation written after the class is named can introduce fresh instances of it, and a documentation restatement must cite the probe that proves it, which is the cheap discriminator between a restatement and an unverified claim hiding among verified ones.
+- `assurance-contracts.md`: the isolation-claim rule downgraded the claim to `inferred` when a probe cannot run but never required the gate to fail. A probe that tests nothing is indistinguishable from a passing probe, so silence must not score as success.
+- `assurance-contracts.md`: the self-certification rule kept the general defect and lost both practical traps: scope the scan to the whole document, because a live verdict often sits in a different section than the one a first replacement checks, and distinguish a live claim from accurate history so closing a check never requires deleting true history.
+- `00-conventions.md`: audited-set evidence defined the claim but omitted its ordering. A producer record written after an audit attempt is unaudited however green its own run was, and a producer writing new evidence must invalidate any standing audit first.
+- `10-maintenance-harness.md`: environment contention lost the requirement to name the holder before proposing a timing remedy, and to record a required tool exclusion beside the gate as an environmental prerequisite the repository cannot enforce from the inside.
+- `10-maintenance-harness.md`: audited dependency state lost the rule that every restore goes through the reviewed path, leaving only the no-restore flag and the hash gate.
+- `15-dogfeeding-flowback.md` and `scripts/adc.py`: the reference opened by telling readers to anchor identity to what a repository cannot casually change, while the rest of the same paragraph and the shipped code correctly do the opposite. Forks share root commits by design, so anchoring identity there would accept an upstream repository's calibration inside every fork of it. Both surfaces now state the same rule: the remote is the exclusivity signal and keys the binding, root commits explain a mismatch without overruling it, and a root-commit mismatch is the stop condition. Binding behavior is unchanged.
+
+### Deterministic-First Contract
+
+- `14-deterministic-verification.md`: the shell exit-code contract covered pipelines and not conjunctions. The composition that collapses a gate to a one-line result is itself a trust boundary. A pipeline reports its last stage, so a verdict piped into a summarizer is discarded; a conjunction short-circuits, so cleanup and revert steps chained behind a failing gate never run. The two compose into a worse case, where masking a failure lets the chain proceed and report success with the safety step apparently confirmed. One idiom loses the verdict and the other loses the safety step, so no single fix covers both.
+
+### Release Evidence
+
+- Adds `normalize_pdf_bytes` and `normalized_pdf_sha256` to `scripts/adc.py`, and `normalized_pdf_sha256` to the brief's provenance. A print-to-PDF engine restamps `/CreationDate` and `/ModDate` on every render, so `pdf_sha256` identifies one artifact and can never be reproduced. The normalized digest is the reproducibility claim, and two independent renders of this brief on different days now produce the same normalized digest. Both remain integrity checks over committed bytes: neither proves the PDF was regenerated from the current HTML, and only an actual re-render does. That gap is recorded rather than papered over with a check that cannot fail.
+- Fixes chip crowding in the evidence-language rows of the brief and the website. The `verified`, `inferred`, and `unknown` chips sit in a grid track sized for two-digit pass numbers, and a fixed track does not grow, so they overflowed into the body text. This fix was authored before `2026.08.20-unified.6` shipped but was merged into a branch that had already merged to `main`, so it never reached a release.
+- Removes both fully promoted proposals from the inbox. A clean distribution archive previously failed `validate --mode distribution` because the runtime-only inbox shipped inside it.
+
+### Hardening
+
+- Bounds the untrusted-fork history that the proposal-intake and efficiency-ledger workflows download onto a privileged runner. Both checked the candidate out with `fetch-depth: 0`, which lets a fork choose how much work the runner does. A bounded depth keeps the merge base present for the normal case, and the validator's existing two-dot fallback still computes a changed set if a proposal ever falls outside the window. Like any workflow change, this is unverified until it runs on the default branch.
+- Replaces the one non-ASCII character in the shipped skill, an arrow in the system-map template, against this skill's own ASCII-only writing rule.
+
+### Tests
+
+- 123 tests, of which 112 pass and 11 skip on this host. Adds a fixture-pair regression proving PDF normalization collapses timestamp differences while preserving content differences, which goes red if the normalization is reduced to an identity function, and extends the release-surface test to the normalized digest.
+
 ## 2026.08.20-unified.6
 
 ### Promoted Lessons

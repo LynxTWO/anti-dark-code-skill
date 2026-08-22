@@ -275,6 +275,26 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+PDF_TIMESTAMP_PATTERN = re.compile(rb"(/(?:CreationDate|ModDate)\s*\()D:[^)]*(\))")
+PDF_EPOCH_STAMP = rb"\g<1>D:00000000000000+00'00'\g<2>"
+
+
+def normalize_pdf_bytes(data: bytes) -> bytes:
+    """Blank a PDF's generation timestamps so two renders of one source compare equal.
+
+    A print-to-PDF engine stamps /CreationDate and /ModDate from the wall clock,
+    so the raw digest of a regenerated document never reproduces its predecessor
+    even when every other byte matches. That makes the stored digest an identity
+    for one artifact rather than a reproducibility claim about the source. Zeroing
+    only those two values leaves a digest a later re-render can actually match.
+    """
+    return PDF_TIMESTAMP_PATTERN.sub(PDF_EPOCH_STAMP, data)
+
+
+def normalized_pdf_sha256(path: Path) -> str:
+    return sha256_bytes(normalize_pdf_bytes(path.read_bytes()))
+
+
 def normalized_json_hash(data: Any, volatile_keys: set[str] | None = None) -> str:
     volatile_keys = volatile_keys or set()
 
@@ -541,9 +561,13 @@ def compute_repository_binding(repo: Path) -> dict[str, Any]:
         components["root_commits_sha256"] = sha256_bytes(roots_text.encode("utf-8"))
 
     if origin:
-        # The canonical remote is the stable identity. Root commits remain hashed
-        # evidence, but they do not change the binding after a first commit or
-        # ordinary history maintenance.
+        # The canonical remote is the exclusivity signal, so it alone keys the
+        # binding. Root commits are the more durable signal but forks share them
+        # by design, so anchoring identity there would accept an upstream
+        # repository's calibration inside every fork of it. Root commits stay
+        # hashed in identity_components and are read by binding_mismatch_detail,
+        # which uses them to tell a move, fork, or rename apart from foreign
+        # calibration. They explain a mismatch; they never overrule one.
         identity_payload = {
             "kind": "git-origin",
             "origin_sha256": components["origin_sha256"],

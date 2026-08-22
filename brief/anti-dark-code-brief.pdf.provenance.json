@@ -1,8 +1,9 @@
 {
   "generator": "Chrome 151.0.7922.138 headless print-to-pdf",
-  "pdf_sha256": "c9bbb68c8e6499b93e1cc3280fb18e76661aa4ee0749f528131f08a4bdfab47a",
+  "normalized_pdf_sha256": "d3dba733e9ed17082a98aeb48fab1ec8e5c2e7ea3f29d3816811e0632ed3dd3e",
+  "pdf_sha256": "9d26b5d4e55423298610b503783c3f2b7779f8c653e248ec99e4ecb1c76bf7bc",
   "schema_version": 1,
-  "source_sha256": "14652ff9f25362fa7d5f8c3ec0fd5615e7747beb5c8791bc001a5dde08b2c51a",
+  "source_sha256": "8e527e21ba13e83a0645f6eabb995a55fc9b9deba7e34aa3c85560aa9b0c8e07",
   "validated_with": "pdftotext 4.00",
-  "version": "2026.08.20-unified.6"
+  "version": "2026.08.22-unified.7"
 }
