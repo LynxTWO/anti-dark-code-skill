@@ -20,7 +20,7 @@ A skill that teaches AI coding assistants (Claude Code, Codex, Gemini CLI, and o
 - **Plain-language overview**: https://lynxtwo.github.io/anti-dark-code-skill/
 - **Version**: `2026.08.22-unified.8` (see `CHANGELOG.md`)
 
-One model-neutral core, repo-local calibration, and deterministic local tooling. No automatic network calls, telemetry, or submission, and no dependencies beyond Python 3 for the optional tooling. Optional efficiency receipts are created only by an explicit local command and remain local until a person exports and submits one.
+One model-neutral core, repo-local calibration, and deterministic local tooling. No automatic network calls, telemetry, or submission, and no dependencies beyond Python 3.12 or newer for the optional tooling, standard library only. Optional efficiency receipts are created only by an explicit local command and remain local until a person exports and submits one.
 
 ## Quick start if you are new to all of this
 

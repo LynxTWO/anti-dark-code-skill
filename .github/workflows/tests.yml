@@ -97,6 +97,68 @@ jobs:
           python -B "$extract/anti-dark-code/scripts/adc.py" \
             validate --skill "$extract/anti-dark-code" --mode distribution
 
+  hostile-environment:
+    name: Hostile environment (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Two environments that exist, rather than one that cannot. An ASCII
+          # locale with non-ASCII paths is self-contradictory: a system whose
+          # paths are non-ASCII has a locale that can represent them. Combining
+          # them only proves that fixtures needing non-ASCII I/O cannot run
+          # where the filesystem encoding forbids it, which is not a defect.
+          - label: C locale
+            locale: "C"
+            utf8: "0"
+            tmpname: "adc-plain-temp"
+          - label: international paths
+            locale: "C.UTF-8"
+            utf8: "1"
+            # A space and non-ASCII characters, deliberate test data rather than
+            # punctuation drift. A backslash-u escape would create a directory
+            # literally named "é" and would test nothing. This file is not
+            # part of the distributed skill, where the ASCII-only rule applies.
+            tmpname: "adc hostile é中"
+
+    steps:
+      - name: Check out the candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Install the test runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet pytest
+
+      - name: Run the suite where the platform is unhelpful
+        shell: bash
+        env:
+          LC_ALL: ${{ matrix.locale }}
+          LANG: ${{ matrix.locale }}
+          PYTHONUTF8: ${{ matrix.utf8 }}
+          PYTHONCOERCECLOCALE: "0"
+        run: |
+          set -euo pipefail
+          hostile="${RUNNER_TEMP}/${{ matrix.tmpname }}"
+          mkdir -p "${hostile}"
+          export TMPDIR="${hostile}"
+          # Line-ending rewriting on checkout, the setting that made a fixture
+          # digest disagree with the archive it came from.
+          git config core.autocrlf true
+          python -c "import locale, sys, tempfile; print('locale', locale.getpreferredencoding(False)); print('fsenc', sys.getfilesystemencoding()); print('tmp', tempfile.gettempdir())"
+          python -m pytest anti-dark-code/tests -q
+
   # The single context branch protection should require.
   #
   # Protection pins required checks by exact name, so listing every matrix leg
@@ -117,7 +179,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [suite, distribution]
+    needs: [suite, distribution, hostile-environment]
     # always(), so this reports a verdict even when a dependency fails or is
     # skipped. That makes explicitly checking each result mandatory: without the
     # loop below this job would succeed no matter what happened upstream, which
@@ -130,11 +192,12 @@ jobs:
         env:
           SUITE_RESULT: ${{ needs.suite.result }}
           DISTRIBUTION_RESULT: ${{ needs.distribution.result }}
+          HOSTILE_RESULT: ${{ needs.hostile-environment.result }}
         run: |
           set -euo pipefail
-          echo "suite=${SUITE_RESULT} distribution=${DISTRIBUTION_RESULT}"
+          echo "suite=${SUITE_RESULT} distribution=${DISTRIBUTION_RESULT} hostile=${HOSTILE_RESULT}"
           failed=0
-          for entry in "suite=${SUITE_RESULT}" "distribution=${DISTRIBUTION_RESULT}"; do
+          for entry in "suite=${SUITE_RESULT}" "distribution=${DISTRIBUTION_RESULT}" "hostile=${HOSTILE_RESULT}"; do
             if [ "${entry#*=}" != "success" ]; then
               echo "required job did not succeed: ${entry}"
               failed=1

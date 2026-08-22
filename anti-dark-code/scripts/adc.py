@@ -544,7 +544,14 @@ def compute_repository_binding(repo: Path) -> dict[str, Any]:
     roots = sorted({line.strip() for line in (roots_raw or "").splitlines() if line.strip()})
     is_git = git_output(repo, ["rev-parse", "--is-inside-work-tree"]) == "true"
     normalized_path = os.path.normcase(str(repo))
-    path_hash = sha256_bytes(normalized_path.encode("utf-8"))
+    # os.fsencode, not str.encode("utf-8"). Under an ASCII filesystem encoding
+    # (LC_ALL=C) a repository path outside that encoding decodes to surrogates,
+    # and encoding those back strictly raises "surrogates not allowed", so the
+    # binding cannot be computed at all for a repository under a non-ASCII
+    # directory. fsencode reverses the same transform the path arrived through.
+    # For a path the platform could represent, this produces identical bytes, so
+    # existing bindings keep their digests.
+    path_hash = sha256_bytes(os.fsencode(normalized_path))
 
     components: dict[str, Any] = {
         "origin_present": bool(origin),
@@ -557,7 +564,9 @@ def compute_repository_binding(repo: Path) -> dict[str, Any]:
 
     if origin:
         normalized_origin = normalize_git_remote(origin)
-        components["origin_sha256"] = sha256_bytes(normalized_origin.encode("utf-8"))
+        # surrogateescape to match how git_output decoded it; a remote URL that is
+        # not valid UTF-8 round-trips to its original bytes instead of raising.
+        components["origin_sha256"] = sha256_bytes(normalized_origin.encode("utf-8", "surrogateescape"))
     if roots:
         roots_text = "\n".join(roots)
         components["root_commits_sha256"] = sha256_bytes(roots_text.encode("utf-8"))
@@ -1028,8 +1037,30 @@ def likely_test(path: Path) -> bool:
 
 
 def git_output(repo: Path, args: Sequence[str]) -> str | None:
+    """Read git's stdout as UTF-8, never as whatever the machine's locale happens to be.
+
+    text=True alone decodes with locale.getpreferredencoding(), which is cp1252 on a
+    default Windows install and ASCII under LC_ALL=C. Git emits UTF-8. core.quotepath
+    hides that for paths by escaping them, but not for a branch name, a tag name, a
+    repository path from rev-parse --show-toplevel, or diff content, so a repository
+    under a non-ASCII directory decodes wrong or not at all. On Windows the failure is
+    especially quiet: the decode raises inside subprocess's reader thread, stdout comes
+    back None while returncode is 0, and the caller crashes on None.strip().
+
+    surrogateescape rather than replace, because these values are compared and hashed:
+    a lossy decode would make two different repositories look identical. Surrogates
+    round-trip back to the original bytes.
+    """
     try:
-        proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=15, check=False)
+        proc = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="surrogateescape",
+            timeout=15,
+            check=False,
+        )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0:
