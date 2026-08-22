@@ -7,6 +7,7 @@ import io
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
@@ -389,6 +390,47 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
             self.assertLess(time.monotonic() - started, 60, "SIGTERM was ignored and nothing escalated")
             self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+
+    def test_windows_forced_tree_kill_is_exercised_when_the_graceful_signal_fails(self) -> None:
+        """The Windows escalation carries its own claim and needs its own test.
+
+        terminate_gate_process_tree tries CTRL_BREAK_EVENT first and only falls
+        through to `taskkill /T` when the gate outlives the grace period. On this
+        platform the graceful signal already takes the console process group with
+        it, so the orphan test above passes whether or not `/T` is present:
+        deleting the flag leaves the suite green, which makes the forced path
+        untested rather than proven. Disabling the graceful signal forces the
+        escalation and puts the tree-kill under the same assertion.
+        """
+        if os.name != "nt":
+            self.skipTest("Windows termination escalation")
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            marker = repo / "orphan-survived.txt"
+            spawner = (
+                "import subprocess, sys, time\n"
+                f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
+                f"open(r'{marker}', 'w').write('alive')\"])\n"
+                "time.sleep(120)\n"
+            )
+            self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
+            real_break = getattr(signal, "CTRL_BREAK_EVENT", None)
+            try:
+                if real_break is not None:
+                    delattr(signal, "CTRL_BREAK_EVENT")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(
+                        adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1
+                    )
+            finally:
+                if real_break is not None:
+                    signal.CTRL_BREAK_EVENT = real_break
+            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+            time.sleep(9)
+            self.assertFalse(
+                marker.exists(),
+                "a grandchild outlived the timed-out gate: taskkill did not terminate the tree",
+            )
 
     def test_gate_environment_overlay_is_used_but_not_recorded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
