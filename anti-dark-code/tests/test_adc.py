@@ -5,7 +5,9 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
@@ -310,6 +312,157 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn("hunter2", full_log.read_text(encoding="utf-8"))
             self.assertEqual(packet["exit_code"], 3)
 
+    def gate_repo(self, repo: Path, argv: list[str], timeout_seconds: int) -> None:
+        """One approved, enabled gate, ready to execute."""
+        cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+        cal.mkdir(parents=True, exist_ok=True)
+        self.bind_calibration(repo, cal)
+        (cal / "gates.json").write_text(json.dumps({
+            "schema_version": 1,
+            "execution_policy": {"owner_confirmed_safe_to_execute": True},
+            "gates": [{
+                "id": "injected", "level": 0, "argv": argv, "enabled": True,
+                "review_status": "approved", "cwd": ".", "timeout_seconds": timeout_seconds,
+                "include_globs": [], "exclude_globs": [],
+            }],
+        }), encoding="utf-8")
+
+    def only_packet(self, repo: Path) -> dict:
+        packets = list((repo / ".anti-dark-code" / "runs").rglob("ADC-FAIL-*.json"))
+        self.assertEqual(len(packets), 1, "expected exactly one failure packet")
+        return json.loads(packets[0].read_text(encoding="utf-8"))
+
+    def assert_timed_out(self, repo: Path) -> None:
+        """Assert the bound fired, and say why when it did not.
+
+        "1 != 124" names the symptom and hides the cause. A gate that exits on
+        its own instead of being bounded has usually failed to launch or died
+        early, and the packet already records which. Report that here rather
+        than sending the next reader back to CI for another round trip.
+        """
+        packet = self.only_packet(repo)
+        self.assertEqual(
+            packet["exit_code"],
+            124,
+            "gate was not bounded: "
+            f"timed_out={packet.get('timed_out')!r} "
+            f"launch_error={packet.get('launch_error')!r} "
+            f"termination={packet.get('timeout_termination')!r} "
+            f"output={packet.get('bounded_output')!r}",
+        )
+
+    def test_a_hung_gate_times_out_and_is_recorded_as_such(self) -> None:
+        """A gate that never returns must fail on a bound, not wait forever."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.gate_repo(repo, [sys.executable, "-c", "import time; time.sleep(120)"], 2)
+            started = time.monotonic()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            elapsed = time.monotonic() - started
+            self.assertLess(elapsed, 60, "the timeout did not bound the run")
+            self.assert_timed_out(repo)
+
+    def test_a_timed_out_gate_takes_its_orphan_children_with_it(self) -> None:
+        """The claim this repository makes is process-tree termination, not child termination.
+
+        A gate that spawns a background process and then hangs is the shape that
+        distinguishes the two: killing only the direct child leaves the grandchild
+        running, and it keeps running after the gate is reported as failed.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            marker = repo / "orphan-survived.txt"
+            spawner = (
+                "import subprocess, sys, time\n"
+                f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
+                # as_posix, because this path is embedded two string levels deep and
+                # the outer level is not raw. A Windows temp path under C:/Users reaches
+                # the gate's parser as a truncated unicode escape, and the gate dies of a
+                # SyntaxError instead of hanging, so the bound never fires and the test
+                # reports the wrong thing. Forward slashes carry no escapes at any level
+                # and open() accepts them on Windows.
+                f"open(r'{marker.as_posix()}', 'w').write('alive')\"])\n"
+                "time.sleep(120)\n"
+            )
+            self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            self.assert_timed_out(repo)
+
+            # Outlive the grandchild's own sleep. If the process group was not
+            # terminated, it wakes up here and writes the marker.
+            time.sleep(9)
+            self.assertFalse(
+                marker.exists(),
+                "a grandchild outlived the timed-out gate: the process tree was not terminated",
+            )
+
+    def test_a_gate_that_ignores_sigterm_is_still_terminated(self) -> None:
+        """Polite termination is a request. The bound has to hold when it is refused."""
+        if os.name != "posix":
+            self.skipTest("POSIX signal semantics")
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            stubborn = (
+                "import signal, time\n"
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+                "time.sleep(120)\n"
+            )
+            self.gate_repo(repo, [sys.executable, "-c", stubborn], 2)
+            started = time.monotonic()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            self.assertLess(time.monotonic() - started, 60, "SIGTERM was ignored and nothing escalated")
+            self.assert_timed_out(repo)
+
+    def test_windows_forced_tree_kill_is_exercised_when_the_graceful_signal_fails(self) -> None:
+        """The Windows escalation carries its own claim and needs its own test.
+
+        terminate_gate_process_tree tries CTRL_BREAK_EVENT first and only falls
+        through to `taskkill /T` when the gate outlives the grace period. On this
+        platform the graceful signal already takes the console process group with
+        it, so the orphan test above passes whether or not `/T` is present:
+        deleting the flag leaves the suite green, which makes the forced path
+        untested rather than proven. Disabling the graceful signal forces the
+        escalation and puts the tree-kill under the same assertion.
+        """
+        if os.name != "nt":
+            self.skipTest("Windows termination escalation")
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            marker = repo / "orphan-survived.txt"
+            spawner = (
+                "import subprocess, sys, time\n"
+                f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
+                # as_posix, because this path is embedded two string levels deep and
+                # the outer level is not raw. A Windows temp path under C:/Users reaches
+                # the gate's parser as a truncated unicode escape, and the gate dies of a
+                # SyntaxError instead of hanging, so the bound never fires and the test
+                # reports the wrong thing. Forward slashes carry no escapes at any level
+                # and open() accepts them on Windows.
+                f"open(r'{marker.as_posix()}', 'w').write('alive')\"])\n"
+                "time.sleep(120)\n"
+            )
+            self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
+            real_break = getattr(signal, "CTRL_BREAK_EVENT", None)
+            try:
+                if real_break is not None:
+                    delattr(signal, "CTRL_BREAK_EVENT")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(
+                        adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1
+                    )
+            finally:
+                if real_break is not None:
+                    signal.CTRL_BREAK_EVENT = real_break
+            self.assert_timed_out(repo)
+            time.sleep(9)
+            self.assertFalse(
+                marker.exists(),
+                "a grandchild outlived the timed-out gate: taskkill did not terminate the tree",
+            )
+
     def test_gate_environment_overlay_is_used_but_not_recorded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -528,12 +681,14 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             untagged = adc.assess_source_provenance(core)
             self.assertEqual(untagged["kind"], "git-untagged")
             self.assertIsNone(untagged["tag"])
+            self.assertFalse(untagged["dirty"])
             self.assertEqual(len(untagged["core_digest"]), 64)
 
             subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
             tagged = adc.assess_source_provenance(core)
             self.assertEqual(tagged["kind"], "git-tag")
             self.assertEqual(tagged["tag"], "v1.0.0-test")
+            self.assertFalse(tagged["dirty"])
             self.assertEqual(tagged["core_digest"], untagged["core_digest"])
 
             (core / "SKILL.md").write_text("dirtied\n", encoding="utf-8")
@@ -556,6 +711,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 bundle.extractall(extract, filter="data")
             plain = adc.assess_source_provenance(extract / "anti-dark-code")
             self.assertEqual(plain["kind"], "non-git")
+            self.assertFalse(plain["dirty"])
             self.assertEqual(plain["core_digest"], tagged["core_digest"])
 
     def test_install_refuses_an_untagged_or_dirty_source_without_override(self) -> None:
@@ -654,6 +810,136 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertEqual(described["undescribed_files"], [])
             self.assertTrue(described["ok"])
 
+    def test_parse_candidates_handles_a_missing_file_and_multiple_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "absent.md"
+            self.assertEqual(adc.parse_candidates(missing), [])
+
+            path = Path(tmp) / "upstream-candidates.md"
+            path.write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-001: First lesson\n\n- Status: ready\n- Lesson: First body.\n\n"
+                "## ADC-LOCAL-002: Second lesson\n\n- Status: observing\n- Lesson: Second body.\n\n"
+                "## ADC-LOCAL-003: Third lesson\n\n- Status: ready\n- Lesson: Third body.\n",
+                encoding="utf-8",
+            )
+            entries = adc.parse_candidates(path)
+            self.assertEqual([e["id"] for e in entries], ["ADC-LOCAL-001", "ADC-LOCAL-002", "ADC-LOCAL-003"])
+            # Each body must stop at the next heading, so a boundary error is visible.
+            self.assertEqual([e["lesson"] for e in entries], ["First body.", "Second body.", "Third body."])
+            self.assertEqual([e["status"] for e in entries], ["ready", "observing", "ready"])
+            self.assertNotIn("Second", entries[0]["body"])
+
+    def test_replace_path_variants_prefers_the_longest_match_and_ignores_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            nested = Path(tmp) / "workspace" / "project"
+            nested.mkdir(parents=True)
+            text = f"outer {nested.parent} inner {nested} end"
+            replaced = adc.replace_path_variants(text, nested, "<repo>")
+            # The longer path must be consumed whole; a shortest-first pass would
+            # rewrite its prefix and strand the remainder.
+            self.assertNotIn(str(nested), replaced)
+            self.assertIn("<repo>", replaced)
+            self.assertNotIn("<repo>/project", replaced)
+
+            root_safe = adc.replace_path_variants("a / b", Path("/"), "<repo>")
+            self.assertEqual(root_safe, "a / b")
+
+    def test_repository_name_variants_keeps_real_tokens_and_drops_generic_ones(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "chronicle-engine"
+            repo.mkdir()
+            variants = {item.lower() for item in adc.repository_name_variants(repo)}
+            # A distinctive token must survive, or a proposal leaks the project name.
+            self.assertIn("chronicle", variants)
+            # Generic words and short tokens must not become redaction targets.
+            self.assertNotIn("core", variants)
+            self.assertNotIn("app", variants)
+
+            plain = Path(tmp) / "app-core"
+            plain.mkdir()
+            plain_variants = {item.lower() for item in adc.repository_name_variants(plain)}
+            self.assertNotIn("core", plain_variants)
+
+            # The token threshold is a boundary: exactly five characters qualifies.
+            boundary = Path(tmp) / "delta-services"
+            boundary.mkdir()
+            boundary_variants = {item.lower() for item in adc.repository_name_variants(boundary)}
+            self.assertIn("delta", boundary_variants)
+
+            # A short token stays out even when it is not a generic word, so both
+            # halves of the length-and-generic rule are load bearing.
+            short = Path(tmp) / "zeta-workspace"
+            short.mkdir()
+            short_variants = {item.lower() for item in adc.repository_name_variants(short)}
+            self.assertNotIn("zeta", short_variants)
+
+    def test_sanitize_for_proposal_redacts_without_explicit_names(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "chronicle-engine"
+            repo.mkdir()
+            text = f"built chronicle-engine at {repo} for chronicle work"
+            sanitized = adc.sanitize_for_proposal(text, repo)
+            self.assertNotIn(str(repo), sanitized)
+            self.assertNotIn("chronicle", sanitized.lower())
+            self.assertIn("<repo>", sanitized)
+
+    def test_managed_source_files_never_follows_links_into_the_distributed_core(self) -> None:
+        """A packaged core must contain only real files the source actually owns."""
+        with tempfile.TemporaryDirectory() as tmp:
+            outside = Path(tmp) / "outside"
+            (outside / "nested").mkdir(parents=True)
+            (outside / "nested" / "smuggled.md").write_text("not ours\n", encoding="utf-8")
+            (outside / "secret.txt").write_text("not ours\n", encoding="utf-8")
+
+            core = self.copy_clean_skill(Path(tmp) / "pkg")
+            baseline = set(adc.managed_source_files(core))
+            try:
+                (core / "references" / "linked-dir").symlink_to(outside / "nested", target_is_directory=True)
+                (core / "references" / "linked-file.md").symlink_to(outside / "secret.txt")
+            except (OSError, NotImplementedError) as exc:
+                # Windows needs SeCreateSymbolicLinkPrivilege, held only by an
+                # administrator or under Developer Mode. Every other symlink test
+                # in this file skips the same way rather than failing the run.
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            packaged = adc.managed_source_files(core)
+            self.assertEqual(set(packaged), baseline)
+            self.assertNotIn("references/linked-dir/smuggled.md", packaged)
+            self.assertNotIn("references/linked-file.md", packaged)
+
+    def test_only_version_churn_edge_cases(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nFirst.\n")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+            reference = "anti-dark-code/references/00-conventions.md"
+
+            # No known version strings: nothing can be dismissed as version churn.
+            self.assertFalse(adc.only_version_churn(root, "v1.0.0-test", "v1.0.0-test", reference, set()))
+
+            # A file listed as changed whose diff carries no content lines, such as a
+            # mode change, has no undescribed content and must not be reported.
+            # Stage the mode in the index rather than on disk. Windows sets
+            # core.fileMode=false and os.chmod there only toggles the read-only
+            # flag, so a filesystem chmod produces nothing for git to commit and
+            # the commit fails with "nothing to commit". update-index carries the
+            # mode directly and yields the same content-free diff on every
+            # platform. commit_all is not used here because its `git add .` would
+            # re-stage the unchanged working-tree mode and undo this.
+            subprocess.run(
+                ["git", "-C", str(root), "update-index", "--chmod=+x", reference],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(root), "commit", "-qm", "mode change only"],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(root), "tag", "v1.1.0-test"], check=True)
+            self.assertTrue(
+                adc.only_version_churn(root, "v1.0.0-test", "v1.1.0-test", reference, {"1.0.0-test"})
+            )
+
     def test_release_check_ignores_mechanical_version_churn(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "skill"
@@ -688,6 +974,72 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 "assets/verification-capabilities.json",
                 adc.release_check(root, "v1.2.0-test")["undescribed_files"],
             )
+
+    def test_proposal_validator_survives_hostile_input(self) -> None:
+        """A bounded, seeded fuzz of the one boundary that reads a stranger's file.
+
+        Kept self-contained and small so it runs everywhere the suite runs. The
+        deeper campaign lives in tools/fuzz_proposal_validator.py.
+        """
+        import random
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            cal.mkdir(parents=True)
+            self.bind_calibration(repo, cal)
+            (cal / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-001: Bounded proposals\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: Untrusted input needs a bound.\n"
+                "- Evidence: a fuzz campaign over the validator.\n"
+                "- Limits: one boundary.\n"
+                "- Proposed target: references/14-deterministic-verification.md\n"
+                "- Proposed change: Add the bound.\n",
+                encoding="utf-8",
+            )
+            generated = adc.flowback(repo, parent=None, stage_to_parent=False, mark_staged=False, public=True)
+            seed_bytes = generated.read_bytes()
+            seed_name = generated.name
+
+            # Control: the generator's own output must validate clean, or every
+            # rejection below is satisfied by a validator that refuses everything.
+            self.assertEqual(adc.validate_flowback_proposal_bytes(seed_bytes, seed_name, public_only=True), [])
+
+            hostile = [
+                b"\x00", b"\x1b[31m", b"\xff\xfe", b"\r\n", b"a" * 3000,
+                b"<script>x</script>", b"javascript:x", b"http://u:p@h/",
+                b"\xe2\x80\xae",
+                # Assembled at runtime: a literal personal-looking path in this file
+                # would be a finding against the distributed source, correctly.
+                b"/" + b"home" + b"/" + b"nobody" + b"/private",
+                b"(" * 150 + b")" * 150,
+            ]
+            rng = random.Random(20260822)
+            for _ in range(250):
+                data = bytearray(seed_bytes)
+                for _ in range(rng.randint(1, 4)):
+                    roll = rng.random()
+                    if roll < 0.4 and data:
+                        data[rng.randrange(len(data))] = rng.randrange(256)
+                    elif roll < 0.7:
+                        index = rng.randrange(len(data) + 1)
+                        data[index:index] = rng.choice(hostile)
+                    elif data:
+                        index = rng.randrange(len(data))
+                        del data[index : index + rng.randint(1, 48)]
+                payload = bytes(data)
+                errors = adc.validate_flowback_proposal_bytes(payload, seed_name, public_only=True)
+                # I1: it returns rather than raises. I3: only the exact known-good
+                # bytes may come back clean; silence on anything else means accepted.
+                self.assertIsInstance(errors, list)
+                if payload != seed_bytes:
+                    self.assertTrue(errors, "a mutated proposal validated clean")
+
+            for name in ("../../etc/passwd", "", "flowback-ZZZZZZZZZZZZ.md", "flowback-000000000000.md"):
+                self.assertTrue(adc.validate_flowback_proposal_bytes(seed_bytes, name, public_only=True))
 
     def test_flowback_is_proposal_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
