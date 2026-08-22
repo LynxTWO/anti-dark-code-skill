@@ -257,16 +257,16 @@ When the fix changes tests, snapshots, fixtures, timeouts, mocks, coverage, muta
 - reject skip, delete, broaden, or re-record changes made only to obtain green
 - have a verifier review the test change separately from the implementation
 - preserve the pre-fix reproducer when it remains useful
-- require every fix that widens a detector, rule set, or matcher to ship a guard case that fails if the widening is reverted, with the guard's red run recorded before the fix lands
+- require every fix that widens a detector, rule set, or matcher to ship a guard case that fails if the widening is reverted, with the guard's red run recorded before the fix lands. Write the guard into the finding's own smallest-safe-step, not into follow-up work: a fix that lands without it can be deleted whole with every check still green. A probe the author ran once is not a guard, because it does not run again. Cover the form the change newly catches, not a form that already worked before it
 - require the fix set to equal the set the gate names: repair exactly the artifacts the failing gate listed, rerun the gate, and treat any other artifact the rule also matches as a new finding rather than a widened fix
 
 ## Step 4b: Prove guards with revert-mutation checks
 
 A guard is proven by a controlled failure, not by a green run. When stakes justify it, run a revert-mutation proof: undo the fix, watch the guard go red, restore the fix, watch it go green. Three rules keep the proof honest:
 
-- Run the proof against a committed baseline. Restoring code by version-control checkout discards uncommitted work, so a proof on a new, uncommitted unit can measure a tree that never existed and silently destroy the unit it tested. Commit or otherwise durably preserve the code first, and close with a green run on the exact tree that will ship; the closing green run is the load-bearing half.
-- Expect three outcomes, not two. The suite can go red, stay green, or never return. A hang after a mutation is a defect in the code under test (an unbounded wait, a cleanup that never fires), not a defect in the proof. Bound the wait with an honestly chosen limit and record a hang as its own finding.
-- A surviving mutant demands a diagnosis, and the diagnosis is a finding. The possibilities are a missing test or untested behavior, and either way the gap gets recorded before the corpus or thresholds change. Distinguishing an equivalent mutant from a missing test takes judgment; write the classification down rather than letting the survivor disappear.
+- Run the proof against a committed baseline. Version control cannot restore a file it does not track, so on a brand-new unit the restoring checkout fails with an unknown-pathspec error and the mutation stays in place while the operator believes it was reverted. The danger is a mutation that survives the revert, not work that gets destroyed by it. Commit or otherwise durably preserve the unit before the first mutation, and close every proof session with a full green run on the exact tree that will ship. That closing run is the load-bearing half: it converts a silently failed revert into a loud test failure.
+- Expect three outcomes, not two. The suite can go red, stay green, or never return. A hang is worse evidence than a pass, because it also blocks every later proof. It is not a flaw in the exercise; it is the exercise finding that the system's failure handling depends on the action being neutralized, with no bound behind it. Fix it in the product: bound every cleanup wait downstream of a mutated safety action and surface expiry as a typed failure, not as a silent stall. A bound chosen honestly cannot expire in legitimate operation, and it makes the same mutation show up as ordinary red in seconds.
+- A surviving mutant demands a diagnosis, and the diagnosis is a finding. There are two possibilities, and they are not the same: a missing test, or an equivalent mutant. An equivalent mutant means the mutated code was not load bearing on any observable path, either a dead branch or a check whose refusal is silently duplicated by a neighboring mechanism. Leaving that code as written records a claim the code does not keep, and it misleads every future reader about where enforcement actually lives. The honest close is to rewrite the code to say what is true: delete the dead branch, document which mechanism really owns each behavior, and re-prove with a mutation that is load bearing. The unit is not done until a load-bearing mutation goes red. Write the classification down rather than letting the survivor disappear.
 
 ## Step 5: Re-run the verification loop on touched slices only
 
@@ -344,3 +344,5 @@ The result should:
 - give the user a clear stop point for review
 - make the next slice obvious
 - track every planted TODO from creation to clearance
+- ship every widening-class fix with its guard case and a recorded revert-mutation result, in the same change as the fix
+- disposition every surviving mutant in writing as a missing test or an equivalent mutant, and close equivalent mutants by rewriting the code rather than by annotating the survivor

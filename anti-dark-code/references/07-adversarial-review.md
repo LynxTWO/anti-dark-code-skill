@@ -156,7 +156,22 @@ Budget a bounded adversarial follow-up for detector logic, instrumentation, trus
 
 ### Unfalsifiable checks are a named defect class
 
-An assertion that no execution can fail is worse than a missing assertion, because it manufactures confidence while verifying nothing. Treat one as a finding, not a style nit. Recurring shapes: a value compared to itself or to the expression that produced it; a tolerance or threshold wider than the reachable range; a check inside a branch no input reaches; a matcher that accepts every candidate; a verifier reading back state written for that verifier's benefit. The test for the class is the falsifying input: name the concrete input or state that would make the check fail. A check whose author cannot name one gets rewritten or removed. The exception is a deliberate restatement of a property already proven elsewhere, which may stand when recorded as documentation rather than verification. Deterministic gates share this rule; see the gate-authoring cautions in `14-deterministic-verification.md`.
+An assertion that no execution can fail is worse than a missing assertion, because it reports coverage that does not exist. Treat one as a finding, not a style nit.
+
+The recurring shapes, in the order they tend to surface:
+
+- a field written as a fixed literal by a producer and pinned to that same literal by a checker
+- an assertion comparing a value to itself, or to a constant it was already compared against
+- a claimed property with no probe behind it
+- a boolean literal asserted in place of a captured outcome
+- a checker pinned to a document string that later becomes false
+- a tolerance or threshold wider than the reachable range, or a matcher that accepts every candidate
+
+The test for the class is the falsifying input: name the concrete, producible input or state that would make the check fail. A check whose author cannot name one gets rewritten or removed. In the sharpest form of this defect the producer can emit only one value and the checker requires exactly that value, which makes the acceptance criterion permanently unsatisfiable and would reject an honest recording of a genuine result.
+
+Naming the class obliges a sweep. Repairing only the instance that surfaced leaves the rest in place, and a remediation written while the class is already named can introduce fresh instances of it. Sweep the whole verification surface once the class is named, and re-sweep after remediating it.
+
+The exception is a deliberate restatement of a property already proven elsewhere. Such a restatement must cite the probe that proves it, at the restatement. Requiring the citation is the cheap discriminator: the danger is not the restatement itself but the undocumented case, where a value with no probe behind it hides among values that have one. Deterministic gates share this rule; see the gate-authoring cautions in `14-deterministic-verification.md`.
 
 ## Rules
 

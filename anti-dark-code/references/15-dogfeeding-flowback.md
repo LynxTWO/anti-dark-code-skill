@@ -48,7 +48,9 @@ A stale calibration entry is worse than no entry. Check freshness against change
 
 A matching binding proves repository continuity, not factual freshness.
 
-Anchor identity to what the repository cannot casually change, and report which component failed. A remote URL changes on a rename, a fork, or a host migration while the repository stays the same; root commits survive all three, but forks share them by design, so a root-commit match alone is continuity evidence, not proof of the same repository. Record per-component results (remote identity, root-commit identity) instead of one opaque verdict. A remote mismatch with matching root commits reads as a probable move, fork, or rename: name the failed component and route the operator to an explicit reviewed rebind, never to a silent pass or an unexplained refusal.
+Keep two identity signals and weigh them differently; report which one failed. A remote URL changes on a rename, a fork, or a host migration while the repository stays the same, so it is the weaker continuity signal. Root commits survive all three, but forks share them by design, so a root-commit match is continuity evidence and never proof of the same repository. That asymmetry is why the immutable signal cannot be the binding identity on its own: anchoring there alone would accept an upstream repository's calibration inside every fork of it. Anchor exclusivity on the remote, and use the root commits to explain a mismatch rather than to overrule it.
+
+Record per-component results (remote identity, root-commit identity) instead of one opaque verdict. A remote mismatch with matching root commits reads as a probable move, fork, or rename: name the failed component and route the operator to an explicit reviewed rebind, never to a silent pass and never to an unexplained refusal. A root-commit mismatch is the stop condition.
 
 ## Write Local Learning Back
 

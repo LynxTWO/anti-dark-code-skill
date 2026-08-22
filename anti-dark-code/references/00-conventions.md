@@ -41,6 +41,8 @@ Verify that the search command opens candidate files. Do not pipe a filename lis
 
 Producers passing in sequence and an audit certifying them as a set are different claims. Per-gate evidence proves each producer ran green on its own inputs. Audited-set evidence proves that a separate step checked the set's correspondence (counts match, references resolve, no member is missing or stale) and emitted a durable artifact saying so. Never report a passing sequence as an audited set. Where an audit step exists, cite its artifact; where none exists, the set-level claim stays `inferred` at best.
 
+Ordering is part of the claim. A producer record written after an audit attempt is unaudited, however green that producer's own run was, so require the audit artifact to exist on disk and every producer record to predate it before describing a set as passing. A producer that writes new evidence must invalidate any standing audit first, or a stale artifact keeps certifying a set that no longer exists. Where no audit step exists to carry the ordering, record the run's ordering and completeness explicitly, because no artifact will carry it for you.
+
 ## Risk levels
 
 Use exactly these four labels. Pick the one that matches the worst plausible blast radius if the issue is real.

@@ -208,7 +208,14 @@ Do not send full green logs to an agent.
 
 ### Shell exit-code contract
 
-Judge a gate by the producer's real exit code. A pipeline normally reports its last command, so `gate | tail`, `gate | grep`, and similar summaries can turn failure into success. Capture output to a file and retain the producer status, use the shell's explicit pipeline-status facility, or execute an argument array without a shell. Test the failure path of every wrapper that summarizes gate output.
+Judge a gate by the producer's real exit code. The shell composition that collapses a gate to a one-line result is itself a trust boundary, and two ordinary idioms cross it silently. Both produce output that reads like completion while something did not happen.
+
+- A pipeline reports its last command, so `gate | tail`, `gate | grep`, and similar summaries turn failure into success. Capture output to a file and retain the producer status, use the shell's explicit pipeline-status facility, or execute an argument array without a shell.
+- A conjunction short-circuits, so `gate && cleanup` skips every later link when an earlier one fails. Cleanup, revert, and restore steps sit at the end of a chain precisely because they matter, which makes them the first casualties. Run them unconditionally through the shell's exit handler rather than chaining them behind the step that can fail.
+
+The two compose into a worse third case. Piping a failing gate into a summarizer masks its status, which then lets a following conjunction proceed: the chain reports success and the cleanup appears to have run, while the red result is gone. One idiom loses the verdict and the other loses the safety step, so no single fix covers both. Preserve the status and detach the cleanup.
+
+Test the failure path of every wrapper that summarizes gate output, and confirm the cleanup runs when the gate fails, not only when it passes.
 
 ### Mutation-testing calibration
 

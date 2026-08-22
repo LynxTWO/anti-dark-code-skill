@@ -18,7 +18,7 @@
 A skill that teaches AI coding assistants (Claude Code, Codex, Gemini CLI, and others) to work on codebases from evidence instead of guesswork: map what actually runs, prove claims or record them as unknowns, hold risky changes behind approval gates, and verify work with deterministic checks instead of confident prose.
 
 - **Plain-language overview**: https://lynxtwo.github.io/anti-dark-code-skill/
-- **Version**: `2026.08.20-unified.6` (see `CHANGELOG.md`)
+- **Version**: `2026.08.22-unified.7` (see `CHANGELOG.md`)
 
 One model-neutral core, repo-local calibration, and deterministic local tooling. No automatic network calls, telemetry, or submission, and no dependencies beyond Python 3 for the optional tooling. Optional efficiency receipts are created only by an explicit local command and remain local until a person exports and submits one.
 

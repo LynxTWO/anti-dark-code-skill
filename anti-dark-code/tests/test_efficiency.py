@@ -549,6 +549,49 @@ class EfficiencyReceiptTests(unittest.TestCase):
                 ["a receipt PR must add one ledger receipt and update only the two generated summaries"],
             )
 
+    def test_validate_ledger_pr_passes_a_change_that_never_touches_the_ledger(self) -> None:
+        # Reproduces a real CI refusal: a release branch that edited the workflow
+        # alongside twenty-two other files triggered this validator and was told it
+        # "must add exactly one public ledger receipt". The old carve-out accepted
+        # only a changeset equal to {efficiency-ledger.yml}, so any combined change
+        # was rejected, including one that also edited the sibling intake workflow.
+        # Reverting to that exact-set comparison turns both subtests below red.
+        combined = {
+            "workflow-only": [".github/workflows/efficiency-ledger.yml"],
+            "workflow-plus-release": [
+                ".github/workflows/efficiency-ledger.yml",
+                ".github/workflows/proposal-intake.yml",
+                "CHANGELOG.md",
+                "anti-dark-code/references/07-adversarial-review.md",
+            ],
+        }
+        for case, paths in combined.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                _, _, _, base = self.initialize_receipt_repo(repo)
+                for rel in paths:
+                    target = repo / rel
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(f"touched by {case}\n", encoding="utf-8")
+                self.git(repo, "add", ".")
+                self.git(repo, "commit", "-qm", case)
+                errors, additions = efficiency.validate_ledger_pr(repo=repo, changed_from=base)
+                self.assertEqual(errors, [], case)
+                self.assertEqual(additions, 0, case)
+
+    def test_validate_ledger_pr_still_rejects_ledger_edits_without_a_new_receipt(self) -> None:
+        # The security property the widened rule must keep: touching ledger data or
+        # a generated summary without adding a receipt is exactly the case to refuse.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            _, summary_path, _, base = self.initialize_receipt_repo(repo)
+            summary_path.write_text('{"hand": "edited"}\n', encoding="utf-8")
+            self.git(repo, "add", ".")
+            self.git(repo, "commit", "-qm", "hand-edited summary")
+            errors, additions = efficiency.validate_ledger_pr(repo=repo, changed_from=base)
+            self.assertEqual(additions, 0)
+            self.assertEqual(errors, ["a receipt PR must add exactly one public ledger receipt"])
+
     def test_validate_ledger_pr_rejects_tampering_missing_and_stale_summaries(self) -> None:
         cases = ("tampered-receipt", "missing-summary", "stale-summary", "wrong-filename")
         for case in cases:
