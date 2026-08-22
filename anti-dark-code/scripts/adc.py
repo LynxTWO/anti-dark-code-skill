@@ -1968,7 +1968,16 @@ def assess_source_provenance(source: Path) -> dict[str, Any]:
     digest = core_digest(managed_source_files(source))
     if not git_output(source, ["rev-parse", "--show-toplevel"]):
         return {"kind": "non-git", "tag": None, "dirty": False, "core_digest": digest}
-    if git_output(source, ["status", "--porcelain", "--", str(source)]):
+    # Only shipped bytes make a source dirty. `calibration/` and `incoming/` are
+    # excluded from the managed core, so local calibration or a work-in-progress
+    # proposal cannot change what an install carries. Reporting those as dirty would
+    # block a maintainer sitting on a clean tag for a reason that does not affect the
+    # install, and a guard that cries wolf gets overridden out of habit.
+    if git_output(source, [
+        "status", "--porcelain", "--", str(source),
+        f":(exclude){source / 'calibration'}",
+        f":(exclude){source / 'incoming'}",
+    ]):
         return {"kind": "git-dirty", "tag": None, "dirty": True, "core_digest": digest}
     tag = git_output(source, ["describe", "--tags", "--exact-match", "HEAD"])
     if tag:
