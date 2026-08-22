@@ -59,7 +59,7 @@ Call out remote config, feature-flag vendors, CMS-backed behavior, app-store or 
 
 | Boundary | What crosses it | Validation / auth at the edge | Assumptions the code makes | What goes wrong if the boundary is loose |
 |---|---|---|---|---|
-| <e.g., browser → API> | <user requests> | <session cookie, CSRF> | <session is valid if not expired> | <session fixation, CSRF> |
+| <e.g., browser -> API> | <user requests> | <session cookie, CSRF> | <session is valid if not expired> | <session fixation, CSRF> |
 
 ## 8. Critical data flows
 
