@@ -520,12 +520,14 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             untagged = adc.assess_source_provenance(core)
             self.assertEqual(untagged["kind"], "git-untagged")
             self.assertIsNone(untagged["tag"])
+            self.assertFalse(untagged["dirty"])
             self.assertEqual(len(untagged["core_digest"]), 64)
 
             subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
             tagged = adc.assess_source_provenance(core)
             self.assertEqual(tagged["kind"], "git-tag")
             self.assertEqual(tagged["tag"], "v1.0.0-test")
+            self.assertFalse(tagged["dirty"])
             self.assertEqual(tagged["core_digest"], untagged["core_digest"])
 
             (core / "SKILL.md").write_text("dirtied\n", encoding="utf-8")
@@ -548,6 +550,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 bundle.extractall(extract, filter="data")
             plain = adc.assess_source_provenance(extract / "anti-dark-code")
             self.assertEqual(plain["kind"], "non-git")
+            self.assertFalse(plain["dirty"])
             self.assertEqual(plain["core_digest"], tagged["core_digest"])
 
     def test_install_refuses_an_untagged_or_dirty_source_without_override(self) -> None:
@@ -645,6 +648,136 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             described = adc.release_check(root, "v1.1.0-test")
             self.assertEqual(described["undescribed_files"], [])
             self.assertTrue(described["ok"])
+
+    def test_parse_candidates_handles_a_missing_file_and_multiple_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "absent.md"
+            self.assertEqual(adc.parse_candidates(missing), [])
+
+            path = Path(tmp) / "upstream-candidates.md"
+            path.write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-001: First lesson\n\n- Status: ready\n- Lesson: First body.\n\n"
+                "## ADC-LOCAL-002: Second lesson\n\n- Status: observing\n- Lesson: Second body.\n\n"
+                "## ADC-LOCAL-003: Third lesson\n\n- Status: ready\n- Lesson: Third body.\n",
+                encoding="utf-8",
+            )
+            entries = adc.parse_candidates(path)
+            self.assertEqual([e["id"] for e in entries], ["ADC-LOCAL-001", "ADC-LOCAL-002", "ADC-LOCAL-003"])
+            # Each body must stop at the next heading, so a boundary error is visible.
+            self.assertEqual([e["lesson"] for e in entries], ["First body.", "Second body.", "Third body."])
+            self.assertEqual([e["status"] for e in entries], ["ready", "observing", "ready"])
+            self.assertNotIn("Second", entries[0]["body"])
+
+    def test_replace_path_variants_prefers_the_longest_match_and_ignores_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            nested = Path(tmp) / "workspace" / "project"
+            nested.mkdir(parents=True)
+            text = f"outer {nested.parent} inner {nested} end"
+            replaced = adc.replace_path_variants(text, nested, "<repo>")
+            # The longer path must be consumed whole; a shortest-first pass would
+            # rewrite its prefix and strand the remainder.
+            self.assertNotIn(str(nested), replaced)
+            self.assertIn("<repo>", replaced)
+            self.assertNotIn("<repo>/project", replaced)
+
+            root_safe = adc.replace_path_variants("a / b", Path("/"), "<repo>")
+            self.assertEqual(root_safe, "a / b")
+
+    def test_repository_name_variants_keeps_real_tokens_and_drops_generic_ones(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "chronicle-engine"
+            repo.mkdir()
+            variants = {item.lower() for item in adc.repository_name_variants(repo)}
+            # A distinctive token must survive, or a proposal leaks the project name.
+            self.assertIn("chronicle", variants)
+            # Generic words and short tokens must not become redaction targets.
+            self.assertNotIn("core", variants)
+            self.assertNotIn("app", variants)
+
+            plain = Path(tmp) / "app-core"
+            plain.mkdir()
+            plain_variants = {item.lower() for item in adc.repository_name_variants(plain)}
+            self.assertNotIn("core", plain_variants)
+
+            # The token threshold is a boundary: exactly five characters qualifies.
+            boundary = Path(tmp) / "delta-services"
+            boundary.mkdir()
+            boundary_variants = {item.lower() for item in adc.repository_name_variants(boundary)}
+            self.assertIn("delta", boundary_variants)
+
+            # A short token stays out even when it is not a generic word, so both
+            # halves of the length-and-generic rule are load bearing.
+            short = Path(tmp) / "zeta-workspace"
+            short.mkdir()
+            short_variants = {item.lower() for item in adc.repository_name_variants(short)}
+            self.assertNotIn("zeta", short_variants)
+
+    def test_sanitize_for_proposal_redacts_without_explicit_names(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "chronicle-engine"
+            repo.mkdir()
+            text = f"built chronicle-engine at {repo} for chronicle work"
+            sanitized = adc.sanitize_for_proposal(text, repo)
+            self.assertNotIn(str(repo), sanitized)
+            self.assertNotIn("chronicle", sanitized.lower())
+            self.assertIn("<repo>", sanitized)
+
+    def test_managed_source_files_never_follows_links_into_the_distributed_core(self) -> None:
+        """A packaged core must contain only real files the source actually owns."""
+        with tempfile.TemporaryDirectory() as tmp:
+            outside = Path(tmp) / "outside"
+            (outside / "nested").mkdir(parents=True)
+            (outside / "nested" / "smuggled.md").write_text("not ours\n", encoding="utf-8")
+            (outside / "secret.txt").write_text("not ours\n", encoding="utf-8")
+
+            core = self.copy_clean_skill(Path(tmp) / "pkg")
+            baseline = set(adc.managed_source_files(core))
+            try:
+                (core / "references" / "linked-dir").symlink_to(outside / "nested", target_is_directory=True)
+                (core / "references" / "linked-file.md").symlink_to(outside / "secret.txt")
+            except (OSError, NotImplementedError) as exc:
+                # Windows needs SeCreateSymbolicLinkPrivilege, held only by an
+                # administrator or under Developer Mode. Every other symlink test
+                # in this file skips the same way rather than failing the run.
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            packaged = adc.managed_source_files(core)
+            self.assertEqual(set(packaged), baseline)
+            self.assertNotIn("references/linked-dir/smuggled.md", packaged)
+            self.assertNotIn("references/linked-file.md", packaged)
+
+    def test_only_version_churn_edge_cases(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nFirst.\n")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+            reference = "anti-dark-code/references/00-conventions.md"
+
+            # No known version strings: nothing can be dismissed as version churn.
+            self.assertFalse(adc.only_version_churn(root, "v1.0.0-test", "v1.0.0-test", reference, set()))
+
+            # A file listed as changed whose diff carries no content lines, such as a
+            # mode change, has no undescribed content and must not be reported.
+            # Stage the mode in the index rather than on disk. Windows sets
+            # core.fileMode=false and os.chmod there only toggles the read-only
+            # flag, so a filesystem chmod produces nothing for git to commit and
+            # the commit fails with "nothing to commit". update-index carries the
+            # mode directly and yields the same content-free diff on every
+            # platform. commit_all is not used here because its `git add .` would
+            # re-stage the unchanged working-tree mode and undo this.
+            subprocess.run(
+                ["git", "-C", str(root), "update-index", "--chmod=+x", reference],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(root), "commit", "-qm", "mode change only"],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(root), "tag", "v1.1.0-test"], check=True)
+            self.assertTrue(
+                adc.only_version_churn(root, "v1.0.0-test", "v1.1.0-test", reference, {"1.0.0-test"})
+            )
 
     def test_release_check_ignores_mechanical_version_churn(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
