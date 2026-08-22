@@ -5,6 +5,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -301,6 +302,85 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertTrue(full_log.exists())
             self.assertNotIn("hunter2", full_log.read_text(encoding="utf-8"))
             self.assertEqual(packet["exit_code"], 3)
+
+    def gate_repo(self, repo: Path, argv: list[str], timeout_seconds: int) -> None:
+        """One approved, enabled gate, ready to execute."""
+        cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+        cal.mkdir(parents=True, exist_ok=True)
+        self.bind_calibration(repo, cal)
+        (cal / "gates.json").write_text(json.dumps({
+            "schema_version": 1,
+            "execution_policy": {"owner_confirmed_safe_to_execute": True},
+            "gates": [{
+                "id": "injected", "level": 0, "argv": argv, "enabled": True,
+                "review_status": "approved", "cwd": ".", "timeout_seconds": timeout_seconds,
+                "include_globs": [], "exclude_globs": [],
+            }],
+        }), encoding="utf-8")
+
+    def only_packet(self, repo: Path) -> dict:
+        packets = list((repo / ".anti-dark-code" / "runs").rglob("ADC-FAIL-*.json"))
+        self.assertEqual(len(packets), 1, "expected exactly one failure packet")
+        return json.loads(packets[0].read_text(encoding="utf-8"))
+
+    def test_a_hung_gate_times_out_and_is_recorded_as_such(self) -> None:
+        """A gate that never returns must fail on a bound, not wait forever."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.gate_repo(repo, [sys.executable, "-c", "import time; time.sleep(120)"], 2)
+            started = time.monotonic()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            elapsed = time.monotonic() - started
+            self.assertLess(elapsed, 60, "the timeout did not bound the run")
+            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+
+    def test_a_timed_out_gate_takes_its_orphan_children_with_it(self) -> None:
+        """The claim this repository makes is process-tree termination, not child termination.
+
+        A gate that spawns a background process and then hangs is the shape that
+        distinguishes the two: killing only the direct child leaves the grandchild
+        running, and it keeps running after the gate is reported as failed.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            marker = repo / "orphan-survived.txt"
+            spawner = (
+                "import subprocess, sys, time\n"
+                f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
+                f"open(r'{marker}', 'w').write('alive')\"])\n"
+                "time.sleep(120)\n"
+            )
+            self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
+
+            # Outlive the grandchild's own sleep. If the process group was not
+            # terminated, it wakes up here and writes the marker.
+            time.sleep(9)
+            self.assertFalse(
+                marker.exists(),
+                "a grandchild outlived the timed-out gate: the process tree was not terminated",
+            )
+
+    def test_a_gate_that_ignores_sigterm_is_still_terminated(self) -> None:
+        """Polite termination is a request. The bound has to hold when it is refused."""
+        if os.name != "posix":
+            self.skipTest("POSIX signal semantics")
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            stubborn = (
+                "import signal, time\n"
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+                "time.sleep(120)\n"
+            )
+            self.gate_repo(repo, [sys.executable, "-c", stubborn], 2)
+            started = time.monotonic()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1)
+            self.assertLess(time.monotonic() - started, 60, "SIGTERM was ignored and nothing escalated")
+            self.assertEqual(self.only_packet(repo)["exit_code"], 124)
 
     def test_gate_environment_overlay_is_used_but_not_recorded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -813,6 +893,72 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 "assets/verification-capabilities.json",
                 adc.release_check(root, "v1.2.0-test")["undescribed_files"],
             )
+
+    def test_proposal_validator_survives_hostile_input(self) -> None:
+        """A bounded, seeded fuzz of the one boundary that reads a stranger's file.
+
+        Kept self-contained and small so it runs everywhere the suite runs. The
+        deeper campaign lives in tools/fuzz_proposal_validator.py.
+        """
+        import random
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            cal.mkdir(parents=True)
+            self.bind_calibration(repo, cal)
+            (cal / "upstream-candidates.md").write_text(
+                "# Upstream Candidates\n\n"
+                "## ADC-LOCAL-001: Bounded proposals\n\n"
+                "- Status: ready\n"
+                "- Scope: repo-agnostic\n"
+                "- Lesson: Untrusted input needs a bound.\n"
+                "- Evidence: a fuzz campaign over the validator.\n"
+                "- Limits: one boundary.\n"
+                "- Proposed target: references/14-deterministic-verification.md\n"
+                "- Proposed change: Add the bound.\n",
+                encoding="utf-8",
+            )
+            generated = adc.flowback(repo, parent=None, stage_to_parent=False, mark_staged=False, public=True)
+            seed_bytes = generated.read_bytes()
+            seed_name = generated.name
+
+            # Control: the generator's own output must validate clean, or every
+            # rejection below is satisfied by a validator that refuses everything.
+            self.assertEqual(adc.validate_flowback_proposal_bytes(seed_bytes, seed_name, public_only=True), [])
+
+            hostile = [
+                b"\x00", b"\x1b[31m", b"\xff\xfe", b"\r\n", b"a" * 3000,
+                b"<script>x</script>", b"javascript:x", b"http://u:p@h/",
+                b"\xe2\x80\xae",
+                # Assembled at runtime: a literal personal-looking path in this file
+                # would be a finding against the distributed source, correctly.
+                b"/" + b"home" + b"/" + b"nobody" + b"/private",
+                b"(" * 150 + b")" * 150,
+            ]
+            rng = random.Random(20260822)
+            for _ in range(250):
+                data = bytearray(seed_bytes)
+                for _ in range(rng.randint(1, 4)):
+                    roll = rng.random()
+                    if roll < 0.4 and data:
+                        data[rng.randrange(len(data))] = rng.randrange(256)
+                    elif roll < 0.7:
+                        index = rng.randrange(len(data) + 1)
+                        data[index:index] = rng.choice(hostile)
+                    elif data:
+                        index = rng.randrange(len(data))
+                        del data[index : index + rng.randint(1, 48)]
+                payload = bytes(data)
+                errors = adc.validate_flowback_proposal_bytes(payload, seed_name, public_only=True)
+                # I1: it returns rather than raises. I3: only the exact known-good
+                # bytes may come back clean; silence on anything else means accepted.
+                self.assertIsInstance(errors, list)
+                if payload != seed_bytes:
+                    self.assertTrue(errors, "a mutated proposal validated clean")
+
+            for name in ("../../etc/passwd", "", "flowback-ZZZZZZZZZZZZ.md", "flowback-000000000000.md"):
+                self.assertTrue(adc.validate_flowback_proposal_bytes(seed_bytes, name, public_only=True))
 
     def test_flowback_is_proposal_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
