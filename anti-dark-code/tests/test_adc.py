@@ -1939,6 +1939,75 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             errors = adc.validate_flowback_proposal(link, public_only=True)
             self.assertTrue(any("link-like" in item for item in errors), errors)
 
+    def test_git_output_decodes_utf8_whatever_the_machine_locale_is(self) -> None:
+        """Git speaks UTF-8. The machine's locale must not get a vote.
+
+        text=True on its own decodes with locale.getpreferredencoding(), which is
+        cp1252 on a default Windows install and ASCII under LC_ALL=C. core.quotepath
+        hides that for paths by escaping them, but not for a branch name, a tag, the
+        repository path from rev-parse --show-toplevel, or diff content.
+
+        This runs in a child process with the locale forced, because the parent's
+        encoding is fixed at interpreter start and every runner in this matrix
+        defaults to UTF-8, where the unfixed code passes. Without the forced child
+        the test would agree with a broken implementation.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "f.md").write_text("x\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            # Escapes, not literals. The value has to be non-ASCII for the test to
+            # mean anything; the source file has to stay ASCII to satisfy this
+            # skill's own writing rule in 00-conventions.md.
+            subject = "\u3042\u308a\u304c\u3068\u3046"
+            branch = "feature/\u6a5f\u80fd"
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-q", "--allow-empty", "-m", subject], check=True
+            )
+            subprocess.run(["git", "-C", str(repo), "branch", "-M", branch], check=True)
+
+            program = "\n".join([
+                "import sys, locale, importlib.util, subprocess, pathlib",
+                "spec = importlib.util.spec_from_file_location('adc', sys.argv[1])",
+                "adc = importlib.util.module_from_spec(spec)",
+                "spec.loader.exec_module(adc)",
+                "repo = pathlib.Path(sys.argv[2])",
+                "print('ENC', locale.getpreferredencoding(False))",
+                "for args in (['log', '-1', '--format=%s'], ['rev-parse', '--abbrev-ref', 'HEAD']):",
+                "    truth = subprocess.run(['git', '-C', str(repo)] + args,",
+                "                           capture_output=True).stdout.strip()",
+                "    try:",
+                "        got = adc.git_output(repo, args)",
+                "    except Exception as exc:",
+                "        print('VERDICT raised-' + type(exc).__name__)",
+                "        continue",
+                "    if got is None:",
+                "        print('VERDICT none')",
+                "        continue",
+                "    ok = got.encode('utf-8', 'surrogateescape') == truth",
+                "    print('VERDICT ' + ('roundtrip' if ok else 'corrupted'))",
+            ])
+            env = dict(os.environ)
+            env.update({"PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0", "LC_ALL": "C", "LANG": "C"})
+            child = subprocess.run(
+                [sys.executable, "-c", program, str(SCRIPT), str(repo)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                env=env, timeout=120,
+            )
+            lines = [line.strip() for line in child.stdout.splitlines() if line.strip()]
+            encodings = [line.split(" ", 1)[1] for line in lines if line.startswith("ENC ")]
+            verdicts = [line.split(" ", 1)[1] for line in lines if line.startswith("VERDICT ")]
+            self.assertTrue(
+                encodings, f"child produced no encoding line: {child.stdout!r} {child.stderr[:300]!r}"
+            )
+            if "utf-8" in encodings[0].lower().replace("_", "-"):
+                self.skipTest(f"no non-UTF-8 locale available here; child used {encodings[0]}")
+            self.assertEqual(
+                verdicts,
+                ["roundtrip", "roundtrip"],
+                f"git output did not survive a {encodings[0]} locale: {verdicts}",
+            )
+
     def test_changed_from_accepts_one_public_proposal_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

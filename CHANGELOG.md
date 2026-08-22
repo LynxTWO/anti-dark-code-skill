@@ -13,7 +13,31 @@ Four guards, added after `unified.7` shipped a tag that did not reproduce the co
 - **`release-check` verifies a tag against itself.** It extracts the tag, recomputes the core digest, optionally compares it to the digest the release publishes, runs distribution validation on that extract, and returns nonzero on failure. Verifying a release by reading the working tree that produced it proves nothing about the tag.
 - **Release notes must describe what the release changed.** `release-check` reports every file under `references/` or `assets/` that changed since the previous tag without being named in the new notes. Mechanical version-string churn is ignored so the check stays worth reading. Run against the historical tags, this reports the `unified.7` digest mismatch and its undescribed template change, and passes `unified.8`.
 
-The deterministic suite grows to 132 tests, including source-provenance classification across all four source kinds, both installer refusals, tag-reproduction failure and success, an undescribed reference change, and the version-churn exclusion.
+The deterministic suite grows by source-provenance classification across all four source kinds, both installer refusals, tag-reproduction failure and success, an undescribed reference change, and the version-churn exclusion. Counting everything below, it now stands at 144 tests, of which 131 pass and 13 skip on a Windows workstation without symlink privilege; a host that can create links runs about a dozen more.
+
+### Mutation and Fuzz Coverage
+
+- Pilots mutation testing on the highest-stakes modules and records what survived in `tools/MUTATION-FINDINGS.md`, including the gaps it did not close.
+- Fuzzes `validate_flowback_proposal_bytes`, the one function here that parses a stranger's file, against 19,000 inputs across five strategies: bit-flips, uniform random bytes, truncation, filename attacks, and an adversarial set covering terminal escapes, bidirectional overrides, homoglyphs, credential shapes, invalid UTF-8, and inputs shaped to provoke catastrophic backtracking. Four invariants: never raises, never hangs, fails closed, and can still accept a valid proposal. The fourth exists because the other three are satisfied by a validator that rejects everything.
+- Fault-injects gate termination: a gate that never returns, one that spawns a background process and then hangs, and one that ignores `SIGTERM`. The orphan case is the one that separates process-tree termination from child termination, and it was proven to have teeth by swapping the tree kill for a direct one and watching it fail.
+
+### Cross-Platform Verification
+
+- Adds a test workflow. This repository previously had none: the two existing workflows trigger only on `incoming/**` and `metrics/**`, so an ordinary code change ran no checks at all, and three stacked pull requests reached review untested on any platform.
+- The suite now runs on Linux, macOS, and Windows, plus a second Python on Linux for forward drift, and validates a clean distribution archive rather than the working tree.
+- The matrix found real defects on its first runs. macOS had never passed: it places temporary directories under `/var`, a symlink to `/private/var`, and the managed-path guards correctly refuse to write through a link-like component, so 29 tests failed before exercising anything. Windows failed four more: a symlink call that raised instead of skipping, a filesystem `chmod` that Windows git cannot see, fixtures written as CRLF and compared against LF from a `git archive`, and a shell pipeline into `tar` with a backslashed drive path. All were test portability rather than product defects.
+- One was subtler. A marker path embedded two string levels deep, with the outer level not raw, reached the gate's parser as a truncated unicode escape whenever the temp directory sat under `C:/Users`, so the gate died of a `SyntaxError` instead of hanging and the test reported a termination failure that had not happened. Local Windows testing could not find it, because that workstation's temp directory contains no escape-forming sequence.
+- Branch protection requires one aggregating context rather than one name per matrix leg. Pinning every leg by name makes the settings page a second implementation of the workflow's matrix, which is the standing drift risk `SKILL.md` names, with a failure mode where a renamed job leaves pull requests waiting on a check that no longer exists. The aggregating job runs with `if: always()`, so it checks each dependency's result explicitly; without that it would report success no matter what happened upstream.
+
+### Locale Independence
+
+- **Fixes a product defect.** `git_output` decoded git's stdout with `text=True` alone, which uses the machine's locale encoding: `cp1252` on a default Windows install, ASCII under `LC_ALL=C`. Git emits UTF-8. `core.quotepath` hides this for paths by escaping them, but not for a branch name, a tag name, the repository path from `rev-parse --show-toplevel`, or diff content, so a repository under a non-ASCII directory decoded wrong or not at all. On Windows the failure was especially quiet: the decode raised inside subprocess's reader thread, `stdout` came back `None` while `returncode` was `0`, and the caller crashed on `None.strip()`. Both git wrappers now pin UTF-8 with `surrogateescape`, which round-trips rather than corrupting values that are compared and hashed.
+- Adds a regression test that runs in a child process with the locale forced, because the parent's encoding is fixed at interpreter start and every runner in the matrix defaults to UTF-8, where the unfixed code passes. Reverting the fix turns it red with `raised-AttributeError` for a non-ASCII commit subject and `corrupted` for a non-ASCII branch name.
+- Adds a hostile-environment job to the required gate: non-UTF-8 locale, a temp root containing a space and non-ASCII characters, and `core.autocrlf` rewriting line endings on checkout. Each of the three has already produced a real failure in this repository.
+
+### Documentation
+
+- Names the Python floor. The README said "no dependencies beyond Python 3"; the real floor is 3.12, set by `tarfile.extractall`'s `filter` argument.
 
 ## 2026.08.22-unified.8
 

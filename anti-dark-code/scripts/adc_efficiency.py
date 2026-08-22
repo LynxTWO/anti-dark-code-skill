@@ -1042,6 +1042,8 @@ def resolve_git_commit(repo: Path, ref: str) -> str:
             timeout=20,
             check=False,
             text=True,
+            encoding="utf-8",
+            errors="surrogateescape",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired) as error:
         raise EfficiencyReceiptError("could not resolve the candidate Git base") from error

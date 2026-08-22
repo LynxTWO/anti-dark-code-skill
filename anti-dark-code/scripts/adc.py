@@ -1028,8 +1028,30 @@ def likely_test(path: Path) -> bool:
 
 
 def git_output(repo: Path, args: Sequence[str]) -> str | None:
+    """Read git's stdout as UTF-8, never as whatever the machine's locale happens to be.
+
+    text=True alone decodes with locale.getpreferredencoding(), which is cp1252 on a
+    default Windows install and ASCII under LC_ALL=C. Git emits UTF-8. core.quotepath
+    hides that for paths by escaping them, but not for a branch name, a tag name, a
+    repository path from rev-parse --show-toplevel, or diff content, so a repository
+    under a non-ASCII directory decodes wrong or not at all. On Windows the failure is
+    especially quiet: the decode raises inside subprocess's reader thread, stdout comes
+    back None while returncode is 0, and the caller crashes on None.strip().
+
+    surrogateescape rather than replace, because these values are compared and hashed:
+    a lossy decode would make two different repositories look identical. Surrogates
+    round-trip back to the original bytes.
+    """
     try:
-        proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=15, check=False)
+        proc = subprocess.run(
+            ["git", "-C", str(repo), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="surrogateescape",
+            timeout=15,
+            check=False,
+        )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0:
