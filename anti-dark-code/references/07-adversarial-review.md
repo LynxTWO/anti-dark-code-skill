@@ -163,6 +163,20 @@ When approved work is published, a squash merge of a reviewed branch, a paused i
 - Treat every "unchanged" claim about bytes as a computation to run, never an assertion to accept. In one dogfeeding incident at a consuming repository, a publication declared four postimage receipts; three verified, and the one carried forward from the paused state did not, while the same document correctly recorded current-plus-historical receipts for a different file it knew had changed. Same author, same document, both patterns available; only the receipt that was recomputed at publication survived contact with the bytes.
 - A receipt that goes stale for a legitimate reason is history, and history is not a defect. Record the current receipt as current and the old one as superseded, in that order. Presenting history as the present is the defect, and it is the same class as release notes that describe a different artifact than the tag reproduces.
 
+### A byte receipt states its algorithm and its normalization
+
+Two honest people can hash the same approved file and record different values, for reasons that have nothing to do with its contents. A receipt that does not say how it was computed cannot be reproduced, and an unreproducible receipt is not evidence.
+
+The shapes that actually occur:
+
+- **Checkout-rewritten line endings.** Where version control rewrites line endings on checkout, a receipt taken from a working copy differs from one taken from the stored bytes. The same approved file then verifies on one contributor's machine and fails on another's, and neither is wrong.
+- **Different receipt kinds.** A version-control object id and a file digest are both sound, and they are not comparable. A checker must reproduce whichever kind the document it is verifying used, so a document that mixes kinds across entries cannot be checked in one pass.
+- **Mixed normalization inside one document**, which is the same failure wearing a disguise: entries that look like a series and are not.
+
+The rule: every recorded receipt names its algorithm and its normalization, raw stored bytes or line-ending-normalized, and a verifier reproduces both. Where a file's raw and normalized digests are equal, record that they agree; one line rules out the entire class for that entry.
+
+What omitting it costs is not a wrong answer but an unfalsifiable disagreement. A mismatch could be corruption, an unauthorized edit, or a checkout setting, and the record cannot distinguish them. In one dogfeeding incident a published postimage disagreed with its recorded receipt, and the explanation, a receipt computed on a line-ending-rewriting checkout while the published bytes were stored normalized, was only reachable because someone still had both artifacts to compare. Had either been gone, an approved change would have been indistinguishable from a silent substitution.
+
 ### Authorization documents drift; diff them against their authority before they become executable
 
 When authorization is document-driven, an issue text, a work order, a contract copy, parallel workstreams produce divergent copies of what is authorized, and each copy reads as authoritative to whoever holds it. The dangerous moment is the enabling act: the label, approval reply, or sign-off that makes one copy executable. Compare the executable copy against the approved authority immediately before enabling it, as a required step of enabling it, not as review that already happened somewhere upstream.

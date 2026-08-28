@@ -215,7 +215,7 @@ Judge a gate by the producer's real exit code. The shell composition that collap
 
 The two compose into a worse third case. Piping a failing gate into a summarizer masks its status, which then lets a following conjunction proceed: the chain reports success and the cleanup appears to have run, while the red result is gone. One idiom loses the verdict and the other loses the safety step, so no single fix covers both. Preserve the status and detach the cleanup.
 
-Test the failure path of every wrapper that summarizes gate output, and confirm the cleanup runs when the gate fails, not only when it passes.
+Test the failure path of every wrapper that summarizes gate output, and confirm the cleanup runs when the gate fails, not only when it passes. Then assert the working tree is clean before creating the artifact the chain exists to produce. Detached cleanup can still fail, and a scratch file or a locally modified harness that survives into a commit reproduces only on the machine that made it: local runs stay green while every shared lane goes red. The assertion is what turns a cleanup that was supposed to run into one that demonstrably did.
 
 ### Mutation-testing calibration
 
