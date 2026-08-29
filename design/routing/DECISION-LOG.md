@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.3. Date: 2026-08-29. Status: Review blocked.
+Version: 0.4. Date: 2026-08-29. Status: Audited.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -42,10 +42,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-023 | 2026-08-29 | The slice calibrates this repository before it routes it | Confirmed | |
 | D-024 | 2026-08-29 | Classification keeps every matching entry, not the first | Confirmed | |
 | D-025 | 2026-08-29 | Unreadable git records are reported, never dropped | Confirmed | |
-| D-026 | 2026-08-29 | Git acquisition neutralizes repository-configured execution | Proposed | |
-| D-027 | 2026-08-29 | Acquisition proves framing and preserves copy and mode signals | Proposed | |
-| D-028 | 2026-08-29 | Fact output validates enums and has one cross-platform order | Proposed | |
-| D-029 | 2026-08-29 | Capability count has one executable source of truth | Proposed | |
+| D-026 | 2026-08-29 | Git acquisition neutralizes repository-configured execution | Confirmed | |
+| D-027 | 2026-08-29 | Acquisition proves framing and preserves copy and mode signals | Confirmed | |
+| D-028 | 2026-08-29 | Fact output validates enums and has one cross-platform order | Confirmed | |
+| D-029 | 2026-08-29 | Capability count has one executable source of truth | Confirmed | |
 
 ---
 
@@ -683,7 +683,7 @@ A record type currently reported as unknown becomes understood well enough to cl
 ## D-026: Git acquisition neutralizes repository-configured execution
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5, ADD 14, EDD 7
 
 Context:
@@ -703,13 +703,16 @@ Options considered:
 Consequences:
 The default runner owns a documented Git configuration allowlist. Tests cover the real subprocess, not only an injected runner. A failed neutralization blocks selective routing and produces no receipt.
 
+As shipped, 2026-08-29:
+Broader than this decision first described. Every call carries `--no-optional-locks`, `-c core.fsmonitor=false`, and `-c diff.external=`, and every diff adds `--no-ext-diff`; the default runner also sets `GIT_OPTIONAL_LOCKS=0`. `diff.external` was included because it is a second configuration path that names a program, and the flags are prefixed through one `_isolated()` helper so a future call cannot quietly skip them. Two tests cover this: a hostile repository whose filesystem monitor would write a sentinel, and a fingerprint of the index and worktree taken before and after acquisition. The second is not decorative; without the lock flags git refreshes the index during an ordinary read, and the test fails.
+
 Revisit when:
 A new acquisition command reads configuration that can invoke another process, or Git changes the filesystem-monitor configuration contract.
 
 ## D-027: Acquisition proves framing and preserves copy and mode signals
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5 and 6, EDD R-019, R-024, R-027 to R-029
 
 Context:
@@ -729,13 +732,18 @@ Options considered:
 Consequences:
 Real Git tests cover add, modify, delete, rename, unchanged-source copy, pure mode, content-plus-mode, type change, unmerged, staged versus unstaged overlap, and copy-detection limit behavior. Parser fixtures cover corrupt bytes and states the host filesystem cannot create. Git similarity remains a heuristic for changed copies, so the policy must not treat a plain add as proof that no source exists.
 
+As shipped, 2026-08-29:
+One deliberate divergence. This decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. The implementation pins `diff.renameLimit=0`, which is unlimited, and so removes the failure mode rather than detecting it. Detecting exhaustion would require reading git's stderr, which the runner does not currently return, and an undetected truncation is the exact silent fidelity loss this decision exists to prevent. Measured cost of unlimited detection plus `--find-copies-harder` on this repository: 0.202s for a full acquisition, against a one-second target.
+
+Mode transitions are carried by a `mode_changed` field on both `ChangeInput` and `ChangeFact` rather than only by `change_kind`, because a record that changes content and mode together has unequal object ids and would otherwise lose the signal.
+
 Revisit when:
-Git adds a raw status or object format that the validated grammar does not yet support.
+Git adds a raw status or object format that the validated grammar does not yet support, or the runner gains a stderr channel and exhaustion can be detected directly.
 
 ## D-028: Fact output validates enums and has one cross-platform order
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5 and 14, EDD R-002, R-026, R-030 to R-032
 
 Context:
@@ -755,13 +763,16 @@ Options considered:
 Consequences:
 Tests inject one invalid value for every enum, compare several hash seeds, cover duplicate rows, and run a case-collision fixture. These tests supplement the existing broad-plus-specific match test rather than changing D-024.
 
+As shipped, 2026-08-29:
+Implemented as described. One honest limit on the test: `test_glob_matching_is_case_sensitive_on_every_platform` can only fail on a case-insensitive host, because `fnmatch` is already case-sensitive on Linux and macOS. It caught the defect on Windows. The cross-platform CI matrix is what makes this requirement enforceable, not the test alone.
+
 Revisit when:
 The policy schema introduces a dimension with non-string values or defines explicit case-insensitive matching.
 
 ## D-029: Capability count has one executable source of truth
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: EDD 11, SLICE-001 M1
 
 Context:

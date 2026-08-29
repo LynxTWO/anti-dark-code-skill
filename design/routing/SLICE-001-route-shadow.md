@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 0.3. Date: 2026-08-29. Status: Review blocked.
+Version: 0.4. Date: 2026-08-29. Status: Proposed.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -42,7 +42,7 @@ Every step works against the real repository, real git state, and the real calib
 | Milestone | Status | Contents |
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Review blocked | Acquisition and pure layer: `read_change_inputs`, `collect_change_facts`, `build_route`, parser fixtures, and property tests. Parser, acquisition, and classification exist. `build_route` does not. D-026 through D-029 and S-024 through S-030 must close before work continues. |
+| M2 | Partly done, 2026-08-29 | Acquisition and pure layer. `read_change_inputs`, `collect_change_facts`, and the raw parsers are built and green under D-026 through D-029. `build_route` is not built, so the monotonic property is still unverified and G-007 stays open. |
 | M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
 | M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 

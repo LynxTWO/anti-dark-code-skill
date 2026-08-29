@@ -612,6 +612,29 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         )
         self.assertTrue(snap.inputs, "acquisition must still work while isolated")
 
+    def test_acquisition_does_not_write_to_the_repository(self) -> None:
+        """R-027. Reading must not modify the index or the worktree.
+
+        Git refreshes the index opportunistically during ordinary reads, which
+        is a write to a repository the caller was only inspecting.
+        GIT_OPTIONAL_LOCKS=0 and --no-optional-locks suppress that.
+        """
+        (self.repo / "src.py").write_text("a\nb\nc\nd\nCHANGED\n", encoding="utf-8")
+        index = self.repo / ".git" / "index"
+
+        def fingerprint() -> tuple:
+            worktree = sorted(
+                (p.relative_to(self.repo).as_posix(), p.stat().st_size)
+                for p in self.repo.rglob("*")
+                if p.is_file() and ".git" not in p.parts
+            )
+            return (index.read_bytes() if index.exists() else b"", worktree)
+
+        before = fingerprint()
+        self.route.read_change_inputs(self.repo, "base-ref")
+        self.assertEqual(fingerprint(), before,
+                         "acquisition modified the index or the worktree")
+
 
 CLASSIFIER = {
     "surfaces": [

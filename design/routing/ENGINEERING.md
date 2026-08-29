@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.3. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Review blocked.
+Version: 0.4. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.

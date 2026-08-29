@@ -1,6 +1,6 @@
 # Assurance Router Architecture Document (ADD)
 
-Version: 0.3. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Review blocked.
+Version: 0.4. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ENGINEERING.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. Where the two conflict, this document's guardrails control.
