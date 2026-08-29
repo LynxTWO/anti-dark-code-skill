@@ -305,7 +305,8 @@ class AcquisitionTests(unittest.TestCase):
         self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         staged = run.argv_for("--cached")
         self.assertIn("--cached", staged)
-        diff_calls = [c for c in run.calls if c and c[0] == "diff"]
+        diff_calls = [c for c in run.calls if "diff" in c]
+        self.assertTrue(diff_calls, "no diff call was made at all")
         unstaged = [c for c in diff_calls if "--cached" not in c and "abc123" not in c]
         self.assertEqual(len(unstaged), 1, f"expected one worktree diff: {diff_calls}")
         self.assertNotIn("HEAD", unstaged[0])
@@ -314,7 +315,10 @@ class AcquisitionTests(unittest.TestCase):
         # Without -C git reports a copy as an add, losing the source path.
         run = RecordingRunner({"merge-base": b"abc123\n"})
         self.route.read_change_inputs(Path("."), "origin/main", runner=run)
-        for call in [c for c in run.calls if c and c[0] == "diff"]:
+        diff_calls = [c for c in run.calls if "diff" in c]
+        # Without this the loop below asserts nothing when the filter misses.
+        self.assertEqual(len(diff_calls), 3, f"expected three diffs: {run.calls}")
+        for call in diff_calls:
             self.assertIn("-M", call)
             self.assertIn("-C", call)
             self.assertIn("--no-abbrev", call)
@@ -371,6 +375,27 @@ class AcquisitionTests(unittest.TestCase):
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         self.assertTrue(snap.complete)
 
+    def test_every_git_call_disables_repository_configured_programs(self) -> None:
+        # A repository can point core.fsmonitor at a program of its choosing and
+        # git will run it for us. This module claims to read metadata only, so
+        # the isolation flags have to be on every call, not only the diffs.
+        run = RecordingRunner({"merge-base": b"abc123\n"})
+        self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertTrue(run.calls)
+        for call in run.calls:
+            joined = " ".join(call)
+            self.assertIn("core.fsmonitor=false", joined, f"unisolated call: {call}")
+            self.assertIn("diff.external=", joined, f"unisolated call: {call}")
+            self.assertIn("--no-optional-locks", joined, f"unisolated call: {call}")
+
+    def test_diff_calls_refuse_an_external_diff_driver(self) -> None:
+        run = RecordingRunner({"merge-base": b"abc123\n"})
+        self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        diff_calls = [c for c in run.calls if "diff" in c]
+        self.assertTrue(diff_calls, "no diff call was made at all")
+        for call in diff_calls:
+            self.assertIn("--no-ext-diff", call, f"diff without --no-ext-diff: {call}")
+
 
 @unittest.skipUnless(shutil.which("git"), "git is required")
 class AcquisitionAgainstRealGitTests(unittest.TestCase):
@@ -424,6 +449,38 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         snap = self.route.read_change_inputs(self.repo, "refs/heads/no-such-branch")
         self.assertFalse(snap.base_resolved)
         self.assertFalse(snap.complete)
+
+    def test_a_hostile_repository_cannot_run_its_own_program(self) -> None:
+        """The boundary the module docstring claims, tested rather than asserted.
+
+        A repository that sets core.fsmonitor to a script gets that script run
+        by our own git calls unless the isolation flags are present. This is the
+        untrusted-repository case anti-dark-code exists for, and pass 00 forbids
+        executing repository code during preflight.
+        """
+        hooks = self.repo / ".git" / "hooks"
+        hooks.mkdir(parents=True, exist_ok=True)
+        sentinel = self.repo / "sentinel.txt"
+        probe = hooks / "fsmonitor-probe"
+        probe.write_text(
+            "#!/bin/sh\n"
+            f'echo executed >> "{sentinel.as_posix()}"\n'
+            'echo ""\n',
+            encoding="utf-8", newline="\n",
+        )
+        probe.chmod(0o755)
+        self._git("config", "core.fsmonitor", ".git/hooks/fsmonitor-probe")
+        self._git("config", "diff.external", ".git/hooks/fsmonitor-probe")
+        (self.repo / "src.py").write_text("a\nb\nc\nd\nCHANGED\n", encoding="utf-8")
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(
+            sentinel.exists(),
+            "the repository executed its own program during acquisition: "
+            + (sentinel.read_text(encoding='utf-8') if sentinel.exists() else ""),
+        )
+        self.assertTrue(snap.inputs, "acquisition must still work while isolated")
 
 
 CLASSIFIER = {

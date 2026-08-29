@@ -9,16 +9,19 @@ Git acquisition is the one impure boundary. Classification and route building
 are pure functions over an acquired snapshot, so the monotonic property can be
 tested exhaustively without building a repository per case.
 
-Nothing here executes repository code. It reads git metadata and JSON only.
+Nothing here executes repository code. That is enforced, not assumed: every
+git call disables the configuration paths through which a repository can name a
+program for git to run. See _GIT_ISOLATION.
 """
 
 from __future__ import annotations
 
 import fnmatch
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 CHANGE_KINDS = frozenset({
     "add", "modify", "delete", "rename", "copy",
@@ -155,10 +158,31 @@ def parse_untracked_z(payload: bytes) -> RawParse:
     return RawParse(inputs=rows)
 
 
+# Git will run programs a repository names in its own configuration. This module
+# reads untrusted repositories, and pass 00 forbids executing repository code
+# during preflight, so every call disables the configuration paths that start a
+# program. core.fsmonitor is the demonstrated one: a repository pointing it at a
+# script gets that script run by our acquisition. diff.external is disabled for
+# the same reason. --no-optional-locks keeps a read from writing to the repo.
+#
+# Treat this list as load-bearing. Any new git option or subcommand must be
+# checked for another executable configuration path before it is added.
+_GIT_ISOLATION = (
+    "--no-optional-locks",
+    "-c", "core.fsmonitor=false",
+    "-c", "diff.external=",
+)
+
 # Rename and copy detection, plus full object ids. Without -C a copy arrives as
 # an add and its source path is lost. Without --no-abbrev the object ids are
 # seven characters, which is weaker identity than a receipt should bind.
-_DIFF_FLAGS = ("--raw", "-z", "--no-abbrev", "-M", "-C")
+# --no-ext-diff refuses an external diff driver even if one is configured.
+_DIFF_FLAGS = ("--no-ext-diff", "--raw", "-z", "--no-abbrev", "-M", "-C")
+
+
+def _isolated(args: Sequence[str]) -> list[str]:
+    """Prefix the isolation flags. Every git call goes through here."""
+    return [*_GIT_ISOLATION, *args]
 
 
 @dataclass(frozen=True)
@@ -179,9 +203,11 @@ class ChangeSnapshot:
 def _default_runner(repo: Path):
     def run(args: list[str]) -> bytes | None:
         try:
+            environment = dict(os.environ)
+            environment["GIT_OPTIONAL_LOCKS"] = "0"
             done = subprocess.run(
                 ["git", "-C", str(repo), *args],
-                capture_output=True, timeout=30, check=False,
+                capture_output=True, timeout=30, check=False, env=environment,
             )
         except (OSError, subprocess.SubprocessError):
             return None
@@ -204,7 +230,7 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     problems: list[str] = []
     rows: list[ChangeInput] = []
 
-    merge_base_raw = run(["merge-base", base, "HEAD"])
+    merge_base_raw = run(_isolated(["merge-base", base, "HEAD"]))
     base_resolved = bool(merge_base_raw)
     merge_base = (
         merge_base_raw.decode("utf-8", "replace").strip() if merge_base_raw else None
@@ -213,7 +239,7 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
         problems.append("ADC-ROUTE-BASE-UNREACHABLE")
 
     def collect(args: list[str], source: str, unreadable_code: str) -> None:
-        payload = run(args)
+        payload = run(_isolated(args))
         if payload is None:
             problems.append(unreadable_code)
             return
@@ -235,7 +261,7 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     collect(["diff", *_DIFF_FLAGS],
             "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE")
 
-    untracked = run(["ls-files", "--others", "--exclude-standard", "-z"])
+    untracked = run(_isolated(["ls-files", "--others", "--exclude-standard", "-z"]))
     if untracked is None:
         problems.append("ADC-ROUTE-UNTRACKED-UNREADABLE")
     else:
