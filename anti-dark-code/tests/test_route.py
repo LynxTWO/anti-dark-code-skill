@@ -1093,5 +1093,154 @@ class MonotonicityTests(unittest.TestCase):
                         f"order changed the route: {[f.path for f in order]}")
 
 
+GATES = {
+    "schema_version": 1,
+    "gates": [
+        {"id": "validate-core", "enabled": True, "review_status": "approved"},
+        {"id": "distribution", "enabled": True, "review_status": "approved"},
+        {"id": "hostile-environment", "enabled": True, "review_status": "approved"},
+        {"id": "full-suite", "enabled": True, "review_status": "approved"},
+        {"id": "not-yet-reviewed", "enabled": True, "review_status": "proposed"},
+        {"id": "switched-off", "enabled": False, "review_status": "approved"},
+    ],
+}
+
+
+class PolicyValidationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.route = load_route()
+
+    def _policy(self, **over):
+        policy = json.loads(json.dumps(POLICY))
+        policy.update(over)
+        return policy
+
+    def _rule(self, **over):
+        rule = {"id": "extra", "review_status": "approved",
+                "match": {"surfaces": ["docs"]},
+                "requires": {"passes": ["06"], "minimum_level": 0},
+                "obligations": {"V09": ["validate-core"]}}
+        rule.update(over)
+        return rule
+
+    def _with_rule(self, **over):
+        policy = self._policy()
+        policy["rules"] = [self._rule(**over)]
+        return policy
+
+    def test_a_valid_policy_loads(self) -> None:
+        loaded = self.route.load_policy(self._policy(), GATES)
+        self.assertEqual(loaded["schema_version"], 1)
+
+    def test_a_wrong_schema_version_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(self._policy(schema_version=2), GATES)
+
+    def test_a_missing_full_recipe_is_rejected(self) -> None:
+        policy = self._policy()
+        del policy["full_recipe"]
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES)
+
+    def test_a_full_recipe_naming_an_unknown_gate_is_rejected(self) -> None:
+        policy = self._policy()
+        policy["full_recipe"]["obligations"]["V09"] = ["no-such-gate"]
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES)
+
+    def test_an_obligation_naming_an_unknown_gate_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(obligations={"V09": ["no-such-gate"]}), GATES)
+
+    def test_an_obligation_naming_an_unapproved_gate_is_rejected(self) -> None:
+        # A gate nobody reviewed cannot satisfy a capability.
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(obligations={"V09": ["not-yet-reviewed"]}), GATES)
+
+    def test_an_obligation_naming_a_disabled_gate_is_rejected(self) -> None:
+        # A disabled gate will never run, so it covers nothing.
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(obligations={"V09": ["switched-off"]}), GATES)
+
+    def test_an_empty_obligation_gate_list_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(self._with_rule(obligations={"V09": []}), GATES)
+
+    def test_an_unknown_capability_id_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(obligations={"V99": ["validate-core"]}), GATES)
+
+    def test_duplicate_rule_ids_are_rejected(self) -> None:
+        policy = self._policy()
+        policy["rules"] = [self._rule(), self._rule()]
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES)
+
+    def test_duplicate_gate_ids_are_rejected(self) -> None:
+        gates = json.loads(json.dumps(GATES))
+        gates["gates"].append({"id": "validate-core", "enabled": True,
+                               "review_status": "approved"})
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(self._policy(), gates)
+
+    def test_a_negative_predicate_is_rejected(self) -> None:
+        # R-015. A rule that fires on the absence of another fact is not
+        # monotonic: adding a file could stop it firing.
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(match={"surfaces": ["docs"], "not_paths": ["x"]}), GATES)
+
+    def test_an_empty_match_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(self._with_rule(match={}), GATES)
+
+    def test_an_out_of_range_level_is_rejected(self) -> None:
+        for level in (-1, 4, "2", None):
+            with self.assertRaises(self.route.PolicyError, msg=f"level={level!r}"):
+                self.route.load_policy(
+                    self._with_rule(requires={"minimum_level": level}), GATES)
+
+    def test_a_non_boolean_flag_is_rejected(self) -> None:
+        for flag in ("force_full", "independent_review"):
+            with self.assertRaises(self.route.PolicyError, msg=flag):
+                self.route.load_policy(
+                    self._with_rule(requires={"minimum_level": 1, flag: "yes"}), GATES)
+
+    def test_an_unknown_pass_id_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(requires={"passes": ["99"], "minimum_level": 0}), GATES)
+
+    def test_a_classifier_enum_typo_is_rejected_at_load(self) -> None:
+        # Catching this at load rather than only at classification means a bad
+        # policy fails before it can route anything.
+        policy = self._policy()
+        policy["classifier"] = {"surfaces": [
+            {"glob": "*.py", "surface": "BOGUS", "effect": "behavior"}]}
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES)
+
+    def test_a_classifier_entry_without_a_glob_is_rejected_at_load(self) -> None:
+        policy = self._policy()
+        policy["classifier"] = {"surfaces": [{"surface": "docs", "effect": "prose"}]}
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES)
+
+    def test_a_proposed_rule_loads_but_never_matches(self) -> None:
+        # D-022. The shipped template carries proposed rules, so loading must
+        # accept them. build_route ignores them, which leaves the change
+        # unrouted and therefore full.
+        policy = self._policy()
+        policy["rules"] = [self._rule(review_status="proposed")]
+        loaded = self.route.load_policy(policy, GATES)
+        built = self.route.build_route((fact(self.route, "README.md"),), loaded)
+        self.assertEqual(built.matched_rule_ids, frozenset())
+        self.assertTrue(built.force_full)
+
+
 if __name__ == "__main__":
     unittest.main()

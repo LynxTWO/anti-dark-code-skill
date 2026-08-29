@@ -646,3 +646,159 @@ def apply_hints(route: Route, hints: Mapping[str, Any]) -> Route:
         unmapped_paths=route.unmapped_paths | frozenset(hints.get("unmapped_paths", [])),
         unknowns=route.unknowns | frozenset(hints.get("unknowns", [])),
     )
+
+
+class PolicyError(Exception):
+    """A routing policy that cannot be trusted.
+
+    Loading never falls back to a default. A policy that cannot be validated
+    produces no route at all, and the caller uses the documented full
+    verification path outside the router.
+    """
+
+
+# Passes 00 through 16 exist in references/. A rule naming anything else is a
+# typo, and a typo that silently names no pass would quietly drop work.
+_PASS_IDS = frozenset(f"{n:02d}" for n in range(0, 17))
+_LEVELS = frozenset({0, 1, 2, 3})
+
+
+def _usable_gate_ids(gates: Mapping[str, Any]) -> set[str]:
+    """Gate ids that could actually run.
+
+    A gate that is disabled will never execute, and a gate nobody approved must
+    not execute, so neither can satisfy a capability. Treating them as coverage
+    would let a route report an obligation as met by work that cannot happen.
+    """
+    entries = gates.get("gates", [])
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    usable: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, Mapping) or not entry.get("id"):
+            raise PolicyError("gate configuration contains an entry with no id")
+        gate_id = str(entry["id"])
+        if gate_id in seen:
+            duplicates.add(gate_id)
+        seen.add(gate_id)
+        if (entry.get("enabled") is True
+                and str(entry.get("review_status", "")).lower() == "approved"):
+            usable.add(gate_id)
+    if duplicates:
+        raise PolicyError(
+            f"gate configuration has duplicate ids: {sorted(duplicates)}")
+    return usable
+
+
+def _check_obligations(
+    where: str, obligations: Any, usable_gate_ids: set[str], capability_ids: set[str]
+) -> None:
+    if not isinstance(obligations, Mapping):
+        raise PolicyError(f"{where}: obligations must be an object")
+    for capability, gate_ids in obligations.items():
+        if capability not in capability_ids:
+            raise PolicyError(f"{where}: unknown capability id {capability!r}")
+        if not isinstance(gate_ids, list) or not gate_ids:
+            raise PolicyError(
+                f"{where}: capability {capability} needs a nonempty gate list")
+        for gate_id in gate_ids:
+            if gate_id not in usable_gate_ids:
+                raise PolicyError(
+                    f"{where}: capability {capability} names gate {gate_id!r}, "
+                    "which is unknown, disabled, or unapproved"
+                )
+
+
+def _check_requires(where: str, requires: Any) -> None:
+    if not isinstance(requires, Mapping):
+        raise PolicyError(f"{where}: requires must be an object")
+    level = requires.get("minimum_level", 0)
+    if not isinstance(level, int) or isinstance(level, bool) or level not in _LEVELS:
+        raise PolicyError(f"{where}: minimum_level must be one of {sorted(_LEVELS)}")
+    passes = requires.get("passes", [])
+    if not isinstance(passes, list):
+        raise PolicyError(f"{where}: passes must be an array")
+    for pass_id in passes:
+        if pass_id not in _PASS_IDS:
+            raise PolicyError(f"{where}: unknown pass id {pass_id!r}")
+    for flag in ("force_full", "independent_review"):
+        if flag in requires and not isinstance(requires[flag], bool):
+            raise PolicyError(f"{where}: {flag} must be true or false")
+
+
+def load_policy(
+    data: Mapping[str, Any],
+    gates: Mapping[str, Any],
+    capability_ids: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    """Validate a routing policy against the gates that could actually run.
+
+    Validating at load rather than only at route time means a bad policy fails
+    before it can route anything. A rule whose review_status is not approved
+    still loads: the shipped template ships every rule proposed so an installing
+    repository has to read and approve each one, and an unapproved rule simply
+    never matches. See D-022.
+    """
+    if not isinstance(data, Mapping):
+        raise PolicyError("routing policy must be an object")
+    if data.get("schema_version") != 1:
+        raise PolicyError("routing policy schema_version must be 1")
+
+    known_capabilities = set(capability_ids) if capability_ids is not None else {
+        f"V{n:02d}" for n in range(1, 23)
+    }
+    usable = _usable_gate_ids(gates)
+
+    classifier = data.get("classifier", {})
+    if not isinstance(classifier, Mapping):
+        raise PolicyError("classifier must be an object")
+    for entry in classifier.get("surfaces", []):
+        if not isinstance(entry, Mapping) or not entry.get("glob"):
+            raise PolicyError(f"classifier entry has no glob: {entry!r}")
+        try:
+            _validated_classification(entry, {
+                "surface": entry.get("surface", ""),
+                "effect": entry.get("effect", ""),
+                "breadth": entry.get("breadth", "leaf"),
+                "sensitivity": entry.get("sensitivity", "normal"),
+                "confidence": "verified",
+            })
+        except ValueError as exc:
+            raise PolicyError(str(exc)) from exc
+
+    recipe = data.get("full_recipe")
+    if not isinstance(recipe, Mapping):
+        raise PolicyError("routing policy must define full_recipe")
+    _check_requires("full_recipe", recipe)
+    _check_obligations("full_recipe", recipe.get("obligations", {}), usable,
+                       known_capabilities)
+    if not recipe.get("obligations"):
+        raise PolicyError("full_recipe must name at least one obligation")
+
+    rules = data.get("rules")
+    if not isinstance(rules, list):
+        raise PolicyError("routing policy must define a rules array")
+
+    seen: set[str] = set()
+    for rule in rules:
+        if not isinstance(rule, Mapping) or not rule.get("id"):
+            raise PolicyError("every rule needs an id")
+        rule_id = str(rule["id"])
+        where = f"rule {rule_id}"
+        if rule_id in seen:
+            raise PolicyError(f"duplicate rule id: {rule_id}")
+        seen.add(rule_id)
+        match = rule.get("match")
+        if not isinstance(match, Mapping) or not match:
+            raise PolicyError(f"{where}: needs a nonempty match")
+        unknown = set(match) - _MATCH_KEYS
+        if unknown:
+            raise PolicyError(
+                f"{where}: unsupported match keys {sorted(unknown)}. Rules match "
+                "one fact with positive predicates only, because a rule keyed on "
+                "the absence of another fact would stop firing when a file is added"
+            )
+        _check_requires(where, rule.get("requires", {}))
+        _check_obligations(where, rule.get("obligations", {}), usable,
+                           known_capabilities)
+    return dict(data)
