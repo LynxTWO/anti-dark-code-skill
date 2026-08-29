@@ -167,10 +167,10 @@ conditions | not ready, with the blocking findings named.
 - **Core validation:**
 
   ```bash
-  python anti-dark-code/scripts/adc.py validate --mode universal --repo .
+  python anti-dark-code/scripts/adc.py validate --mode universal
   ```
 
-  Two benign warnings are expected: a staged incoming item, and an ignored `__pycache__`.
+  A generated-artifact warning is expected. Note the absence of `--repo`: the `validate` subparser accepts `--skill` and `--mode` only, and adding `--repo` exits non-zero on an argparse error. An earlier revision of this handoff carried the wrong command, which Codex caught as F-10.
 - **Do not run** anything that writes outside `design/routing/`, installs a dependency, or executes a gate with `--allow-exec`.
 
 ## 9. Writing rules for anything you write here

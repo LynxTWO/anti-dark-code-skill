@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 0.1 Draft. Date: 2026-08-28. Status: Proposed.
+Version: 0.2 Audited. Date: 2026-08-28. Status: Proposed.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -30,22 +30,23 @@ Every step works against the real repository, real git state, and the real calib
 
 | Item | Notes |
 |---|---|
-| `collect_change_facts()` | pure, status-aware, sees tooling paths per D-010 |
+| `read_change_inputs()` | read-only Git boundary, NUL-delimited and status-aware, sees tooling paths per D-010 |
+| `collect_change_facts()` | pure over ChangeSnapshot, classifies both paths of rename and copy records |
 | `build_route()` | pure, monotonic by construction per D-009 |
 | `routing-policy.json` template and schema | ships in assets, installed copy is repository owned |
 | Receipt writer and verifier | bound identity, stable reason codes |
 | `adc.py route` subcommand | read-only, `--repo`, `--changed-from`, `--phase`, `--write` |
 | Shadow comparator | records misses, changes nothing |
-| `test_route.py` | R-001 to R-014 |
+| `test_route.py` | R-001 to R-023 |
 
 | Milestone | Contents |
 |---|---|
-| M1 | Spike closing Q-001: read all 20 capability definitions, decide the real count of new capability ids. Then extend the catalog. This closes before any rule names an obligation. |
-| M2 | Pure layer: `collect_change_facts`, `build_route`, and their tests. No disk, no CLI. |
+| M1 | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
+| M2 | Acquisition and pure layer: `read_change_inputs`, `collect_change_facts`, `build_route`, parser fixtures, and property tests. The pure functions use no disk or CLI. |
 | M3 | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
 | M4 | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 
-M1 is first because a rule cannot name an obligation until the obligation vocabulary is settled, and D-004 made obligations capability ids.
+M1 is first because a rule cannot name an obligation until the two catalog entries settled by D-016 exist, and D-004 made obligations capability ids.
 
 ## 4. Out of scope, on purpose
 
@@ -73,13 +74,13 @@ Stubs are labeled in code. Inside the slice boundary, nothing is a stub.
 
 ## 6. Modules touched
 
-Per ADD section 4: fact collector, routing policy, route builder, receipt writer, receipt verifier, shadow comparator. The gate runner is read but not changed in this slice, except for the escalate-only `--level` check in R-013.
+Per ADD section 4: Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, shadow comparator, and the narrow gate-runner binding. The binding adds the escalate-only `--level` check and before-and-after receipt verification. It still cannot skip a gate.
 
 The slice passes through the real seams: real git helpers, real calibration paths, real hashing helpers.
 
 ## 7. Data subset
 
-Per EDD section 5: ChangeFact, Rule, Receipt, and Omission in full production shape. Route and Obligation exist as records. ShadowResult exists with its miss counter and route class.
+Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full production shape. Route and Obligation exist as records. ShadowResult exists with its miss counter and route class.
 
 `routing-policy.json` ships as a template under `assets/templates/calibration/`, with a populated copy for this repository under its own calibration directory.
 
@@ -101,6 +102,15 @@ Per EDD section 5: ChangeFact, Rule, Receipt, and Omission in full production sh
 | S-012 | Given a computed route at level 1, when `--level 0` is supplied, then the command exits 2 naming the route minimum | R-013 test |
 | S-013 | Given a route, when gates are selected, then every obligation has an approved covering gate, or the route is full | R-012 test |
 | S-014 | Given the suite, when a hard escalator is weakened, then at least one test fails | mutation or revert test |
+| S-015 | Given a matched fact, when unrelated facts are added in any order, then its match and requirements remain present | R-015 test |
+| S-016 | Given a capability obligation, when policy validation runs, then explicit approved gate ids cover it or validation blocks | R-016 test |
+| S-017 | Given unchanged porcelain status but changed dirty bytes, index entries, modes, symlink targets, or submodule state, when verified, then the receipt is stale | R-017 test |
+| S-018 | Given repository mutation before or during a gate, when the gate returns, then its output cannot satisfy an obligation | R-018 test |
+| S-019 | Given every supported Git record and hostile path fixture, when acquired, then both paths, status, source, and mode survive or selective routing blocks | R-019 test |
+| S-020 | Given generated valid hints, when applied, then every route field is equal or higher and the comparison input is unchanged | R-020 test |
+| S-021 | Given each verification-authority path class, when routed, then `force_full` is true | R-021 test |
+| S-022 | Given `force_full`, when gate applicability globs would exclude a gate, then the canonical full recipe still selects it | R-022 test |
+| S-023 | Given identical authoritative inputs in shuffled order and different clocks, when receipts are built, then authoritative bytes and hashes match | R-023 test |
 
 ## 9. Verification evidence required
 
@@ -126,7 +136,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 - [ ] All acceptance criteria pass with linked evidence.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
-- [ ] Q-001 closed and recorded. Q-002 and Q-003 still open and still not blocking.
+- [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.
 - [ ] Documents updated: statuses, unknowns, log entries for anything learned.
 - [ ] Human walkthrough completed and approved by Daniel Boyd.
 

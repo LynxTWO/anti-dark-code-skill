@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.1 Draft. Date: 2026-08-28.
+Version: 0.2 Audited. Date: 2026-08-28. Status: Audited.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -20,7 +20,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-001 | 2026-08-28 | Routing is infrastructure, not a numbered pass | Confirmed | |
 | D-002 | 2026-08-28 | Pure functions plus one CLI subcommand | Confirmed | |
 | D-003 | 2026-08-28 | Standard library only, no new dependency | Confirmed | |
-| D-004 | 2026-08-28 | Obligations are capability ids, catalog extended | Confirmed | |
+| D-004 | 2026-08-28 | Obligations are capability ids, catalog extended by two ids | Confirmed | |
 | D-005 | 2026-08-28 | `--level` becomes an escalate-only override | Confirmed | |
 | D-006 | 2026-08-28 | Agent hints may raise, never lower | Confirmed | |
 | D-007 | 2026-08-28 | Route input is the final diff, limitation documented | Confirmed | |
@@ -32,6 +32,11 @@ The documents state what is true. This log preserves why, what else was consider
 | D-013 | 2026-08-28 | No cheapest-gate optimizer in version one | Deferred | |
 | D-014 | 2026-08-28 | Shadow artifacts live beside the receipt | Assumed | |
 | D-015 | 2026-08-28 | Design documents live in `design/routing/` | Confirmed | |
+| D-016 | 2026-08-28 | Q-001 closes with V21 affected-unit testing and V22 input fuzz testing | Confirmed | |
+| D-017 | 2026-08-28 | Policy binds every capability obligation to explicit gate ids | Confirmed | |
+| D-018 | 2026-08-28 | The router has no human downgrade override | Confirmed | |
+| D-019 | 2026-08-28 | Git acquisition is impure and receipts bind content | Confirmed | |
+| D-020 | 2026-08-28 | Full routing uses a validated policy-root recipe | Confirmed | |
 
 ---
 
@@ -73,7 +78,7 @@ Context:
 The router must be exhaustively testable, including on Windows, without constructing a git repository for every case.
 
 Decision:
-`collect_change_facts` and `build_route` are pure. Only the receipt writer touches disk. One new subcommand, `route`.
+`read_change_inputs` owns read-only Git I/O. `collect_change_facts` and `build_route` are pure over passed data. Receipt writing is a separate boundary. One new subcommand, `route`.
 
 Because:
 Purity lets the monotonic property be property-tested over generated fact sets. Every existing subcommand follows the same shape, so nothing new has to be learned.
@@ -83,7 +88,7 @@ Options considered:
 - Methods on a router class holding a repo handle: fewer arguments, much harder to test the monotonic property in isolation.
 
 Consequences:
-Easier: exhaustive tests with no filesystem. Harder: the collector needs its git output passed in rather than fetching it inline.
+Easier: exhaustive classification and route tests need no filesystem. Harder: the status-aware reader and its byte parser need separate integration tests.
 
 Revisit when:
 The pure layer needs repository state that cannot be passed as data.
@@ -120,10 +125,10 @@ Status: Confirmed
 Area: EDD 4, ADD 7
 
 Context:
-The design proposed twelve obligation names. Seven already exist in `assets/verification-capabilities.json` under different names: static is near V09, contract is near V08, mutation is V01, replay is V07, performance is V14, independent review is V17, test integrity is V18. Five have no existing id.
+The design proposed twelve obligation names. Catalog review in D-016 found that ten map to existing capabilities. Distribution shares V08 with contract validation. Cross-platform and hostile-environment checks are V12 adaptations. Affected-unit testing and input fuzz testing are not present.
 
 Decision:
-Obligations are capability ids. The catalog is extended with the genuinely new ones, provisionally V21 to V25, and rules name capability ids rather than a parallel vocabulary.
+Obligations are capability ids. The catalog is extended with V21 and V22 per D-016, and rules name capability ids rather than a parallel vocabulary.
 
 Because:
 Two names for one concept is the drift the skill warns about everywhere else. One catalog means pass 14 keeps evaluating one list, and a receipt omission can name the reviewed capability it skipped.
@@ -137,7 +142,7 @@ Consequences:
 Easier: one source of truth. Harder: extending the catalog is itself a verification-authority change, so it forces the full route and deserves its own review.
 
 Revisit when:
-Q-001 closes and the real count of new capabilities is known.
+An evidence method cannot be represented without distorting an existing capability definition.
 
 ## D-005: `--level` becomes an escalate-only override
 
@@ -328,7 +333,7 @@ Context:
 Rules could name obligations and let gates declare `tags`, `covers`, and `scope`. That is more flexible than naming explicit gate ids.
 
 Decision:
-Rules name explicit gate ids for now. Coverage metadata is deferred.
+Rules bind each capability obligation to explicit gate ids in the routing policy per D-017. Gate-owned coverage metadata is deferred.
 
 Because:
 Explicit recipes are easier to trust while the system is young. More importantly, `gate_definition_hash` currently binds thirteen fields and none of them describe coverage, so adding `covers` without extending the hash would let someone change what a gate claims to cover without invalidating its approval.
@@ -338,7 +343,7 @@ Options considered:
 - Coverage metadata now: flexible, and creates an approval hole until the hash is extended.
 
 Consequences:
-Easier: no approval hole. Harder: the policy repeats gate ids across rules.
+Easier: no approval hole, and R-012 is machine-checkable. Harder: the policy repeats capability-to-gate bindings across rules.
 
 Revisit when:
 `gate_definition_hash` is extended to bind `tags`, `covers`, and `scope`. That extension must land first.
@@ -401,3 +406,137 @@ This is also a routing lesson worth carrying into the policy: a `docs/` director
 
 Revisit when:
 A second subsystem needs the same treatment and a flatter layout is preferable.
+
+## D-016: Q-001 closes with two new capability ids
+
+Date: 2026-08-28
+Status: Confirmed
+Area: EDD 4.3, SLICE-001 M1
+
+Context:
+The proposed evidence vocabulary contained twelve labels. A lexical match was not enough because capability ids name methods, not job names. All twenty catalog definitions were compared by purpose, computer work, and agent work.
+
+Decision:
+Eight existing capability ids cover ten labels. Static maps to V09. Contract and distribution map to V08, with distribution treated as validation of a generated package boundary. Mutation maps to V01. Replay maps to V07. Performance maps to V14. Independent review maps to V17. Test integrity maps to V18. Cross-platform and hostile-environment map to V12. Add V21 Affected-unit testing and V22 Input fuzz testing.
+
+Because:
+V11 selects affected checks but does not execute their assertions, so calling affected-unit testing V11 would merge selection with evidence. V15 perturbs environmental failures, and V02 generates stateful action sequences. Neither covers hostile input-byte and value generation. The repository's fuzz harness makes that distinction directly. Distribution, cross-platform, and hostile-environment are scopes or adaptations already named by V08 and V12, not new methods.
+
+Options considered:
+- Add V21 through V25: preserves every provisional label and duplicates existing methods.
+- Add only V21 and V22: keeps method identities distinct while allowing several route labels to converge on one capability.
+- Add no ids: would call test selection test execution and fault injection input fuzzing.
+
+Consequences:
+M1 becomes a bounded two-entry catalog edit. Route policies use capability ids only, so the provisional labels do not become a second vocabulary.
+
+Revisit when:
+The V21 or V22 definitions cannot describe a real gate without absorbing another capability's purpose.
+
+## D-017: Policy binds every capability obligation to explicit gate ids
+
+Date: 2026-08-28
+Status: Confirmed
+Area: EDD R-012, ADD 14
+
+Context:
+Parallel `obligations` and `gate_ids` arrays can both be nonempty while carrying no relationship. That shape cannot prove which gate satisfies which capability, so R-012 would accept an unrelated approved gate.
+
+Decision:
+Each rule's `obligations` field maps a capability id to a nonempty set of explicit gate ids. The route unions gate ids per capability. Policy validation rejects an unknown, duplicate, disabled, or unapproved gate before selective execution.
+
+Because:
+The coverage claim must live in the policy while gate coverage metadata remains deferred under D-012. Binding the relationship in the hashed policy closes the gap without adding `covers`, `tags`, or an optimizer to `gates.json`.
+
+Options considered:
+- Policy-local capability-to-gate map: machine-checkable now and consistent with D-012.
+- Parallel arrays: smaller shape, no provable coverage relation.
+- Gate-owned coverage metadata: the future design, blocked until the approval hash binds it.
+
+Consequences:
+Policies are more verbose. R-012 becomes executable rather than a reviewer inference.
+
+Revisit when:
+D-012 closes and gate-owned coverage metadata can replace the policy-local map without weakening approval binding.
+
+## D-018: The router has no human downgrade override
+
+Date: 2026-08-28
+Status: Confirmed
+Area: EDD 2, EDD 6, ADD 14
+
+Context:
+The first draft said requirements never decrease, then named `operator_override` as a human downgrade path. A receipt with a recorded reason would still authorize less evidence than the deterministic minimum.
+
+Decision:
+The router and receipt have no downgrade override. An agent or human may raise the route. A human may record why required evidence is unavailable, but the receipt stays incomplete and cannot authorize selective execution.
+
+Because:
+A reason explains a gap but does not verify it. This preserves D-005, D-006, and D-009 in every execution path.
+
+Options considered:
+- No downgrade: one authority rule and one monotonic property.
+- Human downgrade with a reason: auditable, but the route no longer establishes a hard minimum.
+
+Consequences:
+An exceptional change may require the existing full-verification path or remain blocked. The receipt never presents an exception as satisfied evidence.
+
+Owner review, 2026-08-28:
+This decision diverges from the original design source, which said a human may approve a recorded exception with the reason written into the route receipt. The divergence was surfaced to the owner with both options stated, and the owner confirmed D-018 as written. The reasoning accepted: a reason explains a gap but does not verify it, and a router that can be overridden is not a minimum. A waiver mechanism is deferred rather than rejected, and needs its own authority, attestation format, expiry, and enforcement path before it returns.
+
+Revisit when:
+The owner defines a separate waiver authority, attestation format, expiry, and enforcement path outside route computation.
+
+## D-019: Git acquisition is impure and receipts bind content
+
+Date: 2026-08-28
+Status: Confirmed
+Area: ADD 4 to 6, EDD R-017 to R-019
+
+Context:
+A function taking `repo` and `base` and invoking Git is not pure. The current repository identity helper hashes porcelain status text, which does not change when one dirty byte sequence is replaced by another dirty byte sequence.
+
+`current_source_identity` is unsuitable for receipt binding for a second and independent reason. It passes pathspec exclusions for `.agents/skills/**`, `.claude/skills/**`, `.gemini/skills/**`, `.codex/skills/**`, and `.anti-dark-code/**` to `git status`. Those exclusions are correct for its own job, which is judging whether an installed core is dirty, and they were deliberately set that way. They are wrong for a receipt, because a change to `calibration/gates.json` or `calibration/routing-policy.json` would leave the identity unchanged and the receipt fresh. That is the same blindness D-010 found in `changed_files`, reappearing in verification rather than collection. Any helper the router borrows must be checked for both properties: does it hash content, and does it see the whole tree.
+
+Decision:
+`read_change_inputs` is the read-only impure boundary and returns a canonical ChangeSnapshot. `collect_change_facts` and `build_route` are pure. Receipt freshness binds content, modes, index entries, symlink targets, and submodule state, then checks that identity before and after each gate.
+
+Because:
+The split keeps property tests honest and prevents status-shape equality from being mistaken for content identity. The after-check prevents a concurrent mutation from turning output from different bytes into accepted evidence.
+
+Options considered:
+- Separate acquisition and pure classification with content identity: testable and tamper-evident.
+- Call a repo-reading collector pure given Git behavior: concise, but false and difficult to test exhaustively.
+- Reuse porcelain status identity: cheap, but stale content can retain the same digest.
+
+Consequences:
+The reader needs integration tests for NUL paths, status variants, modes, and submodules. Gate execution pays two bounded identity checks.
+
+Revisit when:
+A repository snapshot or lease can hold all selected inputs immutable through gate exit.
+
+## D-020: Full routing uses a validated policy-root recipe
+
+Date: 2026-08-28
+Status: Confirmed
+Area: ADD 13 and 14, EDD R-022
+
+Context:
+`force_full` had no defined set of passes, capabilities, or gates. Using ordinary changed-file applicability after setting the flag could still omit a gate. An invalid policy also cannot safely define its own fallback.
+
+Decision:
+A valid policy contains one root `full_route` recipe. It selects Level 3, the repository's full pass and capability set, and explicit approved gate ids without changed-file glob filtering. If the policy or full recipe cannot validate, routing exits 2 and emits no selective receipt. The caller uses the documented full-verification command outside the router.
+
+Because:
+`force_full` needs one deterministic meaning. A broken policy cannot be trusted to describe its own safe fallback.
+
+Options considered:
+- Validated policy-root recipe: repository-specific and machine-checkable.
+- Derive full from matching rules: an unmapped path could still omit work.
+- Hard-code every repository's full route in the universal core: safe only for one repository shape.
+
+Consequences:
+Every policy must declare and validate its full recipe before rules load. Missing or invalid policy blocks routing but does not block the existing documented full verification path.
+
+Revisit when:
+The calibration schema gains a different repository-bound source of canonical full verification.

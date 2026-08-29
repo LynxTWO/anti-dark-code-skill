@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.1 Draft. Date: 2026-08-28. Authors: Daniel Boyd, Claude Opus 5. Status: In interview.
+Version: 0.2 Audited. Date: 2026-08-28. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -20,20 +20,20 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 2. Combination is union and maximum. Never averaging, never subtraction. Thirty README lines cannot cancel one authentication schema change.
 3. A skipped check is an explained decision with a stable reason code, never an absence.
 4. The classifier does not grade itself. A change to routing must be judged by the previously trusted router.
-5. Deterministic tooling establishes the minimum. Agent judgment may raise it. Only a human may approve a recorded exception, and the reason lands in the receipt.
-6. Purity where it matters: fact collection and route building are pure functions, so they can be tested exhaustively without a repository.
+5. Deterministic tooling establishes the minimum. Agent judgment and a human may raise it. A human may acknowledge that required evidence is still missing, but that acknowledgement does not lower the route or turn missing evidence into a pass.
+6. Purity where it matters: Git acquisition is impure and read-only. Fact classification and route building are pure functions over the acquired snapshot, so they can be tested exhaustively without a repository.
 7. No new runtime dependency. The hostile-environment matrix is the cost of every import.
 
 ## 3. System Goals
 
 | Goal | Target | How measured |
 |---|---|---|
-| Correct | adding a changed file never lowers a route | property test over generated fact sets |
+| Correct | adding a changed file never lowers any route field | property test over generated fact sets and hints |
 | Auditable | every omitted gate carries a reason code and matched rule id | receipt schema validation |
 | Fast | route computation under one second on this repository | timed test |
 | Deterministic | identical facts produce byte-identical receipts regardless of input order | repeated-run hash comparison |
 | Honest | routing misses are counted per route class, not in aggregate | shadow ledger |
-| Tamper-evident | a changed worktree, policy, or gate set invalidates a receipt | staleness tests |
+| Tamper-evident | changed content, modes, index, submodules, policy, calibration, or gate inputs invalidate a receipt | staleness and concurrent-mutation tests |
 
 ## 4. Requirements Ledger
 
@@ -41,7 +41,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 
 | ID | Requirement | Acceptance test |
 |---|---|---|
-| R-001 | Adding a changed file never lowers any component of the route | given a route for facts F, when a fact is added, then level, passes, and obligations are all supersets or equal |
+| R-001 | Adding a changed file never lowers any component of the route | given a route for facts F, when a fact is added, then level is not lower, set fields are supersets, boolean fields do not change from true to false, and `force_full` still dominates |
 | R-002 | Identical facts produce byte-stable receipts regardless of input order | given the same facts shuffled, when routed, then the receipt hash is identical |
 | R-003 | A path matching no reviewed rule blocks the fast path | given an unmapped path, when routed, then the route is full and the path is listed in unknowns |
 | R-004 | `SKILL.md` and `references/**` are never classified as inert documentation | given a change to `SKILL.md`, when routed, then policy validation obligations are required |
@@ -55,6 +55,15 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-012 | Every required obligation has at least one approved selected gate | given a route, when gates are selected, then no obligation is uncovered, or the route is full |
 | R-013 | `--level` may raise above the computed route but never lower it | given route level 1, when `--level 0`, then exit 2 with the route minimum named |
 | R-014 | The fact collector does not drop `.agents/skills/` or `.anti-dark-code/` paths | given a change to `calibration/gates.json`, when collected, then a fact exists for it |
+| R-015 | Rules match one fact at a time with positive predicates only | given a previously matched fact, when any other fact is added, then the first match and its requirements remain present |
+| R-016 | Every capability obligation is bound in policy to one or more explicit gate ids | given a route, when policy validation runs, then each capability has a nonempty gate set and every named gate exists |
+| R-017 | Receipt freshness binds content, modes, index entries, symlink targets, and submodule state rather than status text alone | given a dirty file whose bytes change while its porcelain status stays the same, when verified, then the receipt is stale |
+| R-018 | Concurrent repository changes cannot produce accepted gate evidence | given a fresh receipt, when an input changes after preflight or during a gate, then that gate result is marked stale and cannot satisfy an obligation |
+| R-019 | Git acquisition represents old and new rename or copy paths, mode-only and type changes, conflicts, staged, unstaged, untracked, and submodule changes | given each supported record, when acquired, then no routing-relevant path or status is lost; unsupported records block selective routing |
+| R-020 | Agent hints are additive data only | given any valid hint, when applied, then it cannot change facts, rule matches, comparison base, existing set members, a true boolean to false, or the computed minimum level downward |
+| R-021 | Self-grading inputs force the canonical full route | given a change to router code or schema, capability catalog, gates, CI, installer or distribution controls, Git interpretation files, router tests, shared test support, `SKILL.md`, or the routing-owning pass references, then `force_full` is true |
+| R-022 | The canonical full route is independent of changed-file applicability filters | given `force_full`, when gates are selected, then the validated full recipe runs at Level 3 and no selected gate is removed by `include_globs` |
+| R-023 | Receipt identity is deterministic while observational metadata is not authoritative | given identical snapshots, policies, gates, calibration, and hints in any input order, then authoritative receipt bytes and hash match; timestamps do not enter that hash |
 
 ### 4.2 Assumed requirements
 
@@ -68,13 +77,31 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 
 | ID | Question | Blocks what | Close by |
 |---|---|---|---|
-| Q-001 | Which of the five new capability ids (V21 to V25) are genuinely distinct rather than variations of existing ones | the capability catalog extension | a spike reading all 20 existing capability definitions before writing V21 to V25 |
 | Q-002 | Does the CI trusted-base pattern from `proposal-intake.yml` transfer to routing without modification | selective CI execution, out of slice 1 | read both existing workflows when selective CI is scheduled |
 | Q-003 | Where do routing-miss tallies live long term, `.anti-dark-code/runs/` or `metrics/` | shadow reporting beyond slice 1 | after the first thirty shadow comparisons |
 
-**Ledger rules.** Every requirement has an acceptance test stated as an observable condition. Q-001 must close before the catalog is extended, and its closing spike is scheduled in SLICE-001 milestone M1.
+**Closed Q-001.** D-016 records the result. Ten proposed obligation names map without distortion to V01, V07, V08, V09, V12, V14, V17, and V18. Two methods are absent and need new ids: affected-unit testing (V21) and input fuzz testing (V22). `affected-unit` is not V11 because V11 selects affected checks but does not execute their assertions. `fuzz` is not V15 because V15 perturbs the environment while fuzzing perturbs input values. Distribution validation is V08 applied to a generated package boundary. Cross-platform and hostile-environment checks are V12 adaptations.
+
+**Ledger rules.** Every requirement has an acceptance test stated as an observable condition. The catalog extension in SLICE-001 milestone M1 is limited to V21 and V22. Q-002 and Q-003 remain open and out of the first implementation slice.
 
 ## 5. Data Model
+
+```
+ENTITY: ChangeInput
+Purpose: one status-aware record acquired from git before pure classification
+Owned by: Git change reader
+Fields:
+  path              string, required
+  old_path          string, required for rename or copy
+  change_kind       enum add|modify|delete|rename|copy|mode|type-change|unmerged|unknown, required
+  source            enum committed|staged|unstaged|untracked, required
+  old_mode/new_mode strings, optional
+  old_object/new_object strings, optional git object ids
+  content_identity  string, required when bytes or a symlink target exist
+  submodule_state   object, required for a gitlink or dirty submodule
+Relations: several ChangeInputs may describe one path when index and worktree state differ.
+Deletion rule: inputs are derived. The receipt retains their canonical identity and the facts derived from them.
+```
 
 ```
 ENTITY: ChangeFact
@@ -82,9 +109,9 @@ Purpose: one dimensioned statement about one changed path
 Owned by: fact collector
 Fields:
   path            string, required
-  change_kind     enum add|modify|delete|rename|copy|mode, required
-  old_path        string, optional, required when change_kind is rename or copy
-  staged_state    enum staged|unstaged|untracked|committed, required
+  related_path    string, optional, used to link both sides of rename and copy records
+  change_kind     enum add|modify|delete|rename|copy|mode|type-change|unmerged|unknown, required
+  source          enum committed|staged|unstaged|untracked, required
   surface         enum docs|product|tests|schema|ci|release|skill-policy|site, required
   effect          enum prose|behavior|public-contract|persisted-state|verification-authority, required
   breadth         enum leaf|package|runtime|cross-runtime|repository, required
@@ -100,9 +127,10 @@ Purpose: one reviewed mapping from matched facts to required work
 Owned by: routing policy
 Fields:
   id                string, required, unique
-  match             object of path globs and fact predicates, required
-  requires          object: passes, minimum_level, gate_ids, obligations,
+  match             object of positive path globs and single-fact predicates, required
+  requires          object: passes, minimum_level, obligations,
                     independent_review, force_full
+  obligations       object mapping capability id to a nonempty set of explicit gate ids
   review_status     enum proposed|approved, required
 Relations: a Route names every Rule id it matched.
 Deletion rule: removing a rule changes the policy hash and invalidates every receipt.
@@ -114,19 +142,24 @@ Purpose: the auditable record binding one route to one worktree state
 Owned by: receipt writer
 Fields:
   run_id, repo_binding_identity, base_identity, head_identity,
-  staged/unstaged/untracked identity, changed_files with status,
+  index identity, staged/unstaged/untracked content and mode identities,
+  symlink targets and submodule state, changed files with status,
   routing_policy_sha256, gate_configuration_sha256, calibration_hashes,
-  matched_rule_ids, emitted_facts, selected_passes, selected_gate_ids,
+  matched_rule_ids, emitted_facts, selected_passes, capability_to_gate_ids,
+  selected_gate_ids,
   omitted_gates with reason codes, unmapped_paths, unknowns,
   independent_review_required, independent_review_recorded,
-  force_full, operator_override with reason
+  force_full, operator_escalation with reason
 Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, safe to delete.
 ```
 
 **Model rules.**
 
 - Identifiers are stable strings. Reason codes follow the existing `ADC-` prefix convention, for example `ADC-SKIP-004`.
-- Every hash uses the existing `normalized_json_hash` helper so ordering never changes a digest.
+- Every authoritative array is sorted by a documented canonical key before hashing. `normalized_json_hash` stabilizes object-key order but does not sort arrays.
+- `run_id` is derived from the authoritative receipt hash. Timestamps and display-only environment details live outside that hash and cannot change routing authority.
+- Receipt freshness uses object ids where git already has them and hashes current bytes, executable modes, and symlink targets where it does not. A porcelain-status digest is not sufficient because different dirty bytes can produce identical status text.
+- The gate runner checks the authoritative identity immediately before and after each gate. An after-check mismatch preserves the output for diagnosis but cannot satisfy a capability.
 - Enum values are closed sets. An unrecognized value is an error, not a passthrough.
 
 ## 6. Permissions and Access Model
@@ -138,19 +171,19 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 |---|---|---|---|
 | Deterministic router | establishes | establishes | none |
 | Implementing agent | may raise | may raise | none |
-| Reviewing human | may raise | may raise | may approve, with a reason in the receipt |
+| Reviewing human | may raise | may raise | may acknowledge missing evidence, but may not lower the route |
 
 - **Enforcement point:** `build_route` is the single place requirements combine. Nothing downstream may reduce a route.
-- **Admin surface:** the operator override is the only downgrade path, and it writes its reason into the receipt.
+- **Admin surface:** there is no downgrade path in the router or receipt. An operator may run more work. If required evidence cannot be produced, the receipt remains incomplete and records the reason without authorizing selective execution.
 
 ## 7. Security Requirements
 
 Tier 1 baseline applies. The relevant additions for this subsystem:
 
-- [ ] The router never executes repository code. It reads git metadata and JSON only.
+- [ ] The router never executes repository code. It reads Git records, repository bytes needed for content identity, and JSON only.
 - [ ] Receipt contents pass through the existing redaction helpers before being printed.
 - [ ] A receipt is data, not an instruction. Loading one never causes execution by itself.
-- [ ] Policy files are validated against a schema before use, and an invalid policy fails closed to the full route.
+- [ ] Policy files are validated against a schema before use. An invalid policy blocks routing and produces no selective receipt.
 
 **Risk-flag depth, verification authority.** This subsystem can cause less verification to run. That forces full depth on three things: the self-grading rule (ADD guardrail 3), receipt integrity (R-008, R-009), and rollout discipline (section 11 shadow mode).
 
@@ -164,8 +197,9 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 
 - **Language and typing:** Python 3.12+, type hints on every public function, standard library only.
 - **Naming:** existing `adc.py` conventions. Functions are verbs, records are nouns.
-- **Functions:** `collect_change_facts` and `build_route` are pure and take no I/O handles.
-- **Errors:** fail closed. Any error path produces the full route or exits non-zero. Never a silent default.
+- **Functions:** `read_change_inputs` owns Git I/O. `collect_change_facts` and `build_route` are pure and take passed data only.
+- **Git records:** use NUL-delimited output. Do not parse human-formatted status text. Preserve both paths for rename and copy, and use raw mode data to distinguish a mode-only change from a content modification.
+- **Errors:** fail closed. A known unmapped fact or unreachable base produces the canonical full route. Unreadable Git output, an invalid policy, or an invalid full recipe exits 2 and produces no receipt. Never a silent default.
 - **Logging:** one compact route summary line, matching the existing gate plan output style.
 - **Comments:** say why. The monotonic union deserves a comment explaining what would break without it.
 - **User-facing text:** reason codes are identifiers with a separate human sentence, so the code stays stable if the wording changes.
@@ -173,10 +207,10 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 
 ## 10. Repository Organization
 
-- **Router code:** `anti-dark-code/scripts/adc.py`, alongside the existing subcommands, unless it grows past roughly four hundred lines, at which point it earns `adc_route.py` beside `adc_efficiency.py` and `work_receipt.py`.
+- **Router code:** the CLI adapter lives in `anti-dark-code/scripts/adc.py`. The pure router and status-aware Git reader live in `anti-dark-code/scripts/adc_route.py` from the start, so routing changes have one explicit self-grading surface beside `adc_efficiency.py` and `work_receipt.py`.
 - **Policy template:** `anti-dark-code/assets/templates/calibration/routing-policy.json`.
 - **Installed copy:** `.agents/skills/anti-dark-code/calibration/routing-policy.json`, repository owned.
-- **Tests:** `anti-dark-code/tests/test_route.py`, matching the existing per-area test file convention.
+- **Tests:** `anti-dark-code/tests/test_route.py`, plus the current shared helpers in `test_adc.py`. Any later `conftest.py` or shared fixture module joins the self-grading set automatically.
 - **Design documents:** `design/routing/`. Note that `docs/` in this repository is the published website, not inert documentation.
 
 ## 11. Testing and Verification
@@ -203,10 +237,19 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-012 | obligation coverage test | `test_route.py` |
 | R-013 | `--level` downgrade refused | `test_route.py` |
 | R-014 | `calibration/gates.json` produces a fact | `test_route.py` |
+| R-015 | generated positive-match monotonicity test | `test_route.py` |
+| R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
+| R-017 | same-status, different-bytes, mode, symlink, index, and submodule staleness tests | `test_route.py` |
+| R-018 | mutation before launch and during a gate invalidates its evidence | `test_route.py` |
+| R-019 | NUL path, old/new rename and copy, mode, type, conflict, index/worktree overlap, and submodule table tests | `test_route.py` |
+| R-020 | generated hint monotonicity over every route field | `test_route.py` |
+| R-021 | self-grading path table, one case per authority class | `test_route.py` |
+| R-022 | force-full bypasses changed-file gate globs | `test_route.py` |
+| R-023 | canonical order and timestamp-independence tests | `test_route.py` |
 
-**Test data rule.** Fact sets are constructed in code, not read from a fixture repository, so the pure functions stay testable on every platform without git.
+**Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 
-**Shadow rollout.** For every real change: compute the proposed route, run the proposed targeted gates, still run the current full verification, and record whether an omitted gate found anything. A `routing_miss` is targeted verification green while omitted verification failed. Results stay separated by route class. A hundred successful documentation routes do not validate the leaf-code route.
+**Shadow rollout.** For every real change: compute the proposed route, run the proposed targeted gates, still run the canonical full recipe at Level 3 without changed-file glob filtering, and record whether an omitted gate found anything. A `routing_miss` is targeted verification green while omitted verification failed. Results stay separated by route class. A hundred successful documentation routes do not validate the leaf-code route.
 
 Using the rule of three for perspective: zero misses in 30 comparable routes still permits a miss rate near 10 percent, zero in 100 near 3 percent, zero in 300 near 1 percent. These are not certification thresholds. They prevent "it worked several times" from becoming false confidence.
 
@@ -219,6 +262,16 @@ Modes and standing rules per the core skill. The additions specific to this subs
 - An agent working on the router may not use the router to judge its own change. That case forces the full route by ADD guardrail 3.
 - Stop and ask before: adding a rule to the policy, changing an escalator, or enabling any selective execution.
 
+**Self-grading path classes.** The first policy names these as hard full-route triggers, not ordinary reviewed rules:
+
+- `anti-dark-code/scripts/adc.py`, `adc_route.py`, and any imported helper that can change collection, hashing, validation, selection, execution, installation, or distribution
+- the routing policy schema and template, installed `routing-policy.json`, `gates.json`, `verification-capabilities.json`, `SOURCE-SCOPE.json`, and managed-install manifest logic
+- `anti-dark-code/SKILL.md` and the routing-owning pass 00, 10, and 14 references
+- `.github/workflows/**`, `.github/CODEOWNERS`, `.gitattributes`, `.gitignore`, `.gitmodules`, and any future Python project or lock file
+- `test_route.py`, shared test fixtures such as a future `conftest.py`, and any mutation, fuzz, or validator harness used to grade a router change
+
+The path table has one test per class. A newly imported helper or newly authoritative config that is not represented makes the table test fail closed until reviewed.
+
 ## 13. Observability
 
 - **Always recorded:** the compact route line, the matched rule ids, every omission with its reason code, and every unknown.
@@ -229,8 +282,8 @@ Modes and standing rules per the core skill. The additions specific to this subs
 
 - **Environments and release path:** per ADD section 12.
 - **CI gates:** the existing `Tests` aggregator continues to require every job. The router adds no CI job in slice 1.
-- **Migrations:** none. A missing `routing-policy.json` means no calibrated policy, which means the full route.
-- **Configuration:** the policy is repository-owned calibration. The template ships with the core.
+- **Migrations:** none. A missing `routing-policy.json` means no calibrated policy and no selective receipt. The caller uses the documented full verification path.
+- **Configuration:** the policy is repository-owned calibration. The template ships with the core. Its root `full_route` object is required, names the repository's canonical Level 3 passes, capability-to-gate bindings, and gate ids, and validates before any rule does.
 
 **Aggregator note.** The `required` job in `tests.yml` refuses unless every dependency reports exactly `success`, so a skipped job fails it. Selective CI execution therefore requires rewriting that aggregator to consult the trusted route, and that edit is itself a verification-authority change that forces the full route. Selective CI is scheduled strictly after selective local execution for this reason.
 
@@ -247,8 +300,11 @@ Modes and standing rules per the core skill. The additions specific to this subs
 | U-001 | The router silently drops a path class and nobody notices | a real change routes as low risk | R-014 plus the unmapped-path counter | Open |
 | U-002 | Shadow mode is enabled but nobody reads the misses | false confidence accumulates | misses reviewed per route class at every audit | Watching |
 | U-003 | A rule is added that is broader than intended | requirements quietly loosen for a whole path class | rules carry `review_status`, and policy changes force the full route | Watching |
-| U-004 | Q-001 resolves to fewer than five new capabilities | the catalog extension is smaller than planned | close Q-001 before writing V21 to V25 | Open |
+| U-004 | Q-001 resolves to fewer than five new capabilities | the catalog extension is smaller than planned | D-016 limits the extension to affected-unit testing and input fuzz testing | Resolved |
 | U-005 | Provisional routing encourages an agent to under-plan before implementing | work starts too narrow | the final route supersedes, and slice 1 builds no provisional path | Watching |
+| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 content identity and R-018 before-and-after verification | Open |
+| U-007 | A capability and a gate appear in parallel arrays with no provable relationship | an unrelated gate is treated as evidence | R-016 policy-local capability-to-gate binding | Open |
+| U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table | Open |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done
@@ -276,4 +332,4 @@ Modes and standing rules per the core skill. The additions specific to this subs
 
 ---
 
-*End of Engineering Document. Sections filled: 18 of 18. Unknowns carried: 8.*
+*End of Engineering Document. Sections filled: 18 of 18. Unknowns carried: 11.*
