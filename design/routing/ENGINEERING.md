@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.5. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 0.6. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Round-four review open.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -13,6 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
+- **Current gate:** M2 is blocked by K-01 through K-05 in `HANDOFF-BACK-PURE-LAYER.md`. Receipt and CLI work must wait.
 
 ## 2. Engineering Principles
 
@@ -74,6 +75,15 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-031 | Canonical fact order is independent of input order and Python hash seed | given duplicate inputs and two copies with one source, when classified under several hash seeds, then facts are deduplicated and every serialized field has the same order |
 | R-032 | Classifier glob semantics are independent of the host operating system | given a Git path and pattern that differ only by case, when classified on Linux, macOS, and Windows, then every host returns the same result |
 | R-033 | Capability count has one count-derived contract in scripts and tests | given a future catalog size, when runtime and contiguity checks run, then both derive the total from `CAPABILITY_COUNT`; V21 and V22 identity tests remain explicit |
+| R-034 | Git acquisition blocks every known configured program and lazy fetch | given clean and process filters, a text converter, filesystem monitor, external diff command, and missing promisor object, when acquisition runs, then no sentinel appears, no fetch occurs, and repository identity is unchanged |
+| R-035 | A loaded policy is immutable and cannot be bypassed | given a loaded policy, when every source container is mutated, then routing is unchanged; given a raw mapping, when `build_route` is called, then it refuses the value |
+| R-036 | Policy match values and the full recipe satisfy their complete contracts | given a wrong match container, invalid predicate member, non-boolean mode flag, Level 0 full recipe, or incomplete canonical full set, when loading runs, then `PolicyError` is raised |
+| R-037 | Raw parsing enforces Git status, score, mode, null-side, and object-width semantics | given each invalid combination and each boundary score, when parsed, then only documented records are accepted and every rejection has a stable problem code |
+| R-038 | Route collections have canonical observable order | given facts in every order, when routed, then set serialization, obligation iteration, route representation, and later receipt bytes agree |
+| R-039 | Hints contain only validated requirement additions | given an unknown key, pass, capability, gate, path, or reason, when hint validation runs, then it fails; computed evidence fields cannot be supplied by a hint |
+| R-040 | Git path classification is case-sensitive without rewriting literal characters | given simulated host case folding and a POSIX filename containing backslash, when classified, then case and literal-character results stay in Git path semantics |
+| R-041 | Every route predicate and retained hint evidence has a mutation guard | given deletion of path or mode matching, or replacement of unknown and unmapped unions with assignment, when tests run, then at least one focused test fails |
+| R-042 | Policy loading has no internal capability catalog default | given a catalog extended by one id, when policy loading runs, then the caller-supplied catalog accepts it without another code edit; omitting catalog ids is an error |
 
 ### 4.2 Assumed requirements
 
@@ -168,6 +178,19 @@ Deletion rule: removing a rule changes the policy hash and invalidates every rec
 ```
 
 ```
+ENTITY: ValidatedPolicy
+Purpose: immutable proof that classifier, rule, full-recipe, gate, pass, and capability contracts passed
+Owned by: routing policy loader
+Fields:
+  classifier        canonical immutable classifier entries
+  full_recipe       Level 3 recipe checked against the caller's canonical full set
+  rules             canonical immutable rules
+  capability_ids    caller-supplied catalog ids used during validation
+Relations: build_route accepts this type and no raw policy mapping.
+Deletion rule: derived from the hashed repository policy and rebuilt when that file or a bound catalog changes.
+```
+
+```
 ENTITY: Receipt
 Purpose: the auditable record binding one route to one worktree state
 Owned by: receipt writer
@@ -193,7 +216,9 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 - The gate runner checks the authoritative identity immediately before and after each gate. An after-check mismatch preserves the output for diagnosis but cannot satisfy a capability.
 - Enum values are closed sets. An unrecognized value is an error, not a passthrough.
 - Canonical `ChangeFact` order includes `related_path` and every other serialized field after exact duplicate facts are removed.
-- Git paths use forward slashes and case-sensitive classifier matching on every host.
+- Git directory boundaries use forward slashes and classifier matching is case-sensitive on every host. The collector does not rewrite literal backslash characters.
+- `ValidatedPolicy` owns deeply immutable nested values. A shallow dictionary copy is not a validated artifact.
+- Obligation capability keys and every nested gate collection have canonical order before display or hashing.
 
 ## 6. Permissions and Access Model
 
@@ -213,7 +238,7 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 
 Tier 1 baseline applies. The relevant additions for this subsystem:
 
-- [ ] The router never executes repository code. Git acquisition neutralizes repository-configured executable helpers and proves that boundary with a real hostile repository.
+- [ ] The router never executes repository code. Git acquisition neutralizes filesystem monitors, content filters, external diff commands, text converters, and lazy fetch, then proves each boundary with a real hostile repository.
 - [ ] Receipt contents pass through the existing redaction helpers before being printed.
 - [ ] A receipt is data, not an instruction. Loading one never causes execution by itself.
 - [ ] Policy files are validated against a schema before use. An invalid policy blocks routing and produces no selective receipt.
@@ -289,6 +314,15 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-031 | duplicate collapse and cross-seed full-field ordering | `test_route.py` |
 | R-032 | cross-platform case-collision fixture | `test_route.py` |
 | R-033 | contiguity test derives its bound from `CAPABILITY_COUNT` | `test_route.py` |
+| R-034 | real filter, helper, repository-identity, and offline partial-clone table | `test_route.py` |
+| R-035 | post-load nested-mutation table and raw-policy rejection | `test_route.py` |
+| R-036 | complete match-value and full-recipe validation tables | `test_route.py` |
+| R-037 | semantic raw-record grammar table | `test_route.py` |
+| R-038 | order-sensitive route representation and serialization test | `test_route.py` |
+| R-039 | invalid and computed-evidence hint table | `test_route.py` |
+| R-040 | simulated case-folding test plus POSIX backslash repository case | `test_route.py` |
+| R-041 | four focused mutation or revert tests | `test_route.py` |
+| R-042 | mandatory catalog input and future-id test | `test_route.py` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 
@@ -348,6 +382,9 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 content identity and R-018 before-and-after verification | Open |
 | U-007 | A capability and a gate appear in parallel arrays with no provable relationship | an unrelated gate is treated as evidence | R-016 policy-local capability-to-gate binding | Open |
 | U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table | Open |
+| U-009 | A Git configuration path starts a program or network request before routing | repository code runs at the trust boundary | R-034 hostile execution-family table | Open |
+| U-010 | A mutable or malformed policy bypasses its one validation pass | an unreviewed rule produces a cheap route | R-035 and R-036 | Open |
+| U-011 | Route equality hides order differences later preserved by a receipt | authoritative bytes depend on fact order | R-038 | Open |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done

@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 0.5. Date: 2026-08-29. Status: Proposed.
+Version: 0.6. Date: 2026-08-29. Status: Round-four review blocked.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -42,7 +42,7 @@ Every step works against the real repository, real git state, and the real calib
 | Milestone | Status | Contents |
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Done, 2026-08-29 | Acquisition and pure layer complete: raw parsers, `read_change_inputs`, `collect_change_facts`, `build_route`, `apply_hints`, and `load_policy`. G-007 is closed: the monotonic property is exercised over every subset and one-fact extension of a five-fact pool, comparing every Route field, and replacing the per-capability union with assignment now fails six tests. |
+| M2 | Review blocked, 2026-08-29 | The code exists, but K-01 through K-05 in `HANDOFF-BACK-PURE-LAYER.md` block completion. Git content filters execute, policy validation is bypassable or incomplete, the full recipe can load at Level 0, and raw record semantics are under-validated. Four new mutations also survive. R-034 through R-042 state the closure evidence. |
 | M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
 | M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 
@@ -118,6 +118,15 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 | S-028 | Given duplicate records and two copies from one source, when classification runs under several hash seeds, then duplicates collapse and the full fact order is identical | R-031 test |
 | S-029 | Given a path and classifier pattern that differ only by case, when tested on every supported host, then classification is identical | R-032 test |
 | S-030 | Given the next capability id, when tests derive the contiguous range, then only `CAPABILITY_COUNT` changes and the V21 and V22 identity checks remain | R-033 test |
+| S-031 | Given repository clean and process filters, external diff and text conversion, a filesystem monitor, and a missing promisor object, when acquisition runs, then no program, write, or fetch occurs | R-034 test |
+| S-032 | Given a loaded policy, when its source mappings and lists are mutated, then the loaded value and resulting route do not change; a raw mapping cannot enter `build_route` | R-035 test |
+| S-033 | Given every rule predicate shape and a non-Level-3 or incomplete full recipe, when policy loading runs, then invalid data is rejected | R-036 test |
+| S-034 | Given invalid status scores, modes, null sides, or object widths, when a raw record is parsed, then it is reported and the snapshot is incomplete | R-037 test |
+| S-035 | Given every permutation of route facts, when route collections are observed or serialized, then their order is canonical | R-038 test |
+| S-036 | Given an invalid hint or a hint that writes computed evidence, when validation runs, then it is rejected without changing the route | R-039 test |
+| S-037 | Given simulated host case folding and a POSIX path with literal backslash, when classification runs, then Git path semantics are unchanged | R-040 test |
+| S-038 | Given each of the four round-four surviving mutations, when the focused suite runs, then at least one test fails | R-041 test |
+| S-039 | Given caller-supplied capability ids extended by one, when policy loading runs, then the new id works without a second count edit; omitted ids are rejected | R-042 test |
 
 ## 9. Verification evidence required
 
@@ -127,6 +136,8 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 - [ ] EDD section 17 per-change checklist satisfied for every change in the slice.
 - [ ] `validate --mode universal` reports zero errors.
 - [ ] The clean distribution archive check passes with the new template included.
+- [ ] K-01 through K-13 are closed with failing-before and passing-after evidence.
+- [ ] The four round-four surviving mutations are caught by focused tests.
 
 An agent's statement that the slice works is a claim. This list is the evidence.
 
@@ -141,7 +152,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 ## 11. Slice definition of done
 
 - [ ] All acceptance criteria pass with linked evidence.
-- [ ] D-026 through D-029 are confirmed and S-024 through S-030 pass before `build_route` work starts.
+- [ ] D-026 through D-029 and proposed D-030 through D-035 are resolved, and S-024 through S-039 pass before receipt work starts.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
 - [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.

@@ -14,6 +14,8 @@
 
 **Round-three pure-layer review gate, 2026-08-29:** Do not start `build_route`. The executable review in `design/routing/HANDOFF-BACK-CODE.md` found that Tasks 2 through 4 do not yet satisfy the acquisition trust boundary, complete-snapshot contract, copy and mode fidelity, closed enums, or canonical cross-platform fact order. D-026 through D-029 and S-024 through S-030 state the required corrections. Existing code blocks remain historical drafts where they conflict with those decisions.
 
+**Round-four pure-layer review gate, 2026-08-29:** Do not start receipt or CLI work. The executable review in `design/routing/HANDOFF-BACK-PURE-LAYER.md` found five blocking defects and four surviving mutations. Tasks 2 through 6 must close K-01 through K-13 and satisfy R-034 through R-042 and S-031 through S-039. D-030 through D-035 are proposed remediation decisions. Existing code blocks remain historical drafts where they conflict with that review.
+
 ## Global Constraints
 
 - **Python 3.12+, standard library only.** No new runtime dependency. Every import must survive the hostile-environment matrix and the clean distribution check. `fnmatch` is available and already used for glob matching.
@@ -38,7 +40,7 @@
 | `anti-dark-code/scripts/adc.py` | Modify. CLI adapter only: the `route` subcommand, the escalate-only `--level` check, and one validator check for the new template. |
 | `anti-dark-code/assets/templates/calibration/routing-policy.json` | Create. Shipped policy template. |
 | `anti-dark-code/assets/verification-capabilities.json` | Modify. Add V21 and V22. |
-| `anti-dark-code/tests/test_route.py` | Create. All router tests, S-001 through S-030. |
+| `anti-dark-code/tests/test_route.py` | Create. All router tests, S-001 through S-039. |
 
 ---
 
@@ -56,6 +58,8 @@
 
 **Round-three correction:** the contiguity test still uses `range(1, 23)`. Replace that derived total with `adc.CAPABILITY_COUNT`. Keep the explicit V21 and V22 identity checks because they preserve D-016 rather than restating the total. Update the drift test so it does not search only for the previous stale number. See D-029 and S-030.
 
+**Round-four correction:** `load_policy` added another default count with `range(1, 23)`. Remove that default. Capability ids are mandatory caller input derived from the catalog, and the future-id test must cover the loader as well as the catalog test. See K-06, D-030, R-042, and S-039.
+
 **Evidence**
 
 - Red: 5 failed, 3 passed. Failures were the missing ids, the missing required fields, the mismatched adaptations, the non-contiguous id set, and five stale sites in `adc.py`.
@@ -71,7 +75,7 @@
 
 ## Task 2: Parse Git status records into ChangeInput
 
-**Status: REVIEW BLOCKED, 2026-08-29.** Keep `RawParse` and `ChangeSnapshot.complete` from D-025. Before this task is done, validate terminal NUL framing, supported raw field shapes, untracked framing, and nonempty successful merge-base output. Each failure needs a stable problem code and must make the snapshot incomplete. See D-027, R-028, and S-025.
+**Status: ROUND-FOUR BLOCKED, 2026-08-29.** Keep `RawParse` and `ChangeSnapshot.complete` from D-025. Character shape checks are insufficient. Validate supported modes, one object-id width, status-specific scores, and null-side consistency. `A100`, `R999`, mode `777777`, and mixed widths must fail with a stable problem code. See K-05, D-032, R-037, and S-034.
 
 The parser is pure: it takes captured bytes and returns records. Task 3 supplies the bytes. Splitting them is what makes hostile-path testing possible without building a repository per case.
 
@@ -304,7 +308,7 @@ it blocks the fast path instead of passing as ordinary."
 
 ## Task 3: Acquire change inputs from Git
 
-**Status: REVIEW BLOCKED, 2026-08-29.** Before this task is done, neutralize repository-configured filesystem monitors and optional Git writes in the default runner. Add unchanged-source copy detection to every raw diff. Preserve any mode transition when content changed in the same record. Prove all three with real repositories, not only the injected runner. See D-026, D-027, S-024, and S-026.
+**Status: ROUND-FOUR BLOCKED, 2026-08-29.** The filesystem-monitor fix is incomplete. Before this task is done, neutralize clean and process filters, text conversion, external diff commands, filesystem monitors, lazy fetch, and optional Git writes. A real clean filter wrote into the worktree while acquisition returned complete. Keep unlimited copy detection until the runner exposes tested exhaustion. See K-01, D-031, D-033, R-034, and S-031.
 
 The impure boundary. Everything downstream is pure.
 
@@ -495,7 +499,7 @@ testable without building a repository per case."
 
 ## Task 4: Classify inputs into dimensioned facts
 
-**Status: REVIEW BLOCKED, 2026-08-29.** Keep D-024's all-matches rule. Before this task is done, reject invalid input and classifier enums, use case-sensitive Git-path matching on every host, deduplicate exact facts, and sort by every serialized field including `related_path`. Add duplicate, cross-seed, and case-collision tests. See D-028 and S-027 through S-029.
+**Status: ROUND-FOUR BLOCKED, 2026-08-29.** Keep D-024's all-matches rule and case-sensitive matching. Remove host separator rewriting because a POSIX backslash is a literal filename character. Add the simulated case-folding test and a POSIX repository fixture. Validate `mode_changed` as a boolean before a fact is emitted. See K-09, D-034, R-040, and S-037.
 
 **Files:**
 - Modify: `anti-dark-code/scripts/adc_route.py`
@@ -665,6 +669,8 @@ which is what lets the route block a fast path it has not earned."
 ---
 
 ## Task 5: Load and validate the routing policy
+
+**Status: ROUND-FOUR BLOCKED, 2026-08-29.** Replace the shallow dictionary result with an immutable `ValidatedPolicy`. Reject wrong match value shapes and members. Validate the root full recipe as Level 3 against caller-supplied canonical full-set and capability inputs. `build_route` must refuse raw mappings. See K-02 through K-04, K-06, D-030, R-035, R-036, R-042, S-032, S-033, and S-039.
 
 **Files:**
 - Modify: `anti-dark-code/scripts/adc_route.py`
@@ -855,6 +861,8 @@ stop firing when a file is added, which breaks monotonicity."
 ---
 
 ## Task 6: Build the route by monotonic union
+
+**Status: ROUND-FOUR BLOCKED, 2026-08-29.** The union itself passed 2,304 expanded monotonic checks, but route obligation order depends on fact order and hints accept invented values. Path and mode predicate deletion, plus two hint-retention assignment mutations, leave all 114 router tests green. Canonicalize route collections, validate requirement-only hints, and add the four focused mutation guards. See K-07, K-08, K-10 through K-13, D-035, R-038, R-039, R-041, S-035, S-036, and S-038.
 
 The heart of the subsystem. Every guardrail lives here.
 
@@ -2046,5 +2054,7 @@ whole point of the slice."
 **Type consistency.** `read_change_inputs` returns `ChangeSnapshot` everywhere. `collect_change_facts(snapshot, classifier)` takes the snapshot, never a repo. `build_route(facts, policy, hints, snapshot_ok)` keeps that order in every call. `receipt_payload` and `verify_receipt` agree on the `identity` mapping shape.
 
 **Placeholder scan.** Failed. Task 9 describes `current_route_identity` without code. Task 10 describes receipt loading, freshness checks, full-recipe selection, and runner integration without code. Task 11 defines a comparator but does not connect it to a full gate run. These are blocking placeholders.
+
+**Round-four execution.** The baseline reproduced at `245 passed, 13 skipped, 45 subtests passed`; the router suite reported `114 passed`; validation reported zero errors and one warning. The expanded monotonic check passed 2,304 extensions. Four new mutations survived. A real clean filter ran and wrote a worktree file while acquisition returned complete. The pure layer is not ready for Task 8.
 
 **Plan location.** This plan does not live in `docs/superpowers/plans/`, the skill default, because `docs/` in this repository is the published GitHub Pages site. Writing a plan there would publish it. The same reasoning produced D-015 for the design documents.

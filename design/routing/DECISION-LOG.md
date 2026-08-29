@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.5. Date: 2026-08-29. Status: Audited.
+Version: 0.6. Date: 2026-08-29. Status: Round-four review open.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -46,6 +46,12 @@ The documents state what is true. This log preserves why, what else was consider
 | D-027 | 2026-08-29 | Acquisition proves framing and preserves copy and mode signals | Confirmed | |
 | D-028 | 2026-08-29 | Fact output validates enums and has one cross-platform order | Confirmed | |
 | D-029 | 2026-08-29 | Capability count has one executable source of truth | Confirmed | |
+| D-030 | 2026-08-29 | A validated policy is an immutable typed value | Proposed | |
+| D-031 | 2026-08-29 | Git acquisition blocks content filters and lazy fetch | Proposed | |
+| D-032 | 2026-08-29 | Raw parsing enforces Git record semantics | Proposed | |
+| D-033 | 2026-08-29 | Copy detection remains unlimited until exhaustion is structured | Proposed | |
+| D-034 | 2026-08-29 | Git path matching preserves literal characters | Proposed | |
+| D-035 | 2026-08-29 | Agent hints carry validated requirements, not computed evidence | Proposed | |
 
 ---
 
@@ -733,7 +739,7 @@ Consequences:
 Real Git tests cover add, modify, delete, rename, unchanged-source copy, pure mode, content-plus-mode, type change, unmerged, staged versus unstaged overlap, and copy-detection limit behavior. Parser fixtures cover corrupt bytes and states the host filesystem cannot create. Git similarity remains a heuristic for changed copies, so the policy must not treat a plain add as proof that no source exists.
 
 As shipped, 2026-08-29:
-One deliberate divergence. This decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. The implementation pins `diff.renameLimit=0`, which is unlimited, and so removes the failure mode rather than detecting it. Detecting exhaustion would require reading git's stderr, which the runner does not currently return, and an undetected truncation is the exact silent fidelity loss this decision exists to prevent. Measured on 2026-08-29, and the measurement settles the trade-off rather than estimating it.
+One deliberate divergence. This decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. The implementation pins `diff.renameLimit=0`, which is unlimited, and so removes the failure mode rather than detecting it. Detecting exhaustion would require reading git's stderr, which the runner does not currently return, and an undetected truncation is the silent fidelity loss this decision exists to prevent. Measured on 2026-08-29, and the measurement settles the trade-off rather than estimating it.
 
 - This repository, full acquisition: 0.202s.
 - A real foreign repository of 345 tracked files and 3395 commits, acquiring a 400-commit range: 0.235s for 264 inputs, and detection found 11 copies and 6 renames that the earlier flags would have reported as plain adds.
@@ -804,3 +810,159 @@ The contiguity test imports the count constant. Future capability additions chan
 
 Revisit when:
 Capability ids stop being a contiguous `VNN` sequence.
+
+## D-030: A validated policy is an immutable typed value
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5 and 14, EDD R-016, SLICE-001 M2
+
+Context:
+The round-four review changed a nested rule from proposed to approved after `load_policy` returned. The loaded value changed with the caller's object and then produced a cheap route. `build_route` also accepts an ordinary mapping, so the type boundary does not prove validation happened.
+
+Decision:
+`load_policy` returns a deeply immutable `ValidatedPolicy`. Rules, classifier entries, recipes, passes, capability ids, and gate ids use canonical immutable records. `build_route` accepts only this type. The capability catalog and canonical full-set inputs are mandatory at load time. No internal count default is allowed.
+
+Because:
+Validation is a trust boundary only if later mutation and unvalidated callers cannot bypass it. D-020 requires the full recipe to be Level 3 and to name the repository's canonical full set.
+
+Options considered:
+- Frozen typed records: validation state is visible in the type and nested mutation is impossible.
+- Deep-copy JSON dictionaries: removes aliasing but still lets `build_route` receive an unvalidated dictionary.
+- Revalidate on every route: safe but repeats work and leaves the interface ambiguous.
+
+Consequences:
+Policy tests mutate every source container after load. Full-recipe validation has its own Level 3 and full-set checks. Receipt serialization receives one canonical policy shape.
+
+Revisit when:
+The policy schema changes or another trusted loader produces the same typed value.
+
+## D-031: Git acquisition blocks content filters and lazy fetch
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5 and 14, EDD R-027, SLICE-001 M2
+
+Context:
+The filesystem-monitor sentinel passed, but a real repository clean filter still ran during `read_change_inputs`. It wrote a new worktree file and the snapshot remained complete. Git can also fetch a missing promisor object unless lazy fetch is disabled.
+
+Decision:
+D-026 remains the governing boundary and this entry extends its required controls. Acquisition must neutralize effective `filter.<driver>.clean`, `filter.<driver>.smudge`, and `filter.<driver>.process` commands, disable required filter failure, add `--no-textconv`, and set both `--no-lazy-fetch` and `GIT_NO_LAZY_FETCH=1`. If effective configuration cannot be neutralized, acquisition is incomplete. Tests use real clean and process filters that would write sentinels. An offline partial-clone case verifies that no fetch is attempted.
+
+Because:
+A fixed list covering one demonstrated command family does not prove that a candidate repository stays data. Offline behavior is also a product requirement.
+
+Options considered:
+- Neutralize every effective execution family and test each one: keeps the Git byte interface with a wider preflight.
+- Use lower-level acquisition with no worktree conversion: a stronger boundary, with more implementation work.
+- Keep only the filesystem-monitor test: already refuted by the clean-filter probe.
+
+Consequences:
+The isolation helper has an explicit inventory and a hostile test per family. The default runner no longer inherits a path to on-demand object fetching.
+
+Revisit when:
+A Git command or configuration key adds another program or network path.
+
+## D-032: Raw parsing enforces Git record semantics
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5 and 14, EDD R-024 and R-028, SLICE-001 M2
+
+Context:
+The current parser rejects malformed character counts but accepts status `A100`, score `R999`, mode `777777`, and mixed 40 and 64 digit object ids. Each record returns with no problem.
+
+Decision:
+Raw records validate the supported Git modes, one repository object-id width, null-side consistency, and the status-specific score grammar. C and R require scores from 0 through 100. Only statuses documented to accept a score may carry one. A semantic violation records `ADC-ROUTE-MALFORMED-RECORD` and makes the snapshot incomplete.
+
+Because:
+Framing alone does not establish that the parsed row is a Git record. An impossible row cannot be accepted as complete input to verification authority.
+
+Options considered:
+- Encode the documented raw grammar: narrow and deterministic.
+- Keep regular-expression shape checks: accepts impossible records.
+- Trust Git output without parsing checks: fails the transport boundary from D-025.
+
+Consequences:
+Parser tables include status and score boundaries, modes, object widths, and status-specific null sides. Repository object format is acquired once and checked against every row.
+
+Revisit when:
+Git adds a status, mode, score rule, or object format that the parser does not know.
+
+## D-033: Copy detection remains unlimited until exhaustion is structured
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 11, EDD 3, EDD R-029, SLICE-001 M2
+
+Context:
+D-027 called for a bounded copy search with detected exhaustion. Git's default limit reported a synthetic 3000-file rename as 6000 unrelated adds and deletes. The runner discards the warning on stderr. Unlimited detection found all sources in 1.89 seconds.
+
+Decision:
+Keep `diff.renameLimit=0` until the runner retains a tested exhaustion signal. The one-second target applies to this repository and ordinary changes up to roughly one thousand paths. A several-thousand-path rename may exceed it. If a limit returns, exhaustion makes the snapshot incomplete.
+
+Because:
+Provenance loss is a correctness failure. A short delay on an unusual full-route change is the smaller cost.
+
+Options considered:
+- Unlimited detection: measured, complete, and occasionally slower than the target.
+- Default limit with discarded stderr: fast and silently incomplete.
+- Bounded detection with stderr retained and tested: acceptable when the runner has that channel.
+
+Consequences:
+Performance evidence reports both common and pathological shapes. The acquisition result must grow beyond `bytes | None` before a bounded setting is allowed.
+
+Revisit when:
+Git exposes a structured exhaustion result or the runner safely retains and classifies diagnostics.
+
+## D-034: Git path matching preserves literal characters
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5 and 14, EDD R-026 and R-032, SLICE-001 M2
+
+Context:
+Case-sensitive matching is correct, but replacing backslash with slash changes a legal POSIX filename. The existing case test depends on running on a case-folding host.
+
+Decision:
+Match the path text emitted by Git without host separator rewriting. Policy patterns use forward slash for Git directory boundaries. A literal backslash remains a literal character. The case test patches `os.path.normcase` to simulate a case-folding host and asserts classification behavior, without checking which match function was called.
+
+Because:
+Repository paths are protocol data at this boundary, not host paths. A behavioral simulation gives every host the same chance to detect a regression.
+
+Options considered:
+- Preserve input characters and simulate case folding: host-independent and faithful to Git path data.
+- Replace backslashes: convenient on Windows and wrong for a POSIX filename containing one.
+- Depend only on the CI platform matrix: useful as a second line, but one local run cannot enforce the contract.
+
+Consequences:
+A POSIX real-repository test covers a filename containing backslash. Windows skips only that filesystem fixture. Every host runs the simulated case-folding test.
+
+Revisit when:
+Policy syntax adds an explicit escape or case-insensitive match mode.
+
+## D-035: Agent hints carry validated requirements, not computed evidence
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 8.6 and 14, EDD R-020, SLICE-001 M2
+
+Context:
+`apply_hints` protects rule matches but accepts arbitrary pass, capability, gate, path, and reason strings. An agent can place values in fields that are supposed to describe deterministic router evidence.
+
+Decision:
+Hints use a validated type bound to the loaded policy and catalogs. They may raise the level, add known passes and obligations, or set escalation booleans. They may not write `matched_rule_ids`, `unmapped_paths`, or `unknowns`. Unknown hint keys and invalid values are errors.
+
+Because:
+Escalation does not need permission to rewrite the explanation of how the route was computed. Invalid requirement ids make a later receipt or gate plan untrustworthy even when they cannot lower the route.
+
+Options considered:
+- Validated requirement-only hints: retains semantic escalation and preserves computed evidence.
+- Raw route-shaped mappings: simple and accepts invented values.
+- No hints: removes a useful signal already settled by D-006.
+
+Consequences:
+Hint tests start from routes with nonempty unknown and unmapped sets. Mutation tests prove those values cannot be lost. Invalid pass, capability, gate, reason, and unknown-key cases fail before routing.
+
+Revisit when:
+A new hint field has a deterministic validation source and cannot lower or rewrite computed evidence.
