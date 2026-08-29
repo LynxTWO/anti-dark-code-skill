@@ -3,9 +3,17 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+
+# macOS puts temporary directories under /var, a symlink to /private/var. The
+# managed-path guards refuse to write through a link-like component by design,
+# so resolve the temp root once and let the guards police the real path.
+tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SKILL_ROOT.parent
@@ -247,6 +255,175 @@ class RawParserTests(unittest.TestCase):
     def test_unknown_source_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             self.route.parse_raw_z(b"", "not-a-source")
+
+
+class RecordingRunner:
+    """Stands in for git. Records every argv so the commands can be asserted."""
+
+    def __init__(self, table: dict[str, bytes | None]) -> None:
+        self.table = table
+        self.calls: list[list[str]] = []
+
+    def __call__(self, args: list[str]) -> bytes | None:
+        self.calls.append(list(args))
+        joined = " ".join(args)
+        for key, value in self.table.items():
+            if key in joined:
+                return value
+        return b""
+
+    def argv_for(self, needle: str) -> list[str]:
+        for call in self.calls:
+            if needle in " ".join(call):
+                return call
+        raise AssertionError(f"no git call matched {needle!r}: {self.calls}")
+
+
+class AcquisitionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.route = load_route()
+
+    def test_snapshot_unions_all_four_sources(self) -> None:
+        run = RecordingRunner({
+            "merge-base": b"abc123\n",
+            "--cached": raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}staged.py{NUL}"),
+            "abc123": raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}committed.py{NUL}"),
+            "ls-files": f"untracked.py{NUL}".encode("utf-8"),
+        })
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        by_source = {i.source: i.path for i in snap.inputs}
+        self.assertEqual(by_source.get("committed"), "committed.py")
+        self.assertEqual(by_source.get("staged"), "staged.py")
+        self.assertEqual(by_source.get("untracked"), "untracked.py")
+        self.assertTrue(snap.base_resolved)
+
+    def test_staged_and_unstaged_use_different_comparisons(self) -> None:
+        # `diff HEAD` returns staged and unstaged together, so using it for the
+        # unstaged source counts every staged change twice. Staged compares the
+        # index against HEAD; unstaged compares the worktree against the index.
+        run = RecordingRunner({"merge-base": b"abc123\n"})
+        self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        staged = run.argv_for("--cached")
+        self.assertIn("--cached", staged)
+        diff_calls = [c for c in run.calls if c and c[0] == "diff"]
+        unstaged = [c for c in diff_calls if "--cached" not in c and "abc123" not in c]
+        self.assertEqual(len(unstaged), 1, f"expected one worktree diff: {diff_calls}")
+        self.assertNotIn("HEAD", unstaged[0])
+
+    def test_acquisition_requests_rename_and_copy_detection(self) -> None:
+        # Without -C git reports a copy as an add, losing the source path.
+        run = RecordingRunner({"merge-base": b"abc123\n"})
+        self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        for call in [c for c in run.calls if c and c[0] == "diff"]:
+            self.assertIn("-M", call)
+            self.assertIn("-C", call)
+            self.assertIn("--no-abbrev", call)
+
+    def test_unreachable_base_is_reported_not_raised(self) -> None:
+        run = RecordingRunner({"merge-base": None})
+        snap = self.route.read_change_inputs(Path("."), "origin/nope", runner=run)
+        self.assertFalse(snap.base_resolved)
+        self.assertIn("ADC-ROUTE-BASE-UNREACHABLE", snap.problems)
+        self.assertFalse(snap.complete)
+
+    def test_skill_tree_paths_are_not_filtered_out(self) -> None:
+        # D-010. changed_files() drops these through TOOLING_PATH_PREFIXES, and
+        # they are where gates.json and routing-policy.json live.
+        run = RecordingRunner({
+            "merge-base": b"abc123\n",
+            "abc123": raw(
+                f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}"
+                f".agents/skills/anti-dark-code/calibration/gates.json{NUL}",
+                f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}.anti-dark-code/runs/keep.json{NUL}",
+            ),
+        })
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        paths = {i.path for i in snap.inputs}
+        self.assertIn(".agents/skills/anti-dark-code/calibration/gates.json", paths)
+        self.assertIn(".anti-dark-code/runs/keep.json", paths)
+
+    def test_parser_problems_reach_the_snapshot(self) -> None:
+        run = RecordingRunner({"merge-base": b"abc123\n", "abc123": b"garbage"})
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", snap.problems)
+        self.assertFalse(snap.complete)
+
+    def test_unreadable_source_is_reported(self) -> None:
+        run = RecordingRunner({"merge-base": b"abc123\n", "ls-files": None})
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertIn("ADC-ROUTE-UNTRACKED-UNREADABLE", snap.problems)
+        self.assertFalse(snap.complete)
+
+    def test_ordering_is_canonical(self) -> None:
+        run = RecordingRunner({
+            "merge-base": b"abc123\n",
+            "abc123": raw(
+                f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}zeta.py{NUL}",
+                f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}alpha.py{NUL}",
+            ),
+        })
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        committed = [i.path for i in snap.inputs if i.source == "committed"]
+        self.assertEqual(committed, sorted(committed))
+
+    def test_clean_snapshot_is_complete(self) -> None:
+        run = RecordingRunner({"merge-base": b"abc123\n"})
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertTrue(snap.complete)
+
+
+@unittest.skipUnless(shutil.which("git"), "git is required")
+class AcquisitionAgainstRealGitTests(unittest.TestCase):
+    """Acquisition against a real repository, not a recorded transcript."""
+
+    def setUp(self) -> None:
+        self.route = load_route()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tmp.name) / "repo"
+        self.repo.mkdir()
+        self._git("init", "-q", ".")
+        self._git("config", "user.email", "t@example.invalid")
+        self._git("config", "user.name", "Test")
+        (self.repo / "src.py").write_text("a\nb\nc\nd\ne\n", encoding="utf-8")
+        (self.repo / "old.py").write_text("old\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "base")
+        self._git("branch", "base-ref")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _git(self, *args: str) -> None:
+        subprocess.run(["git", "-C", str(self.repo), *args],
+                       check=True, capture_output=True)
+
+    def test_staged_change_is_not_counted_twice(self) -> None:
+        (self.repo / "src.py").write_text("a\nb\nc\nd\nSTAGED\n", encoding="utf-8")
+        self._git("add", "src.py")
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        staged = [i for i in snap.inputs if i.path == "src.py" and i.source == "staged"]
+        unstaged = [i for i in snap.inputs if i.path == "src.py" and i.source == "unstaged"]
+        self.assertEqual(len(staged), 1)
+        self.assertEqual(unstaged, [], "a staged change must not also appear as unstaged")
+
+    def test_untracked_file_is_acquired(self) -> None:
+        (self.repo / "fresh.py").write_text("new\n", encoding="utf-8")
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        self.assertIn("fresh.py", {i.path for i in snap.inputs if i.source == "untracked"})
+
+    def test_committed_rename_keeps_its_source_path(self) -> None:
+        self._git("mv", "old.py", "new.py")
+        self._git("commit", "-qm", "rename")
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        renames = [i for i in snap.inputs if i.change_kind == "rename"]
+        self.assertEqual(len(renames), 1, f"expected one rename: {snap.inputs}")
+        self.assertEqual(renames[0].old_path, "old.py")
+        self.assertEqual(renames[0].path, "new.py")
+
+    def test_unreachable_base_blocks_completeness(self) -> None:
+        snap = self.route.read_change_inputs(self.repo, "refs/heads/no-such-branch")
+        self.assertFalse(snap.base_resolved)
+        self.assertFalse(snap.complete)
 
 
 if __name__ == "__main__":

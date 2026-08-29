@@ -14,7 +14,9 @@ Nothing here executes repository code. It reads git metadata and JSON only.
 
 from __future__ import annotations
 
+import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 
 CHANGE_KINDS = frozenset({
     "add", "modify", "delete", "rename", "copy",
@@ -149,3 +151,98 @@ def parse_untracked_z(payload: bytes) -> RawParse:
         for path in _split_z(payload)
     )
     return RawParse(inputs=rows)
+
+
+# Rename and copy detection, plus full object ids. Without -C a copy arrives as
+# an add and its source path is lost. Without --no-abbrev the object ids are
+# seven characters, which is weaker identity than a receipt should bind.
+_DIFF_FLAGS = ("--raw", "-z", "--no-abbrev", "-M", "-C")
+
+
+@dataclass(frozen=True)
+class ChangeSnapshot:
+    """Every routing-relevant record for one comparison, plus what went wrong."""
+
+    inputs: tuple[ChangeInput, ...] = ()
+    base: str | None = None
+    base_resolved: bool = False
+    problems: tuple[str, ...] = ()
+
+    @property
+    def complete(self) -> bool:
+        """True only when the whole change was read. Anything else blocks a shortcut."""
+        return self.base_resolved and not self.problems
+
+
+def _default_runner(repo: Path):
+    def run(args: list[str]) -> bytes | None:
+        try:
+            done = subprocess.run(
+                ["git", "-C", str(repo), *args],
+                capture_output=True, timeout=30, check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if done.returncode != 0:
+            return None
+        return done.stdout
+    return run
+
+
+def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
+    """Acquire every routing-relevant git record. The one impure boundary.
+
+    This deliberately does not call adc.changed_files(). That helper filters the
+    skill trees and .anti-dark-code through TOOLING_PATH_PREFIXES, which is
+    exactly where gates.json and routing-policy.json live, so reusing it would
+    leave the router blind to its own escalators. It is also --name-only, so it
+    carries no rename, delete, copy, or mode information. See D-010.
+    """
+    run = runner or _default_runner(repo)
+    problems: list[str] = []
+    rows: list[ChangeInput] = []
+
+    merge_base_raw = run(["merge-base", base, "HEAD"])
+    base_resolved = bool(merge_base_raw)
+    merge_base = (
+        merge_base_raw.decode("utf-8", "replace").strip() if merge_base_raw else None
+    )
+    if not base_resolved:
+        problems.append("ADC-ROUTE-BASE-UNREACHABLE")
+
+    def collect(args: list[str], source: str, unreadable_code: str) -> None:
+        payload = run(args)
+        if payload is None:
+            problems.append(unreadable_code)
+            return
+        parsed = parse_raw_z(payload, source)
+        rows.extend(parsed.inputs)
+        problems.extend(parsed.problems)
+
+    if merge_base:
+        collect(["diff", *_DIFF_FLAGS, merge_base, "HEAD"],
+                "committed", "ADC-ROUTE-COMMITTED-UNREADABLE")
+
+    # The index against HEAD. `diff --cached` is the only comparison that
+    # isolates what is staged.
+    collect(["diff", *_DIFF_FLAGS, "--cached"],
+            "staged", "ADC-ROUTE-STAGED-UNREADABLE")
+
+    # The worktree against the index. `diff HEAD` would return staged and
+    # unstaged records together and count every staged change twice.
+    collect(["diff", *_DIFF_FLAGS],
+            "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE")
+
+    untracked = run(["ls-files", "--others", "--exclude-standard", "-z"])
+    if untracked is None:
+        problems.append("ADC-ROUTE-UNTRACKED-UNREADABLE")
+    else:
+        rows.extend(parse_untracked_z(untracked).inputs)
+
+    ordered = tuple(sorted(rows, key=lambda r: (r.source, r.path, r.change_kind)))
+    return ChangeSnapshot(
+        inputs=ordered,
+        base=merge_base,
+        base_resolved=base_resolved,
+        problems=tuple(sorted(set(problems))),
+    )
