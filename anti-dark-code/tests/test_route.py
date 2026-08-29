@@ -850,5 +850,248 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(first, second)
 
 
+POLICY = {
+    "schema_version": 1,
+    "classifier": {"surfaces": []},
+    "full_recipe": {
+        "minimum_level": 3,
+        "passes": ["07", "10", "11", "14"],
+        "obligations": {
+            "V08": ["distribution"],
+            "V09": ["validate-core"],
+            "V12": ["hostile-environment"],
+            "V21": ["full-suite"],
+        },
+        "independent_review": True,
+    },
+    "rules": [
+        {"id": "docs", "review_status": "approved",
+         "match": {"surfaces": ["docs"]},
+         "requires": {"passes": ["06"], "minimum_level": 0},
+         "obligations": {"V09": ["validate-core"]}},
+        # Deliberately shares capability V09 with the docs rule while naming a
+        # different gate. Union keeps both; assignment keeps one. Without a pair
+        # like this the monotonic test cannot tell the two apart.
+        {"id": "site", "review_status": "approved",
+         "match": {"surfaces": ["site"]},
+         "requires": {"passes": ["11"], "minimum_level": 2},
+         "obligations": {"V09": ["distribution"]}},
+        {"id": "authority", "review_status": "approved",
+         "match": {"effects": ["verification-authority"]},
+         "requires": {"passes": ["07", "14"], "minimum_level": 3,
+                      "force_full": True, "independent_review": True},
+         "obligations": {"V12": ["hostile-environment"]}},
+    ],
+}
+
+
+def fact(route, path, **over):
+    base = dict(path=path, change_kind="modify", source="committed",
+                surface="docs", effect="prose", breadth="leaf",
+                sensitivity="normal", confidence="verified")
+    base.update(over)
+    return route.ChangeFact(**base)
+
+
+class RouteBuildingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.route = load_route()
+
+    def test_a_prose_change_takes_the_cheap_route(self) -> None:
+        built = self.route.build_route((fact(self.route, "README.md"),), POLICY)
+        self.assertEqual(built.minimum_level, 0)
+        self.assertFalse(built.force_full)
+        self.assertEqual(built.matched_rule_ids, frozenset({"docs"}))
+
+    def test_two_rules_union_their_requirements(self) -> None:
+        built = self.route.build_route((
+            fact(self.route, "README.md"),
+            fact(self.route, "docs/index.html", surface="site"),
+        ), POLICY)
+        self.assertEqual(built.passes, frozenset({"06", "11"}))
+        self.assertEqual(built.minimum_level, 2)
+        self.assertEqual(built.matched_rule_ids, frozenset({"docs", "site"}))
+
+    def test_one_capability_unions_gates_from_several_rules(self) -> None:
+        # R-010 and G-007. Assignment would leave one gate here and the route
+        # would claim coverage it does not have.
+        built = self.route.build_route((
+            fact(self.route, "README.md"),
+            fact(self.route, "docs/index.html", surface="site"),
+        ), POLICY)
+        self.assertEqual(built.obligations["V09"],
+                         frozenset({"validate-core", "distribution"}))
+
+    def test_authority_change_forces_the_full_recipe(self) -> None:
+        # R-022 and G-004. force_full must populate passes, obligations, and
+        # level from the recipe, not merely raise the level.
+        built = self.route.build_route((
+            fact(self.route, ".github/workflows/tests.yml",
+                 surface="ci", effect="verification-authority"),
+        ), POLICY)
+        self.assertTrue(built.force_full)
+        self.assertEqual(built.minimum_level, 3)
+        self.assertTrue(built.passes >= frozenset({"07", "10", "11", "14"}))
+        for capability, gates in POLICY["full_recipe"]["obligations"].items():
+            self.assertTrue(built.obligations[capability] >= frozenset(gates),
+                            f"full route omitted {capability}")
+        self.assertTrue(built.independent_review)
+
+    def test_unmapped_path_forces_full_and_is_recorded(self) -> None:
+        built = self.route.build_route(
+            (fact(self.route, "mystery.bin", confidence="unknown"),), POLICY)
+        self.assertTrue(built.force_full)
+        self.assertIn("mystery.bin", built.unmapped_paths)
+        self.assertIn("ADC-ROUTE-UNMAPPED-PATH", built.unknowns)
+
+    def test_an_incomplete_snapshot_forces_full(self) -> None:
+        built = self.route.build_route(
+            (fact(self.route, "README.md"),), POLICY, snapshot_ok=False)
+        self.assertTrue(built.force_full)
+        self.assertIn("ADC-ROUTE-SNAPSHOT-INCOMPLETE", built.unknowns)
+
+    def test_a_fact_matching_no_rule_forces_full(self) -> None:
+        # A fact can be classified and still match no reviewed rule. That is an
+        # unrouted change, not a cheap one.
+        built = self.route.build_route(
+            (fact(self.route, "odd.py", surface="tests", effect="behavior"),), POLICY)
+        self.assertTrue(built.force_full)
+
+    def test_order_does_not_change_the_route(self) -> None:
+        a = fact(self.route, "README.md")
+        b = fact(self.route, "docs/index.html", surface="site")
+        self.assertEqual(self.route.build_route((a, b), POLICY),
+                         self.route.build_route((b, a), POLICY))
+
+    def test_an_unapproved_rule_never_matches(self) -> None:
+        policy = json.loads(json.dumps(POLICY))
+        policy["rules"][0]["review_status"] = "proposed"
+        built = self.route.build_route((fact(self.route, "README.md"),), policy)
+        self.assertNotIn("docs", built.matched_rule_ids)
+        self.assertTrue(built.force_full, "an unmatched fact must force full")
+
+
+class HintTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.route = load_route()
+        self.base = self.route.build_route((fact(self.route, "README.md"),), POLICY)
+
+    def test_a_hint_can_raise_the_level(self) -> None:
+        raised = self.route.apply_hints(self.base, {"minimum_level": 2})
+        self.assertEqual(raised.minimum_level, 2)
+
+    def test_a_hint_can_add_passes_and_obligations(self) -> None:
+        raised = self.route.apply_hints(
+            self.base, {"passes": ["07"], "obligations": {"V12": ["hostile-environment"]}})
+        self.assertIn("07", raised.passes)
+        self.assertEqual(raised.obligations["V12"], frozenset({"hostile-environment"}))
+
+    def test_a_hint_can_add_a_gate_to_an_existing_capability(self) -> None:
+        raised = self.route.apply_hints(
+            self.base, {"obligations": {"V09": ["distribution"]}})
+        self.assertEqual(raised.obligations["V09"],
+                         frozenset({"validate-core", "distribution"}))
+
+    def test_no_hint_field_can_lower_anything(self) -> None:
+        # R-020. Every field, not only the level. A hint that raises one
+        # dimension while narrowing another is the case worth catching.
+        high = self.route.build_route((
+            fact(self.route, ".github/workflows/tests.yml",
+                 surface="ci", effect="verification-authority"),
+            fact(self.route, "docs/index.html", surface="site"),
+        ), POLICY)
+        hostile = [
+            {"minimum_level": 0},
+            {"force_full": False},
+            {"independent_review": False},
+            {"passes": []},
+            {"obligations": {}},
+            {"obligations": {"V09": []}},
+            {"matched_rule_ids": []},
+            {"unmapped_paths": []},
+            {"unknowns": []},
+            {"minimum_level": 1, "force_full": False},
+        ]
+        for hint in hostile:
+            after = self.route.apply_hints(high, hint)
+            assert_route_not_lower(self, high, after, f"hint {hint}")
+
+    def test_a_hint_cannot_invent_a_rule_match(self) -> None:
+        after = self.route.apply_hints(self.base, {"matched_rule_ids": ["authority"]})
+        self.assertEqual(after.matched_rule_ids, self.base.matched_rule_ids)
+
+
+def assert_route_not_lower(case, smaller, larger, context) -> None:
+    """Every field of `larger` must be at least `smaller`.
+
+    Fields are read from the dataclass rather than listed here, so a new Route
+    field is covered automatically. An unhandled field type fails loudly instead
+    of being skipped, which is how a field silently escapes a property test.
+    """
+    import dataclasses
+    for field in dataclasses.fields(smaller):
+        a = getattr(smaller, field.name)
+        b = getattr(larger, field.name)
+        if isinstance(a, bool):
+            if a:
+                case.assertTrue(b, f"{context}: {field.name} went true to false")
+        elif isinstance(a, int):
+            case.assertGreaterEqual(b, a, f"{context}: {field.name} decreased")
+        elif isinstance(a, (set, frozenset)):
+            case.assertTrue(b >= a, f"{context}: {field.name} lost members")
+        elif isinstance(a, dict):
+            for key, gates in a.items():
+                case.assertIn(key, b, f"{context}: {field.name} dropped {key}")
+                case.assertTrue(b[key] >= gates,
+                                f"{context}: {field.name}[{key}] lost gates")
+        else:
+            case.fail(f"{context}: no comparison defined for "
+                      f"{field.name} of type {type(a).__name__}")
+
+
+class MonotonicityTests(unittest.TestCase):
+    """R-001. Adding a fact must never lower any part of a route."""
+
+    def setUp(self) -> None:
+        self.route = load_route()
+        self.pool = (
+            fact(self.route, "README.md"),
+            fact(self.route, "docs/index.html", surface="site"),
+            fact(self.route, ".github/workflows/tests.yml",
+                 surface="ci", effect="verification-authority"),
+            fact(self.route, "mystery.bin", confidence="unknown"),
+            fact(self.route, "notes.md", surface="docs"),
+        )
+
+    def test_adding_any_fact_never_lowers_any_field(self) -> None:
+        import itertools
+        checked = 0
+        for size in range(0, len(self.pool)):
+            for subset in itertools.combinations(self.pool, size):
+                smaller = self.route.build_route(subset, POLICY)
+                for extra in self.pool:
+                    if extra in subset:
+                        continue
+                    larger = self.route.build_route(subset + (extra,), POLICY)
+                    assert_route_not_lower(
+                        self, smaller, larger,
+                        f"{[f.path for f in subset]} + {extra.path}")
+                    checked += 1
+        self.assertGreater(checked, 50, "the property was barely exercised")
+
+    def test_every_permutation_gives_the_same_route(self) -> None:
+        import itertools
+        # Route holds a mapping, so it is not hashable. Compare pairwise
+        # against the first ordering rather than collecting into a set.
+        for size in (2, 3):
+            for subset in itertools.combinations(self.pool, size):
+                orders = list(itertools.permutations(subset))
+                expected = self.route.build_route(orders[0], POLICY)
+                for order in orders[1:]:
+                    self.assertEqual(
+                        self.route.build_route(order, POLICY), expected,
+                        f"order changed the route: {[f.path for f in order]}")
+
+
 if __name__ == "__main__":
     unittest.main()

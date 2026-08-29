@@ -20,7 +20,7 @@ import fnmatch
 import re
 import os
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -478,3 +478,171 @@ def collect_change_facts(
     # which varies with the process hash seed. A router whose output depends on
     # the hash seed cannot produce a byte-stable receipt.
     return tuple(sorted(set(facts), key=_fact_sort_key))
+
+
+@dataclass(frozen=True)
+class Route:
+    """What one change requires. Every field is a floor, never a ceiling."""
+
+    minimum_level: int = 0
+    passes: frozenset[str] = frozenset()
+    obligations: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    matched_rule_ids: frozenset[str] = frozenset()
+    force_full: bool = False
+    independent_review: bool = False
+    unmapped_paths: frozenset[str] = frozenset()
+    unknowns: frozenset[str] = frozenset()
+
+
+# Rule match keys. Positive predicates only: a rule may not depend on the
+# absence, count, or ordering of other facts. A negative predicate would break
+# monotonicity, because adding a file could stop a rule firing. See R-015.
+_MATCH_KEYS = frozenset({
+    "paths", "surfaces", "effects", "breadths", "sensitivities",
+    "change_kinds", "sources", "mode_changed",
+})
+
+
+def _fact_matches(fact: ChangeFact, match: Mapping[str, Any]) -> bool:
+    """One fact against one rule. Every named predicate must hold."""
+    unknown = set(match) - _MATCH_KEYS
+    if unknown:
+        raise ValueError(f"rule uses unsupported match keys: {sorted(unknown)}")
+    if "paths" in match:
+        candidate = fact.path.replace("\\", "/")
+        if not any(fnmatch.fnmatchcase(candidate, p.replace("\\", "/"))
+                   for p in match["paths"]):
+            return False
+    for key, attribute in (
+        ("surfaces", "surface"), ("effects", "effect"), ("breadths", "breadth"),
+        ("sensitivities", "sensitivity"), ("change_kinds", "change_kind"),
+        ("sources", "source"),
+    ):
+        if key in match and getattr(fact, attribute) not in match[key]:
+            return False
+    if "mode_changed" in match and fact.mode_changed is not bool(match["mode_changed"]):
+        return False
+    return True
+
+
+def _union_obligations(
+    into: dict[str, set[str]], more: Mapping[str, Sequence[str]]
+) -> dict[str, set[str]]:
+    """Union gate sets per capability.
+
+    Assignment here would be a silent coverage loss: two rules naming the same
+    capability with different gates would leave one gate behind, and the route
+    would claim a capability was covered by work it never selected.
+    """
+    for capability, gate_ids in more.items():
+        into.setdefault(capability, set()).update(gate_ids)
+    return into
+
+
+def build_route(
+    facts: Sequence[ChangeFact],
+    policy: Mapping[str, Any],
+    hints: Mapping[str, Any] | None = None,
+    snapshot_ok: bool = True,
+) -> Route:
+    """Combine every matching rule's requirements. Union and maximum only.
+
+    Averaging or subtraction would let unrelated low-risk facts dilute a
+    critical trigger: thirty README lines cannot cancel one authentication
+    schema change. Adding a fact must never reduce any field, which is the
+    property R-001 tests and the reason there is no numeric score.
+    """
+    level = 0
+    passes: set[str] = set()
+    obligations: dict[str, set[str]] = {}
+    matched: set[str] = set()
+    force_full = not snapshot_ok
+    independent_review = False
+    unmapped: set[str] = set()
+    unknowns: set[str] = set()
+
+    if not snapshot_ok:
+        unknowns.add("ADC-ROUTE-SNAPSHOT-INCOMPLETE")
+
+    rules = [r for r in policy.get("rules", [])
+             if str(r.get("review_status", "")).lower() == "approved"]
+
+    for fact in facts:
+        if fact.confidence == "unknown":
+            # An unknown does not mean the code is bad. It means the shortcut
+            # has not been earned.
+            unmapped.add(fact.path)
+            unknowns.add("ADC-ROUTE-UNMAPPED-PATH")
+            force_full = True
+        fired = False
+        for rule in rules:
+            if not _fact_matches(fact, rule.get("match", {})):
+                continue
+            fired = True
+            matched.add(rule["id"])
+            requires = rule.get("requires", {})
+            level = max(level, int(requires.get("minimum_level", 0)))
+            passes.update(requires.get("passes", []))
+            force_full = force_full or bool(requires.get("force_full"))
+            independent_review = (
+                independent_review or bool(requires.get("independent_review"))
+            )
+            _union_obligations(obligations, rule.get("obligations", {}))
+        if not fired:
+            # A classified fact that no reviewed rule describes is an unrouted
+            # change, not a cheap one.
+            unmapped.add(fact.path)
+            unknowns.add("ADC-ROUTE-UNROUTED-FACT")
+            force_full = True
+
+    if force_full:
+        # The full route is the policy's own reviewed recipe, not merely a
+        # higher level. Raising the level alone would leave a route labelled
+        # full that still selected the cheap rule's gates.
+        recipe = policy["full_recipe"]
+        level = max(level, int(recipe.get("minimum_level", 3)))
+        passes.update(recipe.get("passes", []))
+        _union_obligations(obligations, recipe.get("obligations", {}))
+        independent_review = (
+            independent_review or bool(recipe.get("independent_review"))
+        )
+
+    route = Route(
+        minimum_level=level,
+        passes=frozenset(passes),
+        obligations={k: frozenset(v) for k, v in obligations.items()},
+        matched_rule_ids=frozenset(matched),
+        force_full=force_full,
+        independent_review=independent_review,
+        unmapped_paths=frozenset(unmapped),
+        unknowns=frozenset(unknowns),
+    )
+    return apply_hints(route, hints) if hints else route
+
+
+def apply_hints(route: Route, hints: Mapping[str, Any]) -> Route:
+    """Apply agent hints. Additive only, on every field.
+
+    A hint may add set members, raise the level, or set a boolean true. It may
+    not remove, lower, or clear anything, and it cannot invent a rule match or
+    change which facts were seen. An agent that believes a route is too heavy
+    has no recourse here by design: only a reviewed rule backed by deterministic
+    evidence may permit less work. See D-006 and R-020.
+    """
+    merged = {k: set(v) for k, v in route.obligations.items()}
+    _union_obligations(merged, hints.get("obligations", {}))
+    return Route(
+        minimum_level=max(route.minimum_level, int(hints.get("minimum_level", 0))),
+        passes=route.passes | frozenset(hints.get("passes", [])),
+        obligations={k: frozenset(v) for k, v in merged.items()},
+        # Rule matches are evidence of what fired, not a requirement a hint may
+        # add to. Letting a hint write here would let an agent claim a reviewed
+        # rule matched when it did not.
+        matched_rule_ids=route.matched_rule_ids,
+        force_full=route.force_full or bool(hints.get("force_full")),
+        independent_review=(
+            route.independent_review or bool(hints.get("independent_review"))
+        ),
+        unmapped_paths=route.unmapped_paths | frozenset(hints.get("unmapped_paths", [])),
+        unknowns=route.unknowns | frozenset(hints.get("unknowns", [])),
+    )
