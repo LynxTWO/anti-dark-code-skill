@@ -113,5 +113,141 @@ class CapabilityCountContractTests(unittest.TestCase):
                          f"stale capability count, catalog holds {count}")
 
 
+ROUTE_SCRIPT = SKILL_ROOT / "scripts" / "adc_route.py"
+
+
+def load_route():
+    return load_module("adc_route", ROUTE_SCRIPT)
+
+
+# Fixtures follow real `git diff --raw -z --no-abbrev` output captured on
+# 2026-08-29. Records are NUL separated and NUL terminated, with no newlines.
+NUL = chr(0)
+ZERO = "0" * 40
+OBJ_A = "5626abf9a2b1f8b0c3d4e5f60718293a4b5c6d7e"
+OBJ_B = "f719efd8c1a2b3c4d5e6f708192a3b4c5d6e7f80"
+
+
+def raw(*records: str) -> bytes:
+    return "".join(records).encode("utf-8", "surrogateescape")
+
+
+class RawParserTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.route = load_route()
+
+    def test_modify_record_keeps_modes_and_objects(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}keep.py{NUL}"), "committed")
+        self.assertEqual(result.problems, ())
+        row = result.inputs[0]
+        self.assertEqual(row.path, "keep.py")
+        self.assertEqual(row.change_kind, "modify")
+        self.assertEqual(row.source, "committed")
+        self.assertEqual(row.old_object, OBJ_A)
+        self.assertEqual(row.new_object, OBJ_B)
+
+    def test_mode_only_change_is_not_reported_as_modify(self) -> None:
+        # git update-index --chmod=+x produces the same object on both sides.
+        # --name-status cannot separate this from a content edit; raw can.
+        result = self.route.parse_raw_z(
+            raw(f":100644 100755 {OBJ_A} {OBJ_A} M{NUL}tool.sh{NUL}"), "committed")
+        self.assertEqual(result.inputs[0].change_kind, "mode")
+
+    def test_same_object_and_same_mode_stays_modify(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_A} M{NUL}odd.py{NUL}"), "committed")
+        self.assertEqual(result.inputs[0].change_kind, "modify")
+
+    def test_add_and_delete_carry_the_null_object(self) -> None:
+        result = self.route.parse_raw_z(raw(
+            f":000000 100644 {ZERO} {OBJ_A} A{NUL}new.py{NUL}",
+            f":100644 000000 {OBJ_A} {ZERO} D{NUL}gone.py{NUL}",
+        ), "committed")
+        self.assertEqual({r.path: r.change_kind for r in result.inputs},
+                         {"new.py": "add", "gone.py": "delete"})
+
+    def test_rename_keeps_both_paths(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_A} R100{NUL}old.py{NUL}new.py{NUL}"), "committed")
+        row = result.inputs[0]
+        self.assertEqual(row.change_kind, "rename")
+        self.assertEqual(row.old_path, "old.py")
+        self.assertEqual(row.path, "new.py")
+
+    def test_copy_keeps_both_paths(self) -> None:
+        # Real git only emits C when copy detection is requested. Acquisition
+        # asks for it; without the flag the same change arrives as A.
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_A} C100{NUL}src.py{NUL}copy.py{NUL}"), "committed")
+        row = result.inputs[0]
+        self.assertEqual(row.change_kind, "copy")
+        self.assertEqual(row.old_path, "src.py")
+        self.assertEqual(row.path, "copy.py")
+
+    def test_type_change_and_unmerged_are_preserved(self) -> None:
+        result = self.route.parse_raw_z(raw(
+            f":100644 120000 {OBJ_A} {OBJ_B} T{NUL}link.txt{NUL}",
+            f":100644 100644 {OBJ_A} {OBJ_B} U{NUL}conflict.py{NUL}",
+        ), "committed")
+        kinds = {r.path: r.change_kind for r in result.inputs}
+        self.assertEqual(kinds["link.txt"], "type-change")
+        self.assertEqual(kinds["conflict.py"], "unmerged")
+
+    def test_unrecognised_status_letter_is_kept_and_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} X{NUL}weird.py{NUL}"), "committed")
+        self.assertEqual(result.inputs[0].change_kind, "unknown")
+        self.assertIn("ADC-ROUTE-UNKNOWN-STATUS", result.problems)
+
+    def test_hostile_paths_survive(self) -> None:
+        result = self.route.parse_raw_z(raw(
+            f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}ode/cafe.py{NUL}",
+            f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}we\nird.py{NUL}",
+            f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}sp ace.py{NUL}",
+        ), "committed")
+        self.assertEqual(sorted(r.path for r in result.inputs),
+                         ["ode/cafe.py", "sp ace.py", "we\nird.py"])
+        self.assertEqual(result.problems, ())
+
+    def test_non_ascii_paths_survive(self) -> None:
+        path = "odé/café.py"
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}{path}{NUL}"), "committed")
+        self.assertEqual(result.inputs[0].path, path)
+
+    def test_garbage_is_reported_not_silently_dropped(self) -> None:
+        result = self.route.parse_raw_z(b"this is not a raw record", "committed")
+        self.assertEqual(result.inputs, ())
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_truncated_header_is_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 M{NUL}short.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_rename_missing_its_destination_is_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_A} R100{NUL}only-old.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-TRUNCATED-RECORD", result.problems)
+
+    def test_empty_payload_is_empty_and_clean(self) -> None:
+        result = self.route.parse_raw_z(b"", "committed")
+        self.assertEqual(result.inputs, ())
+        self.assertEqual(result.problems, ())
+
+    def test_untracked_payload_becomes_add_records(self) -> None:
+        result = self.route.parse_untracked_z(
+            f"new/file.py{NUL}other.txt{NUL}".encode("utf-8"))
+        self.assertEqual({r.change_kind for r in result.inputs}, {"add"})
+        self.assertEqual({r.source for r in result.inputs}, {"untracked"})
+        self.assertEqual(sorted(r.path for r in result.inputs),
+                         ["new/file.py", "other.txt"])
+
+    def test_unknown_source_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            self.route.parse_raw_z(b"", "not-a-source")
+
+
 if __name__ == "__main__":
     unittest.main()
