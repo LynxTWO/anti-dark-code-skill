@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.2 Audited. Date: 2026-08-28. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 0.3. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Review blocked.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -67,6 +67,13 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-024 | A malformed, truncated, or unrecognised git record is reported, never silently dropped | given garbage, a truncated header, a rename missing its destination, or an unknown status letter, when parsed, then a stable reason code is returned and the snapshot is not complete |
 | R-025 | Staged and unstaged records are acquired by separate comparisons | given a staged change, when acquired, then it appears once as staged and not also as unstaged |
 | R-026 | A path matching several classifier entries emits a fact for each | given a path matched by a broad entry and a specific entry, when classified, then both readings are present |
+| R-027 | Git acquisition does not execute repository-configured code or update repository state | given a repository-local filesystem monitor that writes a sentinel, when every acquisition command runs, then no sentinel is written and the index and worktree identities are unchanged |
+| R-028 | Snapshot completeness requires valid transport framing and a valid base identity | given a missing terminal NUL, an invalid raw header field, malformed untracked output, or an empty successful merge-base result, when acquired, then a stable problem code is present and `complete` is false |
+| R-029 | Copy provenance and every mode transition survive real Git acquisition | given a copy from an unchanged source or a content-plus-mode change, when acquired, then the copy has both paths and the mode transition remains explicit |
+| R-030 | Every `ChangeInput`, classifier entry, and emitted fact uses only closed enum values | given one invalid value for each enum field, when classification runs, then it raises a policy or input error and emits no fact |
+| R-031 | Canonical fact order is independent of input order and Python hash seed | given duplicate inputs and two copies with one source, when classified under several hash seeds, then facts are deduplicated and every serialized field has the same order |
+| R-032 | Classifier glob semantics are independent of the host operating system | given a Git path and pattern that differ only by case, when classified on Linux, macOS, and Windows, then every host returns the same result |
+| R-033 | Capability count has one count-derived contract in scripts and tests | given a future catalog size, when runtime and contiguity checks run, then both derive the total from `CAPABILITY_COUNT`; V21 and V22 identity tests remain explicit |
 
 ### 4.2 Assumed requirements
 
@@ -185,6 +192,8 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 - Receipt freshness uses object ids where git already has them and hashes current bytes, executable modes, and symlink targets where it does not. A porcelain-status digest is not sufficient because different dirty bytes can produce identical status text.
 - The gate runner checks the authoritative identity immediately before and after each gate. An after-check mismatch preserves the output for diagnosis but cannot satisfy a capability.
 - Enum values are closed sets. An unrecognized value is an error, not a passthrough.
+- Canonical `ChangeFact` order includes `related_path` and every other serialized field after exact duplicate facts are removed.
+- Git paths use forward slashes and case-sensitive classifier matching on every host.
 
 ## 6. Permissions and Access Model
 
@@ -204,7 +213,7 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 
 Tier 1 baseline applies. The relevant additions for this subsystem:
 
-- [ ] The router never executes repository code. It reads Git records, repository bytes needed for content identity, and JSON only.
+- [ ] The router never executes repository code. Git acquisition neutralizes repository-configured executable helpers and proves that boundary with a real hostile repository.
 - [ ] Receipt contents pass through the existing redaction helpers before being printed.
 - [ ] A receipt is data, not an instruction. Loading one never causes execution by itself.
 - [ ] Policy files are validated against a schema before use. An invalid policy blocks routing and produces no selective receipt.
@@ -222,7 +231,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 - **Language and typing:** Python 3.12+, type hints on every public function, standard library only.
 - **Naming:** existing `adc.py` conventions. Functions are verbs, records are nouns.
 - **Functions:** `read_change_inputs` owns Git I/O. `collect_change_facts` and `build_route` are pure and take passed data only.
-- **Git records:** use NUL-delimited output. Do not parse human-formatted status text. Preserve both paths for rename and copy, and use raw mode data to distinguish a mode-only change from a content modification.
+- **Git records:** use NUL-delimited output and validate its framing. Do not parse human-formatted status text. Preserve both paths for rename and copy, consider unchanged copy sources, and preserve every mode transition even when content also changed.
 - **Errors:** fail closed. A known unmapped fact or unreachable base produces the canonical full route. Unreadable Git output, an invalid policy, or an invalid full recipe exits 2 and produces no receipt. Never a silent default.
 - **Logging:** one compact route summary line, matching the existing gate plan output style.
 - **Comments:** say why. The monotonic union deserves a comment explaining what would break without it.
@@ -273,6 +282,13 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
 | R-025 | real-repository staged change is not also unstaged | `test_route.py` |
 | R-026 | broad glob cannot mask a specific glob | `test_route.py` |
+| R-027 | repository-local filesystem-monitor sentinel remains absent | `test_route.py` |
+| R-028 | terminal NUL, raw field shape, untracked framing, and nonempty-base table | `test_route.py` |
+| R-029 | real unchanged-source copy and content-plus-mode repository cases | `test_route.py` |
+| R-030 | invalid-value table over every input, classifier, and fact enum | `test_route.py` |
+| R-031 | duplicate collapse and cross-seed full-field ordering | `test_route.py` |
+| R-032 | cross-platform case-collision fixture | `test_route.py` |
+| R-033 | contiguity test derives its bound from `CAPABILITY_COUNT` | `test_route.py` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 

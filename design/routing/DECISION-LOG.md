@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.2 Audited. Date: 2026-08-28. Status: Audited.
+Version: 0.3. Date: 2026-08-29. Status: Review blocked.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -42,6 +42,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-023 | 2026-08-29 | The slice calibrates this repository before it routes it | Confirmed | |
 | D-024 | 2026-08-29 | Classification keeps every matching entry, not the first | Confirmed | |
 | D-025 | 2026-08-29 | Unreadable git records are reported, never dropped | Confirmed | |
+| D-026 | 2026-08-29 | Git acquisition neutralizes repository-configured execution | Proposed | |
+| D-027 | 2026-08-29 | Acquisition proves framing and preserves copy and mode signals | Proposed | |
+| D-028 | 2026-08-29 | Fact output validates enums and has one cross-platform order | Proposed | |
+| D-029 | 2026-08-29 | Capability count has one executable source of truth | Proposed | |
 
 ---
 
@@ -675,3 +679,107 @@ Every caller must consult `complete` rather than only counting inputs. The reaso
 
 Revisit when:
 A record type currently reported as unknown becomes understood well enough to classify.
+
+## D-026: Git acquisition neutralizes repository-configured execution
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5, ADD 14, EDD 7
+
+Context:
+A scratch repository set `core.fsmonitor` to a repository-controlled script. One call to `read_change_inputs` started that script three times while returning a complete snapshot. The subprocess code starts trusted Git, but Git then interprets local configuration that can name an executable.
+
+Decision:
+Every Git acquisition call disables `core.fsmonitor` on the command line and sets `GIT_OPTIONAL_LOCKS=0`. The hostile-repository test installs a filesystem-monitor script that would write a sentinel, runs every acquisition command, and asserts that the sentinel does not exist. Any later Git option that can start a repository-configured process receives the same deny-by-default treatment before use.
+
+Because:
+The router is verification authority. A candidate repository must remain data while its route is computed. Read-only Git subcommands do not establish that boundary when repository configuration can start code.
+
+Options considered:
+- Neutralize executable configuration and optional writes for every command: keeps the current Git byte interface and enforces the boundary at one runner.
+- Trust local Git configuration: fewer flags, and repository code runs before routing has decided what evidence is required.
+- Reimplement Git object and index reading: avoids Git configuration and adds a large parser that this slice does not need.
+
+Consequences:
+The default runner owns a documented Git configuration allowlist. Tests cover the real subprocess, not only an injected runner. A failed neutralization blocks selective routing and produces no receipt.
+
+Revisit when:
+A new acquisition command reads configuration that can invoke another process, or Git changes the filesystem-monitor configuration contract.
+
+## D-027: Acquisition proves framing and preserves copy and mode signals
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5 and 6, EDD R-019, R-024, R-027 to R-029
+
+Context:
+The round-three probes found three losses. A nonempty raw payload without its final NUL and a header with invalid mode and object columns both produced `complete = true`. `-C` reported a copy from an unchanged source as an add. A staged record that changed content and executable mode was classified as modify because its object ids differed.
+
+Decision:
+Parsers validate the terminating NUL and every supported header field before accepting a row. A successful merge-base result must contain one nonempty object id. Raw diffs use unchanged-source copy detection with explicit limits, and limit exhaustion makes the snapshot incomplete. Any mode transition remains explicit even when the record also changes content. Every violation adds a stable problem code and makes the snapshot incomplete.
+
+Because:
+`ChangeSnapshot.complete` is the correct single guard from D-025 only if acquisition reports every way its view can be incomplete. Copy provenance and executable mode are routing inputs, not display details.
+
+Options considered:
+- Validate framing and preserve all routing signals: supports a meaningful `complete` predicate.
+- Keep best-effort rows and trust field count: accepts corrupt transport as a complete diff.
+- Hash worktree files during parsing to infer every case: mixes acquisition with parsing and is unnecessary for these status signals.
+
+Consequences:
+Real Git tests cover add, modify, delete, rename, unchanged-source copy, pure mode, content-plus-mode, type change, unmerged, staged versus unstaged overlap, and copy-detection limit behavior. Parser fixtures cover corrupt bytes and states the host filesystem cannot create. Git similarity remains a heuristic for changed copies, so the policy must not treat a plain add as proof that no source exists.
+
+Revisit when:
+Git adds a raw status or object format that the validated grammar does not yet support.
+
+## D-028: Fact output validates enums and has one cross-platform order
+
+Date: 2026-08-29
+Status: Proposed
+Area: ADD 5 and 14, EDD R-002, R-026, R-030 to R-032
+
+Context:
+D-024 correctly keeps every matching classifier entry. The implementation still accepted invalid classifier, source, and change-kind values. Its canonical sort omitted `related_path`, so two copies from one source changed order across Python hash seeds. `fnmatch.fnmatch` also normalized case on Windows, which made the same Git path and policy classify differently from Linux.
+
+Decision:
+Validate all classifier and input enum values before emitting a fact. Match Git paths with case-sensitive, slash-normalized semantics on every platform. Deduplicate facts, then sort by every serialized `ChangeFact` field, treating a missing `related_path` as an empty string.
+
+Because:
+Closed sets are not enforced by declaring frozensets. Receipt bytes cannot depend on a process hash seed or the host operating system. D-024 adds facts monotonically, but each fact must still be valid and canonical.
+
+Options considered:
+- Validate and sort the full record: one deterministic contract and early policy errors.
+- Trust policy validation elsewhere: leaves the public pure function able to emit invalid facts.
+- Preserve host-native glob case behavior: familiar to `fnmatch`, and incompatible with cross-platform receipt identity.
+
+Consequences:
+Tests inject one invalid value for every enum, compare several hash seeds, cover duplicate rows, and run a case-collision fixture. These tests supplement the existing broad-plus-specific match test rather than changing D-024.
+
+Revisit when:
+The policy schema introduces a dimension with non-string values or defines explicit case-insensitive matching.
+
+## D-029: Capability count has one executable source of truth
+
+Date: 2026-08-29
+Status: Proposed
+Area: EDD 11, SLICE-001 M1
+
+Context:
+`CAPABILITY_COUNT` replaced the five runtime literals and two `test_adc.py` literals found in round two. The new contiguity test then introduced `range(1, 23)`, which is another count contract and will need a manual edit for V23.
+
+Decision:
+Runtime code and count-derived tests use `adc.CAPABILITY_COUNT`. Tests may name V21 and V22 to preserve D-016, but they do not derive the total from a new integer literal. A drift check searches for count derivation rather than only the previous number.
+
+Because:
+A scanner that knows only the last stale number repeats the same repair at the next catalog extension. Identity assertions and count assertions have different jobs.
+
+Options considered:
+- Reuse `CAPABILITY_COUNT`: one count contract while retaining explicit V21 and V22 tests.
+- Keep `range(1, 23)`: readable today and stale at V23.
+- Derive the expected ids only from the catalog: cannot detect a missing id in the middle without an independent upper bound.
+
+Consequences:
+The contiguity test imports the count constant. Future capability additions change one count plus the catalog, while the V21 and V22 identity tests remain unchanged.
+
+Revisit when:
+Capability ids stop being a contiguous `VNN` sequence.

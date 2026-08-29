@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 0.2 Audited. Date: 2026-08-28. Status: Proposed.
+Version: 0.3. Date: 2026-08-29. Status: Review blocked.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -37,14 +37,14 @@ Every step works against the real repository, real git state, and the real calib
 | Receipt writer and verifier | bound identity, stable reason codes |
 | `adc.py route` subcommand | read-only, `--repo`, `--changed-from`, `--phase`, `--write` |
 | Shadow comparator | records misses, changes nothing |
-| `test_route.py` | R-001 to R-023 |
+| `test_route.py` | R-001 to R-033 |
 
-| Milestone | Contents |
-|---|---|
-| M1 | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Acquisition and pure layer: `read_change_inputs`, `collect_change_facts`, `build_route`, parser fixtures, and property tests. The pure functions use no disk or CLI. |
-| M3 | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
-| M4 | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
+| Milestone | Status | Contents |
+|---|---|---|
+| M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
+| M2 | Review blocked | Acquisition and pure layer: `read_change_inputs`, `collect_change_facts`, `build_route`, parser fixtures, and property tests. Parser, acquisition, and classification exist. `build_route` does not. D-026 through D-029 and S-024 through S-030 must close before work continues. |
+| M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
+| M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 
 M1 is first because a rule cannot name an obligation until the two catalog entries settled by D-016 exist, and D-004 made obligations capability ids.
 
@@ -111,6 +111,13 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 | S-021 | Given each verification-authority path class, when routed, then `force_full` is true | R-021 test |
 | S-022 | Given `force_full`, when gate applicability globs would exclude a gate, then the canonical full recipe still selects it | R-022 test |
 | S-023 | Given identical authoritative inputs in shuffled order and different clocks, when receipts are built, then authoritative bytes and hashes match | R-023 test |
+| S-024 | Given a repository-local filesystem monitor that writes a sentinel, when change acquisition runs, then the sentinel remains absent and repository state is unchanged | R-027 test |
+| S-025 | Given malformed Git framing, invalid raw fields, malformed untracked output, or an empty successful base result, when acquired, then `complete` is false with a stable problem code | R-028 test |
+| S-026 | Given a real copy from an unchanged source and a content-plus-mode change, when acquired, then copy provenance and the mode transition survive | R-029 test |
+| S-027 | Given one invalid value for every input and classifier enum, when facts are collected, then no invalid fact is emitted | R-030 test |
+| S-028 | Given duplicate records and two copies from one source, when classification runs under several hash seeds, then duplicates collapse and the full fact order is identical | R-031 test |
+| S-029 | Given a path and classifier pattern that differ only by case, when tested on every supported host, then classification is identical | R-032 test |
+| S-030 | Given the next capability id, when tests derive the contiguous range, then only `CAPABILITY_COUNT` changes and the V21 and V22 identity checks remain | R-033 test |
 
 ## 9. Verification evidence required
 
@@ -134,6 +141,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 ## 11. Slice definition of done
 
 - [ ] All acceptance criteria pass with linked evidence.
+- [ ] D-026 through D-029 are confirmed and S-024 through S-030 pass before `build_route` work starts.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
 - [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.

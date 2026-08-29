@@ -1,6 +1,6 @@
 # Assurance Router Architecture Document (ADD)
 
-Version: 0.2 Audited. Date: 2026-08-28. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 0.3. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Review blocked.
 Companion documents: ENGINEERING.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. Where the two conflict, this document's guardrails control.
@@ -65,8 +65,10 @@ DECISION: Product shape and platforms. Status Confirmed. See D-001.
   - `build_route(facts, policy, hints) -> Route`, pure
   - `write_receipt(route, repo) -> Path`
   - `verify_receipt(receipt, repo) -> Ok or Stale(reason_code)`
-- **Acquisition is split from parsing.** `read_change_inputs` runs git and hands captured bytes to the pure parsers. Its `runner` argument is the seam: the default calls git, and a test supplies a recorded transcript. That is what makes hostile paths, malformed records, and command construction testable without a repository per case. See D-024.
+- **Acquisition is split from parsing.** `read_change_inputs` runs git and hands captured bytes to the pure parsers. Its `runner` argument is the seam: the default calls git, and a test supplies a recorded transcript. That is what makes hostile paths, malformed records, and command construction testable without a repository per case. See D-025.
 - **Every parse reports what it could not read.** `RawParse` carries the rows it understood alongside stable reason codes, and those codes reach `ChangeSnapshot.problems`. A snapshot is `complete` only when the base resolved and no problem was recorded. See D-025.
+- **Git is an untrusted interpreter at this boundary.** Every acquisition call disables repository-configured filesystem monitors and optional Git writes. Copy acquisition includes unchanged sources, and every mode transition remains visible even when content changed too. See D-026.
+- **Parsing proves framing, not only field count.** A nonempty `-z` payload must end in NUL. Raw headers must have the documented mode, object, and status shapes. A successful merge-base call must yield one nonempty object id. Any failure adds a stable problem code and makes the snapshot incomplete. See D-027.
 - **Contract rule:** the `routing-policy.json` schema is the one source of truth for rule shape, validated on load. An invalid policy is an error, never a default.
 - **Versioning posture:** `schema_version` integer, the same convention `gates.json` already uses.
 
@@ -75,8 +77,8 @@ DECISION: Interface style. Status Confirmed. See D-002.
 ## 6. Core Data Flow
 
 1. The caller names a comparison base.
-2. The Git change reader acquires NUL-delimited records for the final merge-base to `HEAD` diff, index changes, worktree changes, untracked paths, modes, and submodule state. It does not use a names-only helper.
-3. The pure collector emits facts across six dimensions: surface, effect, breadth, sensitivity, change kind, confidence. Rename and copy records classify both the old and new path. An unmerged, unsupported, or undecodable record forces the full route and names the record.
+2. The Git change reader acquires NUL-delimited records for the final merge-base to `HEAD` diff, index changes, worktree changes, untracked paths, modes, and submodule state. Copy detection considers unchanged sources. Repository Git configuration cannot start a hook or helper. The reader does not use a names-only helper.
+3. The pure collector validates every closed enum, uses case-sensitive Git-path globs on every platform, and emits facts across six dimensions: surface, effect, breadth, sensitivity, change kind, confidence. Rename and copy records classify both the old and new path. An unmerged, unsupported, or undecodable record forces the full route and names the record.
 4. Each rule matches one fact using positive predicates only. Matching requirements combine monotonically. A rule may not depend on the absence, count, or ordering of other facts.
 5. A receipt is written, bound to identity hashes.
 6. The gate runner verifies receipt freshness immediately before each gate starts and again after it exits. A concurrent change makes that execution stale and unusable as evidence.
@@ -130,7 +132,7 @@ Existing GitHub Actions. Status Confirmed.
 
 | External service | Purpose | Direction | Failure behavior |
 |---|---|---|---|
-| git | the only source of change facts | read | incomplete history or an unreliable base forces the full route |
+| git | the only source of change facts | read | incomplete history, unsafe configuration, or an unreliable base blocks selective routing |
 | GitHub Actions | computes the route from the trusted base revision | read and write | no usable route means the full matrix runs |
 
 **Adapter rule.** All git access goes through the subprocess and byte-decoding discipline already used by the git helpers in `adc.py`. The existing `git_paths()` and `changed_files()` shapes are insufficient because they discard status and mode. The Git change reader adds one status-aware helper rather than shelling out from classification code.
@@ -162,6 +164,7 @@ Existing GitHub Actions. Status Confirmed.
 |---|---|---|---|
 | Missing or unreachable merge base | full route with a reason code | refuses any fast path | rerun with full history |
 | Git output is unreadable or internally inconsistent | error, exit 2 | produces no receipt | run the documented full verification outside the router, then repair collection |
+| Repository Git configuration names executable helpers | no helper runs | disables the relevant configuration for acquisition | repair or remove the repository configuration separately |
 | Policy fails its schema | error, exit 2 | produces no receipt | run the documented full verification outside the router, then fix the policy |
 | Receipt no longer matches worktree | exit 2 | refuses to execute | recompute the route |
 | Path matches no reviewed rule | full route | records the unmapped path | add a reviewed rule |
@@ -178,6 +181,10 @@ Existing GitHub Actions. Status Confirmed.
 8. No routing-relevant candidate may disappear before policy evaluation. Both sides of a rename or copy are evaluated. Type changes, conflicts, unsupported Git statuses, and submodule uncertainty are represented explicitly and force the full route unless a reviewed rule is stricter.
 9. The policy binds each required capability id to at least one explicit gate id. Parallel unlinked `obligations` and `gate_ids` arrays are invalid because they cannot prove which gate satisfies which obligation.
 10. A full route means the policy's validated full recipe: Level 3, every required pass and capability for that repository, and every enabled approved gate in the recipe without changed-file glob filtering. If the policy cannot validate, no selective receipt exists.
+11. Git acquisition must not execute repository-configured filesystem monitors or other helpers. It runs with optional locks disabled so a read does not refresh repository state.
+12. `-C` alone is not sufficient copy acquisition. Every raw diff also enables unchanged-source copy detection, and a real-repository test proves the source path survives.
+13. A mode transition is routing-relevant even when the same record also changes content. The acquired kind or an equivalent explicit field must preserve that transition.
+14. Canonical fact order includes every serialized field, including `related_path`. Git-path glob matching is case-sensitive and independent of the host operating system. All enum values are validated before a fact is emitted. See D-028.
 
 ## 15. Current Build Boundary
 

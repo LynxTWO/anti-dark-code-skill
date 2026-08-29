@@ -12,6 +12,8 @@
 
 **Round-two review gate, 2026-08-29:** Not ready to implement. The executable review in `design/routing/HANDOFF-BACK-PLAN.md` found blocking gaps in Tasks 1, 5, 6, 8, 9, and 10. In particular, the current blocks do not implement content identity, receipt integrity, per-gate freshness checks, or the canonical full recipe. The acceptance mapping at the end of this file is incomplete. Treat the code blocks below as reviewed evidence, not implementation instructions, until every blocking finding in that handoff is closed and this gate is removed.
 
+**Round-three pure-layer review gate, 2026-08-29:** Do not start `build_route`. The executable review in `design/routing/HANDOFF-BACK-CODE.md` found that Tasks 2 through 4 do not yet satisfy the acquisition trust boundary, complete-snapshot contract, copy and mode fidelity, closed enums, or canonical cross-platform fact order. D-026 through D-029 and S-024 through S-030 state the required corrections. Existing code blocks remain historical drafts where they conflict with those decisions.
+
 ## Global Constraints
 
 - **Python 3.12+, standard library only.** No new runtime dependency. Every import must survive the hostile-environment matrix and the clean distribution check. `fnmatch` is available and already used for glob matching.
@@ -36,7 +38,7 @@
 | `anti-dark-code/scripts/adc.py` | Modify. CLI adapter only: the `route` subcommand, the escalate-only `--level` check, and one validator check for the new template. |
 | `anti-dark-code/assets/templates/calibration/routing-policy.json` | Create. Shipped policy template. |
 | `anti-dark-code/assets/verification-capabilities.json` | Modify. Add V21 and V22. |
-| `anti-dark-code/tests/test_route.py` | Create. All router tests, S-001 through S-023. |
+| `anti-dark-code/tests/test_route.py` | Create. All router tests, S-001 through S-030. |
 
 ---
 
@@ -52,6 +54,8 @@
 - `README.md`: capability count updated. `CHANGELOG.md` left alone, because its entry records what a past release shipped.
 - `tests/test_route.py`: eight tests, including a drift scan that fails when any script or test hard-codes a stale count.
 
+**Round-three correction:** the contiguity test still uses `range(1, 23)`. Replace that derived total with `adc.CAPABILITY_COUNT`. Keep the explicit V21 and V22 identity checks because they preserve D-016 rather than restating the total. Update the drift test so it does not search only for the previous stale number. See D-029 and S-030.
+
 **Evidence**
 
 - Red: 5 failed, 3 passed. Failures were the missing ids, the missing required fields, the mismatched adaptations, the non-contiguous id set, and five stale sites in `adc.py`.
@@ -66,6 +70,8 @@
 ---
 
 ## Task 2: Parse Git status records into ChangeInput
+
+**Status: REVIEW BLOCKED, 2026-08-29.** Keep `RawParse` and `ChangeSnapshot.complete` from D-025. Before this task is done, validate terminal NUL framing, supported raw field shapes, untracked framing, and nonempty successful merge-base output. Each failure needs a stable problem code and must make the snapshot incomplete. See D-027, R-028, and S-025.
 
 The parser is pure: it takes captured bytes and returns records. Task 3 supplies the bytes. Splitting them is what makes hostile-path testing possible without building a repository per case.
 
@@ -298,6 +304,8 @@ it blocks the fast path instead of passing as ordinary."
 
 ## Task 3: Acquire change inputs from Git
 
+**Status: REVIEW BLOCKED, 2026-08-29.** Before this task is done, neutralize repository-configured filesystem monitors and optional Git writes in the default runner. Add unchanged-source copy detection to every raw diff. Preserve any mode transition when content changed in the same record. Prove all three with real repositories, not only the injected runner. See D-026, D-027, S-024, and S-026.
+
 The impure boundary. Everything downstream is pure.
 
 **Files:**
@@ -486,6 +494,8 @@ testable without building a repository per case."
 ---
 
 ## Task 4: Classify inputs into dimensioned facts
+
+**Status: REVIEW BLOCKED, 2026-08-29.** Keep D-024's all-matches rule. Before this task is done, reject invalid input and classifier enums, use case-sensitive Git-path matching on every host, deduplicate exact facts, and sort by every serialized field including `related_path`. Add duplicate, cross-seed, and case-collision tests. See D-028 and S-027 through S-029.
 
 **Files:**
 - Modify: `anti-dark-code/scripts/adc_route.py`
