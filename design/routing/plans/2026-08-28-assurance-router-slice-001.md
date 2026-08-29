@@ -194,6 +194,17 @@ The parser is pure: it takes captured bytes and returns records. Task 3 supplies
   - `parse_raw_z(payload: bytes, source: str) -> list[ChangeInput]`
   - `parse_untracked_z(payload: bytes) -> list[ChangeInput]`
 
+**Fixture format, validated against real git on 2026-08-28.** A capture from a scratch repository produced exactly this, with NUL shown as `\0`:
+
+```text
+:100644 100644 5626abf f719efd M\0keep.py\0:100644 100644 7898192 7898192 R100\0old.py\0new.py\0:000000 100644 0000000 8ba3a16 A\0untracked.py\0
+```
+
+Two behaviours that capture settled:
+
+- **Object ids abbreviate by default.** The router passes `--no-abbrev` so identity binding gets full ids. Equality still works either way, but an abbreviated id is weaker identity than R-017 asks for.
+- **A mode change needs `git update-index --chmod=+x`, not `chmod`.** On Windows `core.fileMode` is `false`, so a filesystem `chmod` is invisible to git. Forcing the bit through the index produces `:100644 100755 587be6b 587be6b M`, the same object id on both sides with different modes. That is precisely the record the `old_object == new_object and old_mode != new_mode` branch below detects, so the branch is confirmed against real output rather than assumed.
+
 - [ ] **Step 1: Write the failing test**
 
 Add to `anti-dark-code/tests/test_route.py`:
@@ -428,9 +439,9 @@ class AcquisitionTests(unittest.TestCase):
     def test_snapshot_unions_all_four_sources(self) -> None:
         run = self._runner({
             "merge-base": b"abc123\n",
-            "diff --raw -z abc123": b":100644 100644 a1 b2 M\x00committed.py\x00",
-            "diff --raw -z --cached": b":100644 100644 a1 b2 M\x00staged.py\x00",
-            "diff --raw -z HEAD": b":100644 100644 a1 b2 M\x00unstaged.py\x00",
+            "diff --raw -z --no-abbrev abc123": b":100644 100644 a1 b2 M\x00committed.py\x00",
+            "diff --raw -z --no-abbrev --cached": b":100644 100644 a1 b2 M\x00staged.py\x00",
+            "diff --raw -z --no-abbrev HEAD": b":100644 100644 a1 b2 M\x00unstaged.py\x00",
             "ls-files --others": b"untracked.py\x00",
         })
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
@@ -452,7 +463,7 @@ class AcquisitionTests(unittest.TestCase):
         # must not, because routing-policy.json and gates.json live there.
         run = self._runner({
             "merge-base": b"abc123\n",
-            "diff --raw -z abc123": (
+            "diff --raw -z --no-abbrev abc123": (
                 b":100644 100644 a1 b2 M\x00.agents/skills/anti-dark-code/calibration/gates.json\x00"
                 b":100644 100644 a1 b2 M\x00.anti-dark-code/runs/keep.json\x00"
             ),
@@ -465,7 +476,7 @@ class AcquisitionTests(unittest.TestCase):
     def test_snapshot_ordering_is_canonical(self) -> None:
         run = self._runner({
             "merge-base": b"abc123\n",
-            "diff --raw -z abc123": (
+            "diff --raw -z --no-abbrev abc123": (
                 b":100644 100644 a1 b2 M\x00zeta.py\x00"
                 b":100644 100644 a1 b2 M\x00alpha.py\x00"
             ),
@@ -531,15 +542,15 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
         unreadable.append("ADC-ROUTE-BASE-UNREACHABLE")
 
     if merge_base:
-        payload = run(["diff", "--raw", "-z", merge_base, "HEAD"])
+        payload = run(["diff", "--raw", "-z", "--no-abbrev", merge_base, "HEAD"])
         if payload is None:
             unreadable.append("ADC-ROUTE-COMMITTED-UNREADABLE")
         else:
             rows.extend(parse_raw_z(payload, "committed"))
 
     for args, source, code in (
-        (["diff", "--raw", "-z", "--cached"], "staged", "ADC-ROUTE-STAGED-UNREADABLE"),
-        (["diff", "--raw", "-z", "HEAD"], "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE"),
+        (["diff", "--raw", "-z", "--no-abbrev", "--cached"], "staged", "ADC-ROUTE-STAGED-UNREADABLE"),
+        (["diff", "--raw", "-z", "--no-abbrev", "HEAD"], "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE"),
     ):
         payload = run(args)
         if payload is None:
@@ -1654,11 +1665,29 @@ In `anti-dark-code/scripts/adc.py`, beside the other `sub.add_parser` calls near
     p.set_defaults(func=command_route)
 ```
 
-Add the command function, loading `adc_route.py` the same way the module already loads `adc_efficiency`:
+Add a loader beside `load_efficiency_helper` at `adc.py:3841`, copying its shape exactly. The `sys.dont_write_bytecode` guard is not optional: without it the import writes `__pycache__` into the skill tree, which the universal validator reports.
+
+```python
+def load_route_helper() -> Any:
+    helper_path = Path(__file__).with_name("adc_route.py")
+    spec = importlib.util.spec_from_file_location("adc_route", helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"Could not load route helper: {helper_path}")
+    module = importlib.util.module_from_spec(spec)
+    previous_bytecode_setting = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous_bytecode_setting
+    return module
+```
+
+Then the command function:
 
 ```python
 def command_route(args: argparse.Namespace) -> int:
-    route_module = load_route_module_for_cli()
+    route_module = load_route_helper()
     repo = Path(args.repo)
     snapshot = route_module.read_change_inputs(repo, args.changed_from)
     policy_path = safe_calibration_dir(repo, "routing policy read") / "routing-policy.json"
