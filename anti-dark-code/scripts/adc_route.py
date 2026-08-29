@@ -17,6 +17,7 @@ program for git to run. See _GIT_ISOLATION.
 from __future__ import annotations
 
 import fnmatch
+import re
 import os
 import subprocess
 from dataclasses import dataclass
@@ -48,6 +49,15 @@ _TWO_PATH_KINDS = frozenset({"rename", "copy"})
 # Git writes this mode for the absent side of a creation or deletion.
 _NULL_MODE = "000000"
 
+# Header grammar. Git writes a six-digit octal mode, a hex object id of the
+# repository's hash width (40 for sha1, 64 for sha256), and a status letter with
+# an optional similarity score. Validating the shape is what separates a real
+# record from a corrupted or truncated one; without it ":bad bad bad bad M"
+# parsed happily and the snapshot claimed to be complete.
+_MODE_RE = re.compile(r"\A[0-7]{6}\Z")
+_OBJECT_RE = re.compile(r"\A[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?\Z")
+_STATUS_RE = re.compile(r"\A[A-Z][0-9]{0,3}\Z")
+
 
 @dataclass(frozen=True)
 class ChangeInput:
@@ -77,14 +87,22 @@ class RawParse:
     problems: tuple[str, ...] = ()
 
 
-def _split_z(payload: bytes) -> list[str]:
-    """Split NUL-delimited git output.
+def _split_z(payload: bytes) -> tuple[list[str], list[str]]:
+    """Split NUL-delimited git output, reporting truncated framing.
+
+    Git terminates every record with NUL, so a nonempty payload that does not
+    end in one was cut short. Without this check a truncated transport looked
+    exactly like a clean short diff, and the snapshot still claimed to be
+    complete.
 
     surrogateescape keeps a path git emitted that is not valid UTF-8. Losing
     such a path would silently shrink the change set.
     """
+    problems: list[str] = []
+    if payload and not payload.endswith(b"\x00"):
+        problems.append("ADC-ROUTE-UNTERMINATED-PAYLOAD")
     text = payload.decode("utf-8", errors="surrogateescape")
-    return [part for part in text.split("\x00") if part != ""]
+    return [part for part in text.split("\x00") if part != ""], problems
 
 
 def parse_raw_z(payload: bytes, source: str) -> RawParse:
@@ -98,9 +116,8 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
     if source not in CHANGE_SOURCES:
         raise ValueError(f"unknown change source: {source}")
 
-    fields = _split_z(payload)
+    fields, problems = _split_z(payload)
     rows: list[ChangeInput] = []
-    problems: list[str] = []
     index = 0
 
     while index < len(fields):
@@ -110,13 +127,21 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
             index += 1
             continue
 
-        parts = header[1:].split()
-        if len(parts) < 5:
+        parts = header[1:].split(" ")
+        if len(parts) != 5:
             problems.append("ADC-ROUTE-MALFORMED-RECORD")
             index += 1
             continue
 
-        old_mode, new_mode, old_object, new_object, status = parts[:5]
+        old_mode, new_mode, old_object, new_object, status = parts
+        if not (
+            _MODE_RE.match(old_mode) and _MODE_RE.match(new_mode)
+            and _OBJECT_RE.match(old_object) and _OBJECT_RE.match(new_object)
+            and _STATUS_RE.match(status)
+        ):
+            problems.append("ADC-ROUTE-MALFORMED-RECORD")
+            index += 1
+            continue
         kind = _RAW_STATUS.get(status[0], "unknown")
         if kind == "unknown":
             problems.append("ADC-ROUTE-UNKNOWN-STATUS")
@@ -167,11 +192,12 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
 
 def parse_untracked_z(payload: bytes) -> RawParse:
     """Parse `git ls-files --others --exclude-standard -z` output."""
+    paths, problems = _split_z(payload)
     rows = tuple(
         ChangeInput(path=path, change_kind="add", source="untracked")
-        for path in _split_z(payload)
+        for path in paths
     )
-    return RawParse(inputs=rows)
+    return RawParse(inputs=rows, problems=tuple(problems))
 
 
 # Git will run programs a repository names in its own configuration. This module
@@ -255,11 +281,16 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     problems: list[str] = []
     rows: list[ChangeInput] = []
 
+    # A zero exit is not proof of a usable base. Whitespace, an empty result,
+    # or several ids all reached here as "resolved" with an empty or ambiguous
+    # id, and the snapshot then claimed to be complete.
     merge_base_raw = run(_isolated(["merge-base", base, "HEAD"]))
-    base_resolved = bool(merge_base_raw)
-    merge_base = (
-        merge_base_raw.decode("utf-8", "replace").strip() if merge_base_raw else None
-    )
+    merge_base: str | None = None
+    if merge_base_raw is not None:
+        candidates = merge_base_raw.decode("utf-8", "replace").split()
+        if len(candidates) == 1 and _OBJECT_RE.match(candidates[0]):
+            merge_base = candidates[0]
+    base_resolved = merge_base is not None
     if not base_resolved:
         problems.append("ADC-ROUTE-BASE-UNREACHABLE")
 
@@ -290,7 +321,9 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     if untracked is None:
         problems.append("ADC-ROUTE-UNTRACKED-UNREADABLE")
     else:
-        rows.extend(parse_untracked_z(untracked).inputs)
+        parsed_untracked = parse_untracked_z(untracked)
+        rows.extend(parsed_untracked.inputs)
+        problems.extend(parsed_untracked.problems)
 
     ordered = tuple(sorted(rows, key=lambda r: (r.source, r.path, r.change_kind)))
     return ChangeSnapshot(

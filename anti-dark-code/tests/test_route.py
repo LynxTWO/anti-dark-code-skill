@@ -134,6 +134,7 @@ NUL = chr(0)
 ZERO = "0" * 40
 OBJ_A = "5626abf9a2b1f8b0c3d4e5f60718293a4b5c6d7e"
 OBJ_B = "f719efd8c1a2b3c4d5e6f708192a3b4c5d6e7f80"
+BASE = "abc1230000000000000000000000000000000000"
 
 
 def raw(*records: str) -> bytes:
@@ -275,6 +276,50 @@ class RawParserTests(unittest.TestCase):
         self.assertEqual(result.inputs, ())
         self.assertEqual(result.problems, ())
 
+    def test_payload_without_a_terminal_nul_is_reported(self) -> None:
+        # H-02. Truncated transport looked exactly like a clean short diff.
+        payload = raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}file.py")
+        result = self.route.parse_raw_z(payload, "committed")
+        self.assertIn("ADC-ROUTE-UNTERMINATED-PAYLOAD", result.problems)
+
+    def test_a_terminated_payload_is_not_reported(self) -> None:
+        payload = raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}file.py{NUL}")
+        self.assertEqual(self.route.parse_raw_z(payload, "committed").problems, ())
+
+    def test_nonsense_header_fields_are_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":bad bad bad bad M{NUL}file.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+        self.assertEqual(result.inputs, (), "a nonsense header must not yield a row")
+
+    def test_a_header_with_extra_fields_is_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} M extra{NUL}file.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_bad_mode_is_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":10064x 100644 {OBJ_A} {OBJ_B} M{NUL}file.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_bad_object_id_is_reported(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 nothex {OBJ_B} M{NUL}file.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_sha256_object_id_is_accepted(self) -> None:
+        # Repositories can use sha256. Rejecting a 64 character id would make
+        # the parser fail closed on a perfectly ordinary repository.
+        long_a, long_b = "a" * 64, "b" * 64
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {long_a} {long_b} M{NUL}file.py{NUL}"), "committed")
+        self.assertEqual(result.problems, ())
+        self.assertEqual(result.inputs[0].path, "file.py")
+
+    def test_untracked_payload_without_a_terminal_nul_is_reported(self) -> None:
+        result = self.route.parse_untracked_z(b"new/file.py")
+        self.assertIn("ADC-ROUTE-UNTERMINATED-PAYLOAD", result.problems)
+
     def test_untracked_payload_becomes_add_records(self) -> None:
         result = self.route.parse_untracked_z(
             f"new/file.py{NUL}other.txt{NUL}".encode("utf-8"))
@@ -316,9 +361,9 @@ class AcquisitionTests(unittest.TestCase):
 
     def test_snapshot_unions_all_four_sources(self) -> None:
         run = RecordingRunner({
-            "merge-base": b"abc123\n",
+            "merge-base": BASE.encode("ascii") + b"\n",
             "--cached": raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}staged.py{NUL}"),
-            "abc123": raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}committed.py{NUL}"),
+            BASE: raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}committed.py{NUL}"),
             "ls-files": f"untracked.py{NUL}".encode("utf-8"),
         })
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
@@ -332,19 +377,19 @@ class AcquisitionTests(unittest.TestCase):
         # `diff HEAD` returns staged and unstaged together, so using it for the
         # unstaged source counts every staged change twice. Staged compares the
         # index against HEAD; unstaged compares the worktree against the index.
-        run = RecordingRunner({"merge-base": b"abc123\n"})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n"})
         self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         staged = run.argv_for("--cached")
         self.assertIn("--cached", staged)
         diff_calls = [c for c in run.calls if "diff" in c]
         self.assertTrue(diff_calls, "no diff call was made at all")
-        unstaged = [c for c in diff_calls if "--cached" not in c and "abc123" not in c]
+        unstaged = [c for c in diff_calls if "--cached" not in c and BASE not in c]
         self.assertEqual(len(unstaged), 1, f"expected one worktree diff: {diff_calls}")
         self.assertNotIn("HEAD", unstaged[0])
 
     def test_acquisition_requests_rename_and_copy_detection(self) -> None:
         # Without -C git reports a copy as an add, losing the source path.
-        run = RecordingRunner({"merge-base": b"abc123\n"})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n"})
         self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         diff_calls = [c for c in run.calls if "diff" in c]
         # Without this the loop below asserts nothing when the filter misses.
@@ -365,8 +410,8 @@ class AcquisitionTests(unittest.TestCase):
         # D-010. changed_files() drops these through TOOLING_PATH_PREFIXES, and
         # they are where gates.json and routing-policy.json live.
         run = RecordingRunner({
-            "merge-base": b"abc123\n",
-            "abc123": raw(
+            "merge-base": BASE.encode("ascii") + b"\n",
+            BASE: raw(
                 f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}"
                 f".agents/skills/anti-dark-code/calibration/gates.json{NUL}",
                 f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}.anti-dark-code/runs/keep.json{NUL}",
@@ -378,21 +423,44 @@ class AcquisitionTests(unittest.TestCase):
         self.assertIn(".anti-dark-code/runs/keep.json", paths)
 
     def test_parser_problems_reach_the_snapshot(self) -> None:
-        run = RecordingRunner({"merge-base": b"abc123\n", "abc123": b"garbage"})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n", BASE: b"garbage"})
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         self.assertIn("ADC-ROUTE-MALFORMED-RECORD", snap.problems)
         self.assertFalse(snap.complete)
 
+    def test_a_blank_merge_base_result_does_not_count_as_resolved(self) -> None:
+        # H-02. A successful call returning whitespace was treated as a resolved
+        # base with an empty id, and the snapshot claimed to be complete.
+        run = RecordingRunner({"merge-base": b"\n"})
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertFalse(snap.base_resolved)
+        self.assertFalse(snap.complete)
+        self.assertIn("ADC-ROUTE-BASE-UNREACHABLE", snap.problems)
+
+    def test_a_multi_line_merge_base_result_is_rejected(self) -> None:
+        run = RecordingRunner({"merge-base": (BASE + "\n" + OBJ_A + "\n").encode("ascii")})
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertFalse(snap.complete)
+
+    def test_framing_problems_reach_the_snapshot(self) -> None:
+        run = RecordingRunner({
+            "merge-base": BASE.encode("ascii") + b"\n",
+            "ls-files": b"untracked-without-terminator.py",
+        })
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertIn("ADC-ROUTE-UNTERMINATED-PAYLOAD", snap.problems)
+        self.assertFalse(snap.complete)
+
     def test_unreadable_source_is_reported(self) -> None:
-        run = RecordingRunner({"merge-base": b"abc123\n", "ls-files": None})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n", "ls-files": None})
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         self.assertIn("ADC-ROUTE-UNTRACKED-UNREADABLE", snap.problems)
         self.assertFalse(snap.complete)
 
     def test_ordering_is_canonical(self) -> None:
         run = RecordingRunner({
-            "merge-base": b"abc123\n",
-            "abc123": raw(
+            "merge-base": BASE.encode("ascii") + b"\n",
+            BASE: raw(
                 f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}zeta.py{NUL}",
                 f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}alpha.py{NUL}",
             ),
@@ -402,7 +470,7 @@ class AcquisitionTests(unittest.TestCase):
         self.assertEqual(committed, sorted(committed))
 
     def test_clean_snapshot_is_complete(self) -> None:
-        run = RecordingRunner({"merge-base": b"abc123\n"})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n"})
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         self.assertTrue(snap.complete)
 
@@ -410,7 +478,7 @@ class AcquisitionTests(unittest.TestCase):
         # A repository can point core.fsmonitor at a program of its choosing and
         # git will run it for us. This module claims to read metadata only, so
         # the isolation flags have to be on every call, not only the diffs.
-        run = RecordingRunner({"merge-base": b"abc123\n"})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n"})
         self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         self.assertTrue(run.calls)
         for call in run.calls:
@@ -420,7 +488,7 @@ class AcquisitionTests(unittest.TestCase):
             self.assertIn("--no-optional-locks", joined, f"unisolated call: {call}")
 
     def test_diff_calls_refuse_an_external_diff_driver(self) -> None:
-        run = RecordingRunner({"merge-base": b"abc123\n"})
+        run = RecordingRunner({"merge-base": BASE.encode("ascii") + b"\n"})
         self.route.read_change_inputs(Path("."), "origin/main", runner=run)
         diff_calls = [c for c in run.calls if "diff" in c]
         self.assertTrue(diff_calls, "no diff call was made at all")
