@@ -58,11 +58,15 @@ DECISION: Product shape and platforms. Status Confirmed. See D-001.
 
 - **Interface style:** typed function boundaries in one module, plus one CLI subcommand. No new process boundary.
 - **Public interfaces:**
-  - `read_change_inputs(repo, base) -> ChangeSnapshot`, impure and read-only
-  - `collect_change_facts(snapshot) -> list[ChangeFact]`, pure
+  - `parse_raw_z(payload, source) -> RawParse`, pure over captured bytes
+  - `parse_untracked_z(payload) -> RawParse`, pure over captured bytes
+  - `read_change_inputs(repo, base, runner=None) -> ChangeSnapshot`, impure and read-only
+  - `collect_change_facts(snapshot, classifier) -> tuple[ChangeFact, ...]`, pure
   - `build_route(facts, policy, hints) -> Route`, pure
   - `write_receipt(route, repo) -> Path`
   - `verify_receipt(receipt, repo) -> Ok or Stale(reason_code)`
+- **Acquisition is split from parsing.** `read_change_inputs` runs git and hands captured bytes to the pure parsers. Its `runner` argument is the seam: the default calls git, and a test supplies a recorded transcript. That is what makes hostile paths, malformed records, and command construction testable without a repository per case. See D-024.
+- **Every parse reports what it could not read.** `RawParse` carries the rows it understood alongside stable reason codes, and those codes reach `ChangeSnapshot.problems`. A snapshot is `complete` only when the base resolved and no problem was recorded. See D-025.
 - **Contract rule:** the `routing-policy.json` schema is the one source of truth for rule shape, validated on load. An invalid policy is an error, never a default.
 - **Versioning posture:** `schema_version` integer, the same convention `gates.json` already uses.
 

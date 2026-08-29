@@ -64,6 +64,9 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-021 | Self-grading inputs force the canonical full route | given a change to router code or schema, capability catalog, gates, CI, installer or distribution controls, Git interpretation files, router tests, shared test support, `SKILL.md`, or the routing-owning pass references, then `force_full` is true |
 | R-022 | The canonical full route is independent of changed-file applicability filters | given `force_full`, when gates are selected, then the validated full recipe runs at Level 3 and no selected gate is removed by `include_globs` |
 | R-023 | Receipt identity is deterministic while observational metadata is not authoritative | given identical snapshots, policies, gates, calibration, and hints in any input order, then authoritative receipt bytes and hash match; timestamps do not enter that hash |
+| R-024 | A malformed, truncated, or unrecognised git record is reported, never silently dropped | given garbage, a truncated header, a rename missing its destination, or an unknown status letter, when parsed, then a stable reason code is returned and the snapshot is not complete |
+| R-025 | Staged and unstaged records are acquired by separate comparisons | given a staged change, when acquired, then it appears once as staged and not also as unstaged |
+| R-026 | A path matching several classifier entries emits a fact for each | given a path matched by a broad entry and a specific entry, when classified, then both readings are present |
 
 ### 4.2 Assumed requirements
 
@@ -104,6 +107,17 @@ Deletion rule: inputs are derived. The receipt retains their canonical identity 
 ```
 
 ```
+ENTITY: RawParse
+Purpose: the rows one git payload yielded, plus why anything else did not parse
+Owned by: Git change reader
+Fields:
+  inputs     tuple of ChangeInput, required, possibly empty
+  problems   tuple of stable reason codes, required, possibly empty
+Relations: one RawParse per git payload. Problems union into ChangeSnapshot.
+Deletion rule: derived, never stored beyond the snapshot that absorbs it.
+```
+
+```
 ENTITY: ChangeFact
 Purpose: one dimensioned statement about one changed path
 Owned by: fact collector
@@ -117,9 +131,19 @@ Fields:
   breadth         enum leaf|package|runtime|cross-runtime|repository, required
   sensitivity     enum normal|auth|privacy|billing|deletion|crypto|release, required
   confidence      enum verified|inferred|unknown, required
-Relations: many ChangeFacts per routed change. One path may emit several facts.
+Relations: many ChangeFacts per routed change. One path emits one fact per
+  matching classifier entry, and a rename or copy classifies both of its paths.
+  A path matching no entry emits exactly one fact with confidence unknown.
 Deletion rule: facts are derived, never stored beyond the receipt that quotes them.
 ```
+
+**Why one fact per matching entry.** Classification does not stop at the first
+matching glob. A broad entry such as `*.md` would otherwise mask a specific one
+such as `anti-dark-code/SKILL.md`, and the authority reading would be gone
+before any rule could see it. Keeping every match means each rule that would
+fire does fire, and the monotonic union decides the rest. It also avoids
+inventing a precedence order among sensitivities like `auth` and `billing`,
+which are not ordered. See D-024.
 
 ```
 ENTITY: Rule
@@ -246,6 +270,9 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-021 | self-grading path table, one case per authority class | `test_route.py` |
 | R-022 | force-full bypasses changed-file gate globs | `test_route.py` |
 | R-023 | canonical order and timestamp-independence tests | `test_route.py` |
+| R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
+| R-025 | real-repository staged change is not also unstaged | `test_route.py` |
+| R-026 | broad glob cannot mask a specific glob | `test_route.py` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 

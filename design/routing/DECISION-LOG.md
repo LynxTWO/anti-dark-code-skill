@@ -40,6 +40,8 @@ The documents state what is true. This log preserves why, what else was consider
 | D-021 | 2026-08-29 | Local self-grading is recorded and deferred, not solved here | Deferred | |
 | D-022 | 2026-08-29 | Template rules ship proposed, never approved | Confirmed | |
 | D-023 | 2026-08-29 | The slice calibrates this repository before it routes it | Confirmed | |
+| D-024 | 2026-08-29 | Classification keeps every matching entry, not the first | Confirmed | |
+| D-025 | 2026-08-29 | Unreadable git records are reported, never dropped | Confirmed | |
 
 ---
 
@@ -621,3 +623,55 @@ The repository gains a calibration tree it did not have, which is itself verific
 
 Revisit when:
 The calibration tree needs to differ from the CI job set, or a consuming repository needs a different bootstrap path.
+
+## D-024: Classification keeps every matching entry, not the first
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5, EDD 5, EDD 4 R-026
+
+Context:
+The plan classified a path by returning on the first matching classifier glob. Codex raised this as part of G-005: template glob order becomes load-bearing, and a broad early entry can classify an authority path as prose. In the shipped classifier `*.md` matches `anti-dark-code/SKILL.md`, which is precisely the collision.
+
+Decision:
+`collect_change_facts` emits one fact per matching classifier entry. A path matching no entry emits exactly one fact with confidence `unknown`.
+
+Because:
+Keeping every match means every rule that would fire does fire, and the existing monotonic union decides the result. First-match-wins would drop a reading before any rule could see it, and the drop would be invisible. Taking a maximum across matches instead would require inventing a precedence order among sensitivities such as `auth` and `billing`, which are not ordered and should not be forced into a rank.
+
+Options considered:
+- One fact per matching entry: no precedence invented, nothing lost, more facts.
+- First match wins: fewest facts, and glob order silently decides authority.
+- Maximum across matches: one fact per path, and it needs a total order over dimensions that do not have one.
+
+Consequences:
+Fact count grows with classifier overlap rather than with the diff alone. That is bounded by the classifier size. Rules must stay single-fact and positive, which R-015 already requires, otherwise duplicate facts could change a match outcome rather than only adding to it.
+
+Revisit when:
+Fact volume from overlap becomes a measured problem, or a dimension gains a genuine total order.
+
+## D-025: Unreadable git records are reported, never dropped
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5, EDD 5, EDD 4 R-024
+
+Context:
+The plan's parser returned an empty list for garbage, a truncated header, and a rename missing its destination. Codex flagged this in G-006 as the remaining fail-closed gap: the caller could not tell an empty change from an unreadable one.
+
+Decision:
+`parse_raw_z` and `parse_untracked_z` return a `RawParse` carrying parsed rows and stable reason codes. Those codes union into `ChangeSnapshot.problems`, and `ChangeSnapshot.complete` is true only when the base resolved and no problem was recorded.
+
+Because:
+A silent skip is the dangerous case. Routing must know its picture of the change is incomplete before it can refuse to authorize a shortcut. Reporting rather than raising also lets one bad record be described without discarding the records that parsed correctly, which keeps the failure diagnosable.
+
+Options considered:
+- Report problems alongside rows: fail closed, diagnosable, one extra field to thread through.
+- Raise on the first bad record: loud, and loses every other record plus the ability to describe the change at all.
+- Skip silently: simplest, and indistinguishable from a clean empty diff, which is the failure this subsystem exists to prevent.
+
+Consequences:
+Every caller must consult `complete` rather than only counting inputs. The reason codes are part of the receipt contract and must stay stable once published.
+
+Revisit when:
+A record type currently reported as unknown becomes understood well enough to classify.
