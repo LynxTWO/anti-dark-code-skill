@@ -118,6 +118,10 @@ TOOLING_PATH_PREFIXES = (
 
 VALIDATION_MODES = ("auto", "distribution", "universal", "installed")
 
+# The catalog size is asserted in several places. Keep it here so a future
+# capability changes one line rather than five that can drift apart.
+CAPABILITY_COUNT = 22
+
 CONTENT_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
     "stateful": (re.compile(r"\b(state|store|reducer|transaction|workflow|state machine)\b", re.I),),
     "workflow_or_ui": (re.compile(r"\b(route|screen|view|component|button|navigation|dialog|window|ui)\b", re.I),),
@@ -1557,7 +1561,7 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
         "confidence_levels": catalog["confidence_levels"],
         "capabilities": capabilities,
         "notes": [
-            "All 20 capabilities were evaluated. Status does not authorize dependency installation or repo-code execution.",
+            f"All {CAPABILITY_COUNT} capabilities were evaluated. Status does not authorize dependency installation or repo-code execution.",
             "Re-run after architecture, risk, test, CI, or runtime boundaries change."
         ],
     }
@@ -3558,13 +3562,13 @@ def validate_skill(skill: Path, mode: str = "auto") -> tuple[list[str], list[str
         catalog = read_json(catalog_path)
         caps = catalog.get("capabilities", []) if isinstance(catalog, dict) else []
         ids = [c.get("id") for c in caps if isinstance(c, dict)]
-        if len(caps) != 20:
-            errors.append(f"Capability catalog contains {len(caps)} entries, expected 20")
+        if len(caps) != CAPABILITY_COUNT:
+            errors.append(f"Capability catalog contains {len(caps)} entries, expected {CAPABILITY_COUNT}")
         if len(set(ids)) != len(ids):
             errors.append("Capability catalog contains duplicate ids")
-        expected = {f"V{i:02d}" for i in range(1, 21)}
+        expected = {f"V{i:02d}" for i in range(1, CAPABILITY_COUNT + 1)}
         if set(ids) != expected:
-            errors.append(f"Capability ids differ from V01..V20: {sorted(set(ids) ^ expected)}")
+            errors.append(f"Capability ids differ from V01..V{CAPABILITY_COUNT:02d}: {sorted(set(ids) ^ expected)}")
         repo_types = catalog.get("repo_types", []) if isinstance(catalog, dict) else []
         required = {"id", "slug", "name", "category", "default_level", "cost", "purpose", "local_work", "agent_work", "adaptations", "selection"}
         for cap in caps:
@@ -3931,7 +3935,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--content-scan-limit", type=int, default=4_000)
     p.set_defaults(func=command_probe)
 
-    p = sub.add_parser("plan", help="Evaluate all 20 verification capabilities")
+    p = sub.add_parser("plan", help=f"Evaluate all {CAPABILITY_COUNT} verification capabilities")
     p.add_argument("--repo", default=".")
     p.add_argument("--write", action="store_true", help="Write verification plan and proposed gates")
     p.add_argument("--json", action="store_true", help="Print full JSON")

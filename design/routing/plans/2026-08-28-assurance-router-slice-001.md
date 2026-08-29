@@ -42,146 +42,26 @@
 
 ## Task 1: Add V21 and V22 to the capability catalog
 
-Per D-016. M1 is exactly two entries. Do not add V23, V24, or V25: Q-001 closed by mapping ten of the twelve proposed labels onto eight existing ids.
+**Status: DONE, 2026-08-29.** Shipped as described below. The steps are kept as the record of what was actually built, not as instructions to repeat.
 
-**Files:**
-- Modify: `anti-dark-code/assets/verification-capabilities.json`
-- Modify: `anti-dark-code/scripts/adc.py`
-- Modify: `anti-dark-code/tests/test_adc.py`
-- Test: `anti-dark-code/tests/test_route.py` (create)
+**What shipped**
 
-**Interfaces:**
-- Consumes: nothing.
-- Produces: capability ids `V21` and `V22`, referenced by routing policy obligations in Task 8 onward.
+- `assets/verification-capabilities.json`: V21 Affected-unit testing and V22 Input fuzz testing, each carrying the full eleven-field shape including `adaptations` for all eleven repo types. The first draft of this task omitted `adaptations`, which the validator requires.
+- `scripts/adc.py`: new `CAPABILITY_COUNT = 22` constant, replacing five hard-coded sites. The count was asserted at `!= 20`, `range(1, 21)`, an error message naming `V01..V20`, a plan note, and the `plan` subcommand help.
+- `tests/test_adc.py`: two assertions moved from a literal 20 to `adc.CAPABILITY_COUNT`.
+- `README.md`: capability count updated. `CHANGELOG.md` left alone, because its entry records what a past release shipped.
+- `tests/test_route.py`: eight tests, including a drift scan that fails when any script or test hard-codes a stale count.
 
-- [ ] **Step 1: Read an existing capability entry to copy its exact shape**
+**Evidence**
 
-Run: `python -c "import json;d=json.load(open('anti-dark-code/assets/verification-capabilities.json'));print(json.dumps(d['capabilities'][10],indent=2))"`
+- Red: 5 failed, 3 passed. Failures were the missing ids, the missing required fields, the mismatched adaptations, the non-contiguous id set, and five stale sites in `adc.py`.
+- Green: `139 passed, 13 skipped, 45 subtests passed`, up from the 131 baseline.
+- `validate --mode universal`: `0 errors, 1 warning`, the expected generated-artifact warning.
 
-Every entry has: `id`, `name`, `slug`, `category`, `default_level`, `cost`, `purpose`, `local_work`, `agent_work`, `adaptations`, `selection`. Copy the `adaptations` key set exactly from a neighbouring entry; the keys are a closed set and a missing one fails validation.
+**Two things the plan did not predict**
 
-- [ ] **Step 2: Write the failing test**
-
-Create `anti-dark-code/tests/test_route.py`:
-
-```python
-from __future__ import annotations
-
-import importlib.util
-import json
-import sys
-import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_ROOT = Path(__file__).resolve().parents[1]
-ROUTE_SCRIPT = SKILL_ROOT / "scripts" / "adc_route.py"
-
-CAPABILITIES = SKILL_ROOT / "assets" / "verification-capabilities.json"
-
-
-def load_route_module():
-    spec = importlib.util.spec_from_file_location("adc_route", ROUTE_SCRIPT)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-class CapabilityCatalogTests(unittest.TestCase):
-    def test_catalog_carries_the_two_router_capabilities(self) -> None:
-        data = json.loads(CAPABILITIES.read_text(encoding="utf-8"))
-        by_id = {c["id"]: c for c in data["capabilities"]}
-        self.assertIn("V21", by_id)
-        self.assertIn("V22", by_id)
-        self.assertEqual(by_id["V21"]["name"], "Affected-unit testing")
-        self.assertEqual(by_id["V22"]["name"], "Input fuzz testing")
-
-    def test_catalog_stops_at_twenty_two(self) -> None:
-        data = json.loads(CAPABILITIES.read_text(encoding="utf-8"))
-        ids = sorted(c["id"] for c in data["capabilities"])
-        self.assertEqual(len(ids), 22)
-        self.assertEqual(ids[-1], "V22")
-
-    def test_every_capability_shares_one_field_shape(self) -> None:
-        data = json.loads(CAPABILITIES.read_text(encoding="utf-8"))
-        shapes = {tuple(sorted(c.keys())) for c in data["capabilities"]}
-        self.assertEqual(len(shapes), 1, f"capability entries disagree on fields: {shapes}")
-
-
-if __name__ == "__main__":
-    unittest.main()
-```
-
-- [ ] **Step 3: Run the test to verify it fails**
-
-Run: `python -m pytest anti-dark-code/tests/test_route.py -q`
-Expected: FAIL. `test_catalog_carries_the_two_router_capabilities` fails on `V21` missing.
-
-- [ ] **Step 4: Add the two entries**
-
-Append to the `capabilities` array, copying the `adaptations` key set verbatim from an existing entry:
-
-```json
-{
-  "id": "V21",
-  "name": "Affected-unit testing",
-  "slug": "affected-unit-testing",
-  "category": "efficiency",
-  "default_level": 1,
-  "cost": "low",
-  "purpose": "Execute the assertions belonging to the slice a change actually touched.",
-  "local_work": ["Run the unit and module tests owning the changed paths", "Report the executed set, not the selected set"],
-  "agent_work": ["Name ownership edges a path map cannot see"],
-  "selection": {"core": true, "signals_any": [], "risks_any": [], "candidate_if_missing": false}
-}
-```
-
-```json
-{
-  "id": "V22",
-  "name": "Input fuzz testing",
-  "slug": "input-fuzz-testing",
-  "category": "resilience",
-  "default_level": 2,
-  "cost": "medium",
-  "purpose": "Perturb input values and bytes to find parsing, decoding, and boundary defects.",
-  "local_work": ["Generate hostile and malformed inputs against a parser or decoder", "Minimize and record any failing input"],
-  "agent_work": ["Choose the input surfaces worth fuzzing and the properties that must hold"],
-  "selection": {"core": false, "signals_any": ["generated_or_serialized_output"], "risks_any": [], "candidate_if_missing": true}
-}
-```
-
-V21 is not V11: V11 selects affected checks, V21 executes their assertions. V22 is not V15: V15 perturbs the environment, V22 perturbs input values.
-
-Update every catalog cardinality contract in the same task. The current implementation rejects any count other than 20, and the existing test asserts 20. At minimum, update the catalog description, the `build_plan` note, the catalog validator count and `V01..V22` set, the `plan` help text, and both assertions in `test_probe_and_plan_evaluate_all_capabilities`. A catalog-only edit makes the existing test fail with `22 != 20` and makes universal validation report the old count contract.
-
-- [ ] **Step 5: Run the tests to verify they pass**
-
-Run: `python -m pytest anti-dark-code/tests/test_route.py -q`
-Expected: PASS, 3 tests.
-
-- [ ] **Step 6: Confirm no existing test regressed**
-
-Run: `python -m pytest anti-dark-code/tests -q`
-Expected: `134 passed` or more, `13 skipped` on Windows. `test_probe_and_plan_evaluate_all_capabilities` must now assert 22, and `validate_skill` must accept exactly `V01` through `V22`.
-
-Run: `python anti-dark-code/scripts/adc.py validate --mode universal`
-Expected: `0 errors`.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add anti-dark-code/assets/verification-capabilities.json anti-dark-code/tests/test_route.py
-git commit -m "Add the two capability ids the router needs
-
-V21 affected-unit testing, because V11 selects affected checks but does
-not execute their assertions. V22 input fuzz testing, because V15
-perturbs the environment while fuzzing perturbs input values. Q-001
-mapped the other ten proposed labels onto eight existing ids, so the
-catalog grows by two rather than five."
-```
+- The drift lived in `tests/` as well as `scripts/`. `test_adc.py` asserted the count twice, and the full suite caught both only after the catalog changed. The scan now covers both directories.
+- The scan matched its own regex, since the file states the pattern it searches for. It excludes itself, which is a false-positive fix rather than a hole: nothing else in that file asserts a capability count.
 
 ---
 

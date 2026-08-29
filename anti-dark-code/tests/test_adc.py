@@ -235,12 +235,12 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertGreaterEqual(len(profile["exact_commands"]), 4)
 
             plan = adc.build_plan(profile)
-            self.assertEqual(len(plan["capabilities"]), 20)
+            self.assertEqual(len(plan["capabilities"]), adc.CAPABILITY_COUNT)
             by_id = {item["id"]: item for item in plan["capabilities"]}
             self.assertEqual(by_id["V01"]["status"], "selected")
             self.assertEqual(by_id["V06"]["status"], "selected")
             self.assertEqual(by_id["V10"]["status"], "selected")
-            self.assertEqual(sum(plan["summary"].values()), 20)
+            self.assertEqual(sum(plan["summary"].values()), adc.CAPABILITY_COUNT)
 
     def test_installer_preserves_calibration_and_creates_adapter(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
