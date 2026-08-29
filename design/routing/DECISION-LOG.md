@@ -733,7 +733,17 @@ Consequences:
 Real Git tests cover add, modify, delete, rename, unchanged-source copy, pure mode, content-plus-mode, type change, unmerged, staged versus unstaged overlap, and copy-detection limit behavior. Parser fixtures cover corrupt bytes and states the host filesystem cannot create. Git similarity remains a heuristic for changed copies, so the policy must not treat a plain add as proof that no source exists.
 
 As shipped, 2026-08-29:
-One deliberate divergence. This decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. The implementation pins `diff.renameLimit=0`, which is unlimited, and so removes the failure mode rather than detecting it. Detecting exhaustion would require reading git's stderr, which the runner does not currently return, and an undetected truncation is the exact silent fidelity loss this decision exists to prevent. Measured cost of unlimited detection plus `--find-copies-harder` on this repository: 0.202s for a full acquisition, against a one-second target.
+One deliberate divergence. This decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. The implementation pins `diff.renameLimit=0`, which is unlimited, and so removes the failure mode rather than detecting it. Detecting exhaustion would require reading git's stderr, which the runner does not currently return, and an undetected truncation is the exact silent fidelity loss this decision exists to prevent. Measured on 2026-08-29, and the measurement settles the trade-off rather than estimating it.
+
+- This repository, full acquisition: 0.202s.
+- A real foreign repository of 345 tracked files and 3395 commits, acquiring a 400-commit range: 0.235s for 264 inputs, and detection found 11 copies and 6 renames that the earlier flags would have reported as plain adds.
+- A synthetic repository of 3000 files, every one renamed and modified in one commit, which is the worst case for inexact detection: 1.89s with `diff.renameLimit=0`, finding all 3000 renames. With git's default limit the same diff takes 0.10s and finds **zero** renames, reporting 6000 unrelated adds and deletes instead.
+
+The default limit does not fail loudly. Git writes `exhaustive rename detection was skipped` to stderr, and the runner returns stdout only, so the router would have accepted a change set with every rename source silently missing. That is the precise failure this decision exists to prevent, and it is why removing the failure mode was chosen over detecting it.
+
+Cost scales roughly linearly across the measured range: 100 changed paths 0.11s, 300 paths 0.17s, 6000 paths 1.86s, against a fixed overhead near 0.10s.
+
+The honest consequence: a commit that renames several thousand files exceeds the one-second goal in EDD section 3. Correctness is preferred there. A change of that shape is rare, it forces the full route anyway on most policies, and losing every rename source is worse than waiting two seconds.
 
 Mode transitions are carried by a `mode_changed` field on both `ChangeInput` and `ChangeFact` rather than only by `change_kind`, because a record that changes content and mode together has unequal object ids and would otherwise lose the signal.
 

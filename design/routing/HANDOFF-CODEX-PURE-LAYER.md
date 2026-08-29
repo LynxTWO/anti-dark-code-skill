@@ -41,7 +41,13 @@ The layer is: `parse_raw_z` and `parse_untracked_z`, `read_change_inputs`, `coll
 
 Three places where the shipped code differs from a decision you wrote. Each is recorded in the log; I want a second opinion because I authored both the change and its justification.
 
-**D-027, copy-detection limits.** Your decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. I pinned `diff.renameLimit=0`, which is unlimited, removing the failure mode rather than detecting it. Detecting exhaustion needs git's stderr and the runner returns only stdout. Measured cost on this repository: 0.202s for a full acquisition against a one-second target. The question: is unlimited detection acceptable on a repository far larger than this one, and is there a cheaper signal for exhaustion than parsing stderr?
+**D-027, copy-detection limits.** Your decision called for explicit copy-detection limits with exhaustion making the snapshot incomplete. I pinned `diff.renameLimit=0`, which is unlimited, removing the failure mode rather than detecting it.
+
+This was measured after the handoff was first written, and the numbers are in D-027. A synthetic repository of 3000 files, every one renamed and modified in a single commit, takes 1.89s with the shipped setting and finds all 3000 renames. The same diff under git's default limit takes 0.10s and finds **zero**, reporting 6000 unrelated adds and deletes. Git announces that on stderr, which the runner discards, so the router would have accepted a change set with every rename source missing and no indication anything was lost.
+
+Cost is roughly linear across the measured range: 100 changed paths 0.11s, 300 paths 0.17s, 6000 paths 1.86s. A real foreign repository of 345 files and 3395 commits acquires a 400-commit range in 0.235s.
+
+The remaining questions for you: is exceeding the one-second goal acceptable for a several-thousand-file rename commit, given the alternative is silently losing every rename source? And is there a signal for exhaustion cheaper than parsing stderr, which would let the limit come back with detection behind it?
 
 **D-026, scope of isolation.** Your decision named `core.fsmonitor` and `GIT_OPTIONAL_LOCKS`. I also disabled `diff.external`, added `--no-ext-diff`, and added `--no-optional-locks`. The question: is that list complete? Name any other configuration path by which git can start a program during a read, or confirm you could not find one.
 

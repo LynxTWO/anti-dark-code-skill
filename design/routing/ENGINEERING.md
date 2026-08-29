@@ -30,7 +30,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 |---|---|---|
 | Correct | adding a changed file never lowers any route field | property test over generated fact sets and hints |
 | Auditable | every omitted gate carries a reason code and matched rule id | receipt schema validation |
-| Fast | route computation under one second on this repository | timed test |
+| Fast | route computation under one second on this repository, and under one second on any diff up to roughly one thousand changed paths | timed measurement; see D-027 for the measured curve and the one case that exceeds it |
 | Deterministic | identical facts produce byte-identical receipts regardless of input order | repeated-run hash comparison |
 | Honest | routing misses are counted per route class, not in aggregate | shadow ledger |
 | Tamper-evident | changed content, modes, index, submodules, policy, calibration, or gate inputs invalidate a receipt | staleness and concurrent-mutation tests |
