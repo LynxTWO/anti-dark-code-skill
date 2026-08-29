@@ -37,6 +37,9 @@ The documents state what is true. This log preserves why, what else was consider
 | D-018 | 2026-08-28 | The router has no human downgrade override | Confirmed | |
 | D-019 | 2026-08-28 | Git acquisition is impure and receipts bind content | Confirmed | |
 | D-020 | 2026-08-28 | Full routing uses a validated policy-root recipe | Confirmed | |
+| D-021 | 2026-08-29 | Local self-grading is recorded and deferred, not solved here | Deferred | |
+| D-022 | 2026-08-29 | Template rules ship proposed, never approved | Confirmed | |
+| D-023 | 2026-08-29 | The slice calibrates this repository before it routes it | Confirmed | |
 
 ---
 
@@ -540,3 +543,81 @@ Every policy must declare and validate its full recipe before rules load. Missin
 
 Revisit when:
 The calibration schema gains a different repository-bound source of canonical full verification.
+
+## D-021: Local self-grading is recorded and deferred, not solved here
+
+Date: 2026-08-29
+Status: Deferred
+Area: ADD 14 guardrail 3, EDD 12
+
+Context:
+In CI the trusted-base pattern already exists: `proposal-intake.yml` and `efficiency-ledger.yml` both check out a trusted base and run it against the candidate as data. Locally there is no such separation. A developer changing the router computes the route with the changed router, and a developer changing the classifier order changes what their own change classifies as.
+
+Decision:
+Record the gap. Do not build a local trusted-base mechanism in SLICE-001.
+
+Because:
+The gap is real but inert while routing is advisory. SLICE-001 cannot skip anything, so a self-graded route causes no missing verification. Building a local stash-and-compare mechanism now would grow the slice for a risk that cannot yet cause harm, and the mechanism should be designed against real shadow evidence rather than ahead of it.
+
+Options considered:
+- Record and defer: honest, keeps the slice bounded, names the trigger.
+- Solve now with a local trusted-base computation: thorough, and significantly larger for a risk with no current consequence.
+- Leave it unrecorded: the gap would be rediscovered at the worst moment, when someone proposes enabling selective execution.
+
+Consequences:
+Closing this is a precondition of selective local execution, not of this slice. The hard escalators in the policy still force the full route for any change to router code, so a self-graded route is conservative by construction today.
+
+Revisit when:
+Selective local execution is proposed. This decision must close before that slice starts.
+
+## D-022: Template rules ship proposed, never approved
+
+Date: 2026-08-29
+Status: Confirmed
+Area: EDD 5 Rule, SLICE-001 section 10
+
+Context:
+The first plan shipped the routing policy template with three rules marked `review_status: approved`. The slice guardrail says adding a rule to the policy requires stopping and asking the owner. Codex found the contradiction.
+
+Decision:
+Every rule in the shipped template carries `review_status: proposed`. An installing repository must read each rule and approve it before routing produces anything.
+
+Because:
+A shipped file that arrives approved grants routing authority the installing repository never reviewed. `gates.json` already ships everything disabled and proposed for the same reason, and `load_policy` already rejects unapproved rules, so the enforcement exists and only the template was wrong.
+
+Options considered:
+- Ship proposed: matches the gates.json precedent, costs one review step per install.
+- Ship approved: usable immediately, and hands out authority nobody read.
+- Proposed in the template, approved in this repository's own copy: the shape adopted, since this repository reviews its rules under D-023.
+
+Consequences:
+A fresh install routes nothing until its owner approves rules. That is the intended friction. Tests that exercise routing must approve their fixture rules explicitly, which also documents what each rule grants.
+
+Revisit when:
+A reviewed default rule set is proven safe enough across consuming repositories to justify shipping it live.
+
+## D-023: The slice calibrates this repository before it routes it
+
+Date: 2026-08-29
+Status: Confirmed
+Area: SLICE-001 sections 3 and 9
+
+Context:
+This checkout has no `.agents/skills/anti-dark-code/` and no `.anti-dark-code/`. The shipped `gates.json` template contains zero gates and `owner_confirmed_safe_to_execute` is false. The plan's real-repository walkthrough and its closing evidence both assumed calibration that does not exist.
+
+Decision:
+SLICE-001 gains a calibration task before the route command is exercised. It installs the managed core into this repository, adds a routing policy whose rules the owner approves here, and defines four gates matching the existing CI jobs: `validate-core`, `full-suite`, `distribution`, and `hostile-environment`. Those four are also this repository's `full_recipe`.
+
+Because:
+A router with nothing to route against cannot produce the evidence the slice promises. Mirroring the four CI jobs means the full recipe is already known to be a real, passing verification set rather than an invented one.
+
+Options considered:
+- Calibrate this repository: the router is proven against real anti-dark-code changes, and the four gates are already trusted because CI runs them.
+- Fixture repository only: keeps the checkout clean, and never proves the router against real history.
+- Defer the walkthrough to SLICE-002: smallest slice, and Task 13 loses its end-to-end evidence.
+
+Consequences:
+The repository gains a calibration tree it did not have, which is itself verification authority and therefore a hard escalator. Gates stay dry-run: nothing executes without `--allow-exec`, and `owner_confirmed_safe_to_execute` stays false until the owner sets it deliberately.
+
+Revisit when:
+The calibration tree needs to differ from the CI job set, or a consuming repository needs a different bootstrap path.
