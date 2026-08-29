@@ -1,6 +1,6 @@
 # Assurance Router SLICE-001 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Execute this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a read-only deterministic change-impact router that explains which passes a change invalidated and which evidence it requires, while remaining structurally unable to skip any verification.
 
@@ -9,6 +9,8 @@
 **Tech Stack:** Python 3.12+, standard library only. `unittest.TestCase` classes run under pytest. No new dependency.
 
 **Spec:** `design/routing/SLICE-001-route-shadow.md`, with `design/routing/ARCHITECTURE.md`, `design/routing/ENGINEERING.md`, and `design/routing/DECISION-LOG.md`. Read all four before starting. The plan argues from them.
+
+**Round-two review gate, 2026-08-29:** Not ready to implement. The executable review in `design/routing/HANDOFF-BACK-PLAN.md` found blocking gaps in Tasks 1, 5, 6, 8, 9, and 10. In particular, the current blocks do not implement content identity, receipt integrity, per-gate freshness checks, or the canonical full recipe. The acceptance mapping at the end of this file is incomplete. Treat the code blocks below as reviewed evidence, not implementation instructions, until every blocking finding in that handoff is closed and this gate is removed.
 
 ## Global Constraints
 
@@ -44,6 +46,8 @@ Per D-016. M1 is exactly two entries. Do not add V23, V24, or V25: Q-001 closed 
 
 **Files:**
 - Modify: `anti-dark-code/assets/verification-capabilities.json`
+- Modify: `anti-dark-code/scripts/adc.py`
+- Modify: `anti-dark-code/tests/test_adc.py`
 - Test: `anti-dark-code/tests/test_route.py` (create)
 
 **Interfaces:**
@@ -65,6 +69,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import unittest
 from pathlib import Path
 
@@ -79,6 +84,7 @@ def load_route_module():
     spec = importlib.util.spec_from_file_location("adc_route", ROUTE_SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -149,6 +155,8 @@ Append to the `capabilities` array, copying the `adaptations` key set verbatim f
 
 V21 is not V11: V11 selects affected checks, V21 executes their assertions. V22 is not V15: V15 perturbs the environment, V22 perturbs input values.
 
+Update every catalog cardinality contract in the same task. The current implementation rejects any count other than 20, and the existing test asserts 20. At minimum, update the catalog description, the `build_plan` note, the catalog validator count and `V01..V22` set, the `plan` help text, and both assertions in `test_probe_and_plan_evaluate_all_capabilities`. A catalog-only edit makes the existing test fail with `22 != 20` and makes universal validation report the old count contract.
+
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `python -m pytest anti-dark-code/tests/test_route.py -q`
@@ -157,7 +165,7 @@ Expected: PASS, 3 tests.
 - [ ] **Step 6: Confirm no existing test regressed**
 
 Run: `python -m pytest anti-dark-code/tests -q`
-Expected: `134 passed` or more, `13 skipped` on Windows. `test_probe_and_plan_evaluate_all_capabilities` in `test_adc.py` walks every capability. If it fails, the new entries disagree with the catalog's field shape. Fix the entries, not the test.
+Expected: `134 passed` or more, `13 skipped` on Windows. `test_probe_and_plan_evaluate_all_capabilities` must now assert 22, and `validate_skill` must accept exactly `V01` through `V22`.
 
 Run: `python anti-dark-code/scripts/adc.py validate --mode universal`
 Expected: `0 errors`.
@@ -204,6 +212,7 @@ Two behaviours that capture settled:
 
 - **Object ids abbreviate by default.** The router passes `--no-abbrev` so identity binding gets full ids. Equality still works either way, but an abbreviated id is weaker identity than R-017 asks for.
 - **A mode change needs `git update-index --chmod=+x`, not `chmod`.** On Windows `core.fileMode` is `false`, so a filesystem `chmod` is invisible to git. Forcing the bit through the index produces `:100644 100755 587be6b 587be6b M`, the same object id on both sides with different modes. That is precisely the record the `old_object == new_object and old_mode != new_mode` branch below detects, so the branch is confirmed against real output rather than assumed.
+- **Copy records need explicit detection.** A real staged copy appeared as `A` under the default raw diff and as `C100` only with `--find-copies --find-copies-harder`. Acquisition passes those flags, plus `--find-renames`, on every raw diff.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -439,9 +448,9 @@ class AcquisitionTests(unittest.TestCase):
     def test_snapshot_unions_all_four_sources(self) -> None:
         run = self._runner({
             "merge-base": b"abc123\n",
-            "diff --raw -z --no-abbrev abc123": b":100644 100644 a1 b2 M\x00committed.py\x00",
-            "diff --raw -z --no-abbrev --cached": b":100644 100644 a1 b2 M\x00staged.py\x00",
-            "diff --raw -z --no-abbrev HEAD": b":100644 100644 a1 b2 M\x00unstaged.py\x00",
+            "--find-copies-harder abc123 HEAD": b":100644 100644 a1 b2 M\x00committed.py\x00",
+            "--find-copies-harder --cached HEAD": b":100644 100644 a1 b2 M\x00staged.py\x00",
+            "diff --raw -z --no-abbrev --find-renames --find-copies --find-copies-harder": b":100644 100644 a1 b2 M\x00unstaged.py\x00",
             "ls-files --others": b"untracked.py\x00",
         })
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
@@ -463,7 +472,7 @@ class AcquisitionTests(unittest.TestCase):
         # must not, because routing-policy.json and gates.json live there.
         run = self._runner({
             "merge-base": b"abc123\n",
-            "diff --raw -z --no-abbrev abc123": (
+            "--find-copies-harder abc123 HEAD": (
                 b":100644 100644 a1 b2 M\x00.agents/skills/anti-dark-code/calibration/gates.json\x00"
                 b":100644 100644 a1 b2 M\x00.anti-dark-code/runs/keep.json\x00"
             ),
@@ -476,7 +485,7 @@ class AcquisitionTests(unittest.TestCase):
     def test_snapshot_ordering_is_canonical(self) -> None:
         run = self._runner({
             "merge-base": b"abc123\n",
-            "diff --raw -z --no-abbrev abc123": (
+            "--find-copies-harder abc123 HEAD": (
                 b":100644 100644 a1 b2 M\x00zeta.py\x00"
                 b":100644 100644 a1 b2 M\x00alpha.py\x00"
             ),
@@ -541,16 +550,21 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     if not base_resolved:
         unreadable.append("ADC-ROUTE-BASE-UNREACHABLE")
 
+    raw_diff = [
+        "diff", "--raw", "-z", "--no-abbrev",
+        "--find-renames", "--find-copies", "--find-copies-harder",
+    ]
+
     if merge_base:
-        payload = run(["diff", "--raw", "-z", "--no-abbrev", merge_base, "HEAD"])
+        payload = run([*raw_diff, merge_base, "HEAD"])
         if payload is None:
             unreadable.append("ADC-ROUTE-COMMITTED-UNREADABLE")
         else:
             rows.extend(parse_raw_z(payload, "committed"))
 
     for args, source, code in (
-        (["diff", "--raw", "-z", "--no-abbrev", "--cached"], "staged", "ADC-ROUTE-STAGED-UNREADABLE"),
-        (["diff", "--raw", "-z", "--no-abbrev", "HEAD"], "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE"),
+        ([*raw_diff, "--cached", "HEAD"], "staged", "ADC-ROUTE-STAGED-UNREADABLE"),
+        (raw_diff, "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE"),
     ):
         payload = run(args)
         if payload is None:
@@ -1674,6 +1688,7 @@ def load_route_helper() -> Any:
     if spec is None or spec.loader is None:
         raise SystemExit(f"Could not load route helper: {helper_path}")
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     previous_bytecode_setting = sys.dont_write_bytecode
     try:
         sys.dont_write_bytecode = True
@@ -2134,12 +2149,12 @@ whole point of the slice."
 
 ## Self-Review
 
-**Spec coverage.** Every acceptance criterion S-001 through S-023 maps to a task: S-001/S-023 Task 8, S-002/S-015/S-020 Task 6, S-003 Tasks 4 and 6, S-004 Tasks 4 and 7, S-005/S-021 Task 7, S-006 Task 3, S-007/S-019 Task 2, S-008 Tasks 3 and 6, S-009/S-017 Task 8, S-010 Task 6, S-011 Task 6, S-012 Task 10, S-013/S-016 Tasks 5 and 10, S-014 Task 12, S-022 Task 6, S-018 Task 10.
+**Spec coverage.** Incomplete. The round-two execution verified meaningful checks for S-003, S-004, S-006, and part of S-010. S-001, S-002, S-005, S-007 through S-009, and S-011 through S-023 still need stronger or executable checks. A task mention is not coverage. `design/routing/HANDOFF-BACK-PLAN.md` records the criterion-by-criterion gaps.
 
-**Known gaps carried deliberately.** S-018 (concurrent mutation during a gate) is bound in Task 10 by the before-and-after check but is hard to test without a real gate execution; if the implementer cannot test it honestly, record it as an open item rather than ticking it. Submodule and symlink identity in R-017 is implemented in `current_route_identity` at Task 9 and deserves a test there if the repository grows either.
+**Known gaps.** Task 10 describes a before-and-after check but does not show or test it. Task 9 calls `current_route_identity` but does not implement it. Symlink, index, submodule, policy, gates, calibration, repository binding, and concurrent-mutation identity remain unimplemented in this plan.
 
 **Type consistency.** `read_change_inputs` returns `ChangeSnapshot` everywhere. `collect_change_facts(snapshot, classifier)` takes the snapshot, never a repo. `build_route(facts, policy, hints, snapshot_ok)` keeps that order in every call. `receipt_payload` and `verify_receipt` agree on the `identity` mapping shape.
 
-**Placeholder scan.** Clean. No TBD, no TODO, no "similar to Task N", no step that describes an action without showing the code.
+**Placeholder scan.** Failed. Task 9 describes `current_route_identity` without code. Task 10 describes receipt loading, freshness checks, full-recipe selection, and runner integration without code. Task 11 defines a comparator but does not connect it to a full gate run. These are blocking placeholders.
 
 **Plan location.** This plan does not live in `docs/superpowers/plans/`, the skill default, because `docs/` in this repository is the published GitHub Pages site. Writing a plan there would publish it. The same reasoning produced D-015 for the design documents.

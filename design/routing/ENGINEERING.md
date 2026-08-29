@@ -283,7 +283,7 @@ The path table has one test per class. A newly imported helper or newly authorit
 - **Environments and release path:** per ADD section 12.
 - **CI gates:** the existing `Tests` aggregator continues to require every job. The router adds no CI job in slice 1.
 - **Migrations:** none. A missing `routing-policy.json` means no calibrated policy and no selective receipt. The caller uses the documented full verification path.
-- **Configuration:** the policy is repository-owned calibration. The template ships with the core. Its root `full_route` object is required, names the repository's canonical Level 3 passes, capability-to-gate bindings, and gate ids, and validates before any rule does.
+- **Configuration:** the policy is repository-owned calibration. The template ships with the core. Its root `full_recipe` object is required, names the repository's canonical Level 3 passes, capability-to-gate bindings, and gate ids, and validates before any rule does.
 
 **Aggregator note.** The `required` job in `tests.yml` refuses unless every dependency reports exactly `success`, so a skipped job fails it. Selective CI execution therefore requires rewriting that aggregator to consult the trusted route, and that edit is itself a verification-authority change that forces the full route. Selective CI is scheduled strictly after selective local execution for this reason.
 
