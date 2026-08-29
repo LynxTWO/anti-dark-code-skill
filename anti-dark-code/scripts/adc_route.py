@@ -14,9 +14,11 @@ Nothing here executes repository code. It reads git metadata and JSON only.
 
 from __future__ import annotations
 
+import fnmatch
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Mapping
 
 CHANGE_KINDS = frozenset({
     "add", "modify", "delete", "rename", "copy",
@@ -246,3 +248,96 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
         base_resolved=base_resolved,
         problems=tuple(sorted(set(problems))),
     )
+
+
+SURFACES = frozenset({
+    "docs", "product", "tests", "schema", "ci", "release", "skill-policy", "site",
+})
+EFFECTS = frozenset({
+    "prose", "behavior", "public-contract", "persisted-state", "verification-authority",
+})
+BREADTHS = frozenset({"leaf", "package", "runtime", "cross-runtime", "repository"})
+SENSITIVITIES = frozenset({
+    "normal", "auth", "privacy", "billing", "deletion", "crypto", "release",
+})
+CONFIDENCES = frozenset({"verified", "inferred", "unknown"})
+
+
+@dataclass(frozen=True)
+class ChangeFact:
+    """One dimensioned statement about one changed path."""
+
+    path: str
+    change_kind: str
+    source: str
+    surface: str
+    effect: str
+    breadth: str
+    sensitivity: str
+    confidence: str
+    related_path: str | None = None
+
+
+def _matching_classifications(
+    path: str, classifier: Mapping[str, Any]
+) -> list[dict[str, str]]:
+    """Every classifier entry whose glob matches, not merely the first.
+
+    First-match-wins would let a broad early entry mask a specific later one: a
+    "*.md" rule calling everything prose would hide the entry that calls
+    SKILL.md verification authority. Emitting one fact per matching entry keeps
+    both readings, so every rule that would fire does fire and the monotonic
+    union in build_route decides the rest. No arbitrary precedence is invented.
+    """
+    matches: list[dict[str, str]] = []
+    for entry in classifier.get("surfaces", []):
+        if fnmatch.fnmatch(path, entry["glob"]):
+            matches.append({
+                "surface": entry["surface"],
+                "effect": entry["effect"],
+                "breadth": entry.get("breadth", "leaf"),
+                "sensitivity": entry.get("sensitivity", "normal"),
+                "confidence": "verified",
+            })
+    return matches
+
+
+# An unmapped path is not a low-risk path. Confidence unknown is what makes the
+# route builder refuse a fast path it has not earned.
+_UNMAPPED = {
+    "surface": "product",
+    "effect": "behavior",
+    "breadth": "repository",
+    "sensitivity": "normal",
+    "confidence": "unknown",
+}
+
+
+def collect_change_facts(
+    snapshot: ChangeSnapshot, classifier: Mapping[str, Any]
+) -> tuple[ChangeFact, ...]:
+    """Pure classification of an acquired snapshot into dimensioned facts.
+
+    Rename and copy records classify both paths. Dropping the source path would
+    let a move out of a sensitive location route as though only the destination
+    mattered.
+    """
+    facts: list[ChangeFact] = []
+    for row in snapshot.inputs:
+        sides: list[tuple[str, str | None]] = [(row.path, row.old_path)]
+        if row.change_kind in _TWO_PATH_KINDS and row.old_path:
+            sides.append((row.old_path, row.path))
+        for path, related in sides:
+            for attrs in _matching_classifications(path, classifier) or [_UNMAPPED]:
+                facts.append(ChangeFact(
+                    path=path,
+                    related_path=related,
+                    change_kind=row.change_kind,
+                    source=row.source,
+                    **attrs,
+                ))
+    return tuple(sorted(
+        set(facts),
+        key=lambda f: (f.path, f.source, f.change_kind, f.surface, f.effect,
+                       f.breadth, f.sensitivity, f.confidence),
+    ))

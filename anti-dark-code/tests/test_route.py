@@ -426,5 +426,117 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertFalse(snap.complete)
 
 
+CLASSIFIER = {
+    "surfaces": [
+        {"glob": "*.md", "surface": "docs", "effect": "prose", "breadth": "leaf"},
+        {"glob": "anti-dark-code/SKILL.md", "surface": "skill-policy",
+         "effect": "verification-authority", "breadth": "repository"},
+        {"glob": ".github/workflows/*", "surface": "ci",
+         "effect": "verification-authority", "breadth": "repository"},
+        {"glob": "auth/*", "surface": "product", "effect": "behavior",
+         "breadth": "package", "sensitivity": "auth"},
+    ]
+}
+
+
+class ClassificationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.route = load_route()
+
+    def _snapshot(self, *inputs):
+        return self.route.ChangeSnapshot(
+            inputs=tuple(inputs), base="abc", base_resolved=True)
+
+    def _facts(self, *inputs):
+        return self.route.collect_change_facts(self._snapshot(*inputs), CLASSIFIER)
+
+    def test_a_broad_glob_cannot_mask_a_specific_one(self) -> None:
+        # "*.md" matches SKILL.md and calls it prose. The specific entry calls
+        # it verification authority. Both facts must exist, so every rule that
+        # would fire does fire and union decides the rest. First-match-wins
+        # would silently drop the authority reading.
+        facts = self._facts(self.route.ChangeInput(
+            path="anti-dark-code/SKILL.md", change_kind="modify", source="committed"))
+        effects = {f.effect for f in facts}
+        self.assertIn("verification-authority", effects)
+        self.assertIn("prose", effects)
+
+    def test_skill_md_is_never_only_inert_documentation(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="anti-dark-code/SKILL.md", change_kind="modify", source="committed"))
+        self.assertTrue(any(f.surface == "skill-policy" for f in facts))
+
+    def test_unmapped_path_is_marked_unknown_not_guessed(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="somewhere/new.bin", change_kind="modify", source="committed"))
+        self.assertEqual(len(facts), 1)
+        self.assertEqual(facts[0].confidence, "unknown")
+
+    def test_a_mapped_path_is_verified(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="README.md", change_kind="modify", source="committed"))
+        self.assertEqual({f.confidence for f in facts}, {"verified"})
+
+    def test_rename_emits_facts_for_both_sides(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="README.md", old_path="auth/login.py",
+            change_kind="rename", source="committed"))
+        by_path = {f.path: f for f in facts}
+        self.assertIn("README.md", by_path)
+        self.assertIn("auth/login.py", by_path)
+        # The sensitive source must not vanish because the destination is docs.
+        self.assertEqual(by_path["auth/login.py"].sensitivity, "auth")
+
+    def test_copy_emits_facts_for_both_sides(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="README.md", old_path="auth/login.py",
+            change_kind="copy", source="committed"))
+        self.assertEqual({f.path for f in facts} & {"auth/login.py"}, {"auth/login.py"})
+
+    def test_related_path_links_both_sides_of_a_rename(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="README.md", old_path="auth/login.py",
+            change_kind="rename", source="committed"))
+        by_path = {f.path: f for f in facts}
+        self.assertEqual(by_path["README.md"].related_path, "auth/login.py")
+        self.assertEqual(by_path["auth/login.py"].related_path, "README.md")
+
+    def test_ordering_is_deterministic_under_shuffled_input(self) -> None:
+        a = self.route.ChangeInput(path="zeta.md", change_kind="modify", source="committed")
+        b = self.route.ChangeInput(path="alpha.md", change_kind="modify", source="committed")
+        self.assertEqual(self._facts(a, b), self._facts(b, a))
+
+    def test_every_fact_field_is_a_closed_enum_value(self) -> None:
+        facts = self._facts(
+            self.route.ChangeInput(path=".github/workflows/tests.yml",
+                                   change_kind="modify", source="committed"),
+            self.route.ChangeInput(path="auth/login.py",
+                                   change_kind="delete", source="staged"),
+            self.route.ChangeInput(path="mystery.bin",
+                                   change_kind="modify", source="untracked"),
+        )
+        for fact in facts:
+            self.assertIn(fact.surface, self.route.SURFACES)
+            self.assertIn(fact.effect, self.route.EFFECTS)
+            self.assertIn(fact.breadth, self.route.BREADTHS)
+            self.assertIn(fact.sensitivity, self.route.SENSITIVITIES)
+            self.assertIn(fact.confidence, self.route.CONFIDENCES)
+            self.assertIn(fact.change_kind, self.route.CHANGE_KINDS)
+            self.assertIn(fact.source, self.route.CHANGE_SOURCES)
+
+    def test_change_kind_and_source_survive_classification(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="auth/login.py", change_kind="delete", source="staged"))
+        self.assertEqual(facts[0].change_kind, "delete")
+        self.assertEqual(facts[0].source, "staged")
+
+    def test_classification_is_pure_and_takes_no_repository(self) -> None:
+        snapshot = self._snapshot(self.route.ChangeInput(
+            path="README.md", change_kind="modify", source="committed"))
+        first = self.route.collect_change_facts(snapshot, CLASSIFIER)
+        second = self.route.collect_change_facts(snapshot, CLASSIFIER)
+        self.assertEqual(first, second)
+
+
 if __name__ == "__main__":
     unittest.main()
