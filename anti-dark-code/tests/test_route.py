@@ -167,6 +167,37 @@ class RawParserTests(unittest.TestCase):
             raw(f":100644 100644 {OBJ_A} {OBJ_A} M{NUL}odd.py{NUL}"), "committed")
         self.assertEqual(result.inputs[0].change_kind, "modify")
 
+    def test_mode_change_survives_when_content_also_changed(self) -> None:
+        # H-04. Objects differ, so the change_kind stays modify, but the
+        # executable bit still moved. Keying the mode signal off object equality
+        # loses it exactly when a file becomes executable in the same commit
+        # that edits it, which is the interesting case.
+        result = self.route.parse_raw_z(
+            raw(f":100644 100755 {OBJ_A} {OBJ_B} M{NUL}tool.sh{NUL}"), "committed")
+        row = result.inputs[0]
+        self.assertEqual(row.change_kind, "modify")
+        self.assertTrue(row.mode_changed, "the mode transition disappeared")
+
+    def test_pure_mode_change_is_both_kind_and_flag(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100755 {OBJ_A} {OBJ_A} M{NUL}tool.sh{NUL}"), "committed")
+        self.assertEqual(result.inputs[0].change_kind, "mode")
+        self.assertTrue(result.inputs[0].mode_changed)
+
+    def test_creation_and_deletion_are_not_mode_changes(self) -> None:
+        result = self.route.parse_raw_z(raw(
+            f":000000 100644 {ZERO} {OBJ_A} A{NUL}new.py{NUL}",
+            f":100644 000000 {OBJ_A} {ZERO} D{NUL}gone.py{NUL}",
+        ), "committed")
+        for row in result.inputs:
+            self.assertFalse(row.mode_changed,
+                             f"{row.path} creation or deletion read as a mode change")
+
+    def test_unchanged_mode_sets_no_flag(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}plain.py{NUL}"), "committed")
+        self.assertFalse(result.inputs[0].mode_changed)
+
     def test_add_and_delete_carry_the_null_object(self) -> None:
         result = self.route.parse_raw_z(raw(
             f":000000 100644 {ZERO} {OBJ_A} A{NUL}new.py{NUL}",
@@ -450,6 +481,34 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertFalse(snap.base_resolved)
         self.assertFalse(snap.complete)
 
+    def test_a_copy_from_an_unchanged_source_keeps_its_source_path(self) -> None:
+        # H-03. Git only considers an unchanged source with --find-copies-harder.
+        # Without it this arrives as an ordinary add and the source path, along
+        # with whatever sensitivity it carried, never reaches classification.
+        (self.repo / "copied.py").write_text(
+            (self.repo / "src.py").read_text(encoding="utf-8"), encoding="utf-8")
+        self._git("add", "copied.py")
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        copies = [i for i in snap.inputs if i.change_kind == "copy"]
+        self.assertEqual(len(copies), 1, f"expected one copy record: {snap.inputs}")
+        self.assertEqual(copies[0].old_path, "src.py")
+        self.assertEqual(copies[0].path, "copied.py")
+
+    def test_a_staged_content_and_mode_change_keeps_its_mode_signal(self) -> None:
+        # H-04 end to end, against real git rather than a fixture.
+        tool = self.repo / "tool.sh"
+        tool.write_text("#!/bin/sh\necho one\n", encoding="utf-8")
+        self._git("add", "tool.sh")
+        self._git("commit", "-qm", "add tool")
+        tool.write_text("#!/bin/sh\necho two\nCHANGED\n", encoding="utf-8")
+        self._git("add", "tool.sh")
+        self._git("update-index", "--chmod=+x", "tool.sh")
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        rows = [i for i in snap.inputs if i.path == "tool.sh" and i.source == "staged"]
+        self.assertTrue(rows, f"no staged record for tool.sh: {snap.inputs}")
+        self.assertTrue(any(r.mode_changed for r in rows),
+                        "real content-plus-mode change lost its mode signal")
+
     def test_a_hostile_repository_cannot_run_its_own_program(self) -> None:
         """The boundary the module docstring claims, tested rather than asserted.
 
@@ -580,6 +639,20 @@ class ClassificationTests(unittest.TestCase):
             self.assertIn(fact.confidence, self.route.CONFIDENCES)
             self.assertIn(fact.change_kind, self.route.CHANGE_KINDS)
             self.assertIn(fact.source, self.route.CHANGE_SOURCES)
+
+    def test_mode_changed_reaches_the_fact_so_a_rule_can_match_it(self) -> None:
+        # H-04. The signal is worthless if it stops at ChangeInput: rules match
+        # facts, so a content-plus-mode change would still be invisible.
+        facts = self._facts(self.route.ChangeInput(
+            path="auth/login.py", change_kind="modify", source="staged",
+            old_mode="100644", new_mode="100755", mode_changed=True))
+        self.assertTrue(facts)
+        self.assertTrue(all(f.mode_changed for f in facts))
+
+    def test_an_ordinary_change_carries_no_mode_flag(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="auth/login.py", change_kind="modify", source="staged"))
+        self.assertTrue(all(not f.mode_changed for f in facts))
 
     def test_change_kind_and_source_survive_classification(self) -> None:
         facts = self._facts(self.route.ChangeInput(

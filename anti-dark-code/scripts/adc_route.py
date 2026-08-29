@@ -45,6 +45,9 @@ _RAW_STATUS = {
 # Records naming two paths. Git emits the source first, then the destination.
 _TWO_PATH_KINDS = frozenset({"rename", "copy"})
 
+# Git writes this mode for the absent side of a creation or deletion.
+_NULL_MODE = "000000"
+
 
 @dataclass(frozen=True)
 class ChangeInput:
@@ -58,6 +61,7 @@ class ChangeInput:
     new_mode: str | None = None
     old_object: str | None = None
     new_object: str | None = None
+    mode_changed: bool = False
 
 
 @dataclass(frozen=True)
@@ -129,9 +133,20 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
             old_path = None
             path = fields[index + 1]
 
-        # A mode-only change carries the same object on both sides. Git still
+        # A file mode moved between two real modes. The null mode 000000 means
+        # creation or deletion, which is not a mode transition. This is tracked
+        # separately from change_kind because a commit that edits a file and
+        # makes it executable has unequal objects, so keying the mode signal off
+        # object equality would lose it in exactly that case.
+        mode_changed = (
+            old_mode != new_mode
+            and old_mode not in (None, _NULL_MODE)
+            and new_mode not in (None, _NULL_MODE)
+        )
+
+        # A pure mode change carries the same object on both sides. Git still
         # reports it as M, so comparing the objects is the only discriminator.
-        if kind == "modify" and old_object == new_object and old_mode != new_mode:
+        if kind == "modify" and old_object == new_object and mode_changed:
             kind = "mode"
 
         rows.append(ChangeInput(
@@ -143,6 +158,7 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
             new_mode=new_mode,
             old_object=old_object,
             new_object=new_object,
+            mode_changed=mode_changed,
         ))
         index += wanted + 1
 
@@ -171,13 +187,22 @@ _GIT_ISOLATION = (
     "--no-optional-locks",
     "-c", "core.fsmonitor=false",
     "-c", "diff.external=",
+    # Detection silently degrades past a default budget of 1000 paths, which
+    # would drop rename and copy provenance without saying so. 0 is unlimited.
+    "-c", "diff.renameLimit=0",
 )
 
 # Rename and copy detection, plus full object ids. Without -C a copy arrives as
 # an add and its source path is lost. Without --no-abbrev the object ids are
 # seven characters, which is weaker identity than a receipt should bind.
 # --no-ext-diff refuses an external diff driver even if one is configured.
-_DIFF_FLAGS = ("--no-ext-diff", "--raw", "-z", "--no-abbrev", "-M", "-C")
+# --find-copies-harder is required, not optional: plain -C only considers
+# sources that changed in the same commit, so copying an unchanged sensitive
+# file arrives as an ordinary add with no source path at all.
+_DIFF_FLAGS = (
+    "--no-ext-diff", "--raw", "-z", "--no-abbrev",
+    "-M", "-C", "--find-copies-harder",
+)
 
 
 def _isolated(args: Sequence[str]) -> list[str]:
@@ -302,6 +327,7 @@ class ChangeFact:
     sensitivity: str
     confidence: str
     related_path: str | None = None
+    mode_changed: bool = False
 
 
 def _matching_classifications(
@@ -360,6 +386,7 @@ def collect_change_facts(
                     related_path=related,
                     change_kind=row.change_kind,
                     source=row.source,
+                    mode_changed=row.mode_changed,
                     **attrs,
                 ))
     return tuple(sorted(
