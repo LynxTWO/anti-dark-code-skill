@@ -57,9 +57,12 @@ class CapabilityCatalogTests(unittest.TestCase):
         self.assertEqual(by_id["V21"]["name"], "Affected-unit testing")
         self.assertEqual(by_id["V22"]["name"], "Input fuzz testing")
 
-    def test_catalog_ids_are_contiguous_through_v22(self) -> None:
+    def test_catalog_ids_are_contiguous_with_no_gaps(self) -> None:
+        # Derived from the one constant rather than a literal, so adding a
+        # capability does not leave a second count contract to find by hand.
+        adc = load_adc()
         ids = sorted(c["id"] for c in self.caps)
-        self.assertEqual(ids, [f"V{i:02d}" for i in range(1, 23)])
+        self.assertEqual(ids, [f"V{i:02d}" for i in range(1, adc.CAPABILITY_COUNT + 1)])
 
     def test_every_capability_shares_one_field_shape(self) -> None:
         shapes = {tuple(sorted(c.keys())) for c in self.caps}
@@ -727,6 +730,94 @@ class ClassificationTests(unittest.TestCase):
             path="auth/login.py", change_kind="delete", source="staged"))
         self.assertEqual(facts[0].change_kind, "delete")
         self.assertEqual(facts[0].source, "staged")
+
+    def test_a_classifier_typo_is_rejected_not_passed_through(self) -> None:
+        # H-05. The frozensets described valid values without enforcing them, so
+        # a one-character policy typo silently changed which rules matched.
+        for field, bad in (("surface", "BOGUS"), ("effect", "BOGUS"),
+                           ("breadth", "BOGUS"), ("sensitivity", "BOGUS")):
+            entry = {"glob": "*.py", "surface": "product", "effect": "behavior",
+                     "breadth": "leaf", "sensitivity": "normal"}
+            entry[field] = bad
+            snap = self._snapshot(self.route.ChangeInput(
+                path="a.py", change_kind="modify", source="committed"))
+            with self.assertRaises(ValueError, msg=f"{field}={bad} was accepted"):
+                self.route.collect_change_facts(snap, {"surfaces": [entry]})
+
+    def test_a_classifier_entry_without_a_glob_is_rejected(self) -> None:
+        snap = self._snapshot(self.route.ChangeInput(
+            path="a.py", change_kind="modify", source="committed"))
+        with self.assertRaises(ValueError):
+            self.route.collect_change_facts(
+                snap, {"surfaces": [{"surface": "product", "effect": "behavior"}]})
+
+    def test_a_bad_change_kind_or_source_is_rejected(self) -> None:
+        for field, bad in (("change_kind", "BOGUS_KIND"), ("source", "BOGUS_SOURCE")):
+            kwargs = {"path": "a.py", "change_kind": "modify", "source": "committed"}
+            kwargs[field] = bad
+            snap = self._snapshot(self.route.ChangeInput(**kwargs))
+            with self.assertRaises(ValueError, msg=f"{field}={bad} was accepted"):
+                self.route.collect_change_facts(snap, CLASSIFIER)
+
+    def test_duplicate_inputs_collapse_to_one_fact(self) -> None:
+        # H-09. The suite claimed deduplication but never submitted a duplicate,
+        # so removing the collapse survived every test.
+        row = self.route.ChangeInput(
+            path="README.md", change_kind="modify", source="committed")
+        once = self._facts(row)
+        twice = self._facts(row, row)
+        self.assertEqual(once, twice)
+
+    def test_ordering_is_stable_across_processes(self) -> None:
+        # H-06. Two source-side copy facts tied on every sort key and differed
+        # only in related_path, so set iteration order leaked into the result
+        # and PYTHONHASHSEED changed it.
+        import os
+        import subprocess as sp
+        script = (
+            "import importlib.util,sys;"
+            f"spec=importlib.util.spec_from_file_location('adc_route', r'{ROUTE_SCRIPT}');"
+            "m=importlib.util.module_from_spec(spec);sys.modules['adc_route']=m;"
+            "spec.loader.exec_module(m);"
+            "cls={'surfaces':[{'glob':'src.py','surface':'product',"
+            "'effect':'behavior','breadth':'leaf'}]};"
+            "snap=m.ChangeSnapshot(inputs=("
+            "m.ChangeInput(path='a.py',old_path='src.py',change_kind='copy',source='committed'),"
+            "m.ChangeInput(path='b.py',old_path='src.py',change_kind='copy',source='committed'),"
+            "),base='x',base_resolved=True);"
+            "print([(f.path,f.related_path) for f in m.collect_change_facts(snap,cls)])"
+        )
+        results = set()
+        for seed in ("1", "2", "3", "4", "5"):
+            env = dict(os.environ, PYTHONHASHSEED=seed)
+            done = sp.run([sys.executable, "-c", script],
+                          capture_output=True, text=True, env=env, timeout=60)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            results.add(done.stdout.strip())
+        self.assertEqual(len(results), 1,
+                         f"fact order depends on the hash seed: {results}")
+
+    def test_glob_matching_is_case_sensitive_on_every_platform(self) -> None:
+        # H-07. fnmatch applies os.path.normcase, so Windows matched
+        # case-insensitively while Linux and macOS did not. Git paths are
+        # case-sensitive, so the same diff and policy produced different facts
+        # depending on the host, and therefore different receipts.
+        facts = self._facts(self.route.ChangeInput(
+            path="AUTH/login.py", change_kind="modify", source="committed"))
+        self.assertEqual([f.confidence for f in facts], ["unknown"],
+                         "AUTH/ matched the auth/ glob; matching is case-folded")
+
+    def test_exact_case_still_matches(self) -> None:
+        facts = self._facts(self.route.ChangeInput(
+            path="auth/login.py", change_kind="modify", source="committed"))
+        self.assertEqual({f.sensitivity for f in facts}, {"auth"})
+
+    def test_backslash_separators_normalize_before_matching(self) -> None:
+        # A Windows-shaped path must match a policy written with forward
+        # slashes, otherwise the policy would need two spellings per rule.
+        facts = self._facts(self.route.ChangeInput(
+            path="auth\\login.py", change_kind="modify", source="committed"))
+        self.assertEqual({f.sensitivity for f in facts}, {"auth"})
 
     def test_classification_is_pure_and_takes_no_repository(self) -> None:
         snapshot = self._snapshot(self.route.ChangeInput(

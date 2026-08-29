@@ -363,6 +363,29 @@ class ChangeFact:
     mode_changed: bool = False
 
 
+# Every dimension and the frozenset that closes it. Declaring the sets without
+# checking them let a one-character policy typo silently change which rules
+# matched, which is the quietest way a route can go wrong.
+_FACT_DIMENSIONS = (
+    ("surface", SURFACES),
+    ("effect", EFFECTS),
+    ("breadth", BREADTHS),
+    ("sensitivity", SENSITIVITIES),
+    ("confidence", CONFIDENCES),
+)
+
+
+def _validated_classification(entry: Mapping[str, Any], attrs: dict[str, str]) -> dict[str, str]:
+    for field, allowed in _FACT_DIMENSIONS:
+        value = attrs[field]
+        if value not in allowed:
+            raise ValueError(
+                f"classifier entry {entry.get('glob', '<no glob>')!r} has "
+                f"{field}={value!r}; allowed: {sorted(allowed)}"
+            )
+    return attrs
+
+
 def _matching_classifications(
     path: str, classifier: Mapping[str, Any]
 ) -> list[dict[str, str]]:
@@ -375,15 +398,26 @@ def _matching_classifications(
     union in build_route decides the rest. No arbitrary precedence is invented.
     """
     matches: list[dict[str, str]] = []
+    candidate = path.replace("\\", "/")
     for entry in classifier.get("surfaces", []):
-        if fnmatch.fnmatch(path, entry["glob"]):
-            matches.append({
-                "surface": entry["surface"],
-                "effect": entry["effect"],
-                "breadth": entry.get("breadth", "leaf"),
-                "sensitivity": entry.get("sensitivity", "normal"),
-                "confidence": "verified",
-            })
+        glob = entry.get("glob")
+        if not glob:
+            raise ValueError(f"classifier entry has no glob: {entry!r}")
+        # fnmatchcase, not fnmatch. fnmatch applies os.path.normcase, so the
+        # same policy and diff would match case-insensitively on Windows and
+        # case-sensitively elsewhere, producing different facts and therefore
+        # different receipts per host. Git paths are case-sensitive, so that is
+        # the semantics the router commits to everywhere. Separators are
+        # normalized first so a policy needs one spelling per rule.
+        if not fnmatch.fnmatchcase(candidate, glob.replace("\\", "/")):
+            continue
+        matches.append(_validated_classification(entry, {
+            "surface": entry.get("surface", ""),
+            "effect": entry.get("effect", ""),
+            "breadth": entry.get("breadth", "leaf"),
+            "sensitivity": entry.get("sensitivity", "normal"),
+            "confidence": "verified",
+        }))
     return matches
 
 
@@ -398,6 +432,19 @@ _UNMAPPED = {
 }
 
 
+def _fact_sort_key(fact: ChangeFact) -> tuple[Any, ...]:
+    """Total order over every serialized field.
+
+    Any field left out of this key is a field two facts can tie on, and a tie is
+    broken by set iteration order rather than deterministically.
+    """
+    return (
+        fact.path, fact.related_path or "", fact.source, fact.change_kind,
+        fact.surface, fact.effect, fact.breadth, fact.sensitivity,
+        fact.confidence, fact.mode_changed,
+    )
+
+
 def collect_change_facts(
     snapshot: ChangeSnapshot, classifier: Mapping[str, Any]
 ) -> tuple[ChangeFact, ...]:
@@ -409,6 +456,10 @@ def collect_change_facts(
     """
     facts: list[ChangeFact] = []
     for row in snapshot.inputs:
+        if row.change_kind not in CHANGE_KINDS:
+            raise ValueError(f"unknown change kind: {row.change_kind!r}")
+        if row.source not in CHANGE_SOURCES:
+            raise ValueError(f"unknown change source: {row.source!r}")
         sides: list[tuple[str, str | None]] = [(row.path, row.old_path)]
         if row.change_kind in _TWO_PATH_KINDS and row.old_path:
             sides.append((row.old_path, row.path))
@@ -422,8 +473,8 @@ def collect_change_facts(
                     mode_changed=row.mode_changed,
                     **attrs,
                 ))
-    return tuple(sorted(
-        set(facts),
-        key=lambda f: (f.path, f.source, f.change_kind, f.surface, f.effect,
-                       f.breadth, f.sensitivity, f.confidence),
-    ))
+    # Every field participates in the key. Leaving one out let two otherwise
+    # identical facts tie, and the tie was then broken by set iteration order,
+    # which varies with the process hash seed. A router whose output depends on
+    # the hash seed cannot produce a byte-stable receipt.
+    return tuple(sorted(set(facts), key=_fact_sort_key))
