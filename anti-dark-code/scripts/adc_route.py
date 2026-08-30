@@ -812,7 +812,7 @@ def _union_obligations(
     would claim a capability was covered by work it never selected.
     """
     for capability, gate_ids in more.items():
-        into[capability] = set(gate_ids)
+        into.setdefault(capability, set()).update(gate_ids)
     return into
 
 
