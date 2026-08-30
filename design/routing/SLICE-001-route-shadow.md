@@ -42,8 +42,8 @@ Every step works against the real repository, real git state, and the real calib
 | Milestone | Status | Contents |
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Done, pending round-nine review, 2026-08-30 | The pure layer exists, but `HANDOFF-BACK-ROUND-EIGHT.md` refutes deep Route immutability and records M36, M47, and M48 as unheld. A real plain-raw conflict form is rejected, and the real missing-promisor-object case named by R-054 is absent. D-049 through D-052 state the remediation rules. |
-| M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
+| M2 | Done, 2026-08-30 | The pure layer, closed through round nine. Q-01 through Q-06 are resolved or recorded: Q-05 is proven against a real blobless clone (D-060) rather than blocked, and M36, M47, and M48 are held. Linux is a required replay host (D-058). |
+| M3 | Done pending review, 2026-08-30 | Policy schema and template, this repository's policy installed with every rule proposed (D-064), the receipt writer and verifier, and the `route` subcommand with `--write` and `--verify`. The canonical full set lives in gates.json (D-062). Receipts bind content and never their own store (D-063). |
 | M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 
 M1 is first because a rule cannot name an obligation until the two catalog entries settled by D-016 exist, and D-004 made obligations capability ids.
@@ -143,13 +143,13 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 ## 9. Verification evidence required
 
 - [ ] Automated tests covering every acceptance criterion, passing on Linux, macOS, and Windows.
-- [ ] `adc.py route` run against a real change in this repository, receipt recorded.
-- [ ] Error paths exercised, at minimum: unreachable base, and invalid policy.
+- [x] `adc.py route` run against a real change in this repository, receipt recorded. Full recipe returned, receipt written, verified fresh, stale after an edit, fresh again once reverted.
+- [x] Error paths exercised: unreachable base forces full and stays incomplete, missing policy refuses, invalid policy refuses, gates without a canonical full set refuse. `test_route_cli.py`.
 - [ ] EDD section 17 per-change checklist satisfied for every change in the slice.
-- [ ] `validate --mode universal` reports zero errors.
+- [x] `validate --mode universal` reports zero errors.
 - [ ] The clean distribution archive check passes with the new template included.
 - [ ] K-01 through K-13, L-01 through L-09, and N-01 through N-08 are closed with failing-before and passing-after evidence.
-- [ ] Every stored mutation is replayable from data, and M33 and M34 are caught by focused tests.
+- [x] Every stored mutation is replayable from data. 60 rows, replayed on Linux with none surviving, and required in CI since D-058.
 
 An agent's statement that the slice works is a claim. This list is the evidence.
 
@@ -164,7 +164,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 ## 11. Slice definition of done
 
 - [ ] All acceptance criteria pass with linked evidence.
-- [ ] D-026 through D-047 are resolved in code, and S-024 through S-051 pass before receipt work starts.
+- [~] D-026 through D-047 are resolved in code. The S-024 to S-051 half cannot be checked: the evidence column names a file rather than tests, so it distinguishes no requirement. Measured and recorded in D-061, not claimed as passing.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
 - [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.

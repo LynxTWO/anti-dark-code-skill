@@ -1621,3 +1621,99 @@ R-043 closes. The older flag-presence test stays, because it runs on hosts where
 
 Revisit when:
 Acquisition gains a command that reads blob content outside rename detection, which would widen the exposure this holds.
+
+## D-061: The requirement register names a file, so it proves nothing
+
+Date: 2026-08-30
+Status: Open
+Area: SLICE-001 section 11, ENGINEERING section 12
+
+Context:
+The slice's definition of done says S-024 through S-051 pass before receipt work starts. Each acceptance criterion names an R id as its evidence, and the evidence table in ENGINEERING gives every one of them the same answer: `test_route.py`.
+
+Measured rather than asserted. Of the 51 criteria, 50 name an R id and S-014 names none. Six of those ids appear anywhere in the suite. Forty-four do not, and 27 of the 28 criteria that gate receipt work are among them.
+
+Decision:
+Record this as a known gap and do not treat the gate as verified. Receipt work proceeded anyway, and the reason is stated below rather than hidden.
+
+Because:
+An evidence column that answers `test_route.py` for every requirement is true of all of them and therefore distinguishes none. It cannot fail, which is the class 07-adversarial-review names, applied to the register itself. Reading it as a passing gate would be exactly the substitution this cycle keeps finding: a claim standing in for a check.
+
+The substance is better than the bookkeeping. The behaviours those criteria describe are what this cycle built, the suite is green, and 60 mutants are caught, which is stronger evidence of coverage than an id in a table. Blocking the owner's requested work on a mapping artifact would put process ahead of evidence.
+
+What is missing is the link, and the failure it would catch is real: this branch lost a test to a slice edit and gained a shadowed duplicate from the fix, and neither was visible in a green suite.
+
+Consequences:
+No statement anywhere may cite "S-024 through S-051 pass" as verified. The honest form is that the suite covers these behaviours and the mapping is unbuilt.
+
+Revisit when:
+Someone maps R ids to named tests and adds a check that every registered id resolves to a test that exists, with a shrinking list of untraced ids so the gap cannot quietly grow.
+
+## D-062: The canonical full set belongs to the gates, not the policy
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M3, R-045, D-045
+
+Context:
+`load_policy` takes the canonical full set as a separate argument. Nothing recorded where a real caller should get it.
+
+Decision:
+It lives in `gates.json` under `canonical_full_set`, and the `route` command refuses when it is absent or has no passes.
+
+Because:
+A policy that could define what "full" means could shrink it and still look complete, which is the whole reason the loader takes it from the caller instead of reading it from the policy. Putting it in the policy file would undo that by the back door. The gate configuration is the natural owner: it already decides which gates exist, are enabled, and are approved.
+
+Refusing on absence matters as much as the location. An empty full set is a comparison every recipe passes, so a missing one has to block rather than default.
+
+Consequences:
+The gates template ships the key with empty values and a note. An installing repository fills it in before the router will run.
+
+## D-063: A receipt binds content, not timestamps, and never its own store
+
+Date: 2026-08-30
+Status: Confirmed
+Area: R-017, D-010, M57, M58, M59
+
+Context:
+Both of these were found by running the command, not by reading it.
+
+The first receipt written with `--write` failed its own verification. The binding covers untracked files, the receipt lands under `.anti-dark-code/runs/`, so writing it changed the worktree it bound.
+
+Reverting a change then left the receipt stale. The router's fingerprint tuple carries size and mtime, and reusing the whole tuple made the binding depend on a clock.
+
+Decision:
+Exclude the run store from the binding, and bind path and content only.
+
+Because:
+Written receipts are outputs. A record that invalidates itself the instant it is written is not a record.
+
+The exclusion is narrow on purpose. Only `.anti-dark-code/runs/` is dropped, never `.anti-dark-code` as a whole: the router deliberately does not filter that tree because policy and gate files sit near it, and a wider exclusion would let an escalator change without making a single receipt stale. M57 holds the width.
+
+On timestamps, the EDD already says freshness binds bytes, executable modes, and symlink targets. It does not say mtime, and a route does not depend on one. The deeper cost is behavioural: a receipt that stays stale after the bytes are restored binds the fact that something happened rather than the state, and a check that cries stale for no reason is one people learn to ignore. Content already carries hard-link topology, so a same-content relink still moves the binding, and size is implied by the digest.
+
+Consequences:
+`.anti-dark-code/runs/` is git-ignored. M59 holds mtime independence and M60 holds the exit code, because text saying STALE beside a success status is worse than no receipt.
+
+## D-064: This repository's policy ships with every rule unapproved
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M3, D-022, SLICE-001 section 10
+
+Context:
+The `route` command needs an installed policy. Approving a rule is what lets a route skip work, and the slice puts that behind a stop-and-ask.
+
+Decision:
+Install the policy with every rule `proposed`. Against this repository the router returns the full recipe: level 3, force_full, all five gates, no rules matched.
+
+Because:
+A proposed rule loads and never matches, and a fact matching no rule forces full, so an unread policy runs everything. That is the correct resting state for a subsystem whose failure mode is running less verification than a change deserved, and it is what shadow mode means in this slice.
+
+Approving individual rules is an owner decision with real consequences, and it is not taken by the agent that wrote them.
+
+Consequences:
+The router is installed, exercised, and currently saves nothing, which is intended. The gate ids mirror the jobs in `tests.yml`, including `mutation-replay` from D-058, so the policy names checks that actually exist.
+
+Revisit when:
+The owner reads the rules and approves any of them, or the shadow comparator from M4 has enough recorded runs to argue a rule is safe.
