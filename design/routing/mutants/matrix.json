@@ -1731,5 +1731,19 @@
     "pytest": "not replayed",
     "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
     "results": []
+  },
+  {
+    "id": "M63",
+    "name": "launcher failure counts as a caught mutant",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if not PYTEST_SUMMARY.fullmatch(summary):",
+    "new": "    if False:",
+    "verdict": "unverified: replay pending",
+    "pytest": "not replayed",
+    "note": "A Python or pytest startup error may exit 1 without executing a test; only a real pytest outcome summary can turn exit 1 into mutation evidence.",
+    "results": []
   }
 ]

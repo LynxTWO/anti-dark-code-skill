@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -63,6 +64,12 @@ DEFAULT_SUITE = ("anti-dark-code/tests/test_route.py",)
 # whether an uncaught row reads as SURVIVED or as "nobody could check this". A
 # guard that always skips would have quietly relabelled every real survivor.
 INTEGRITY_FILTER = "not MutationMatrixIntegrity"
+PYTEST_OUTCOME = (
+    r"\d+ (?:failed|passed|skipped|deselected|xfailed|xpassed|warnings?|"
+    r"errors?|subtests passed)"
+)
+PYTEST_SUMMARY = re.compile(
+    rf"^{PYTEST_OUTCOME}(?:, {PYTEST_OUTCOME})* in \d+(?:\.\d+)?s$")
 
 
 def suite_command(paths) -> list[str]:
@@ -85,6 +92,9 @@ def run_suite(paths=DEFAULT_SUITE) -> tuple[bool, str, int]:
                           capture_output=True, text=True)
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
+    if not PYTEST_SUMMARY.fullmatch(summary):
+        raise SuiteBroken(
+            f"pytest produced no test summary (exit {done.returncode}): {summary}")
     # pytest exit codes are exact, and text is not. A collection error, an
     # internal error, or no tests collected all print something that reads like
     # a result, and an earlier version of this check read a syntax error as a

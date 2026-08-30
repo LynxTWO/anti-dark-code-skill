@@ -14,6 +14,7 @@ import time
 import unittest
 from collections.abc import Mapping
 from pathlib import Path
+from unittest import mock
 
 # macOS puts temporary directories under /var, a symlink to /private/var. The
 # managed-path guards refuse to write through a link-like component by design,
@@ -2649,6 +2650,19 @@ class SuiteIntegrityTests(unittest.TestCase):
 
             self.assertEqual(0, harness.replay([row], write=False))
             self.assertEqual(original, source.read_bytes())
+
+    def test_replay_rejects_a_launcher_error_as_no_test_evidence(self) -> None:
+        """Exit 1 is meaningful only when pytest actually ran tests."""
+        harness = load_module(
+            "adc_replay_suite_error",
+            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+        launcher_error = subprocess.CompletedProcess(
+            args=[sys.executable, "-m", "pytest"], returncode=1,
+            stdout="", stderr=f"{sys.executable}: No module named pytest\n")
+        with mock.patch.object(harness.subprocess, "run",
+                               return_value=launcher_error):
+            with self.assertRaises(harness.SuiteBroken):
+                harness.run_suite(("suite.py",))
 
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
 REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
