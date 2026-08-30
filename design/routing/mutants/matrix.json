@@ -450,5 +450,23 @@
     "new": "        if isinstance(self.obligations, MappingProxyType): return\n        # Always rebuild, never trust an existing proxy.",
     "verdict": "unknown",
     "pytest": ""
+  },
+  {
+    "id": "M50",
+    "name": "unmerged absence read from object ids again",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
+    "new": "        if old_object == \"0\" * len(old_object) and new_object == \"0\" * len(new_object):",
+    "verdict": "unknown",
+    "pytest": ""
+  },
+  {
+    "id": "M51",
+    "name": "unmerged both-null modes accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:\n            return False",
+    "new": "        if False:\n            return False",
+    "verdict": "unknown",
+    "pytest": ""
   }
 ]

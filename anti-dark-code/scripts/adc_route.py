@@ -124,13 +124,20 @@ def _valid_raw_header(
     letter, score = matched.group(1), matched.group(2)
 
     if letter == "U":
-        # Exempting U from the side check exempted it from every check, which
-        # is not what the exemption was for. An unmerged entry has more than
-        # one legitimate side shape, but it is never scored, never has both
-        # sides absent, and cannot appear in a commit.
+        # An unmerged entry has more than one legitimate side shape, so it is
+        # exempt from the fixed side table. It is still never scored, never has
+        # both sides absent, and cannot appear in a commit.
+        #
+        # Absence is read from the modes, not the object ids. Git 2.50.1 emits
+        # a real conflict from plain `diff --raw -z --no-abbrev` as
+        # :000000 100644 <zeros> <zeros> U, with both objects null and a real
+        # new mode, because it has not hashed either side. Keying on object ids
+        # called that malformed, and it is genuine output. The production flags
+        # fill the new object in, which is why earlier conflict work never saw
+        # this form.
         if score is not None:
             return False
-        if old_object == "0" * len(old_object) and new_object == "0" * len(new_object):
+        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:
             return False
         return source is None or source in _UNMERGED_SOURCES
 

@@ -432,16 +432,30 @@ class RawParserTests(unittest.TestCase):
             self.assertEqual(result.problems, (),
                              f"unmerged {old_mode}/{new_mode} was refused")
 
+    def test_a_plain_raw_conflict_record_is_accepted(self) -> None:
+        # Q-02. Captured from git 2.50.1 during a real merge conflict, using
+        # plain `git diff --raw -z --no-abbrev`:
+        #   :000000 100644 <40 zeros> <40 zeros> U f.txt
+        # Both object ids are null and the new mode is real. Deciding whether a
+        # side exists from the object ids called that malformed, which is real
+        # git output. The production flags change the output and hid this form.
+        result = self.route.parse_raw_z(
+            raw(f":000000 100644 {ZERO} {ZERO} U{NUL}f.txt{NUL}"), "unstaged")
+        self.assertEqual(result.problems, ())
+        self.assertEqual(result.inputs[0].change_kind, "unmerged")
+
+    def test_an_unmerged_record_with_both_modes_null_is_rejected(self) -> None:
+        # Modes, not object ids, say whether a side exists. Neither side
+        # existing is not a state git records.
+        result = self.route.parse_raw_z(
+            raw(f":000000 000000 {ZERO} {ZERO} U{NUL}f.txt{NUL}"), "unstaged")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
     def test_a_scored_unmerged_record_is_rejected(self) -> None:
         # P-04. Exempting U from the side check exempted it from everything.
         # Git never scores an unmerged entry.
         result = self.route.parse_raw_z(
             raw(f":100644 100644 {OBJ_A} {OBJ_B} U100{NUL}c.py{NUL}"), "unstaged")
-        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
-
-    def test_an_unmerged_record_with_both_sides_null_is_rejected(self) -> None:
-        result = self.route.parse_raw_z(
-            raw(f":000000 000000 {ZERO} {ZERO} U{NUL}c.py{NUL}"), "unstaged")
         self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
 
     def test_a_committed_unmerged_record_is_rejected(self) -> None:
