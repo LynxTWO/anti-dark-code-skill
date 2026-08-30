@@ -1019,5 +1019,15 @@
     "verdict": "unrun",
     "pytest": "",
     "note": "Q-05. Held against a real blobless clone served over git:// by a daemon on loopback, where a genuinely missing promisor object is reachable through inexact rename detection."
+  },
+  {
+    "id": "M53",
+    "name": "one test shadows another by name",
+    "source": "anti-dark-code/tests/test_route.py",
+    "old": "    def test_clean_snapshot_is_complete(self) -> None:",
+    "new": "    def test_ordering_is_canonical(self) -> None:",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "The failure this branch hit twice: a test that is defined but never runs. Python keeps the later definition, the suite stays green, and the lost coverage is invisible. Mutates the test file rather than the router, because the guarantee is about the suite."
   }
 ]

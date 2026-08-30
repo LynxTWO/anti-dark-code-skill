@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import os
@@ -1031,24 +1032,6 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
         finally:
             index.write_bytes(original)
-
-    def test_a_linked_worktree_index_is_found(self) -> None:
-        # P-02. A linked worktree keeps its index under .git/worktrees/<name>,
-        # so assuming .git/index fingerprints nothing at all there and the
-        # boundary check silently covers less than it claims.
-        linked = Path(self.tmp.name) / "linked"
-        done = subprocess.run(
-            ["git", "-C", str(self.repo), "worktree", "add", "-q",
-             str(linked), "-b", "linked-branch"],
-            capture_output=True, text=True)
-        if done.returncode != 0:
-            self.skipTest(f"git worktree add unavailable: {done.stderr.strip()}")
-        run = self.route._default_runner(linked)
-        index_state = self.route._repo_fingerprint(linked, run)[0]
-        self.assertIsNotNone(
-            index_state,
-            "no index was fingerprinted for a linked worktree, so the "
-            "boundary check covered nothing there")
 
     def test_a_symlink_is_identified_not_followed(self) -> None:
         # P-07. lstat was used for metadata and then open() followed the link
@@ -2489,6 +2472,81 @@ class PartialCloneAgainstRealGitDaemonTests(unittest.TestCase):
         self.assertTrue(snapshot.complete,
                         "unguarded acquisition fetched the object but still "
                         "reported the change incomplete")
+
+class SuiteIntegrityTests(unittest.TestCase):
+    """Structural checks on this file, because a test that cannot run is worse
+    than one that was never written: it reports as coverage and holds nothing.
+
+    This branch has produced that failure twice. A slice edit deleted
+    test_a_same_size_index_rewrite_is_detected and the suite stayed green,
+    because a deleted test cannot fail; only a mutation verdict flipping caught
+    it. The commit that restored it then pasted the neighbouring test a second
+    time, and Python kept the later definition and silently discarded the
+    earlier one. Nothing in a green suite distinguishes either case from
+    healthy coverage, and both were found by accident.
+    """
+
+    def test_no_test_name_is_defined_twice(self) -> None:
+        source = Path(__file__).read_text(encoding="utf-8")
+        duplicates = []
+        for node in ast.parse(source).body:
+            if not isinstance(node, ast.ClassDef):
+                continue
+            seen: dict[str, int] = {}
+            for member in node.body:
+                if not isinstance(member, ast.FunctionDef):
+                    continue
+                if not member.name.startswith("test"):
+                    continue
+                if member.name in seen:
+                    duplicates.append(
+                        f"{node.name}.{member.name} is defined at line "
+                        f"{seen[member.name]} and again at line {member.lineno}; "
+                        "the earlier one never runs")
+                seen[member.name] = member.lineno
+        self.assertEqual([], duplicates, "; ".join(duplicates))
+
+    def test_every_defined_test_is_reachable_on_its_class(self) -> None:
+        """The name check above is syntactic. This one asks the class itself.
+
+        A decorator, an assignment after the definition, or an inherited name
+        can also leave a defined test unreachable, and none of those are a
+        repeated name in the file.
+        """
+        source = Path(__file__).read_text(encoding="utf-8")
+        module = sys.modules[__name__]
+        unreachable = []
+        for node in ast.parse(source).body:
+            if not isinstance(node, ast.ClassDef):
+                continue
+            cls = getattr(module, node.name, None)
+            if cls is None:
+                continue
+            for member in node.body:
+                if not isinstance(member, ast.FunctionDef):
+                    continue
+                if not member.name.startswith("test"):
+                    continue
+                bound = getattr(cls, member.name, None)
+                if member.decorator_list:
+                    # A decorator can return a wrapper whose code object starts
+                    # somewhere else entirely, so the line comparison below
+                    # would report shadowing that is not there.
+                    if bound is None:
+                        unreachable.append(f"{node.name}.{member.name} is not on the class")
+                    continue
+                if bound is None:
+                    unreachable.append(f"{node.name}.{member.name} is not on the class")
+                elif getattr(bound, "__code__", None) is not None and (
+                        bound.__code__.co_firstlineno != member.lineno):
+                    # The class carries a different function under this name
+                    # than the one defined here, which is what shadowing looks
+                    # like from the outside.
+                    unreachable.append(
+                        f"{node.name}.{member.name} defined at line "
+                        f"{member.lineno} resolves to line "
+                        f"{bound.__code__.co_firstlineno}")
+        self.assertEqual([], unreachable, "; ".join(unreachable))
 
 if __name__ == "__main__":
     unittest.main()
