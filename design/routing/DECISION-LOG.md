@@ -58,6 +58,12 @@ The documents state what is true. This log preserves why, what else was consider
 | D-039 | 2026-08-29 | Raw grammar is enforced across each record and the payload | Confirmed | |
 | D-040 | 2026-08-29 | Hints use typed values and approved capability-gate bindings | Confirmed | |
 | D-041 | 2026-08-29 | Route results are immutable and every full-recipe field has a mutation guard | Confirmed | |
+| D-042 | 2026-08-30 | Policy authority is revalidated, not transferred by a token | Confirmed | |
+| D-043 | 2026-08-30 | Boundary identity includes index bytes and path topology | Confirmed | |
+| D-044 | 2026-08-30 | Git object format and status grammar come from repository context | Confirmed | |
+| D-045 | 2026-08-30 | Every Route construction path freezes nested authority data | Confirmed | |
+| D-046 | 2026-08-30 | Mutation records contain replay inputs and run through one harness | Confirmed | |
+| D-047 | 2026-08-30 | Cost evidence names units and isolation properties | Confirmed | |
 
 ---
 
