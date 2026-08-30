@@ -1474,7 +1474,8 @@ A required platform leg is added, which would make one host's silence a failure 
 ## D-056: The missing-promisor case is blocked, not closed
 
 Date: 2026-08-30
-Status: Open
+Status: Superseded by D-060
+Resolution: A `git daemon` on loopback supplies the filtering transport this decision said was missing. The case is now proven end to end and held by M52. The reasoning below is kept because it is why no test was invented in the meantime.
 Area: R-043, Q-05, D-036
 
 Context:
@@ -1516,3 +1517,107 @@ A future caller that needs a Route across a process boundary must serialize the 
 
 Revisit when:
 A caller needs a Route across a process or cache boundary and the receipt payload cannot carry it.
+
+## D-059: macOS is verified for the suite and is not a replay host
+
+Date: 2026-08-30
+Status: Confirmed
+Area: CI, D-054, D-057
+
+Context:
+The owner scoped macOS out on the grounds that no real macOS host is available. The CI matrix in `.github/workflows/tests.yml` already runs `macos-latest`, so the suite does have a real macOS result on every pull request.
+
+Decision:
+Keep macOS as a suite platform, where it is genuinely covered, and state that it is not a mutation replay host. Do not describe macOS as out of scope generally, because that would understate what CI already proves.
+
+Because:
+Two different claims were being collapsed. Running the suite on macOS is real coverage and has been for some time. Replaying the mutation matrix on macOS is not done and is not planned, so no coverage is claimed there. Neither statement is served by a single word like "unverified".
+
+There is still no macOS host anyone here controls, so a failure on that leg can be read but not reproduced locally. That is a real limit and is separate from whether the leg runs.
+
+Consequences:
+Any statement about macOS names the suite or the matrix. `unverified` without a subject is not accurate for macOS.
+
+Revisit when:
+Someone acquires a macOS host, or the matrix gains a macOS leg.
+
+## D-058: Linux is a required replay host, and it runs in CI
+
+Date: 2026-08-30
+Status: Confirmed
+Area: D-054, R-043, CI
+
+Context:
+The mutation matrix is the repository's coverage record, and until now it ran only on a developer's machine. Its verdicts were a local artifact a reviewer had to trust. Windows cannot answer the symlink rows, so M37, M46, and M48 depended on someone with a Linux machine remembering to run them.
+
+The owner approved making Linux required verification authority.
+
+Decision:
+Add a required `mutation-replay` job on `ubuntu-latest` that replays the whole matrix on every pull request, and add it to the `required` aggregator. Linux only. Windows and macOS keep their suite legs and are not replay hosts.
+
+Because:
+Linux runs the suite with no skips, so it can observe every guarantee the matrix names. Windows skips the symlink tests, which is why its verdicts need qualifying in the first place; a replay there reports what the host could not see. Running the matrix on a host that cannot answer it would put host facts into a coverage gate.
+
+The cost is small enough that sampling is not worth its complexity. The suite takes about four seconds on Linux against seventeen on Windows, so the full 52 rows finish in a few minutes.
+
+This also removes a failure mode that already happened once. A rewrite on this branch deleted a test, the suite stayed green because a deleted test cannot fail, and only a matrix verdict flipping caught it. That signal should not depend on anyone remembering to look.
+
+Consequences:
+A surviving mutant now fails a pull request. The job runs without `--write`: the committed matrix is the record under review, and a job that rewrote it would be grading its own work. A second step fails the job if replay left the tree dirty, because an unrestored source would make the verdicts describe a tree nobody reviewed.
+
+Verified: the aggregator was exercised directly and fails on both `failure` and `skipped`, so it is not a check that cannot fail.
+
+Revisit when:
+Replay time becomes a burden, or a second replay host is added.
+
+## D-057: The T540P is unreachable, and the blocker is the tailnet policy
+
+Date: 2026-08-30
+Status: Blocked
+Area: D-058, CI
+
+Context:
+The owner directed that the T540P Linux machine on the tailnet be used as the required Linux replay host, and said to record the exact blocker rather than substitute another host if access failed.
+
+Decision:
+Record the blocker. No Linux verdict in the matrix comes from that machine, and none is attributed to it.
+
+Because:
+The machine is up and reachable. `tailscale status` lists `daniel-boyd-thinkpad-t540p` at `100.116.131.19` as online, a tailscale ping returns in about two seconds, and port 22 answers with an `SSH-2.0-Tailscale` banner, so Tailscale SSH is enabled on the target.
+
+Every login is refused before authentication with `tailnet policy does not permit you to SSH as user "<name>"`. This was tried with fourteen names, including the machine owner's, the default derived from the local account, and root. A uniform refusal across every name, emitted by the target after policy evaluation, is a missing SSH accept rule in the tailnet policy rather than a wrong username. No other SSH service answers: ports 2222, 22022, and 2022 time out and 222 is refused.
+
+Fixing this needs an SSH rule added to the tailnet policy in the Tailscale admin console. That is an owner action, and inventing credentials was excluded.
+
+Consequences:
+Linux authority comes from the CI job in D-058, on a GitHub-hosted Linux runner, which is a real Linux host and not a substitute claim. WSL was not used as a Linux host: it was used once as a pre-flight check that the new gate would not land red, and that result is not recorded in the matrix as a host verdict.
+
+Revisit when:
+The tailnet policy grants an SSH rule for this machine, at which point the T540P can be added as a second recorded replay host.
+
+## D-060: The missing-promisor case is proven with a real transport
+
+Date: 2026-08-30
+Status: Confirmed
+Area: R-043, Q-05, D-056, D-036
+
+Context:
+D-056 recorded this as blocked because a local file transport ignores a partial-clone filter, so no genuinely missing object could be built. The owner approved adding a git daemon to the test environment.
+
+Decision:
+Hold the guarantee against a real blobless clone served over `git://` by a daemon bound to loopback for the life of one test class. `PartialCloneAgainstRealGitDaemonTests` carries it and M52 holds the guard.
+
+Because:
+The daemon ships with git, so nothing is installed and nothing machine-wide changes. It listens on loopback on a free port, serves one temporary repository, and is terminated in teardown.
+
+The proof is end to end rather than a flag check. The clone is genuinely missing the base blob and records a promisor remote. The diff acquisition actually runs exits 128 under the guard and leaves the object missing. The same command without the guard exits 0 and writes the object, so the network really was reachable. Full acquisition reports `ADC-ROUTE-COMMITTED-UNREADABLE` and fetches nothing.
+
+Reaching a missing object needs a specific fixture shape, and this is the part worth remembering. Acquisition runs three raw diffs, and a raw diff wants object ids rather than object content. The one exception is inexact rename detection, which scores similarity by reading both blobs. An exact rename shares its object with the tip, so the tip checkout fetches it and nothing is ever missing. Earlier attempts here had no rename across the base at all, and they reported the change complete with the guard removed. Those fixtures would have passed whether or not the control existed.
+
+The counterfactual is asserted rather than assumed: the unguarded run must fetch the object, or the guarded result is not evidence of anything.
+
+Consequences:
+R-043 closes. The older flag-presence test stays, because it runs on hosts where a daemon cannot, and its docstring no longer claims a real clone is impossible. The class skips with a stated reason when the daemon does not start or the clone comes back complete, rather than asserting against a fixture that proves nothing.
+
+Revisit when:
+Acquisition gains a command that reads blob content outside rename detection, which would widen the exposure this holds.
