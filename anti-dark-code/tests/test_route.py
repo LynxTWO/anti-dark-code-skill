@@ -2534,12 +2534,12 @@ class PartialCloneAgainstRealGitDaemonTests(unittest.TestCase):
 TEST_SUITE_DIR = SKILL_ROOT / "tests"
 
 
-def suite_test_definitions():
+def suite_test_definitions(suite_dir=TEST_SUITE_DIR, repo_root=REPO_ROOT):
     """Return source node ids and duplicate definitions for the whole suite."""
     definitions = []
     duplicates = []
-    for path in sorted(TEST_SUITE_DIR.glob("test_*.py")):
-        relative = path.relative_to(REPO_ROOT).as_posix()
+    for path in sorted(suite_dir.rglob("test_*.py")):
+        relative = path.relative_to(repo_root).as_posix()
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         module_names: dict[str, list[int]] = {}
         for node in tree.body:
@@ -2596,11 +2596,26 @@ class SuiteIntegrityTests(unittest.TestCase):
         inventoried = {node_id.split("::", 1)[0] for node_id, _ in definitions}
         candidates = {
             path.relative_to(REPO_ROOT).as_posix()
-            for path in TEST_SUITE_DIR.glob("test_*.py")
+            for path in TEST_SUITE_DIR.rglob("test_*.py")
         }
         self.assertEqual(
             candidates, inventoried,
             "a test module is outside the duplicate and reachability inventory")
+
+    def test_integrity_inventory_recurses_into_nested_test_modules(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            nested = root / "tests" / "nested" / "test_child.py"
+            nested.parent.mkdir(parents=True)
+            nested.write_text(
+                "def test_nested_case():\n    pass\n", encoding="utf-8")
+
+            definitions, duplicates = suite_test_definitions(
+                root / "tests", root)
+
+        self.assertEqual([], duplicates)
+        self.assertEqual(
+            [("tests/nested/test_child.py::test_nested_case", 1)], definitions)
 
     def test_every_defined_test_is_collected_across_the_suite(self) -> None:
         """Collection is the authority on decorators, assignments, and names."""
@@ -2670,7 +2685,8 @@ REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
 
 
 class RequirementTraceabilityTests(unittest.TestCase):
-    M4_UNTRACED = frozenset({"R-013", "R-018", "R-022"})
+    REVIEWED_UNTRACED = frozenset({
+        "R-005", "R-013", "R-017", "R-018", "R-019", "R-021", "R-022"})
 
     def test_the_requirement_evidence_map_exists(self) -> None:
         self.assertTrue(
@@ -2691,12 +2707,13 @@ class RequirementTraceabilityTests(unittest.TestCase):
         mapped = set(evidence.get("requirements", {}))
         untraced = set(evidence.get("untraced", []))
 
+        self.assertEqual(2, evidence.get("schema_version"))
         self.assertEqual(confirmed, verification,
                          "confirmed and verification ledgers disagree")
         self.assertEqual(confirmed, mapped,
                          "the evidence map does not cover the requirement ledger")
         self.assertLessEqual(
-            untraced, self.M4_UNTRACED,
+            untraced, self.REVIEWED_UNTRACED,
             "the explicit untraced list may shrink; adding an id needs review")
 
         slice_text = (REPO_ROOT / "design" / "routing"
@@ -2720,8 +2737,16 @@ class RequirementTraceabilityTests(unittest.TestCase):
                 if node_id not in defined:
                     problems.append(f"{requirement} names missing test {node_id}")
             if requirement in untraced:
-                if tests or record.get("mutation") or record.get("review"):
+                if record.get("partial"):
+                    if not tests:
+                        problems.append(
+                            f"{requirement} is partial but names no live test")
+                elif tests or record.get("mutation") or record.get("review"):
                     problems.append(f"{requirement} is untraced but carries evidence")
+                continue
+            if record.get("partial"):
+                problems.append(
+                    f"{requirement} is marked partial but omitted from untraced")
                 continue
             if tests:
                 continue

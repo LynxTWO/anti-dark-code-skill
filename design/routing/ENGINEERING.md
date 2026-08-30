@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is accepted after the executable traceability gate closed D-061 (D-067). M4 is not started and remains plan-blocked by D-069.
+- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is implemented. D-070 reopens its review because four M3 requirements have only partial evidence. M4 is not started and remains plan-blocked by D-069.
 
 ## 2. Engineering Principles
 
@@ -298,7 +298,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-002 | shuffled-input hash equality | `test_route.py` |
 | R-003 | unmapped path forces full | `test_route.py` |
 | R-004 | `SKILL.md` classification test | `test_route.py` |
-| R-005 | escalator table test, one case per path class | `test_route.py` |
+| R-005 | Partial: one synthetic CI fact; the required real authority-path table is missing | partial tests in `requirement-evidence.json`; D-070 |
 | R-006 | change-kind coverage test | `test_route.py` |
 | R-007 | unreachable base test | `test_route.py` |
 | R-008 | worktree mutation invalidates receipt | `test_route.py` |
@@ -306,16 +306,16 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-010 | two-rule union test | `test_route.py` |
 | R-011 | hint monotonicity test | `test_route.py` |
 | R-012 | obligation coverage test | `test_route.py` |
-| R-013 | `--level` downgrade refused | `test_route.py` |
+| R-013 | Not built: `--level` downgrade refusal | untraced in `requirement-evidence.json`; D-069 |
 | R-014 | `calibration/gates.json` produces a fact | `test_route.py` |
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
-| R-017 | same-status, different-bytes, mode, symlink, index, and submodule staleness tests | `test_route.py` |
-| R-018 | mutation before launch and during a gate invalidates its evidence | `test_route.py` |
-| R-019 | NUL path, old/new rename and copy, mode, type, conflict, index/worktree overlap, and submodule table tests | `test_route.py` |
+| R-017 | Partial: bytes, index, and symlink checks exist; submodule-state freshness is missing | partial tests in `requirement-evidence.json`; D-070 |
+| R-018 | Not built: mutation before launch and during a gate invalidates its evidence | untraced in `requirement-evidence.json`; D-069 |
+| R-019 | Partial: rename, copy, mode, type, conflict, and source-union checks exist; submodule representation is missing | partial tests in `requirement-evidence.json`; D-070 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
-| R-021 | self-grading path table, one case per authority class | `test_route.py` |
-| R-022 | force-full bypasses changed-file gate globs | `test_route.py` |
+| R-021 | Partial: one synthetic CI fact; the required real self-grading path table is missing | partial tests in `requirement-evidence.json`; D-070 |
+| R-022 | Not built: force-full bypasses changed-file gate globs | untraced in `requirement-evidence.json`; D-069 |
 | R-023 | canonical order and timestamp-independence tests | `test_route.py` |
 | R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
 | R-025 | real-repository staged change is not also unstaged | `test_route.py` |

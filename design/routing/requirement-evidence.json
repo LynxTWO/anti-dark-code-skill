@@ -1,8 +1,12 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "untraced": [
+    "R-005",
     "R-013",
+    "R-017",
     "R-018",
+    "R-019",
+    "R-021",
     "R-022"
   ],
   "requirements": {
@@ -22,6 +26,7 @@
       ]
     },
     "R-005": {
+      "partial": true,
       "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe"]
     },
     "R-006": {
@@ -85,6 +90,7 @@
       ]
     },
     "R-017": {
+      "partial": true,
       "tests": [
         "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_different_dirty_bytes_under_identical_status_are_stale",
         "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_index_rewrite_is_detected",
@@ -93,6 +99,7 @@
     },
     "R-018": {},
     "R-019": {
+      "partial": true,
       "tests": [
         "anti-dark-code/tests/test_route.py::RawParserTests::test_rename_keeps_both_paths",
         "anti-dark-code/tests/test_route.py::RawParserTests::test_copy_keeps_both_paths",
@@ -109,6 +116,7 @@
       ]
     },
     "R-021": {
+      "partial": true,
       "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe"]
     },
     "R-022": {},

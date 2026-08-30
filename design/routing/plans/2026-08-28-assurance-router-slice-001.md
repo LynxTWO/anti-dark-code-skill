@@ -22,7 +22,7 @@
 
 **Round-eight adversarial review gate, 2026-08-30:** Do not start receipt or CLI work. `design/routing/HANDOFF-BACK-ROUND-EIGHT.md` found that a mapping proxy backed by mutable data can change a Route after construction. M36, M47, and M48 remain unheld. The parser also rejects a real unmerged form emitted without copy detection, and the real missing-promisor-object test named by R-054 does not exist. Close Q-01 through Q-05 and apply D-049 through D-052 before continuing.
 
-**Round-ten terminal gate, 2026-08-30:** Tasks 1 through 9 are historical implementation instructions; M3 is accepted under D-067. Do not execute Tasks 10 through 12. D-069 confirms the plan's own placeholder findings: Task 10 does not implement R-018 before-and-after gate binding, and Task 11 compares the authoritative full route so it cannot evaluate proposed rules under D-064. `design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md` defines a plan-repair round. M4 remains not started until that adversarial plan review passes.
+**Round-ten terminal gate, 2026-08-30:** Tasks 1 through 9 are historical implementation instructions; M3 is implemented but review-gated by D-070. Do not execute Tasks 10 through 12. D-069 confirms the plan's own placeholder findings: Task 10 does not implement R-018 before-and-after gate binding, and Task 11 compares the authoritative full route so it cannot evaluate proposed rules under D-064. `design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md` defines the next evidence and plan-repair round. M4 remains not started.
 
 ## Global Constraints
 

@@ -1626,7 +1626,7 @@ Acquisition gains a command that reads blob content outside rename detection, wh
 ## D-061: The requirement register names a file, so it proves nothing
 
 Date: 2026-08-30
-Status: Resolved by D-067
+Status: Reopened by D-070
 Area: SLICE-001 section 11, ENGINEERING section 12
 
 Context:
@@ -1771,7 +1771,7 @@ A third host is added, or a row disagrees between hosts for a reason other than 
 ## D-067: M3 needed an executable traceability gate
 
 Date: 2026-08-30
-Status: Confirmed
+Status: Reopened by D-070
 Area: D-061, M3, SLICE-001 section 11
 
 Context:
@@ -1832,3 +1832,32 @@ M4 remains not started. No selective execution is enabled, no policy rule is app
 
 Revisit when:
 `design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md` contains a reviewed replacement for the M4 interfaces and tests, with the D-069 contradictions resolved.
+
+## D-070: Node-id reachability is necessary and not sufficient evidence
+
+Date: 2026-08-30
+Status: Open
+Area: D-061, D-067, M3, R-005, R-017, R-019, R-021
+
+Context:
+The independent review of round ten checked whether the tests mapped by D-067 exercised the full requirement rather than merely collecting. Four did not.
+
+R-017 and R-019 require submodule state. No router, receipt, or test module names submodule behavior, and the implemented `ChangeInput` model has no `submodule_state` field matching the EDD record. Their mapped tests cover other parts of the requirements only.
+
+R-005 and R-021 require real self-grading path classes to force full. Their map named one test that manually constructs a CI fact. With an in-memory copy of the installed rules marked approved, measured routes for `anti-dark-code/scripts/adc_route.py`, `anti-dark-code/assets/verification-capabilities.json`, and `anti-dark-code/references/00-preflight.md` were Level 2 product, Level 2 schema, and Level 0 docs routes, all with `force_full` false. The installed rules remain proposed, so this does not currently permit a skip, but it disproves the registered requirements and the first M3 acceptance.
+
+The same review found that ENGINEERING still labeled R-013, R-018, and R-022 as tested even though the executable map, D-067, and D-069 called them unimplemented. The file-level evidence claim had survived beside the machine-readable correction.
+
+Decision:
+Reopen D-061 and M3 review. Schema version 2 of `requirement-evidence.json` marks R-005, R-017, R-019, and R-021 `partial` and keeps their live tests as incomplete evidence. R-013, R-018, and R-022 remain unimplemented. The reviewed untraced set is those seven ids and may only shrink without another review. ENGINEERING must state partial or unbuilt status rather than naming `test_route.py` as complete evidence.
+
+Do not repair the four M3 requirements by silently adding authority rules, changing a hard escalator, or inventing submodule semantics. The slice guardrails reserve those changes for explicit owner and design review.
+
+Because:
+Resolving a node id proves that a test can run. It does not prove that the test's assertions cover every clause in the requirement. Partial evidence is still useful, so the map retains it and labels it rather than deleting it or treating it as complete.
+
+Consequences:
+M3 remains implemented but review-gated. M4 remains not started for both reasons: M3 has four partial prerequisites, and D-069 still blocks the M4 plan. Round eleven must close or deliberately redesign the four partial M3 requirements before it can rule on M4 eligibility.
+
+Revisit when:
+An owner-reviewed authority-path contract and a submodule-state contract have exact collected tests and implementation evidence, or the confirmed requirements are explicitly revised through the design documents.

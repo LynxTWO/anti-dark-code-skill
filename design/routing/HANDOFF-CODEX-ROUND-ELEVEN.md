@@ -4,17 +4,31 @@ Date: 2026-08-30. Starting point: the commit that closes `HANDOFF-BACK-ROUND-TEN
 
 ## Objective
 
-Repair the M4 implementation plan. Do not implement M4 in this round. The deliverable is a reviewed, executable plan whose interfaces and tests resolve D-069 without enabling selective execution.
+Resolve the D-070 M3 evidence gaps, then repair the M4 implementation plan. Do not implement M4 in this round. The deliverable is an owner-reviewed M3 contract plus a reviewed, executable M4 plan; either may remain blocked when a required authority decision is not supplied.
 
 Read these files completely before changing the plan:
 
 1. `design/routing/HANDOFF-BACK-ROUND-TEN.md`
-2. `design/routing/DECISION-LOG.md`, especially D-064, D-067, D-068, and D-069
+2. `design/routing/DECISION-LOG.md`, especially D-064 and D-067 through D-070
 3. `design/routing/SLICE-001-route-shadow.md`
 4. `design/routing/plans/2026-08-28-assurance-router-slice-001.md`, especially Tasks 10 through 12 and its Self-Review
 5. `design/routing/requirement-evidence.json`
 
-## Blocking contradictions to resolve
+## M3 evidence gaps to resolve first
+
+### R-005 and R-021: self-grading paths
+
+The current synthetic CI fact is partial evidence. With proposed rules changed to approved in memory, real router code, capability-catalog, and routing-owning pass paths receive non-full routes. Do not add a policy rule or hard escalator without owner review.
+
+Produce a complete authority-path table from the requirement, classify each real path, and present the narrow design alternatives. The chosen contract needs one collected test per authority class and a counterexample proving an ordinary non-authority path does not force full accidentally.
+
+### R-017 and R-019: submodule state
+
+The EDD requires `submodule_state`, but the implemented data model and tests do not define it. Specify which Git records and dirty states are supported, how they enter `ChangeInput`, how receipt identity binds them, and which unsupported form fails closed. Use real repository fixtures where Git behavior is the claim.
+
+Do not mark these requirements traced until the full clauses are implemented and their exact test node ids collect. If the requirements should be narrowed instead, make that an explicit design decision rather than editing the evidence map alone.
+
+## M4 blocking contradictions to resolve after M3
 
 ### 1. Candidate route versus authority route
 
@@ -47,8 +61,9 @@ Task 11 currently defines `shadow_result` without connecting it to a full gate r
 
 ## Traceability gate
 
-Before proposing implementation:
+Before proposing M4 implementation:
 
+- close or explicitly redesign R-005, R-017, R-019, and R-021 under D-070;
 - map R-013, R-018, and R-022 to exact planned test node ids;
 - add those node ids to `requirement-evidence.json` only when the tests exist and collect;
 - keep the untraced set fixed until then;
@@ -67,9 +82,10 @@ Before proposing implementation:
 
 ## Deliverables
 
-1. Revised Tasks 10 through 12 with no placeholder prose standing in for code or tests.
-2. Updated plan Self-Review with every former blocking placeholder resolved or explicitly left blocking.
-3. A criterion-by-criterion mapping for R-013, R-018, and R-022.
-4. `design/routing/HANDOFF-BACK-ROUND-ELEVEN.md` containing the plan-review verdict, unresolved owner decisions, exact files changed, and whether M4 is eligible for an implementation round.
+1. An owner-reviewed decision and evidence plan for R-005, R-017, R-019, and R-021.
+2. Revised Tasks 10 through 12 with no placeholder prose standing in for code or tests.
+3. Updated plan Self-Review with every former blocking placeholder resolved or explicitly left blocking.
+4. A criterion-by-criterion mapping for all seven ids in the reviewed untraced set.
+5. `design/routing/HANDOFF-BACK-ROUND-ELEVEN.md` containing the M3 verdict, M4 plan-review verdict, unresolved owner decisions, exact files changed, and whether M4 is eligible for an implementation round.
 
 Do not mark M4 started merely because the plan text changed. Eligibility requires the round-eleven adversarial review to pass.
