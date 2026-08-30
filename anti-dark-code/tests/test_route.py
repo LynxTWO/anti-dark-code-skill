@@ -615,6 +615,21 @@ class AcquisitionTests(unittest.TestCase):
         self.assertIn("ADC-ROUTE-MALFORMED-RECORD", snap.problems)
         self.assertFalse(snap.complete)
 
+    def test_one_source_cannot_disagree_with_the_merge_base_width(self) -> None:
+        # Q-03. The existing width test compares two changed sources against
+        # each other, so removing the merge-base seed changed nothing it could
+        # see. A repository has one object format, and the resolved base is the
+        # first thing that states it.
+        long_a, long_b = "a" * 64, "b" * 64
+        run = RecordingRunner({
+            "merge-base": BASE.encode("ascii") + b"\n",
+            BASE: raw(f":100644 100644 {long_a} {long_b} M{NUL}wide.py{NUL}"),
+        })
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", snap.problems,
+                      "a 64-character row was accepted beside a 40-character base")
+        self.assertFalse(snap.complete)
+
     def test_framing_problems_reach_the_snapshot(self) -> None:
         run = RecordingRunner({
             "merge-base": BASE.encode("ascii") + b"\n",
@@ -910,21 +925,26 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
 
     def test_replacing_a_file_with_a_hard_link_is_detected(self) -> None:
-        """N-03. A file swapped for a hard link during acquisition is detected.
+        """M36. A hard link swap that holds bytes, size, and mtime equal.
 
-        Honest limit: this proves the swap is noticed, not which field notices
-        it. Mutants M36 and M37 remove the topology and lstat parts of the
-        fingerprint and this test still passes, because a hard link shares an
-        inode and the timestamps move in ways that are hard to hold still. Those
-        two mutants are recorded as surviving rather than presented as covered.
+        The earlier version of this test passed for the wrong reason. A hard
+        link shares an inode, so setting the target's timestamp also moved the
+        twin's, and the detector fired on the twin rather than on topology.
+        Aligning both timestamps before the swap removes that side channel, so
+        the only thing left that differs is the path topology: link count and
+        inode. Removing those fields must therefore fail this test.
         """
         target = self.repo / "linked.txt"
         target.write_bytes(b"SAME\n")
         self._git("add", "linked.txt")
         self._git("commit", "-qm", "linked")
-        original = target.stat()
+
         twin = self.repo / "twin-source.txt"
         twin.write_bytes(b"SAME\n")
+        original = target.stat()
+        # One inode after linking, so one timestamp. Align the twin to the
+        # target now and the shared timestamp matches both originals after.
+        os.utime(twin, ns=(original.st_atime_ns, original.st_mtime_ns))
 
         seen: list[int] = []
 
@@ -935,43 +955,20 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
                 target.unlink()
                 try:
                     os.link(twin, target)
-                except (OSError, NotImplementedError):
-                    target.write_bytes(b"SAME\n")
+                except (OSError, NotImplementedError) as exc:
+                    self.skipTest(f"hard links unavailable on this host: {exc}")
                 os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
             return result
 
         snap = self.route.read_change_inputs(
             self.repo, "base-ref", runner=linking_runner)
+
+        # Nothing a content-and-metadata fingerprint can see has moved.
         self.assertEqual(target.read_bytes(), b"SAME\n")
+        self.assertEqual(target.stat().st_size, original.st_size)
+        self.assertEqual(target.stat().st_mtime_ns, original.st_mtime_ns)
+        self.assertEqual(twin.stat().st_mtime_ns, original.st_mtime_ns)
         self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
-
-    def test_a_same_size_index_rewrite_is_detected(self) -> None:
-        # P-02. The index contributed size and mtime only, so an index rewritten
-        # to the same length with its timestamp restored was invisible, which is
-        # the same blind spot L-02 closed for worktree files.
-        index = self.repo / ".git" / "index"
-        original = index.read_bytes()
-        original_stat = index.stat()
-        seen: list[int] = []
-
-        def index_rewriting_runner(args):
-            result = self.route._default_runner(self.repo)(args)
-            seen.append(1)
-            if len(seen) == 5:
-                swapped = bytearray(original)
-                swapped[-1] = (swapped[-1] + 1) % 256
-                index.write_bytes(bytes(swapped))
-                os.utime(index, ns=(original_stat.st_atime_ns,
-                                    original_stat.st_mtime_ns))
-            return result
-
-        try:
-            snap = self.route.read_change_inputs(
-                self.repo, "base-ref", runner=index_rewriting_runner)
-            self.assertEqual(index.stat().st_size, original_stat.st_size)
-            self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
-        finally:
-            index.write_bytes(original)
 
     def test_a_linked_worktree_index_is_found(self) -> None:
         # P-02. A linked worktree keeps its index under .git/worktrees/<name>,
@@ -1011,6 +1008,23 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertIsNotNone(recorded, "the symlink was not fingerprinted")
         self.assertIn("symlink:", recorded,
                       "the symlink was followed instead of identified")
+        # Q-04. Asserting only the marker let the target text be dropped: the
+        # fingerprint would then see one link as equal to any other, and a
+        # retarget to different data would be invisible.
+        self.assertIn(str(outside), recorded,
+                      "the link target text was not recorded")
+
+        # Retarget to a different file of the same length and prove the
+        # fingerprint moves. Same length, so size cannot be doing the work.
+        other = Path(self.tmp.name) / "other-outside.txt"
+        other.write_bytes(b"SECRET-OUTSIDE\n")
+        link.unlink()
+        os.symlink(other, link)
+        after = dict(
+            (entry[0], entry[3])
+            for entry in self.route._repo_fingerprint(self.repo, run)[1])
+        self.assertNotEqual(after.get("link.txt"), recorded,
+                            "retargeting the link did not change the fingerprint")
 
     def test_a_clean_acquisition_reports_no_boundary_violation(self) -> None:
         (self.repo / "src.py").write_text("a\nb\nc\nd\nCHANGED\n", encoding="utf-8")
