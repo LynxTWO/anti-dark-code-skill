@@ -1009,5 +1009,15 @@
         "skipped": 1
       }
     ]
+  },
+  {
+    "id": "M52",
+    "name": "lazy fetch guard disabled",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
+    "new": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"0\"",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "Q-05. Held against a real blobless clone served over git:// by a daemon on loopback, where a genuinely missing promisor object is reachable through inexact rename detection."
   }
 ]

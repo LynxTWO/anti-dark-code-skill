@@ -5,9 +5,11 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from collections.abc import Mapping
 from pathlib import Path
@@ -1099,10 +1101,11 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         which Codex traced: acquisition started a child git fetch and wrote an
         object while reporting complete. GIT_NO_LAZY_FETCH is the real control.
 
-        A true blobless clone could not be built here, because a local file
-        transport ignores the filter and the resulting objects are packed. This
-        asserts the control is present rather than the behaviour it prevents,
-        and says so rather than implying more coverage than it has.
+        This asserts the control is present. The behaviour it prevents is
+        held separately, against a real blobless clone, by
+        PartialCloneAgainstRealGitDaemonTests. That class needs a git daemon
+        and skips without one, so this stays as the check that survives on
+        every host.
         """
         import subprocess as sp
         captured: dict[str, str] = {}
@@ -2268,6 +2271,224 @@ class PolicyValidationTests(unittest.TestCase):
         self.assertEqual(built.matched_rule_ids, frozenset())
         self.assertTrue(built.force_full)
 
+
+def _free_loopback_port() -> int:
+    probe = socket.socket()
+    try:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+    finally:
+        probe.close()
+
+
+def _force_rm(path: Path) -> None:
+    """Remove a git tree on a host that refuses to unlink read-only files.
+
+    Git marks loose objects and packs read-only. Windows honours that on
+    unlink, so a plain rmtree leaves the tree behind and the next run fails on
+    a directory that looks like leftover state.
+    """
+    def clear(func, target, exc):
+        os.chmod(target, 0o700)
+        func(target)
+
+    if path.exists():
+        shutil.rmtree(path, onexc=clear)
+
+
+@unittest.skipUnless(shutil.which("git"), "git is required")
+class PartialCloneAgainstRealGitDaemonTests(unittest.TestCase):
+    """Q-05. A real blobless clone holding a genuinely missing promisor object.
+
+    The earlier test asserted only that GIT_NO_LAZY_FETCH was present, and said
+    plainly that it could not build a real blobless clone because a local file
+    transport ignores the filter. git daemon supplies the missing piece: a real
+    git:// transport, bound to loopback, for the life of this class.
+
+    What is held here is not that a flag is set. It is that a missing promisor
+    object stops acquisition and is reported as unreadable, and that without
+    the guard the same acquisition reaches the network and writes an object
+    while reporting the change complete.
+
+    Reaching a missing object at all takes a specific shape. Acquisition runs
+    three raw diffs, and a raw diff normally needs object ids rather than
+    object content. The exception is inexact rename detection, which must score
+    similarity by reading both blobs. So the fixture puts an inexact rename
+    across the base, and the base side of that rename is the object the clone
+    does not have. A fixture without it passes whether or not the guard exists.
+    """
+
+    daemon = None
+    root: Path | None = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.route = load_route()
+        cls.root = Path(tempfile.mkdtemp(prefix="adc-promisor-"))
+        origin = cls.root / "origin"
+        origin.mkdir()
+        cls._git("init", "-q", "-b", "main", cwd=origin)
+        for key, value in (
+            ("user.email", "router@test.invalid"),
+            ("user.name", "router test"),
+            # Without this the daemon serves the clone but refuses the filter,
+            # and the clone comes back complete with nothing missing.
+            ("uploadpack.allowFilter", "true"),
+            ("uploadpack.allowAnySHA1InWant", "true"),
+        ):
+            cls._git("config", key, value, cwd=origin)
+
+        (origin / "a.txt").write_text(("shared payload line" + chr(10)) * 60,
+                                      encoding="utf-8")
+        (origin / "keep.txt").write_text("keep one" + chr(10), encoding="utf-8")
+        cls._git("add", "-A", cwd=origin)
+        cls._git("commit", "-qm", "base", cwd=origin)
+        cls.base_sha = cls._git("rev-parse", "HEAD", cwd=origin).stdout.strip()
+        cls.base_blob = cls._git("rev-parse", "HEAD:a.txt",
+                                 cwd=origin).stdout.strip()
+
+        # Inexact, so rename detection cannot settle it by object id and has to
+        # read the base blob. An exact rename shares the object with the tip,
+        # which means the tip checkout fetches it and nothing is ever missing.
+        (origin / "renamed.txt").write_text(
+            ("shared payload line" + chr(10)) * 57 + "tail change" + chr(10),
+            encoding="utf-8")
+        (origin / "a.txt").unlink()
+        cls._git("add", "-A", cwd=origin)
+        cls._git("commit", "-qm", "inexact rename", cwd=origin)
+        (origin / "keep.txt").write_text("keep two" + chr(10), encoding="utf-8")
+        cls._git("add", "-A", cwd=origin)
+        cls._git("commit", "-qm", "tip", cwd=origin)
+
+        # No probe for the subcommand. git daemon lives in libexec rather than
+        # on PATH, and its name carries an extension on some hosts, so every
+        # cheap presence check is wrong somewhere. Starting it and watching
+        # whether it accepts a connection answers the question directly.
+        cls.port = _free_loopback_port()
+        cls.daemon = subprocess.Popen(
+            ["git", "daemon", f"--port={cls.port}", "--listen=127.0.0.1",
+             "--export-all", "--enable=upload-pack",
+             f"--base-path={cls.root}", str(cls.root)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for _ in range(100):
+            if cls.daemon.poll() is not None:
+                break
+            try:
+                socket.create_connection(("127.0.0.1", cls.port), 0.2).close()
+                break
+            except OSError:
+                time.sleep(0.1)
+        else:
+            cls._teardown_all()
+            raise unittest.SkipTest("git daemon never accepted a connection")
+        if cls.daemon.poll() is not None:
+            why = (cls.daemon.stderr.read() or b"").decode(errors="replace").strip()
+            cls._teardown_all()
+            raise unittest.SkipTest(f"git daemon exited during startup: {why}")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._teardown_all()
+
+    @classmethod
+    def _teardown_all(cls) -> None:
+        if cls.daemon is not None:
+            cls.daemon.terminate()
+            try:
+                cls.daemon.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                cls.daemon.kill()
+            cls.daemon = None
+        cls._teardown_root()
+
+    @classmethod
+    def _teardown_root(cls) -> None:
+        if cls.root is not None:
+            _force_rm(cls.root)
+            cls.root = None
+
+    @staticmethod
+    def _git(*args, cwd=None, env=None):
+        environment = dict(os.environ)
+        environment.update(env or {})
+        return subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                              text=True, env=environment, timeout=60)
+
+    def _clone(self, name: str) -> Path:
+        target = self.root / name
+        done = self._git("clone", "-q", "--filter=blob:none",
+                         f"git://127.0.0.1:{self.port}/origin", str(target))
+        if done.returncode:
+            self.skipTest(f"blobless clone failed: {done.stderr.strip()}")
+        missing = self._missing_in(target)
+        if self.base_blob not in missing:
+            # No missing promisor object means there is nothing to prove, and
+            # asserting against a complete clone would pass for the wrong
+            # reason. Say why rather than reporting a result.
+            self.skipTest(
+                "clone is not missing the base blob, so the transport or the "
+                f"filter did not take effect (missing: {len(missing)})")
+        return target
+
+    def _missing_in(self, clone: Path) -> set[str]:
+        out = self._git("rev-list", "--objects", "--all", "--missing=print",
+                        cwd=clone).stdout
+        return {line[1:].split()[0] for line in out.splitlines()
+                if line.startswith("?")}
+
+    def test_the_clone_is_missing_a_real_promisor_object(self) -> None:
+        clone = self._clone("precondition")
+        self.assertIn(self.base_blob, self._missing_in(clone))
+        self.assertEqual(
+            "true",
+            self._git("config", "--get", "remote.origin.promisor",
+                      cwd=clone).stdout.strip(),
+            "the clone did not record a promisor remote, so a missing object "
+            "here would be corruption rather than a partial clone")
+
+    def test_acquisition_reports_the_missing_object_and_fetches_nothing(self) -> None:
+        clone = self._clone("guarded")
+        before = self._missing_in(clone)
+        snapshot = self.route.read_change_inputs(clone, self.base_sha)
+        self.assertFalse(snapshot.complete)
+        self.assertIn("ADC-ROUTE-COMMITTED-UNREADABLE", snapshot.problems)
+        self.assertEqual(before, self._missing_in(clone),
+                         "acquisition fetched an object it should have refused")
+
+    def test_without_the_guard_acquisition_reaches_the_network(self) -> None:
+        """The counterfactual. Without this the test above proves nothing.
+
+        If acquisition never needed the missing object, it would report
+        complete and fetch nothing whether or not the guard existed, and the
+        assertion above would hold for a reason that has nothing to do with the
+        control it names.
+        """
+        clone = self._clone("unguarded")
+        before = self._missing_in(clone)
+        original = subprocess.run
+
+        def without_guard(command, **kwargs):
+            environment = kwargs.get("env")
+            if environment and "GIT_NO_LAZY_FETCH" in environment:
+                kwargs["env"] = {key: value
+                                 for key, value in environment.items()
+                                 if key != "GIT_NO_LAZY_FETCH"}
+            return original(command, **kwargs)
+
+        self.route.subprocess.run = without_guard
+        try:
+            snapshot = self.route.read_change_inputs(clone, self.base_sha)
+        finally:
+            self.route.subprocess.run = original
+
+        fetched = before - self._missing_in(clone)
+        self.assertIn(self.base_blob, fetched,
+                      "removing the guard changed nothing, so this fixture "
+                      "does not reach a missing promisor object and the "
+                      "guarded result above is not evidence")
+        self.assertTrue(snapshot.complete,
+                        "unguarded acquisition fetched the object but still "
+                        "reported the change incomplete")
 
 if __name__ == "__main__":
     unittest.main()
