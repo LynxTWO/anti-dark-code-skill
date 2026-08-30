@@ -70,9 +70,9 @@ DECISION: Product shape and platforms. Status Confirmed. See D-001.
   - `verify_receipt(receipt, repo) -> Ok or Stale(reason_code)`
 - **Acquisition is split from parsing.** `read_change_inputs` runs git and hands captured bytes to the pure parsers. Its `runner` argument is the seam: the default calls git, and a test supplies a recorded transcript. That is what makes hostile paths, malformed records, and command construction testable without a repository per case. See D-025.
 - **Every parse reports what it could not read.** `RawParse` carries the rows it understood alongside stable reason codes, and those codes reach `ChangeSnapshot.problems`. A snapshot is `complete` only when the base resolved and no problem was recorded. See D-025.
-- **Git is an untrusted interpreter at this boundary.** Every acquisition call blocks filesystem monitors, external diff and text conversion, content filters, lazy fetch, and optional Git writes. The after-check uses content identity rather than metadata alone. Copy acquisition includes unchanged sources, and every mode transition remains visible even when content changed too. See D-026, D-031, D-036, and D-037.
-- **Parsing proves framing and semantics.** A nonempty `-z` payload must end in NUL. Raw headers and the complete payload must follow the supported Git mode, repository object-width, null-side, status, and score grammar. A successful merge-base call must yield one nonempty object id of the repository's object format. Any failure adds a stable problem code and makes the snapshot incomplete. See D-027, D-032, and D-039.
-- **Contract rule:** the `routing-policy.json` schema is the one source of truth for rule shape. Loading returns an immutable typed value with loader provenance, requires catalog-derived ids, and proves the canonical Level 3 full recipe. `build_route` does not accept an ordinary mapping or a directly constructed record. An invalid policy is an error, never a default. See D-030 and D-038.
+- **Git is an untrusted interpreter at this boundary.** Every acquisition call blocks filesystem monitors, external diff and text conversion, content filters, lazy fetch, and optional Git writes. The after-check includes worktree content and topology plus a digest of the resolved Git index. Copy acquisition includes unchanged sources, and every mode transition remains visible even when content changed too. See D-026, D-031, D-036, D-037, and D-043.
+- **Parsing proves framing and semantics.** A nonempty `-z` payload must end in NUL. The repository object format is acquired once and applies to merge-base plus every committed, staged, and worktree record. Status-side rules are source-specific where Git emits different null sides. Any failure adds a stable problem code and makes the snapshot incomplete. See D-027, D-032, D-039, and D-044.
+- **Contract rule:** the `routing-policy.json` schema is the one source of truth for rule shape. Loading requires the canonical full-set input. A route boundary rejects any changed or copied policy authority unless all immutable fields and canonical inputs are still validated. An invalid policy is an error, never a default. See D-030, D-038, and D-042.
 - **Versioning posture:** `schema_version` integer, the same convention `gates.json` already uses.
 
 DECISION: Interface style. Status Confirmed. See D-002.
@@ -190,13 +190,17 @@ Existing GitHub Actions. Status Confirmed.
 14. Canonical fact order includes every serialized field, including `related_path`. Route obligations also have canonical capability and gate order. Git-path glob matching is case-sensitive and independent of the host operating system. Literal path characters are not rewritten as host separators. All enum values are validated before a fact is emitted. See D-028 and D-034.
 15. A validated policy is a deeply immutable typed value with loader provenance. The route builder rejects raw mappings and directly constructed records. Policy loading requires catalog ids and canonical full-set inputs; it has no hard-coded catalog default. See D-030 and D-038.
 16. Raw record parsing enforces status-specific required scores, supported modes, status-specific absent sides, and one repository object-id width across the payload. Character count alone is insufficient. See D-032 and D-039.
-17. Metadata fingerprints are diagnostic only. A boundary claim uses content identity or an isolated immutable repository representation and detects same-size, same-mtime rewrites. See D-037.
+17. Metadata fingerprints are diagnostic only. A boundary claim includes a digest of the resolved Git index, worktree content, and path topology, or uses an isolated immutable repository representation. It detects same-size index replacement and content-preserving hard-link replacement. See D-037 and D-043.
 18. Hints validate closed levels, boolean types, and approved capability-gate pairs. Proposed rules do not expand hint vocabulary. See D-040.
-19. Route results are deeply immutable. Every full-recipe field and stable reason code has a discriminating mutation guard. See D-041.
+19. Route results are deeply immutable. The invariant holds for direct construction, field replacement, build output, and hint output. Every full-recipe field and stable reason code has a discriminating mutation guard. See D-041 and D-045.
+20. Policy authority cannot be transferred by copying a loader token. Canonical full-set input is mandatory, and changed policy fields require another validation. See D-042.
+21. One repository object format governs every acquisition payload. Real source-specific conflict fixtures define null-side grammar. See D-044.
+22. Every mutation verdict is replayable from stored source, original text, replacement text, and command. Any surviving authority mutant blocks the pure-layer gate. See D-046.
+23. Cost evidence names byte units, storage sharing, and represented state. A shared object store is not an isolated candidate representation. See D-047.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 is blocked by the round-five findings.
+- **Current slice:** SLICE-001, read-only shadow routing. M2 is blocked by the round-six findings in `HANDOFF-BACK-ROUND-SIX.md`.
 - **Modules the slice builds:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier.
 - **Modules the slice stubs:** shadow comparator records only. Gate runner binding reads a receipt but still runs the full set.
 - **Everything else:** designed above, deliberately unbuilt.

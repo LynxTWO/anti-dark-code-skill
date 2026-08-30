@@ -1047,7 +1047,7 @@ Acquisition runs against a trusted, immutable repository representation.
 
 Date: 2026-08-29
 Status: Confirmed
-Area: ADD 5 and 14, EDD R-035 and R-036, SLICE-001 M2
+Area: ADD 5 and 14, EDD R-035, R-036, and R-049, SLICE-001 M2
 
 Context:
 The public frozen dataclasses can be constructed directly. A caller built a `ValidatedPolicy` with a Level 0 empty recipe and an approved cheap rule, then passed the type check. `load_policy` also accepts a Level 3 recipe with only pass 00 and one capability because it has no canonical full-set input.
@@ -1083,7 +1083,7 @@ Consequences:
 Parser tables include every status, required and forbidden scores, absent-side rules, SHA-1, SHA-256, symlink, gitlink, type-change, and conflict records from real Git.
 
 As shipped, 2026-08-30:
-One case was deliberately left looser than the decision implies. An unrecognised status letter still produces a row with change kind `unknown` and a separate `ADC-ROUTE-UNKNOWN-STATUS` report, rather than being refused as malformed. Refusing it would discard the path, and a lost path is worse than an unknown kind that forces the full route anyway.
+One case was deliberately left looser than the decision states. An unrecognised status letter still produces a row with change kind `unknown` and a separate `ADC-ROUTE-UNKNOWN-STATUS` report, rather than being refused as malformed. Refusing it would discard the path, and a lost path is worse than an unknown kind that forces the full route anyway.
 
 Revisit when:
 Git documents a new raw status, object format, mode, or null-side form.
@@ -1129,3 +1129,159 @@ Mutation tests use discriminating fixtures and fail one field at a time. Route s
 
 Revisit when:
 A new Route field or force-full cause is added.
+
+## D-042: Policy authority is revalidated, not transferred by a token
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-035 and R-036, SLICE-001 M2
+
+Context:
+`load_policy` still returns a policy when called with no canonical full-set argument. `dataclasses.replace` also copies the loader token into a record whose recipe and rules were replaced. `build_route` accepts that record and can return a cheap route.
+
+Decision:
+`full_set` is a required `load_policy` argument. A route boundary must either revalidate the full immutable policy against the canonical inputs or accept an authority object whose validation cannot be transferred to changed fields. A private identity token alone is not policy authority.
+
+Because:
+Optional canonical data proves only the policy's local shape. A copied token says one ancestor passed the loader, not that the fields now being routed passed it.
+
+Options considered:
+- Revalidate at `build_route`: simple and safe, with a small pure-function cost.
+- Keep a token plus a digest over every validated field and canonical input: acceptable if the digest is checked at the route boundary.
+- Trust the copied token: rejected because `dataclasses.replace` preserves it.
+
+Consequences:
+Tests omit `full_set`, remove one canonical member at a time, and replace every authority field after loading. No changed policy can produce a selective route without another validation.
+
+Revisit when:
+Policy records become private values with no public field-copy path.
+
+## D-043: Boundary identity includes index bytes and path topology
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-017, R-034, and R-050, SLICE-001 M2
+
+Context:
+The boundary check hashes worktree bytes but records only index size and mtime. A same-size alternate index with restored mtime escaped detection. A tracked file replaced by a hard link with equal bytes, size, and mtime also escaped detection.
+
+Decision:
+Hash the resolved Git index bytes. For every routing-relevant path, record `lstat` identity, file type, mode, link count, and the content identity appropriate to that type. Record symlink targets without following them. Resolve Git administrative paths with `git rev-parse --git-path`, including linked worktrees. If portable path identity cannot be established, use an isolated immutable repository representation.
+
+Because:
+Index bytes are authority data. Path bytes do not describe whether a file became a symlink or a hard link. Size and mtime do not describe either change.
+
+Options considered:
+- Content, metadata, index digest, and path topology: accepted for the current boundary.
+- Candidate state in an isolated immutable representation: acceptable after a complete design and measurement.
+- Size, mtime, and regular-file bytes only: rejected by the two real probes.
+
+Consequences:
+R-050 includes same-size index replacement, content-preserving hard-link replacement, symlink replacement where the host permits it, and linked-worktree index mutation. Each makes acquisition incomplete with `ADC-ROUTE-BOUNDARY-VIOLATED`.
+
+Revisit when:
+Acquisition no longer reads candidate-owned mutable state.
+
+## D-044: Git object format and status grammar come from repository context
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-037 and R-051, SLICE-001 M2
+
+Context:
+Object width is inferred separately for each parser call. One snapshot therefore accepted a 64-digit committed record and a 40-digit staged record. Real unmerged index and worktree records use null sides that the current `U` rule rejects.
+
+Decision:
+Acquire the repository object format once and pass its object-id width through merge-base and every raw parser call. Validate status sides by source using real Git fixtures. Unknown future status letters keep their path, add `ADC-ROUTE-UNKNOWN-STATUS`, and make the snapshot incomplete.
+
+Because:
+A repository has one object format across every comparison. Index, worktree, and tree comparisons do not emit identical null-side forms for conflicts.
+
+Options considered:
+- Repository format plus source-specific grammar: accepted.
+- Per-call width inference and one status table: rejected by mixed-source and real-conflict probes.
+- Drop unknown rows: rejected because it loses the changed path.
+
+Consequences:
+R-051 uses SHA-1, SHA-256, symlink, gitlink, type-change, staged conflict, and worktree conflict output produced by Git. Mixed widths across separate acquisition calls are malformed.
+
+Revisit when:
+Git documents a new object format or raw status form.
+
+## D-045: Every Route construction path freezes nested authority data
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-001, R-041, and R-052, SLICE-001 M2
+
+Context:
+`build_route` and `apply_hints` currently freeze obligations, but the public dataclass does not enforce that invariant. `dataclasses.replace(route, obligations={...})` produces a Route whose obligations can be cleared. A mutation that returns a mutable mapping from the hint path also survives the router suite.
+
+Decision:
+The Route constructor canonicalizes every nested field in `__post_init__`, or Route becomes private behind one constructor. Tests cover direct construction, `dataclasses.replace`, `copy`, the build path, and the hint path.
+
+Because:
+Immutability is a type invariant. Call-site discipline leaves new constructors and copy paths outside the guarantee.
+
+Options considered:
+- Constructor-level canonicalization: accepted while Route remains public.
+- Private Route plus reviewed factories: acceptable.
+- Freeze at selected return statements: rejected by the replace probe and M34.
+
+Consequences:
+Every Route observed by a later receipt or runner has immutable obligations, regardless of how it was constructed.
+
+Revisit when:
+Route stops crossing a public module boundary.
+
+## D-046: Mutation records contain replay inputs and run through one harness
+
+Date: 2026-08-30
+Status: Confirmed
+Area: EDD R-041 and R-053, SLICE-001 M2
+
+Context:
+`mutants/matrix.json` contains ids, names, verdicts, and old pytest summaries. It does not contain source paths, original strings, or replacements. The 32 rows were reconstructed from prose and current source, so the stored file alone cannot replay them. Two further authority mutants survived.
+
+Decision:
+Each mutation row stores source path, original text, replacement text, command, verdict, and observed summary. One checked-in harness requires one original-text match, applies one row, runs the command, restores the source, and verifies a clean worktree. A survivor blocks the pure-layer gate.
+
+Because:
+A verdict without its transformation cannot be audited or repeated. Manual reconstruction tests the reviewer's guess rather than the stored mutation.
+
+Options considered:
+- Data rows plus one harness: accepted.
+- Prose names and manual edits: rejected by this round.
+- A third-party mutation package: deferred because the current standard-library harness is enough.
+
+Consequences:
+M33 and M34 are recorded in `mutants/round-six-challenge.json`. The original 32 remain qualified until their missing replay fields are supplied and the checked-in harness reproduces them.
+
+Revisit when:
+The repository adopts a maintained mutation runner that preserves these replay properties.
+
+## D-047: Cost evidence names units and isolation properties
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 11, EDD 3 and R-055, SLICE-001 M2
+
+Context:
+On the cited 345-file repository, a bare shared clone took 0.160 to 0.770 seconds and stored 38,477 logical bytes, not 5.6 seconds and 38 MB. Its alternates file points to the candidate object store. It has no candidate worktree or index. The 82.32 percent raw-hash mismatch is real, but it compares CRLF worktree bytes with normalized Git blob ids.
+
+Decision:
+Cost records state the command, repeated wall times, logical bytes, allocated bytes when relevant, object-sharing mode, and which candidate state is represented. Raw worktree digests are independent boundary identities and are not compared with Git blob ids. A shared bare clone is not evidence for an isolated acquisition design.
+
+Because:
+Unit errors and shared storage changed the architecture conclusion. Line-ending normalization does not stop a separate digest from detecting a before-and-after byte change.
+
+Options considered:
+- Keep current acquisition while D-043 is implemented: accepted as the next correction.
+- Design and measure a non-shared isolated worktree and index: open for later review.
+- Reject raw-byte identity because it differs from blob ids: rejected because the identities answer different questions.
+
+Consequences:
+The clone cost and the inference drawn from the 82 percent mismatch are withdrawn. Performance remains measured on common and high-path-count inputs, with host and run variance stated.
+
+Revisit when:
+An isolated candidate representation covers commits, index, worktree, untracked paths, modes, symlinks, and submodules.

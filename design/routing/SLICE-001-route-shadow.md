@@ -42,7 +42,7 @@ Every step works against the real repository, real git state, and the real calib
 | Milestone | Status | Contents |
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Review blocked, 2026-08-29 | The code exists, but L-01 through L-06 in `HANDOFF-BACK-ROUND-FIVE.md` block completion. Partial-clone acquisition fetches, the boundary check misses a tracked rewrite, policy provenance and canonical full-set checks are incomplete, hints accept invalid values and bindings, and raw record semantics remain under-validated. R-043 through R-048 state the new closure evidence. |
+| M2 | Review blocked, 2026-08-30 | The code exists, but N-01 through N-08 in `HANDOFF-BACK-ROUND-SIX.md` block completion. Canonical full-set validation is optional, policy provenance transfers through field replacement, index and path-topology mutations escape the boundary, repository-wide object format and real conflict grammar are not enforced, Route immutability is not a type invariant, and the stored mutation matrix is not replayable. R-049 through R-055 state the closure evidence. |
 | M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
 | M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 
@@ -133,6 +133,12 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 | S-043 | Given a missing C or R score, invalid status side, or payload with mixed object widths, when parsed, then the payload is malformed | R-046 test |
 | S-044 | Given an invalid hint type, level, capability-gate pair, or proposed-only pair, when applied, then `HintError` is raised before routing changes | R-047 test |
 | S-045 | Given a built Route or a one-field full-recipe mutation, when mutation is attempted or tests run, then nested state cannot change and the mutant fails | R-048 test |
+| S-046 | Given omitted canonical full-set input or a loaded policy copied with changed authority fields, when loading or routing runs, then no selective route is produced | R-049 test |
+| S-047 | Given same-size index replacement, linked-worktree index mutation, hard-link replacement, or symlink replacement during acquisition, when the closing boundary check runs, then the snapshot is incomplete | R-050 test |
+| S-048 | Given one repository object format and real committed, staged, worktree, and conflict records, when acquisition parses them, then all valid records survive and any cross-source width mismatch blocks | R-051 test |
+| S-049 | Given a Route from direct construction, field replacement, copy, build, or hints, when nested mutation is attempted, then authority data cannot change | R-052 test |
+| S-050 | Given every stored mutation row, when the replay harness applies it alone, then the source is restored and every authority mutation is caught | R-053 test |
+| S-051 | Given a real global filter and a real blobless clone missing a required blob, when acquisition runs, then no configured program or lazy fetch starts | R-054 test |
 
 ## 9. Verification evidence required
 
@@ -142,8 +148,8 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 - [ ] EDD section 17 per-change checklist satisfied for every change in the slice.
 - [ ] `validate --mode universal` reports zero errors.
 - [ ] The clean distribution archive check passes with the new template included.
-- [ ] K-01 through K-13 and L-01 through L-09 are closed with failing-before and passing-after evidence.
-- [ ] The four round-four survivors and all round-five full-recipe and reason-code mutations are caught by focused tests.
+- [ ] K-01 through K-13, L-01 through L-09, and N-01 through N-08 are closed with failing-before and passing-after evidence.
+- [ ] Every stored mutation is replayable from data, and M33 and M34 are caught by focused tests.
 
 An agent's statement that the slice works is a claim. This list is the evidence.
 
@@ -158,7 +164,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 ## 11. Slice definition of done
 
 - [ ] All acceptance criteria pass with linked evidence.
-- [ ] D-026 through D-041 are resolved in code, and S-024 through S-045 pass before receipt work starts.
+- [ ] D-026 through D-047 are resolved in code, and S-024 through S-051 pass before receipt work starts.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
 - [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.

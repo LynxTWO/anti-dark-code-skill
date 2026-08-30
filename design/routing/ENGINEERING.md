@@ -335,6 +335,13 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-046 | status-side, required-score, and payload-wide object-format table | `test_route.py` |
 | R-047 | typed hint values and approved capability-gate pair table | `test_route.py` |
 | R-048 | nested Route mutation attempts and focused recipe-field mutations | `test_route.py` |
+| R-049 | mandatory canonical full-set input plus changed-field policy-copy rejection | `test_route.py` |
+| R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
+| R-051 | repository-wide object format plus real source-specific conflict grammar | `test_route.py` |
+| R-052 | direct, replaced, built, copied, and hinted Route immutability table | `test_route.py` |
+| R-053 | data-driven replay of every stored mutation, including M33 and M34 | `mutants/` and `test_route.py` |
+| R-054 | real global filter plus real blobless partial-clone no-execution table | `test_route.py` |
+| R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | review evidence |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 
@@ -397,6 +404,9 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-009 | A Git configuration path starts a program or network request before routing | repository code runs at the trust boundary | R-034 hostile execution-family table | Open |
 | U-010 | A mutable or malformed policy bypasses its one validation pass | an unreviewed rule produces a cheap route | R-035 and R-036 | Open |
 | U-011 | Route equality hides order differences later preserved by a receipt | authoritative bytes depend on fact order | R-038 | Open |
+| U-012 | A copied policy retains loader provenance after authority fields change | an unreviewed recipe produces a cheap route | R-049 and D-042 | Open |
+| U-013 | Index bytes or path topology change while content metadata stays equal | acquisition reports a changed repository as complete | R-050 and D-043 | Open |
+| U-014 | Per-call width inference or one status-side table disagrees with repository Git output | valid conflicts block or mixed repository identity is accepted | R-051 and D-044 | Open |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "M33",
+    "name": "fingerprint ignores index state",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "original": "    return (index_state, tuple(sorted(entries)))",
+    "replacement": "    return (None, tuple(sorted(entries)))",
+    "command": "python -m pytest anti-dark-code/tests/test_route.py -q",
+    "verdict": "survived",
+    "pytest": "169 passed in 20.65s"
+  },
+  {
+    "id": "M34",
+    "name": "hinted route has mutable obligations",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "original": "        obligations=MappingProxyType(\n            {k: frozenset(merged[k]) for k in sorted(merged)}),",
+    "replacement": "        obligations={k: frozenset(merged[k]) for k in sorted(merged)},",
+    "command": "python -m pytest anti-dark-code/tests/test_route.py -q",
+    "verdict": "survived",
+    "pytest": "169 passed in 20.00s"
+  }
+]

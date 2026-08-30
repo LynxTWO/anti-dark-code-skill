@@ -18,6 +18,8 @@
 
 **Round-five adversarial review gate, 2026-08-29:** Do not start receipt or CLI work. The executable review in `design/routing/HANDOFF-BACK-ROUND-FIVE.md` found six blocking defects. A real partial clone fetched a missing blob, the metadata fingerprint missed a tracked rewrite, policy authority and canonical full-set checks remain bypassable, hints accept invalid types and obligation pairs, and raw grammar remains incomplete. Three full-recipe and reason-code mutations also survive. Tasks 2 through 6 must close L-01 through L-09 and satisfy R-043 through R-048 and S-040 through S-045. D-036 through D-041 are the remediation decisions. Existing code blocks remain historical drafts where they conflict with that review.
 
+**Round-six adversarial review gate, 2026-08-30:** Do not start receipt or CLI work. The executable review in `design/routing/HANDOFF-BACK-ROUND-SIX.md` found three blocking defects. Canonical full-set validation can be omitted, loader provenance transfers through `dataclasses.replace`, and index or path-topology mutation can escape the acquisition boundary. Real conflict output is rejected, object width is not enforced across acquisition calls, Route immutability is not a type invariant, and two further authority mutants survive. Tasks 2 through 6 must close N-01 through N-08 and satisfy R-049 through R-055 and S-046 through S-051. D-042 through D-047 are the remediation decisions. Existing code blocks remain historical drafts where they conflict with that review.
+
 ## Global Constraints
 
 - **Python 3.12+, standard library only.** No new runtime dependency. Every import must survive the hostile-environment matrix and the clean distribution check. `fnmatch` is available and already used for glob matching.
