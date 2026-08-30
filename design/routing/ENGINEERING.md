@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** the round-eight findings Q-01 through Q-04 and Q-06 are closed. Q-05, the real missing-promisor-object case, is recorded as blocked and open in D-056: this host cannot build a blobless clone, and no test will be written that passes without exercising one. Mutation verdicts are platform-qualified per D-054, so a row caught only on a symlink-capable host reads as caught elsewhere rather than as a repository-wide survivor. Receipt and CLI work waits on the round-nine review.
+- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is implemented. M3 remains review-gated because D-061 records an unresolved requirement-to-test traceability gap. M4 has not started and may not start until that ruling is closed.
 
 ## 2. Engineering Principles
 

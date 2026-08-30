@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** the round-eight findings Q-01 through Q-04 and Q-06 are closed. Q-05, the real missing-promisor-object case, is recorded as blocked and open in D-056: this host cannot build a blobless clone, and no test will be written that passes without exercising one. Mutation verdicts are platform-qualified per D-054, so a row caught only on a symlink-capable host reads as caught elsewhere rather than as a repository-wide survivor. Receipt and CLI work waits on the round-nine review.
+**Current gate:** Q-05 is proven against a real blobless clone served by a loopback Git daemon (D-060), and Linux mutation replay is required in CI (D-058). M3 exists: policy validation, receipt writing and verification, and the `route` command are implemented. M3 remains review-gated because D-061 records an unresolved requirement-to-test traceability gap. M4 has not started and may not start until that ruling is closed.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
@@ -200,9 +200,9 @@ Existing GitHub Actions. Status Confirmed.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 is blocked by the round-six findings in `HANDOFF-BACK-ROUND-SIX.md`.
-- **Modules the slice builds:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier.
-- **Modules the slice stubs:** shadow comparator records only. Gate runner binding reads a receipt but still runs the full set.
+- **Current slice:** SLICE-001, read-only shadow routing. M2 is complete. M3 is implemented and awaits the D-061 traceability ruling.
+- **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
+- **Modules not built:** the M4 shadow comparator and gate runner binding. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.
 
 ---
