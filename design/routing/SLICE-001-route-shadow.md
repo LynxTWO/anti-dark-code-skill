@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 0.9. Date: 2026-08-30. Status: Proposed.
+Version: 1.0. Date: 2026-08-30. Status: Proposed.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -42,7 +42,7 @@ Every step works against the real repository, real git state, and the real calib
 | Milestone | Status | Contents |
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Blocked by round-eight review, 2026-08-30 | The pure layer exists, but `HANDOFF-BACK-ROUND-EIGHT.md` refutes deep Route immutability and records M36, M47, and M48 as unheld. A real plain-raw conflict form is rejected, and the real missing-promisor-object case named by R-054 is absent. D-049 through D-052 state the remediation rules. |
+| M2 | Done, pending round-nine review, 2026-08-30 | The pure layer exists, but `HANDOFF-BACK-ROUND-EIGHT.md` refutes deep Route immutability and records M36, M47, and M48 as unheld. A real plain-raw conflict form is rejected, and the real missing-promisor-object case named by R-054 is absent. D-049 through D-052 state the remediation rules. |
 | M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
 | M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 

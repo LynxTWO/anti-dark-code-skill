@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.9. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 1.0. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** round eight refuted deep Route immutability, found a real Git `U` form outside the production flag set that the parser rejects, and added M47 and M48. M36, M47, and M48 have no discriminating suite guard. M37 and M46 are caught under Ubuntu. The real missing-promisor-object test named by R-054 is still absent. Receipt and CLI work remains blocked.
+- **Current gate:** the round-eight findings Q-01 through Q-04 and Q-06 are closed. Q-05, the real missing-promisor-object case, is recorded as blocked and open in D-056: this host cannot build a blobless clone, and no test will be written that passes without exercising one. Mutation verdicts are platform-qualified per D-054, so a row caught only on a symlink-capable host reads as caught elsewhere rather than as a repository-wide survivor. Receipt and CLI work waits on the round-nine review.
 
 ## 2. Engineering Principles
 

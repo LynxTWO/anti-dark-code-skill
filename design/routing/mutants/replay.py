@@ -136,9 +136,16 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
         # Caught anywhere is caught. A host that cannot exercise the guarantee
         # reports a skip, and a skip is not evidence of absence.
         anywhere = [r for r in row["results"] if r["verdict"] == "caught"]
-        row["verdict"] = "caught" if anywhere else "SURVIVED"
-        if anywhere and verdict == "SURVIVED":
-            row["verdict"] = "caught elsewhere"
+        if anywhere:
+            row["verdict"] = "caught" if verdict == "caught" else "caught elsewhere"
+        elif all(r.get("skipped") for r in row["results"]):
+            # Every host that ran this skipped a test. That is not evidence the
+            # guarantee is unheld, it is evidence nobody could check it here.
+            # Calling it SURVIVED would put a gap in the record that no host
+            # has actually observed.
+            row["verdict"] = "unverified: every host skipped"
+        else:
+            row["verdict"] = "SURVIVED"
         row["pytest"] = summary
         note = "" if verdict == row["verdict"] else (
             f"  (here: {verdict}{', ' + str(skipped) + ' skipped' if skipped else ''})")

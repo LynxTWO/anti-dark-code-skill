@@ -1,6 +1,6 @@
 # Assurance Router Architecture Document (ADD)
 
-Version: 0.9. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 1.0. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ENGINEERING.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. Where the two conflict, this document's guardrails control.
@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** round eight found one live Route immutability bypass and two new surviving authority mutants. A caller can pass a mapping proxy backed by mutable data, M47 removes repository-width binding without failing the suite, and M48 removes symlink target text without failing on a symlink-capable host. M36 also remains unheld. M37 and M46 fail the existing symlink test under Ubuntu, so their Windows survivor labels are platform-local. Receipt and CLI work remains blocked. See D-049 through D-052 and `HANDOFF-BACK-ROUND-EIGHT.md`.
+**Current gate:** the round-eight findings Q-01 through Q-04 and Q-06 are closed. Q-05, the real missing-promisor-object case, is recorded as blocked and open in D-056: this host cannot build a blobless clone, and no test will be written that passes without exercising one. Mutation verdicts are platform-qualified per D-054, so a row caught only on a symlink-capable host reads as caught elsewhere rather than as a repository-wide survivor. Receipt and CLI work waits on the round-nine review.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 

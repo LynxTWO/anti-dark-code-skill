@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.9. Date: 2026-08-30. Status: Audited.
+Version: 1.0. Date: 2026-08-30. Status: Audited.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
