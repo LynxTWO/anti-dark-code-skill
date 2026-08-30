@@ -1029,5 +1029,44 @@
     "verdict": "unrun",
     "pytest": "",
     "note": "The failure this branch hit twice: a test that is defined but never runs. Python keeps the later definition, the suite stays green, and the lost coverage is invisible. Mutates the test file rather than the router, because the guarantee is about the suite."
+  },
+  {
+    "id": "M54",
+    "name": "run id hashes observed metadata too",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "        \"run_id\": digest(payload),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
+    "new": "        \"run_id\": digest({\"p\": dict(payload), \"o\": dict(observed or {})}),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "R-023. A clock must not be able to change routing authority."
+  },
+  {
+    "id": "M55",
+    "name": "verification stops at the first moved field",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "        if recorded.get(key) != now.get(key):\n            reasons.append((code, key))",
+    "new": "        if recorded.get(key) != now.get(key):\n            return Staleness(False, ((code, key),))",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "A reader who fixes one stale field and reruns should not discover the next one only then."
+  },
+  {
+    "id": "M56",
+    "name": "worktree identity ignores file content",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "        \"entries\": sorted([list(entry) for entry in entries]),",
+    "new": "        \"entries\": len(entries),",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "R-017. Binding to a count is the status-text mistake in another form: different bytes, same identity."
   }
 ]

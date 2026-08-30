@@ -50,14 +50,21 @@ def host_identity() -> dict:
         "git": git,
     }
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SUITE = ["python", "-m", "pytest", "anti-dark-code/tests/test_route.py", "-q"]
+# The router file by default. A row may name its own suite, because a mutant
+# in one module proves nothing when the tests that hold it are never run, and
+# replaying every module for every row costs minutes per mutant to learn that.
+DEFAULT_SUITE = ("anti-dark-code/tests/test_route.py",)
+
+
+def suite_command(paths) -> list[str]:
+    return ["python", "-m", "pytest", *paths, "-q"]
 
 
 class SuiteBroken(RuntimeError):
     """The suite did not run, so the mutant proved nothing either way."""
 
 
-def run_suite() -> tuple[bool, str, int]:
+def run_suite(paths=DEFAULT_SUITE) -> tuple[bool, str, int]:
     """Return whether the mutant was caught, plus the summary line.
 
     A mutant is caught when tests fail. It is not caught when they pass. A
@@ -65,7 +72,8 @@ def run_suite() -> tuple[bool, str, int]:
     about the mutant, and treating that as either verdict would put a false
     row in the record. Those raise instead.
     """
-    done = subprocess.run(SUITE, cwd=REPO_ROOT, capture_output=True, text=True)
+    done = subprocess.run(suite_command(paths), cwd=REPO_ROOT,
+                          capture_output=True, text=True)
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
     # pytest exit codes are exact, and text is not. A collection error, an
@@ -112,7 +120,8 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
         source.write_text(
             original.replace(row["old"], row["new"], 1), encoding="utf-8", newline="")
         try:
-            caught, summary, skipped = run_suite()
+            caught, summary, skipped = run_suite(
+                tuple(row.get("suite", DEFAULT_SUITE)))
         except SuiteBroken as broken:
             row["verdict"] = "INCONCLUSIVE"
             row["pytest"] = str(broken)
