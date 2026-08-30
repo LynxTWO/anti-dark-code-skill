@@ -64,6 +64,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-045 | 2026-08-30 | Every Route construction path freezes nested authority data | Confirmed | |
 | D-046 | 2026-08-30 | Mutation records contain replay inputs and run through one harness | Confirmed | |
 | D-047 | 2026-08-30 | Cost evidence names units and isolation properties | Confirmed | |
+| D-048 | 2026-08-30 | Acquisition stays on the live repository, for capability not cost | Confirmed | |
 
 ---
 
@@ -1291,3 +1292,41 @@ The clone cost and the inference drawn from the 82 percent mismatch are withdraw
 
 Revisit when:
 An isolated candidate representation covers commits, index, worktree, untracked paths, modes, symlinks, and submodules.
+
+## D-048: Acquisition stays on the live repository, for capability not cost
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 4 to 6, supersedes the reasoning recorded against D-030
+
+Context:
+The owner asked whether acquisition should read from an isolated repository representation rather than the live repository, after enumerating git configuration keys had failed twice. I costed that option and recommended against it. The costing was wrong, which N-07 established: a bare shared clone of a 345-file repository takes 145 to 155 milliseconds and stores about 27 kilobytes, not the 5.6 seconds and 38 megabytes I reported. I had read `du -sb` bytes as megabytes and timed one cold run. The second argument was misapplied as well: the 82 percent raw-to-blob mismatch rules out using our own hash to detect unstaged changes, and says nothing about using one as a boundary digest, which is what was actually built.
+
+Both arguments being wrong, the question was reopened and measured again.
+
+Decision:
+Acquisition continues to read the live repository. The isolated representation is refused on capability, not on cost.
+
+Because:
+A bare clone has no worktree and an empty index, so it cannot observe three of the four sources routing needs. Measured against a repository with one committed change, one staged change, one unstaged change, and one untracked file:
+
+- committed: observed correctly.
+- staged: **observed wrongly**. The clone reported every tracked file as deleted, because it compares its own empty index against HEAD. Origin had exactly one modified path. This is not a gap, it is a false answer that would route as though the tree had been emptied.
+- unstaged: invisible.
+- untracked: invisible.
+
+The comparisons a clone does isolate are the ones already safe by construction: committed and staged read objects, and untracked reads names. The one comparison that can execute anything is the worktree diff, and that is precisely the one a clone cannot perform at all. So the option isolates what needs no isolation and loses what matters.
+
+`--shared` also does not isolate objects. It writes an alternates file pointing into the candidate object store, so the clone reads the same objects through a different configuration.
+
+Options considered:
+- Live repository with discovered filter overrides and a boundary fingerprint: keeps every source, and the boundary is checked rather than asserted per D-030.
+- Bare shared clone: cheap, isolates config, cannot see staged, unstaged, or untracked, and answers the staged question incorrectly.
+- Full clone: adds object copying cost and has the same capability loss.
+- `git worktree add`: writes administrative files into the candidate repository, which breaks the read-only property this is meant to protect.
+
+Consequences:
+The boundary continues to rest on discovery plus detection rather than on isolation by construction. D-030's third layer stays load-bearing, which is why its mutants matter.
+
+Revisit when:
+A representation appears that can observe index and worktree state without executing candidate configuration, or the worktree source is dropped from routing entirely.
