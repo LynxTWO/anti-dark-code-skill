@@ -52,33 +52,89 @@ unguarded run must fetch the object, or the guarded result is not evidence.
 M52 holds the guard. D-060 records it, and D-056 is marked superseded rather
 than quietly edited.
 
-## Linux is required, and the T540P is not the host
+## Linux is required, and the T540P is a recorded host
 
 D-058 adds a required `mutation-replay` job on `ubuntu-latest` that replays all
 60 rows on every pull request, wired into the `required` aggregator. Linux
-only: it runs the suite with no skips, so it can observe every guarantee the
-matrix names, while Windows skips the symlink tests and would report host facts
-as coverage. The aggregator was exercised directly and fails on both `failure`
-and `skipped`.
+only: on a real Linux host the full suite reports 374 passed and 1 skipped
+against 361 and 14 on Windows, and that single skip is a test of Windows
+process termination, which is the mirror image of a gap rather than one.
+Windows skips the symlink tests and would report host facts as coverage.
+The aggregator was exercised directly and fails on both `failure` and
+`skipped`.
 
-D-057 records why it is not the T540P. The machine is online, a tailscale ping
-returns, and port 22 answers with an `SSH-2.0-Tailscale` banner, so Tailscale
-SSH is enabled. Every login is refused before authentication with `tailnet
-policy does not permit you to SSH as user "<name>"`, across fourteen names
-including the owner's, the default from the local account, and root. A uniform
-refusal for every name, emitted after policy evaluation, is a missing SSH
-accept rule in the tailnet policy, not a wrong username. Ports 2222, 22022, and
-2022 time out; 222 is refused. Fixing it needs a rule added in the Tailscale
-admin console, which is an owner action.
+D-057 records a mistake of mine, corrected by the owner. I reported the T540P
+as unreachable and blamed a missing SSH rule in the tailnet policy. The policy
+was already correct. It permits `autogroup:member` to `autogroup:self` as
+`autogroup:nonroot` and needed no edit; the account is `daniel-boyd`, which is
+one of the few names I did not try.
 
-WSL was not used as a Linux host. It was used once as a pre-flight check that
-the new required gate would not land red, and that result is not in the matrix
-as a host verdict.
+The reasoning error is worth more than the fact. I tried fourteen names, saw
+one refusal text for all of them, and concluded no rule existed.
+`autogroup:nonroot` admits any non-root account that exists, and Tailscale
+refuses a name that is not a local account using the same message it uses when
+no rule matches. One string, two causes, and I reported the stronger one as
+established. A negative result across a list I invented says as much about the
+list as about the system, and I did not mark it as inference.
+
+The T540P is now a recorded replay host: Ubuntu 24.04.4 LTS, kernel
+7.0.0-28-generic, Python 3.12.3, git 2.43.0. No policy was changed.
+
+CI replay stays required regardless, and the reason is unchanged: the matrix
+should not depend on any one machine being reachable.
+
+WSL was used once, before the T540P was available, as a pre-flight that the new
+gate would not land red. It is not in the matrix as a host verdict.
 
 **A correction the owner should see.** macOS was scoped out on the grounds that
 no macOS host exists. CI already runs the suite on `macos-latest`, so macOS is
 covered for the suite and has been. It is not a replay host and no matrix
 coverage is claimed there. D-059.
+
+## I committed a live mutant to the router
+
+The worst thing in this round, and it is mine.
+
+`a92c869` shipped M01. `_union_obligations` was assigning instead of unioning,
+so a capability required by two rules kept only the gates of whichever rule was
+applied last. The docstring directly above that line says what it costs: a
+route would claim a capability was covered by work it never selected. Running
+less verification than a change deserved is the failure this entire subsystem
+exists to prevent, and it went into the router itself.
+
+Cause: I started the authoritative replay in the background and then ran
+`git add -A` for an unrelated docs commit while it was running. Replay mutates
+tracked source in place and restores it between rows, so for seconds at a time
+the tree holds a deliberate defect. `add -A` took what was there.
+
+No test could have caught it. The suite was green before that commit and green
+after, because the mutant existed only in the window where nothing ran and the
+restore put the correct line back afterwards. Only the diff between HEAD and
+the restored file showed it, and I found that while checking source restoration
+rather than by looking for it.
+
+`9e61386` restores the router. No other file was affected.
+
+That is the fourth instance on this branch of one class: the tree not being
+what a green suite implies. The deleted test, the shadowed duplicate, M56's
+stale target, and now this.
+
+So the guard sits where it can see that class. `MutationMatrixIntegrityTests`
+checks the tree against the matrix: if a row's original text is missing from
+its source, either the row is stale or that file is holding the mutant. A
+second test states the narrow case separately, because a row whose replacement
+is present while its original is absent is not ambiguous.
+
+It skips during a replay, and that is load-bearing rather than convenient.
+Replay mutates the tree on purpose, so without the flag this check would fail
+for whichever row is applied and every mutant would report caught with no
+behavioural test having noticed. A guard that turns the coverage record into a
+tautology is worse than none. Verified in both directions: with M01 reapplied
+the two checks fail and name it, with the flag set they stand aside, and M01
+still replays as caught on the strength of a real test.
+
+**Worth your scrutiny:** whether any earlier commit on this branch carries the
+same problem. I checked the current tree, not the history.
 
 ## A test that was defined and never ran
 

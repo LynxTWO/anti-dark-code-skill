@@ -1556,9 +1556,9 @@ Decision:
 Add a required `mutation-replay` job on `ubuntu-latest` that replays the whole matrix on every pull request, and add it to the `required` aggregator. Linux only. Windows and macOS keep their suite legs and are not replay hosts.
 
 Because:
-Linux runs the suite with no skips, so it can observe every guarantee the matrix names. Windows skips the symlink tests, which is why its verdicts need qualifying in the first place; a replay there reports what the host could not see. Running the matrix on a host that cannot answer it would put host facts into a coverage gate.
+Linux observes every guarantee the matrix names. On a real Linux host the full suite reports 374 passed and 1 skipped, against 361 passed and 14 skipped on Windows, and the single Linux skip is a test of Windows process termination, which is the mirror image of a gap rather than one. An earlier draft said Linux runs with no skips at all; that came from running the router file alone and was not exact. Windows skips the symlink tests, which is why its verdicts need qualifying in the first place; a replay there reports what the host could not see. Running the matrix on a host that cannot answer it would put host facts into a coverage gate.
 
-The cost is small enough that sampling is not worth its complexity. The suite takes about four seconds on Linux against seventeen on Windows, so the full 52 rows finish in a few minutes.
+The cost is small enough that sampling is not worth its complexity. The suite takes about four seconds on Linux against seventeen on Windows, so the full matrix finishes in a few minutes.
 
 This also removes a failure mode that already happened once. A rewrite on this branch deleted a test, the suite stayed green because a deleted test cannot fail, and only a matrix verdict flipping caught it. That signal should not depend on anyone remembering to look.
 
@@ -1570,30 +1570,31 @@ Verified: the aggregator was exercised directly and fails on both `failure` and 
 Revisit when:
 Replay time becomes a burden, or a second replay host is added.
 
-## D-057: The T540P is unreachable, and the blocker is the tailnet policy
+## D-057: The T540P was reachable, and the diagnosis was wrong
 
 Date: 2026-08-30
-Status: Blocked
+Status: Corrected, 2026-08-30
 Area: D-058, CI
 
 Context:
-The owner directed that the T540P Linux machine on the tailnet be used as the required Linux replay host, and said to record the exact blocker rather than substitute another host if access failed.
+This entry previously read "The T540P is unreachable, and the blocker is the tailnet policy". That was wrong, and the error was mine rather than the environment's.
 
-Decision:
-Record the blocker. No Linux verdict in the matrix comes from that machine, and none is attributed to it.
+Correction:
+The tailnet policy was already correct. It permits `autogroup:member` to `autogroup:self` as `autogroup:nonroot`, and it needed no edit. The local account is `daniel-boyd`. Verified from Windows:
+
+    tailscale ssh daniel-boyd@daniel-boyd-thinkpad-t540p 'id -un; hostname'
+
+returns `daniel-boyd` and `daniel-boyd-ThinkPad-T540p`.
 
 Because:
-The machine is up and reachable. `tailscale status` lists `daniel-boyd-thinkpad-t540p` at `100.116.131.19` as online, a tailscale ping returns in about two seconds, and port 22 answers with an `SSH-2.0-Tailscale` banner, so Tailscale SSH is enabled on the target.
+I tried fourteen names and never the hyphenated one, then reasoned from the uniform refusal that no SSH rule existed. That inference does not hold. `autogroup:nonroot` admits any non-root account that exists on the host, and Tailscale refuses a name that is not a local account with the same message it uses when no rule matches. Identical text for two different causes, and I read the evidence as proof of the wrong one.
 
-Every login is refused before authentication with `tailnet policy does not permit you to SSH as user "<name>"`. This was tried with fourteen names, including the machine owner's, the default derived from the local account, and root. A uniform refusal across every name, emitted by the target after policy evaluation, is a missing SSH accept rule in the tailnet policy rather than a wrong username. No other SSH service answers: ports 2222, 22022, and 2022 time out and 222 is refused.
-
-Fixing this needs an SSH rule added to the tailnet policy in the Tailscale admin console. That is an owner action, and inventing credentials was excluded.
+The failure was treating "every attempt failed the same way" as evidence about the policy, when it was equally consistent with never having supplied a real account name. A negative result across a list I chose says as much about the list as about the system, and the entry stated the stronger conclusion without marking it as inference.
 
 Consequences:
-Linux authority comes from the CI job in D-058, on a GitHub-hosted Linux runner, which is a real Linux host and not a substitute claim. WSL was not used as a Linux host: it was used once as a pre-flight check that the new gate would not land red, and that result is not recorded in the matrix as a host verdict.
+The T540P is a usable Linux host: Ubuntu 24.04.4 LTS, kernel 7.0.0-28-generic, Python 3.12.3, git 2.43.0, four cores. No tailnet policy change was made or needed.
 
-Revisit when:
-The tailnet policy grants an SSH rule for this machine, at which point the T540P can be added as a second recorded replay host.
+D-058 stands on its own merits rather than on this: CI replay is required because the matrix should not depend on any one machine being reachable. The T540P is now a second recorded replay host, not a replacement for it.
 
 ## D-060: The missing-promisor case is proven with a real transport
 

@@ -57,8 +57,16 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SUITE = ("anti-dark-code/tests/test_route.py",)
 
 
+# The matrix integrity tests compare the tree against the matrix, and during a
+# replay the tree is deliberately wrong. They are deselected rather than
+# skipped: a skip counts toward the per-host skip total, and that total decides
+# whether an uncaught row reads as SURVIVED or as "nobody could check this". A
+# guard that always skips would have quietly relabelled every real survivor.
+INTEGRITY_FILTER = "not MutationMatrixIntegrity"
+
+
 def suite_command(paths) -> list[str]:
-    return ["python", "-m", "pytest", *paths, "-q"]
+    return ["python", "-m", "pytest", *paths, "-q", "-k", INTEGRITY_FILTER]
 
 
 class SuiteBroken(RuntimeError):
@@ -73,14 +81,8 @@ def run_suite(paths=DEFAULT_SUITE) -> tuple[bool, str, int]:
     about the mutant, and treating that as either verdict would put a false
     row in the record. Those raise instead.
     """
-    # The matrix integrity check compares the tree against the matrix, and
-    # during a replay the tree is deliberately wrong. Without this flag that
-    # check would fail for whichever row is applied, and every mutant would
-    # report caught without any behavioural test having noticed.
-    environment = dict(os.environ)
-    environment["ADC_MUTATION_REPLAY"] = "1"
     done = subprocess.run(suite_command(paths), cwd=REPO_ROOT,
-                          capture_output=True, text=True, env=environment)
+                          capture_output=True, text=True)
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
     # pytest exit codes are exact, and text is not. A collection error, an

@@ -949,7 +949,15 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         twin's, and the detector fired on the twin rather than on topology.
         Aligning both timestamps before the swap removes that side channel, so
         the only thing left that differs is the path topology: link count and
-        inode. Removing those fields must therefore fail this test.
+        inode.
+
+        It removed one side channel and not all of them. On Linux git refreshes
+        the index during acquisition, the boundary fires on that, and this test
+        passes with topology disabled. It holds the guarantee on Windows only,
+        which is exactly the kind of platform-shaped hole a single-host matrix
+        cannot see. test_path_topology_alone_moves_the_fingerprint takes two
+        fingerprints with no acquisition between them and holds it everywhere.
+        This one is kept for the end-to-end path it covers.
         """
         target = self.repo / "linked.txt"
         target.write_bytes(b"SAME\n")
@@ -986,6 +994,55 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertEqual(target.stat().st_mtime_ns, original.st_mtime_ns)
         self.assertEqual(twin.stat().st_mtime_ns, original.st_mtime_ns)
         self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
+
+    def test_path_topology_alone_moves_the_fingerprint(self) -> None:
+        """M36, isolated from everything that can stand in for it.
+
+        The end-to-end test above asserts a boundary violation is reported
+        after a hard-link swap. On Linux it passes with topology disabled,
+        because git refreshes the index during acquisition and the boundary
+        fires on that instead. The guarantee reads as held on one platform and
+        not the other, and the difference is the side channel, not the code.
+
+        This takes two fingerprints with nothing in between. No acquisition, so
+        no index movement, so the only thing that can differ is the topology of
+        the path. Content, size, and mtime are all held equal and asserted so,
+        which means a passing run cannot be explained by any of them.
+        """
+        target = self.repo / "topology.txt"
+        target.write_bytes(b"SAME" + bytes([10]))
+        self._git("add", "topology.txt")
+        self._git("commit", "-qm", "topology")
+
+        twin = self.repo / "topology-twin.txt"
+        twin.write_bytes(b"SAME" + bytes([10]))
+        original = target.stat()
+        # One inode after linking, so one timestamp. Align the twin first and
+        # the shared timestamp still matches both originals afterwards.
+        os.utime(twin, ns=(original.st_atime_ns, original.st_mtime_ns))
+
+        run = self.route._default_runner(self.repo)
+        before = dict((entry[0], entry)
+                      for entry in self.route._repo_fingerprint(self.repo, run)[1])
+
+        target.unlink()
+        try:
+            os.link(twin, target)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"hard links unavailable on this host: {exc}")
+        os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
+
+        after = dict((entry[0], entry)
+                     for entry in self.route._repo_fingerprint(self.repo, run)[1])
+
+        # Everything a content-and-metadata fingerprint can see is unchanged.
+        self.assertEqual(b"SAME" + bytes([10]), target.read_bytes())
+        self.assertEqual(original.st_size, target.stat().st_size)
+        self.assertEqual(original.st_mtime_ns, target.stat().st_mtime_ns)
+        self.assertNotEqual(
+            before.get("topology.txt"), after.get("topology.txt"),
+            "the fingerprint did not move, so path topology is not part of it "
+            "and a hard-link swap is invisible to the boundary check")
 
     def test_a_linked_worktree_index_is_found(self) -> None:
         # P-02. A linked worktree keeps its index under .git/worktrees/<name>,
@@ -2552,16 +2609,18 @@ MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
 
 
 @unittest.skipUnless(MATRIX.is_file(), "mutation matrix is not part of this tree")
-@unittest.skipIf(os.environ.get("ADC_MUTATION_REPLAY") == "1",
-                 "a replay has deliberately mutated the tree")
 class MutationMatrixIntegrityTests(unittest.TestCase):
     """The matrix describes the source. This checks it still does.
 
-    Skipped during a replay, and that is not a convenience. Replay mutates the
-    tree on purpose, so this check would fail for whichever row is applied and
-    every mutant would report caught without a single behavioural test having
-    noticed. A guard that turns the coverage record into a tautology is worse
-    than no guard.
+    Deselected during a replay, not skipped. Replay mutates the tree on
+    purpose, so this check would fail for whichever row is applied and every
+    mutant would report caught with no behavioural test having noticed. The
+    first version skipped instead, which was worse in a quieter way: a skip
+    counts toward the per-host skip total, and that total is what decides
+    whether an uncaught row reads as SURVIVED or as "nobody could check this".
+    Four guaranteed skips on every host would have relabelled every genuine
+    survivor as unverified. test_replay_still_deselects_this_class holds the
+    filter.
 
     Outside a replay it holds two things that have both gone wrong here.
 
@@ -2623,6 +2682,20 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                 if not (REPO_ROOT / path).is_file():
                     unknown.append(f"{row['id']} names a missing suite: {path}")
         self.assertEqual([], unknown, "; ".join(unknown))
+
+    def test_replay_still_deselects_this_class(self) -> None:
+        """If the filter stops matching, four skips return to every row.
+
+        The harness names this class in a -k expression. A rename here would
+        leave the expression matching nothing, the tests would run against a
+        mutated tree, fail, and report every mutant caught. The coupling is
+        real, so it is asserted rather than left to a comment.
+        """
+        harness = (REPO_ROOT / "design" / "routing" / "mutants"
+                   / "replay.py").read_text(encoding="utf-8")
+        self.assertIn("not MutationMatrixIntegrity", harness)
+        self.assertTrue(type(self).__name__.startswith("MutationMatrixIntegrity"),
+                        "this class no longer matches the harness filter")
 
     def test_mutant_ids_are_unique(self) -> None:
         seen = [row["id"] for row in self.rows]
