@@ -136,6 +136,50 @@ still replays as caught on the strength of a real test.
 **Worth your scrutiny:** whether any earlier commit on this branch carries the
 same problem. I checked the current tree, not the history.
 
+## The Linux host earned its keep on the first run
+
+M48, open since round eight, is caught on Linux. So are M37 and M46, now on a
+host we can re-run rather than a report. And the first clean Linux replay found
+something no amount of reading would have: **M36 survived there while Windows
+caught it.**
+
+The cause is a side channel, not a difference in the code.
+`test_replacing_a_file_with_a_hard_link_is_detected` asserts a boundary
+violation after a hard-link swap that holds bytes, size, and mtime equal. On
+Linux git refreshes the index during acquisition, the boundary fires on that,
+and the test passes with topology disabled. Its own docstring records removing
+an earlier timestamp side channel from this same test. That fix removed one and
+left another, and Windows could not see it.
+
+Demonstrated rather than argued. With topology disabled on Linux, `index_state`
+changes across acquisition, the violation is still reported, and the test still
+passes. On a clean tree the topology field moves from `(1, ino, mode)` to
+`(2, ino, mode)`, so the detector was never the problem.
+
+`test_path_topology_alone_moves_the_fingerprint` takes two fingerprints with
+nothing in between: no acquisition, so no index movement, so nothing but
+topology can differ, and content, size, and mtime are asserted equal so a pass
+cannot be explained by them. M36 is now caught on both hosts, and on Linux the
+new test is the one that fails while the old one still passes. The old test is
+kept for the end-to-end path, with the limitation written into its docstring
+rather than left implied.
+
+**A second one of mine, quieter and worse.** The matrix integrity guard skipped
+during replay. A skip counts toward the per-host skip total, and that total is
+what decides whether an uncaught row reads as SURVIVED or as "nobody could
+check this". Four guaranteed skips on every host would have relabelled every
+genuine survivor as unverified, which is the failure mode D-054 exists to
+prevent, reintroduced by the fix for a different problem. The guard is
+deselected by a `-k` filter now, and a test asserts the harness still names the
+class, because a rename would leave the filter matching nothing and the tests
+running against a mutated tree.
+
+I also contaminated my own diagnosis on the way here. A probe cleaned up with
+`git checkout --`, which failed on the T540P because the tree there is an
+archive extract with no `.git`. Every probe after that ran against a mutated
+file and I read the results as real behaviour before noticing. Restores are now
+verified by digest against HEAD rather than assumed.
+
 ## A test that was defined and never ran
 
 `AcquisitionAgainstRealGitTests` defined `test_a_linked_worktree_index_is_found`

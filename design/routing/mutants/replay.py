@@ -107,6 +107,31 @@ def run_suite(paths=DEFAULT_SUITE) -> tuple[bool, str, int]:
     raise SuiteBroken(f"pytest exit {done.returncode}: {summary}")
 
 
+def derive_verdict(results) -> str:
+    """What the recorded host results add up to.
+
+    A function of the results and nothing else. The first version read the
+    label off whichever host ran last, so identical evidence produced "caught"
+    when Linux finished the run and "caught elsewhere" when Windows did. That
+    made the coverage record describe the order someone happened to replay in.
+
+    Caught anywhere is caught, because a guarantee held on one host is held.
+    Caught everywhere and caught somewhere are still worth distinguishing: the
+    second means a host could not check it, and that is a fact about the host
+    the record should keep rather than average away.
+
+    Every host skipping is not evidence of absence. It is evidence nobody
+    looked, and calling it SURVIVED would put a gap in the record that no host
+    has observed.
+    """
+    caught = [r for r in results if r["verdict"] == "caught"]
+    if caught:
+        return "caught" if len(caught) == len(results) else "caught elsewhere"
+    if results and all(r.get("skipped") for r in results):
+        return "unverified: every host skipped"
+    return "SURVIVED"
+
+
 def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
     survivors: list[str] = []
     host = host_identity()
@@ -153,17 +178,7 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
         row["results"] = [results[k] for k in sorted(results)]
         # Caught anywhere is caught. A host that cannot exercise the guarantee
         # reports a skip, and a skip is not evidence of absence.
-        anywhere = [r for r in row["results"] if r["verdict"] == "caught"]
-        if anywhere:
-            row["verdict"] = "caught" if verdict == "caught" else "caught elsewhere"
-        elif all(r.get("skipped") for r in row["results"]):
-            # Every host that ran this skipped a test. That is not evidence the
-            # guarantee is unheld, it is evidence nobody could check it here.
-            # Calling it SURVIVED would put a gap in the record that no host
-            # has actually observed.
-            row["verdict"] = "unverified: every host skipped"
-        else:
-            row["verdict"] = "SURVIVED"
+        row["verdict"] = derive_verdict(row["results"])
         row["pytest"] = summary
         note = "" if verdict == row["verdict"] else (
             f"  (here: {verdict}{', ' + str(skipped) + ' skipped' if skipped else ''})")

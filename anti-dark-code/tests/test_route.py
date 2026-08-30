@@ -2683,6 +2683,35 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                     unknown.append(f"{row['id']} names a missing suite: {path}")
         self.assertEqual([], unknown, "; ".join(unknown))
 
+    def test_a_verdict_does_not_depend_on_which_host_ran_last(self) -> None:
+        """The label is a function of the results, or it is not a record.
+
+        The harness used to read the verdict off whichever host finished the
+        run, so the same two results produced "caught" when Linux went last and
+        "caught elsewhere" when Windows did. A coverage record that changes
+        with replay order is describing the operator.
+        """
+        harness = load_module(
+            "adc_replay",
+            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+        caught_linux = {"platform": "Linux", "verdict": "caught", "skipped": 0}
+        skipped_windows = {"platform": "Windows", "verdict": "SURVIVED",
+                           "skipped": 1}
+        self.assertEqual(
+            harness.derive_verdict([caught_linux, skipped_windows]),
+            harness.derive_verdict([skipped_windows, caught_linux]))
+        self.assertEqual("caught elsewhere",
+                         harness.derive_verdict([caught_linux, skipped_windows]))
+        self.assertEqual("caught", harness.derive_verdict(
+            [caught_linux, {**caught_linux, "platform": "Windows"}]))
+        self.assertEqual("unverified: every host skipped", harness.derive_verdict(
+            [skipped_windows, {**skipped_windows, "platform": "Linux"}]))
+        # A host that ran the test and did not catch the mutant is a finding,
+        # and must not be softened by the skipped-everywhere branch.
+        self.assertEqual("SURVIVED", harness.derive_verdict(
+            [{**skipped_windows, "skipped": 0},
+             {**skipped_windows, "platform": "Linux", "skipped": 0}]))
+
     def test_replay_still_deselects_this_class(self) -> None:
         """If the filter stops matching, four skips return to every row.
 
