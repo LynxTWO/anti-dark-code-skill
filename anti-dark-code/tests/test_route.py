@@ -400,6 +400,34 @@ class RawParserTests(unittest.TestCase):
             self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
                           f"score-free {status} was accepted")
 
+    def test_a_real_conflict_record_is_accepted(self) -> None:
+        # N-04, a regression I introduced. Git writes an unmerged entry with a
+        # null old side, captured from a real merge conflict:
+        #   :000000 100644 <zeros> <obj> U f.txt
+        # The status-sides table required both sides real for U, so every
+        # conflict in a repository mid-merge reported as malformed. My
+        # synthetic fixture had two real sides and could not see the real shape.
+        result = self.route.parse_raw_z(
+            raw(f":000000 100644 {ZERO} {OBJ_A} U{NUL}conflict.py{NUL}"), "unstaged")
+        self.assertEqual(result.problems, ())
+        self.assertEqual(result.inputs[0].change_kind, "unmerged")
+
+    def test_an_unmerged_record_is_accepted_with_either_side_shape(self) -> None:
+        # Unmerged entries have their own semantics and more than one shape.
+        # None of them should be refused, because refusing one loses the path
+        # exactly when the tree is in its most delicate state.
+        for old_mode, old_obj, new_mode, new_obj in (
+            ("000000", ZERO, "100644", OBJ_A),
+            ("100644", OBJ_A, "000000", ZERO),
+            ("100644", OBJ_A, "100644", OBJ_B),
+            ("000000", ZERO, "000000", ZERO),
+        ):
+            result = self.route.parse_raw_z(
+                raw(f":{old_mode} {new_mode} {old_obj} {new_obj} U{NUL}c.py{NUL}"),
+                "unstaged")
+            self.assertEqual(result.problems, (),
+                             f"unmerged {old_mode}/{new_mode} was refused")
+
     def test_an_add_with_two_existing_sides_is_rejected(self) -> None:
         # An add has no old side. Two real sides is not a record git writes.
         result = self.route.parse_raw_z(
@@ -685,6 +713,27 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertTrue(any(r.mode_changed for r in rows),
                         "real content-plus-mode change lost its mode signal")
 
+    def test_a_repository_mid_merge_still_acquires(self) -> None:
+        """N-04 end to end. A conflicted tree is the delicate case.
+
+        Reported as malformed, every conflict would lose its path and the
+        snapshot would refuse to be complete for a reason that is not true.
+        """
+        self._git("checkout", "-qb", "other")
+        (self.repo / "src.py").write_text("a\nb\nc\nd\nOTHER\n", encoding="utf-8")
+        self._git("commit", "-qam", "other side")
+        self._git("checkout", "-q", "base-ref")
+        self._git("checkout", "-qb", "mine")
+        (self.repo / "src.py").write_text("a\nb\nc\nd\nMINE\n", encoding="utf-8")
+        self._git("commit", "-qam", "my side")
+        subprocess.run(["git", "-C", str(self.repo), "merge", "other"],
+                       capture_output=True)
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        self.assertNotIn("ADC-ROUTE-MALFORMED-RECORD", snap.problems,
+                         "a real merge conflict was read as a malformed record")
+        self.assertIn("src.py", {i.path for i in snap.inputs})
+
     def test_a_hostile_repository_cannot_run_its_own_program(self) -> None:
         """The boundary the module docstring claims, tested rather than asserted.
 
@@ -790,6 +839,38 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             self.repo, "base-ref", runner=meddling_runner)
         self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
         self.assertFalse(snap.complete)
+
+    def test_a_change_to_the_index_alone_is_detected(self) -> None:
+        # M33. The fingerprint recorded index state but nothing asserted it, so
+        # returning None for it survived every test. Staging a file changes the
+        # index without changing any worktree byte.
+        (self.repo / "staged-later.txt").write_text("x\n", encoding="utf-8")
+        self._git("add", "staged-later.txt")
+        self._git("commit", "-qm", "add file")
+
+        target = self.repo / "staged-later.txt"
+        original_bytes = target.read_bytes()
+        original_stat = target.stat()
+        seen: list[int] = []
+
+        def staging_runner(args):
+            result = self.route._default_runner(self.repo)(args)
+            seen.append(1)
+            if len(seen) == 5:
+                # Stage a change, then put the worktree file back exactly.
+                # Only the index moves, so a fingerprint that ignores index
+                # state sees nothing at all.
+                target.write_bytes(b"y\n")
+                subprocess.run(["git", "-C", str(self.repo), "add", "staged-later.txt"],
+                               capture_output=True)
+                target.write_bytes(original_bytes)
+                os.utime(target, ns=(original_stat.st_atime_ns,
+                                     original_stat.st_mtime_ns))
+            return result
+
+        snap = self.route.read_change_inputs(
+            self.repo, "base-ref", runner=staging_runner)
+        self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
 
     def test_a_clean_acquisition_reports_no_boundary_violation(self) -> None:
         (self.repo / "src.py").write_text("a\nb\nc\nd\nCHANGED\n", encoding="utf-8")
@@ -1221,6 +1302,22 @@ class RouteBuildingTests(unittest.TestCase):
             built.obligations["V99"] = frozenset({"x"})
         self.assertTrue(built.obligations, "obligations were emptied")
 
+    def test_every_route_construction_path_freezes_obligations(self) -> None:
+        # M34 and N-05. Only the build path was checked, so the hint path could
+        # hand out a mutable mapping, and dataclasses.replace could build a
+        # Route holding one. Immutability has to hold for every path that makes
+        # a Route, not the one that happened to have a test.
+        import dataclasses
+        built = self.route.build_route(
+            (fact(self.route, "README.md"),), self.loaded)
+        hinted = self.route.apply_hints(built, {"minimum_level": 2}, self.loaded)
+        replaced = dataclasses.replace(built, minimum_level=3)
+        for name, route in (("built", built), ("hinted", hinted),
+                            ("replaced", replaced)):
+            self.assertTrue(route.obligations, name)
+            with self.assertRaises((TypeError, AttributeError), msg=name):
+                route.obligations.clear()
+
     def test_a_prose_change_takes_the_cheap_route(self) -> None:
         built = self.route.build_route((fact(self.route, "README.md"),), loaded(self.route))
         self.assertEqual(built.minimum_level, 0)
@@ -1345,7 +1442,6 @@ class RouteBuildingTests(unittest.TestCase):
 class HintTests(unittest.TestCase):
     def setUp(self) -> None:
         self.route = load_route()
-        self.loaded = loaded(self.route)
         self.loaded = loaded(self.route)
         self.base = self.route.build_route((fact(self.route, "README.md"),), loaded(self.route))
 
@@ -1806,6 +1902,24 @@ class PolicyValidationTests(unittest.TestCase):
                 independent_review=False, obligations=()),))
         with self.assertRaises(TypeError):
             self.route.build_route((fact(self.route, "README.md"),), forged)
+
+    def test_field_replacement_does_not_carry_authority(self) -> None:
+        # N-02. dataclasses.replace copies every field including the token, so
+        # a tampered policy with a Level 0 recipe and a cheap approved rule
+        # routed cheap. A token proves what was stamped, not what was checked.
+        import dataclasses
+        good = loaded(self.route)
+        tampered = dataclasses.replace(
+            good,
+            full_recipe=self.route.ValidatedRecipe(
+                minimum_level=0, passes=frozenset(),
+                independent_review=False, obligations=()),
+            rules=(self.route.ValidatedRule(
+                id="cheap", approved=True, match=(("surfaces", ("docs",)),),
+                passes=frozenset(), minimum_level=0, force_full=False,
+                independent_review=False, obligations=()),))
+        with self.assertRaises(TypeError):
+            self.route.build_route((fact(self.route, "README.md"),), tampered)
 
     def test_a_loaded_policy_is_accepted(self) -> None:
         built = self.route.build_route(

@@ -19,6 +19,7 @@ from __future__ import annotations
 import fnmatch
 import hashlib
 import json
+import weakref
 import re
 import os
 import subprocess
@@ -66,12 +67,17 @@ _STATUS_RE = re.compile(r"\A([A-Z])([0-9]{1,3})?\Z")
 _SCORED_STATUSES = frozenset({"C", "R"})
 
 
-# Which sides a status has. An add has no old side, a delete no new side, and
-# every other status has both. Git will not write anything else.
+# Which sides a status has. An add has no old side and a delete no new side.
+#
+# U is deliberately absent, meaning any shape. A real merge conflict writes
+# :000000 100644 <zeros> <obj> U, with the old side null, and requiring both
+# sides real reported every conflict in a repository mid-merge as malformed.
+# Unmerged entries have their own semantics and more than one shape, and losing
+# a path is worst exactly when the tree is in its most delicate state.
 _STATUS_SIDES = {
     "A": (False, True), "D": (True, False),
     "M": (True, True), "R": (True, True), "C": (True, True),
-    "T": (True, True), "U": (True, True),
+    "T": (True, True),
 }
 
 
@@ -748,10 +754,11 @@ def build_route(
             "build_route requires a ValidatedPolicy from load_policy, "
             f"not {type(policy).__name__}"
         )
-    if policy.provenance is not _LOADER_PROVENANCE:
+    if not _is_validated(policy):
         raise TypeError(
-            "this ValidatedPolicy did not come from load_policy. The type is "
-            "constructible, so the class alone proves nothing about validation"
+            "this ValidatedPolicy was not returned by load_policy. The type is "
+            "constructible and dataclasses.replace copies every field, so "
+            "neither the class nor a stored token proves it was validated"
         )
 
     level = 0
@@ -942,13 +949,29 @@ class ValidatedRecipe:
         return dict(self.obligations)
 
 
-# Only load_policy can name this. A frozen dataclass has a public constructor,
-# so isinstance proves the class and not that anything validated the value: a
-# forged policy with an empty Level 0 recipe routed cheap. Carrying a token the
-# loader supplies raises that from trivially constructible to deliberately
-# reaching for a module private. Python cannot do better than that, and saying
-# so is more useful than implying the check is absolute.
-_LOADER_PROVENANCE = object()
+# Registry of values load_policy actually produced, keyed by identity.
+#
+# A token stored on the value was not enough: dataclasses.replace copies every
+# field, so a tampered policy carrying a Level 0 recipe and a cheap approved
+# rule kept the token and routed cheap. A token proves what was stamped, not
+# what was checked. Recording the identity of the exact object the loader
+# returned means a replaced copy is a different object and is refused.
+#
+# Keyed by object identity, not equality. A WeakSet keys by hash and equality,
+# so two equal policies share one entry and collecting either removes it for
+# both. Identity is what provenance means here: this exact object came back
+# from load_policy. Weak values keep a policy that goes out of scope from
+# pinning memory.
+#
+# This proves provenance, not correctness. It says load_policy returned this
+# object, which is what the check needs to say and no more.
+_VALIDATED_POLICIES: "weakref.WeakValueDictionary[int, ValidatedPolicy]" = (
+    weakref.WeakValueDictionary()
+)
+
+
+def _is_validated(policy: ValidatedPolicy) -> bool:
+    return _VALIDATED_POLICIES.get(id(policy)) is policy
 
 
 @dataclass(frozen=True)
@@ -966,7 +989,6 @@ class ValidatedPolicy:
     classifier: tuple[tuple[tuple[str, str], ...], ...]
     full_recipe: ValidatedRecipe
     rules: tuple[ValidatedRule, ...]
-    provenance: Any = None
 
     def classifier_map(self) -> dict[str, Any]:
         return {"surfaces": [dict(entry) for entry in self.classifier]}
@@ -1241,8 +1263,7 @@ def load_policy(
             obligations=_freeze_obligations(rule.get("obligations", {})),
         ))
 
-    return ValidatedPolicy(
-        provenance=_LOADER_PROVENANCE,
+    validated = ValidatedPolicy(
         schema_version=1,
         classifier=tuple(frozen_classifier),
         full_recipe=ValidatedRecipe(
@@ -1253,3 +1274,5 @@ def load_policy(
         ),
         rules=tuple(rules),
     )
+    _VALIDATED_POLICIES[id(validated)] = validated
+    return validated
