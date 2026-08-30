@@ -213,6 +213,9 @@ _GIT_ISOLATION = (
     "--no-optional-locks",
     "-c", "core.fsmonitor=false",
     "-c", "diff.external=",
+    # Lazy fetch would reach the network for a missing object in a partial
+    # clone. Routing must work offline and must not talk to a remote.
+    "-c", "fetch.negotiationAlgorithm=noop",
     # Detection silently degrades past a default budget of 1000 paths, which
     # would drop rename and copy provenance without saying so. 0 is unlimited.
     "-c", "diff.renameLimit=0",
@@ -231,9 +234,82 @@ _DIFF_FLAGS = (
 )
 
 
-def _isolated(args: Sequence[str]) -> list[str]:
+def _filter_overrides(run) -> list[str]:
+    """Neutralize every content filter this repository can see.
+
+    Only the worktree comparison converts content, and conversion is what runs
+    a `filter.<driver>.clean` program. Drivers are discovered by reading config,
+    which is data rather than execution, and each is overridden to no command
+    with required=false. Global drivers such as git-lfs are found the same way,
+    because `git config --get-regexp` reports the effective configuration.
+
+    Discovery is used instead of a fixed key list because a fixed list is what
+    failed twice: core.fsmonitor was closed, then diff.external, and filters
+    were still open. This enumerates what the repository actually declares.
+    """
+    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
+    overrides: list[str] = []
+    if not payload:
+        return overrides
+    names: set[str] = set()
+    for line in payload.decode("utf-8", "replace").splitlines():
+        key = line.split(" ", 1)[0]
+        parts = key.split(".")
+        if len(parts) >= 3 and parts[0] == "filter":
+            names.add(".".join(parts[1:-1]))
+    for name in sorted(names):
+        overrides.extend([
+            "-c", f"filter.{name}.clean=",
+            "-c", f"filter.{name}.smudge=",
+            "-c", f"filter.{name}.process=",
+            "-c", f"filter.{name}.required=false",
+        ])
+    return overrides
+
+
+def _isolated(args: Sequence[str], extra: Sequence[str] = ()) -> list[str]:
     """Prefix the isolation flags. Every git call goes through here."""
-    return [*_GIT_ISOLATION, *args]
+    return [*_GIT_ISOLATION, *extra, *args]
+
+
+def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
+    """Cheap evidence that acquisition changed nothing.
+
+    The set of configuration keys through which git can start a program cannot
+    be proven complete, so the boundary is checked rather than asserted. If a
+    path nobody neutralized runs something that touches the repository, this
+    moves and the snapshot refuses to call itself complete.
+
+    Scope is what git reports, tracked plus untracked-not-ignored, rather than
+    a walk of the directory tree. Walking everything cost 14.4 seconds on a real
+    345-file repository because it crawled 62,245 build artifacts. The narrower
+    scope misses a write into an ignored directory, which is an accepted limit:
+    an ignored path is not part of the change set and cannot alter a route.
+    """
+    index = repo / ".git" / "index"
+    try:
+        stat = index.stat()
+        index_state: Any = (stat.st_size, stat.st_mtime_ns)
+    except OSError:
+        index_state = None
+
+    listed: list[str] = []
+    for args in (["ls-files", "-z"],
+                 ["ls-files", "--others", "--exclude-standard", "-z"]):
+        payload = run(_isolated(args))
+        if payload is None:
+            return ("unreadable",)
+        listed.extend(_split_z(payload)[0])
+
+    entries: list[tuple[str, int, int]] = []
+    for relative in listed:
+        try:
+            stat = (repo / relative).stat()
+        except OSError:
+            entries.append((relative, -1, -1))
+            continue
+        entries.append((relative, stat.st_size, stat.st_mtime_ns))
+    return (index_state, tuple(sorted(entries)))
 
 
 @dataclass(frozen=True)
@@ -280,6 +356,11 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     run = runner or _default_runner(repo)
     problems: list[str] = []
     rows: list[ChangeInput] = []
+    before = _repo_fingerprint(repo, run)
+    # Only the worktree comparison converts content, so only it can start a
+    # filter driver. The other three read objects or names and are safe by
+    # construction; paying for discovery on them would be theatre.
+    worktree_isolation = _filter_overrides(run)
 
     # A zero exit is not proof of a usable base. Whitespace, an empty result,
     # or several ids all reached here as "resolved" with an empty or ambiguous
@@ -294,8 +375,9 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     if not base_resolved:
         problems.append("ADC-ROUTE-BASE-UNREACHABLE")
 
-    def collect(args: list[str], source: str, unreadable_code: str) -> None:
-        payload = run(_isolated(args))
+    def collect(args: list[str], source: str, unreadable_code: str,
+                extra: Sequence[str] = ()) -> None:
+        payload = run(_isolated(args, extra))
         if payload is None:
             problems.append(unreadable_code)
             return
@@ -313,9 +395,12 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
             "staged", "ADC-ROUTE-STAGED-UNREADABLE")
 
     # The worktree against the index. `diff HEAD` would return staged and
-    # unstaged records together and count every staged change twice.
-    collect(["diff", *_DIFF_FLAGS],
-            "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE")
+    # unstaged records together and count every staged change twice. This is
+    # the one comparison that reads worktree bytes, so it carries the filter
+    # overrides and refuses an external text converter.
+    collect(["diff", *_DIFF_FLAGS, "--no-textconv"],
+            "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE",
+            extra=worktree_isolation)
 
     untracked = run(_isolated(["ls-files", "--others", "--exclude-standard", "-z"]))
     if untracked is None:
@@ -324,6 +409,9 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
         parsed_untracked = parse_untracked_z(untracked)
         rows.extend(parsed_untracked.inputs)
         problems.extend(parsed_untracked.problems)
+
+    if _repo_fingerprint(repo, run) != before:
+        problems.append("ADC-ROUTE-BOUNDARY-VIOLATED")
 
     ordered = tuple(sorted(rows, key=lambda r: (r.source, r.path, r.change_kind)))
     return ChangeSnapshot(

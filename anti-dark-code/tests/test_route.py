@@ -612,6 +612,86 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         )
         self.assertTrue(snap.inputs, "acquisition must still work while isolated")
 
+    def _install_filter(self, name: str = "evil") -> Path:
+        """Point a content filter at a script that writes a sentinel."""
+        hooks = self.repo / ".git" / "hooks"
+        hooks.mkdir(parents=True, exist_ok=True)
+        sentinel = self.repo / f"{name}-sentinel.txt"
+        probe = hooks / f"{name}-probe"
+        probe.write_text(
+            "#!/bin/sh\n"
+            f'echo executed >> "{sentinel.as_posix()}"\n'
+            "cat\n",
+            encoding="utf-8", newline="\n",
+        )
+        probe.chmod(0o755)
+        (self.repo / ".gitattributes").write_text(
+            f"*.txt filter={name}\n", encoding="utf-8", newline="\n")
+        self._git("add", ".gitattributes")
+        self._git("commit", "-qm", "attributes")
+        self._git("config", f"filter.{name}.clean", f".git/hooks/{name}-probe")
+        self._git("config", f"filter.{name}.required", "true")
+        return sentinel
+
+    def test_a_content_filter_cannot_run_during_acquisition(self) -> None:
+        """K-01. Git applies clean conversion when comparing worktree content.
+
+        Disabling core.fsmonitor and diff.external closed the two paths that
+        were named at the time. Content filters are a third, which is why the
+        boundary cannot rest on a list of keys somebody remembered.
+        """
+        sentinel = self._install_filter()
+        (self.repo / "data.txt").write_text("changed\n", encoding="utf-8")
+        self._git("add", "data.txt")
+        self._git("commit", "-qm", "add data")
+        (self.repo / "data.txt").write_text("changed again\n", encoding="utf-8")
+        # Staging above legitimately ran the filter, so the setup trips the
+        # sentinel by itself. Only acquisition is under test.
+        sentinel.unlink(missing_ok=True)
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(
+            sentinel.exists(),
+            "a repository-configured content filter ran during acquisition")
+        self.assertTrue(snap.inputs, "acquisition must still work while isolated")
+
+    def test_a_globally_configured_filter_is_also_neutralized(self) -> None:
+        # git-lfs installs filter.lfs.* globally. A driver the repository did
+        # not define locally must be neutralized too.
+        sentinel = self._install_filter("global-style")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        sentinel.unlink(missing_ok=True)
+        self.route.read_change_inputs(self.repo, "base-ref")
+        self.assertFalse(sentinel.exists())
+
+    def test_a_boundary_violation_is_detected_and_reported(self) -> None:
+        """The list of neutralized keys cannot be proven complete.
+
+        So acquisition fingerprints the repository before and after and refuses
+        to call the snapshot complete if anything moved. That converts an
+        unknown configuration path from a silent escape into a recorded one.
+        """
+        intruder = self.repo / "written-during-acquisition.txt"
+
+        def meddling_runner(args):
+            intruder.write_text("a boundary escape\n", encoding="utf-8")
+            return self.route._default_runner(self.repo)(args)
+
+        snap = self.route.read_change_inputs(
+            self.repo, "base-ref", runner=meddling_runner)
+        self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
+        self.assertFalse(snap.complete)
+
+    def test_a_clean_acquisition_reports_no_boundary_violation(self) -> None:
+        (self.repo / "src.py").write_text("a\nb\nc\nd\nCHANGED\n", encoding="utf-8")
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+        self.assertNotIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
+        self.assertTrue(snap.complete)
+
     def test_acquisition_does_not_write_to_the_repository(self) -> None:
         """R-027. Reading must not modify the index or the worktree.
 
