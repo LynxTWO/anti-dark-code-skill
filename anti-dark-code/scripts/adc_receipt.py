@@ -152,7 +152,14 @@ def worktree_identity(repo: Path, route_module: Any, runner: Any = None) -> str:
     # router deliberately does not filter that tree, because policy and gate
     # files live near it and hiding them would blind the router to its own
     # escalators. See D-010.
-    kept = [list(entry) for entry in entries
+    # Path and content only. The fingerprint tuple also carries size and
+    # mtime, which the acquisition boundary needs to catch a rewrite during its
+    # own run. A receipt binds what a route depended on, and a route does not
+    # depend on a timestamp: including mtime made a receipt stale after the
+    # bytes were restored, which trains a reader to ignore staleness. Size is
+    # implied by the digest. Entry 3 carries the content digest and hard-link
+    # topology together, so a same-content relink still moves the binding.
+    kept = [[entry[0], entry[3]] for entry in entries
             if not str(entry[0]).replace("\\", "/").startswith(RUN_STORE + "/")]
     return digest({
         "index": index_state,

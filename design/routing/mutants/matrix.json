@@ -1094,5 +1094,31 @@
     "verdict": "unrun",
     "pytest": "",
     "note": "A receipt that does not quote the change it routed cannot be audited against it."
+  },
+  {
+    "id": "M59",
+    "name": "receipt binding depends on mtime again",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    kept = [[entry[0], entry[3]] for entry in entries",
+    "new": "    kept = [list(entry) for entry in entries",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "A receipt that stays stale after the bytes are restored is binding to the fact that something happened rather than to the state, and it trains a reader to ignore staleness."
+  },
+  {
+    "id": "M60",
+    "name": "a stale receipt exits zero",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        return 0 if self.fresh else 2",
+    "new": "        return 0",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "The exit code is the half a gate runner reads. Text saying STALE beside a success status is worse than no receipt."
   }
 ]
