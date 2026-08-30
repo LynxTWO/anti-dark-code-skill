@@ -46,12 +46,12 @@ The documents state what is true. This log preserves why, what else was consider
 | D-027 | 2026-08-29 | Acquisition proves framing and preserves copy and mode signals | Confirmed | |
 | D-028 | 2026-08-29 | Fact output validates enums and has one cross-platform order | Confirmed | |
 | D-029 | 2026-08-29 | Capability count has one executable source of truth | Confirmed | |
-| D-030 | 2026-08-29 | A validated policy is an immutable typed value | Proposed | |
-| D-031 | 2026-08-29 | Git acquisition blocks content filters and lazy fetch | Proposed | |
-| D-032 | 2026-08-29 | Raw parsing enforces Git record semantics | Proposed | |
-| D-033 | 2026-08-29 | Copy detection remains unlimited until exhaustion is structured | Proposed | |
-| D-034 | 2026-08-29 | Git path matching preserves literal characters | Proposed | |
-| D-035 | 2026-08-29 | Agent hints carry validated requirements, not computed evidence | Proposed | |
+| D-030 | 2026-08-29 | A validated policy is an immutable typed value | Confirmed | |
+| D-031 | 2026-08-29 | Git acquisition blocks content filters and lazy fetch | Confirmed | |
+| D-032 | 2026-08-29 | Raw parsing enforces Git record semantics | Confirmed | |
+| D-033 | 2026-08-29 | Copy detection remains unlimited until exhaustion is structured | Confirmed | |
+| D-034 | 2026-08-29 | Git path matching preserves literal characters | Confirmed | |
+| D-035 | 2026-08-29 | Agent hints carry validated requirements, not computed evidence | Confirmed | |
 
 ---
 
@@ -814,7 +814,7 @@ Capability ids stop being a contiguous `VNN` sequence.
 ## D-030: A validated policy is an immutable typed value
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5 and 14, EDD R-016, SLICE-001 M2
 
 Context:
@@ -834,13 +834,16 @@ Options considered:
 Consequences:
 Policy tests mutate every source container after load. Full-recipe validation has its own Level 3 and full-set checks. Receipt serialization receives one canonical policy shape.
 
+As shipped, 2026-08-29:
+`ValidatedPolicy`, `ValidatedRule`, and `ValidatedRecipe` are frozen dataclasses built from copies, and `build_route` raises `TypeError` on a plain mapping so validation cannot be skipped at a call site. Verified against the original attack: mutating the caller's nested rule from proposed to approved after load no longer changes the route.
+
 Revisit when:
 The policy schema changes or another trusted loader produces the same typed value.
 
 ## D-031: Git acquisition blocks content filters and lazy fetch
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5 and 14, EDD R-027, SLICE-001 M2
 
 Context:
@@ -860,13 +863,18 @@ Options considered:
 Consequences:
 The isolation helper has an explicit inventory and a hostile test per family. The default runner no longer inherits a path to on-demand object fetching.
 
+As shipped, 2026-08-29:
+Wider than the decision describes, and built in three layers rather than as a longer list of keys, because enumerating keys had failed twice. Only the worktree comparison converts content, so only it can start a filter; the other three acquisitions read objects or names and are safe by construction. Drivers are discovered with `git config --get-regexp ^filter\.`, which reads configuration as data and finds a global driver such as git-lfs alongside a local one, and each is overridden to no command with `required=false`. Because the neutralized set still cannot be proven complete, acquisition fingerprints the repository before and after and records `ADC-ROUTE-BOUNDARY-VIOLATED` if anything moved, turning an unknown path from a silent escape into a recorded one.
+
+The fingerprint's first version walked the directory tree and cost 14.4 seconds on a real 345-file repository, because it crawled 62,245 build artifacts, taking acquisition from 0.235s to 21.3s. Scope is now what git reports, tracked plus untracked-not-ignored: 0.412s on the same repository. The accepted limit is a write into an ignored directory, which cannot alter a route.
+
 Revisit when:
 A Git command or configuration key adds another program or network path.
 
 ## D-032: Raw parsing enforces Git record semantics
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5 and 14, EDD R-024 and R-028, SLICE-001 M2
 
 Context:
@@ -886,13 +894,16 @@ Options considered:
 Consequences:
 Parser tables include status and score boundaries, modes, object widths, and status-specific null sides. Repository object format is acquired once and checked against every row.
 
+As shipped, 2026-08-29:
+Modes are the closed set git writes, both object ids must share a width, and a similarity score is allowed only on C and R and only from 0 to 100. Implementing it produced a wrong rule that a real-git test caught before commit: requiring a null object and a null mode to agree on both sides broke every unstaged record, because git writes a null object with a real mode there. The rule is one-directional, and the accepted shape has its own test with the real record quoted.
+
 Revisit when:
 Git adds a status, mode, score rule, or object format that the parser does not know.
 
 ## D-033: Copy detection remains unlimited until exhaustion is structured
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 11, EDD 3, EDD R-029, SLICE-001 M2
 
 Context:
@@ -912,13 +923,16 @@ Options considered:
 Consequences:
 Performance evidence reports both common and pathological shapes. The acquisition result must grow beyond `bytes | None` before a bounded setting is allowed.
 
+As shipped, 2026-08-29:
+Measured rather than estimated. A synthetic repository of 3000 files, all renamed and modified in one commit, takes 1.89s with `diff.renameLimit=0` and finds all 3000 renames; under git's default limit it takes 0.10s and finds zero, reporting 6000 unrelated adds and deletes, and announces that only on stderr, which the runner discards. A real 345-file repository acquires a 400-commit range in 0.412s.
+
 Revisit when:
 Git exposes a structured exhaustion result or the runner safely retains and classifies diagnostics.
 
 ## D-034: Git path matching preserves literal characters
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 5 and 14, EDD R-026 and R-032, SLICE-001 M2
 
 Context:
@@ -938,13 +952,16 @@ Options considered:
 Consequences:
 A POSIX real-repository test covers a filename containing backslash. Windows skips only that filesystem fixture. Every host runs the simulated case-folding test.
 
+As shipped, 2026-08-29:
+Verified against real git that paths arrive with forward slashes on every platform, including Windows, so the rewrite solved a problem that does not exist. A file named `auth\login.py` had been matching `auth/*` and taking that rule's sensitivity.
+
 Revisit when:
 Policy syntax adds an explicit escape or case-insensitive match mode.
 
 ## D-035: Agent hints carry validated requirements, not computed evidence
 
 Date: 2026-08-29
-Status: Proposed
+Status: Confirmed
 Area: ADD 8.6 and 14, EDD R-020, SLICE-001 M2
 
 Context:
@@ -964,5 +981,9 @@ Options considered:
 Consequences:
 Hint tests start from routes with nonempty unknown and unmapped sets. Mutation tests prove those values cannot be lost. Invalid pass, capability, gate, reason, and unknown-key cases fail before routing.
 
+As shipped, 2026-08-29:
+Hints may write only the five requirement fields, and every pass, capability, and gate is checked against the loaded policy. `matched_rule_ids`, `unmapped_paths`, and `unknowns` are refused outright, so an agent cannot claim a rule matched or a path was mapped. `apply_hints` gained the policy as a third argument.
+
 Revisit when:
 A new hint field has a deterministic validation source and cannot lower or rewrite computed evidence.
+
