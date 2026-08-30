@@ -1068,5 +1068,31 @@
     "verdict": "unrun",
     "pytest": "",
     "note": "R-017. Binding to a count is the status-text mistake in another form: different bytes, same identity."
+  },
+  {
+    "id": "M57",
+    "name": "binding exclusion widens past the run store",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "RUN_STORE = \".anti-dark-code/runs\"",
+    "new": "RUN_STORE = \".anti-dark-code\"",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "An exclusion wide enough to cover the whole tree would let a policy or gate file change without making any receipt stale. See D-010."
+  },
+  {
+    "id": "M58",
+    "name": "receipt keeps no record of the changed files",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "         for row in getattr(snapshot, \"inputs\", ())),",
+    "new": "         for row in ()),",
+    "verdict": "unrun",
+    "pytest": "",
+    "note": "A receipt that does not quote the change it routed cannot be audited against it."
   }
 ]

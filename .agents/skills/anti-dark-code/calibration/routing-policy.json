@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "_readme": [
+    "Repository-owned routing policy. Every rule ships review_status 'proposed'.",
+    "A proposed rule loads and never matches, so an unread template routes",
+    "everything to the full recipe rather than quietly running less. Approve a",
+    "rule only after reading what it lets the router skip.",
+    "Gate ids here must exist in gates.json, be enabled, and be approved.",
+    "The canonical full set lives in gates.json, not here: a policy that could",
+    "define what 'full' means could shrink it."
+  ],
+  "classifier": {
+    "surfaces": [
+      {
+        "glob": "**/*.md",
+        "surface": "docs",
+        "effect": "prose",
+        "breadth": "leaf"
+      },
+      {
+        "_note": "SKILL.md is instruction, not description. A change here can alter what every agent does, so it is never only documentation.",
+        "glob": "**/SKILL.md",
+        "surface": "skill-policy",
+        "effect": "public-contract",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/scripts/*.py",
+        "surface": "product",
+        "effect": "behavior",
+        "breadth": "runtime"
+      },
+      {
+        "_note": "Tests are verification authority. Weakening one changes what the repository can claim, which is why this cannot be a cheap route.",
+        "glob": "**/tests/*.py",
+        "surface": "tests",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/assets/*.json",
+        "surface": "schema",
+        "effect": "public-contract",
+        "breadth": "cross-runtime"
+      },
+      {
+        "_note": "A workflow decides which checks run at all. Same reasoning as tests, one level up.",
+        "glob": ".github/workflows/*",
+        "surface": "ci",
+        "effect": "verification-authority",
+        "breadth": "repository",
+        "sensitivity": "release"
+      }
+    ]
+  },
+  "full_recipe": {
+    "minimum_level": 3,
+    "passes": ["07", "10", "11", "14"],
+    "obligations": {
+      "V01": ["mutation-replay"],
+      "V08": ["distribution"],
+      "V09": ["validate-core"],
+      "V12": ["hostile-environment"],
+      "V21": ["full-suite"]
+    },
+    "independent_review": true
+  },
+  "rules": [
+    {
+      "_note": "Prose only. The cheapest route the policy offers, and the one to read hardest before approving.",
+      "id": "docs-only",
+      "review_status": "proposed",
+      "match": {"surfaces": ["docs"], "effects": ["prose"]},
+      "requires": {"passes": ["06"], "minimum_level": 0},
+      "obligations": {"V09": ["validate-core"]}
+    },
+    {
+      "id": "product-code",
+      "review_status": "proposed",
+      "match": {"surfaces": ["product"]},
+      "requires": {"passes": ["10", "11"], "minimum_level": 2},
+      "obligations": {"V21": ["full-suite"], "V09": ["validate-core"]}
+    },
+    {
+      "id": "schema-contract",
+      "review_status": "proposed",
+      "match": {"surfaces": ["schema"]},
+      "requires": {"passes": ["10", "11"], "minimum_level": 2},
+      "obligations": {"V08": ["distribution"], "V21": ["full-suite"]}
+    },
+    {
+      "_note": "The self-grading rule. A change to what verifies the repository cannot be judged by a route that change could have weakened, so it forces the full recipe and independent review.",
+      "id": "verification-authority",
+      "review_status": "proposed",
+      "match": {"effects": ["verification-authority"]},
+      "requires": {
+        "passes": ["07", "14"],
+        "minimum_level": 3,
+        "force_full": true,
+        "independent_review": true
+      },
+      "obligations": {"V01": ["mutation-replay"], "V12": ["hostile-environment"]}
+    },
+    {
+      "id": "skill-policy",
+      "review_status": "proposed",
+      "match": {"surfaces": ["skill-policy"]},
+      "requires": {
+        "passes": ["07"],
+        "minimum_level": 3,
+        "force_full": true,
+        "independent_review": true
+      },
+      "obligations": {"V09": ["validate-core"]}
+    },
+    {
+      "_note": "A mode change can turn data into a program without altering a byte of content, so it never takes a content-shaped route.",
+      "id": "mode-change",
+      "review_status": "proposed",
+      "match": {"mode_changed": true},
+      "requires": {"passes": ["04", "10"], "minimum_level": 2},
+      "obligations": {"V09": ["validate-core"]}
+    }
+  ]
+}

@@ -294,6 +294,53 @@ class ReceiptFreshnessTests(unittest.TestCase):
         self.assertFalse(verdict.fresh)
         self.assertEqual([RECEIPT.STALE_SCHEMA], [c for c, _ in verdict.reasons])
 
+
+    def test_writing_a_receipt_does_not_invalidate_it(self) -> None:
+        """Observed, not predicted. The first --write produced a receipt that
+        failed its own verification, because the receipt landed inside the
+        repository and the binding covers untracked files."""
+        receipt = self._receipt()
+        runs = self.repo / RECEIPT.RUN_STORE
+        runs.mkdir(parents=True, exist_ok=True)
+        (runs / f"{receipt['run_id']}.json").write_bytes(
+            RECEIPT.receipt_bytes(receipt))
+        verdict = RECEIPT.verify_receipt(receipt, self._binding())
+        self.assertTrue(verdict.fresh,
+                        f"the receipt invalidated itself: {verdict.reasons}")
+
+    def test_only_the_run_store_is_excluded_from_the_binding(self) -> None:
+        """The exclusion has to be narrow. The router deliberately does not
+        filter .anti-dark-code, because policy and gate files sit near it, and
+        an exclusion that swallowed the whole tree would let an escalator
+        change without making a single receipt stale."""
+        receipt = self._receipt()
+        sibling = self.repo / ".anti-dark-code" / "gates-like.json"
+        sibling.parent.mkdir(parents=True, exist_ok=True)
+        sibling.write_text("{}" + chr(10), encoding="utf-8")
+        verdict = RECEIPT.verify_receipt(receipt, self._binding())
+        self.assertFalse(
+            verdict.fresh,
+            "a file beside the run store did not affect the binding, so the "
+            "exclusion is wider than the run store")
+
+    def test_changed_files_carry_the_acquired_records(self) -> None:
+        snapshot = ROUTE.ChangeSnapshot(
+            base=self.head, base_resolved=True,
+            inputs=(ROUTE.ChangeInput(path="b.py", change_kind="modify",
+                                      source="unstaged"),
+                    ROUTE.ChangeInput(path="a.py", change_kind="rename",
+                                      source="committed", old_path="old.py"),))
+        route = ROUTE.build_route([], a_policy(), snapshot_ok=True)
+        payload = RECEIPT.authoritative_payload(
+            route, [], snapshot, self._binding(), GATES)
+        self.assertEqual(
+            [{"path": "a.py", "change_kind": "rename", "source": "committed",
+              "old_path": "old.py", "mode_changed": False},
+             {"path": "b.py", "change_kind": "modify", "source": "unstaged",
+              "old_path": None, "mode_changed": False}],
+            payload["changed_files"],
+            "the receipt lost the acquired records or their canonical order")
+
     def test_a_receipt_round_trips_through_its_written_bytes(self) -> None:
         receipt = self._receipt()
         written = RECEIPT.receipt_bytes(receipt)

@@ -35,6 +35,9 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 
+# Where written receipts land, relative to the repository root.
+RUN_STORE = ".anti-dark-code/runs"
+
 # Reason codes for a receipt that can no longer be trusted. Each names the one
 # thing that moved, because "stale" alone sends a reader looking through
 # everything the receipt touched.
@@ -140,11 +143,22 @@ def worktree_identity(repo: Path, route_module: Any, runner: Any = None) -> str:
     """
     run = runner or route_module._default_runner(repo)
     index_state, entries = route_module._repo_fingerprint(repo, run)
+    # Written receipts are outputs, not inputs. Without this exclusion the act
+    # of recording a receipt changes the worktree the receipt binds, and the
+    # receipt is stale the instant it lands. That was observed, not predicted:
+    # the first --write produced a receipt that failed its own verification.
+    #
+    # Only the run store is excluded, never .anti-dark-code as a whole. The
+    # router deliberately does not filter that tree, because policy and gate
+    # files live near it and hiding them would blind the router to its own
+    # escalators. See D-010.
+    kept = [list(entry) for entry in entries
+            if not str(entry[0]).replace("\\", "/").startswith(RUN_STORE + "/")]
     return digest({
         "index": index_state,
         # Already sorted by _repo_fingerprint, and sorted again here so this
         # does not silently depend on that.
-        "entries": sorted([list(entry) for entry in entries]),
+        "entries": sorted(kept),
     })
 
 
@@ -241,9 +255,11 @@ def authoritative_payload(
             raise ReceiptError("operator_escalation requires a reason")
 
     changed = sorted(
-        ({"path": row.path, "status": row.status, "source": row.source}
+        ({"path": row.path, "change_kind": row.change_kind, "source": row.source,
+          "old_path": row.old_path, "mode_changed": bool(row.mode_changed)}
          for row in getattr(snapshot, "inputs", ())),
-        key=lambda row: (row["path"], row["source"], row["status"]))
+        key=lambda row: (row["path"], row["source"], row["change_kind"],
+                         row["old_path"] or ""))
 
     return {
         "schema_version": SCHEMA_VERSION,

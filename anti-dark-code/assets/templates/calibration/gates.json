@@ -4,6 +4,17 @@
     "owner_confirmed_safe_to_execute": false,
     "notes": "Generated gates start disabled and proposed. Approve each enabled gate, then reconfirm execution safety. The runner is dry-run unless --allow-exec is supplied. Gate env maps accept reviewed non-sensitive string overrides only; inherit_env defaults to true."
   },
+  "canonical_full_set": {
+    "_note": [
+      "What a full route runs. The routing policy is checked against",
+      "this and cannot define it, because a policy able to say what",
+      "'full' means could shrink it and still look complete.",
+      "Every gate named here must appear in gates below, enabled and",
+      "approved."
+    ],
+    "passes": [],
+    "obligations": {}
+  },
   "machine": {
     "notes": [],
     "avoid_locally": [],
