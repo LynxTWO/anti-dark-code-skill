@@ -1,0 +1,194 @@
+[
+  {
+    "id": "M01",
+    "name": "obligation union to assignment",
+    "verdict": "caught",
+    "pytest": "6 failed, 163 passed in 14.15s"
+  },
+  {
+    "id": "M02",
+    "name": "level max to assignment",
+    "verdict": "caught",
+    "pytest": "3 failed, 166 passed in 13.80s"
+  },
+  {
+    "id": "M03",
+    "name": "force_full or to assignment",
+    "verdict": "caught",
+    "pytest": "5 failed, 164 passed in 14.11s"
+  },
+  {
+    "id": "M04",
+    "name": "full route skips recipe passes",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 13.74s"
+  },
+  {
+    "id": "M05",
+    "name": "full route skips recipe level",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.54s"
+  },
+  {
+    "id": "M06",
+    "name": "full route skips recipe review",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.58s"
+  },
+  {
+    "id": "M07",
+    "name": "drop unrouted reason code",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.60s"
+  },
+  {
+    "id": "M08",
+    "name": "drop filter overrides",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 13.41s"
+  },
+  {
+    "id": "M09",
+    "name": "drop boundary detector",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 12.92s"
+  },
+  {
+    "id": "M10",
+    "name": "drop lazy-fetch control",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.85s"
+  },
+  {
+    "id": "M11",
+    "name": "drop fsmonitor isolation",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 14.00s"
+  },
+  {
+    "id": "M12",
+    "name": "fingerprint without content",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.53s"
+  },
+  {
+    "id": "M13",
+    "name": "fingerprint without metadata",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.53s"
+  },
+  {
+    "id": "M14",
+    "name": "drop copy detection",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 14.18s"
+  },
+  {
+    "id": "M15",
+    "name": "accept any file mode",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 13.78s"
+  },
+  {
+    "id": "M16",
+    "name": "accept mixed object widths",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.69s"
+  },
+  {
+    "id": "M17",
+    "name": "skip payload width consistency",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.83s"
+  },
+  {
+    "id": "M18",
+    "name": "skip status side check",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 13.74s"
+  },
+  {
+    "id": "M19",
+    "name": "score optional on copy and rename",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.64s"
+  },
+  {
+    "id": "M20",
+    "name": "guess the capability catalog",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.72s"
+  },
+  {
+    "id": "M21",
+    "name": "skip canonical pass check",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.63s"
+  },
+  {
+    "id": "M22",
+    "name": "skip canonical capability check",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.57s"
+  },
+  {
+    "id": "M23",
+    "name": "drop provenance check",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.66s"
+  },
+  {
+    "id": "M24",
+    "name": "accept an unvalidated mapping",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.66s"
+  },
+  {
+    "id": "M25",
+    "name": "accept a string predicate",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 13.59s"
+  },
+  {
+    "id": "M26",
+    "name": "unsorted obligation keys",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.56s"
+  },
+  {
+    "id": "M27",
+    "name": "hint may write any field",
+    "verdict": "caught",
+    "pytest": "2 failed, 167 passed in 13.80s"
+  },
+  {
+    "id": "M28",
+    "name": "hint level coerced not checked",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.66s"
+  },
+  {
+    "id": "M29",
+    "name": "hint pairs not checked",
+    "verdict": "caught",
+    "pytest": "3 failed, 166 passed in 13.74s"
+  },
+  {
+    "id": "M30",
+    "name": "rewrite backslashes in paths",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.73s"
+  },
+  {
+    "id": "M31",
+    "name": "drop duplicate collapse",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.70s"
+  },
+  {
+    "id": "M32",
+    "name": "mutable route obligations",
+    "verdict": "caught",
+    "pytest": "1 failed, 168 passed in 13.77s"
+  }
+]

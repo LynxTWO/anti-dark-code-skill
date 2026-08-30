@@ -66,8 +66,18 @@ _STATUS_RE = re.compile(r"\A([A-Z])([0-9]{1,3})?\Z")
 _SCORED_STATUSES = frozenset({"C", "R"})
 
 
+# Which sides a status has. An add has no old side, a delete no new side, and
+# every other status has both. Git will not write anything else.
+_STATUS_SIDES = {
+    "A": (False, True), "D": (True, False),
+    "M": (True, True), "R": (True, True), "C": (True, True),
+    "T": (True, True), "U": (True, True),
+}
+
+
 def _valid_raw_header(
-    old_mode: str, new_mode: str, old_object: str, new_object: str, status: str
+    old_mode: str, new_mode: str, old_object: str, new_object: str, status: str,
+    width: int | None = None,
 ) -> bool:
     """Check the record grammar git actually writes, not merely its shape.
 
@@ -80,8 +90,12 @@ def _valid_raw_header(
         return False
     if not _OBJECT_RE.match(old_object) or not _OBJECT_RE.match(new_object):
         return False
-    # A repository has one hash width, so both sides must agree.
+    # A repository has one hash width, so both sides of a record must agree,
+    # and so must every record in one payload. Checking only within a record
+    # let a single payload carry a 40-digit pair beside a 64-digit pair.
     if len(old_object) != len(new_object):
+        return False
+    if width is not None and len(old_object) != width:
         return False
     # A null mode means the side does not exist, so its object must be null
     # too. The converse does not hold: for a worktree comparison git writes a
@@ -97,11 +111,27 @@ def _valid_raw_header(
     if not matched:
         return False
     letter, score = matched.group(1), matched.group(2)
-    if score is None:
+
+    sides = _STATUS_SIDES.get(letter)
+    if sides is None:
+        # An unrecognised letter is reported separately and keeps its row, so
+        # the router still knows the path changed. Rejecting it here would
+        # discard the path entirely, which is a worse outcome than an unknown
+        # kind that forces the full route.
         return True
-    if letter not in _SCORED_STATUSES:
-        return False
-    return 0 <= int(score) <= 100
+    null = "0" * len(old_object)
+    has_old, has_new = (old_object != null), (new_object != null)
+    if (has_old, has_new) != sides:
+        # A worktree comparison writes a null new object with a real mode,
+        # because git has not hashed the file. That is the one legitimate
+        # exception to the new side existing.
+        if not (sides == (True, True) and has_old and new_mode != _NULL_MODE):
+            return False
+
+    if letter in _SCORED_STATUSES:
+        # Git always writes a similarity score on a copy or a rename.
+        return score is not None and 0 <= int(score) <= 100
+    return score is None
 
 
 @dataclass(frozen=True)
@@ -164,6 +194,8 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
     fields, problems = _split_z(payload)
     rows: list[ChangeInput] = []
     index = 0
+    # Established by the first well-formed record and enforced on the rest.
+    width: int | None = None
 
     while index < len(fields):
         header = fields[index]
@@ -179,7 +211,9 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
             continue
 
         old_mode, new_mode, old_object, new_object, status = parts
-        if not _valid_raw_header(old_mode, new_mode, old_object, new_object, status):
+        if not _valid_raw_header(
+            old_mode, new_mode, old_object, new_object, status, width
+        ):
             problems.append("ADC-ROUTE-MALFORMED-RECORD")
             index += 1
             continue
@@ -214,6 +248,9 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
         # reports it as M, so comparing the objects is the only discriminator.
         if kind == "modify" and old_object == new_object and mode_changed:
             kind = "mode"
+
+        if width is None:
+            width = len(old_object)
 
         rows.append(ChangeInput(
             path=path,
@@ -809,23 +846,50 @@ def apply_hints(
             f"hints may not write {sorted(unsupported)}: those fields record what "
             "the router observed, not what an agent believes"
         )
+
+    # Types are checked, not coerced. int() accepted 999 and any numeric
+    # string, and bool("false") is True, so a string inverted a flag.
+    if "minimum_level" in hints:
+        level = hints["minimum_level"]
+        if isinstance(level, bool) or not isinstance(level, int) or level not in _LEVELS:
+            raise HintError(
+                f"hint minimum_level must be one of {sorted(_LEVELS)}, "
+                f"not {level!r}")
+    for flag in ("force_full", "independent_review"):
+        if flag in hints and not isinstance(hints[flag], bool):
+            raise HintError(f"hint {flag} must be true or false, not {hints[flag]!r}")
+    if "passes" in hints and not isinstance(hints["passes"], (list, tuple)):
+        raise HintError("hint passes must be a list")
     for pass_id in hints.get("passes", []):
         if pass_id not in _PASS_IDS:
             raise HintError(f"hint names unknown pass {pass_id!r}")
-    known_capabilities = {capability for capability, _ in policy.full_recipe.obligations}
-    known_gates: set[str] = {
-        gate for _, gates in policy.full_recipe.obligations for gate in gates}
+
+    # Pairs, not two separate unions. Checking capability membership and gate
+    # membership independently let a hint bind a capability to a gate no
+    # reviewed rule ever paired with it. Proposed rules are excluded: a rule
+    # that never matches is not reviewed authority and must not widen this.
+    reviewed_pairs: set[tuple[str, str]] = {
+        (capability, gate)
+        for capability, gates in policy.full_recipe.obligations
+        for gate in gates
+    }
     for rule in policy.rules:
+        if not rule.approved:
+            continue
         for capability, gates in rule.obligations:
-            known_capabilities.add(capability)
-            known_gates.update(gates)
-    for capability, gate_ids in hints.get("obligations", {}).items():
-        if capability not in known_capabilities:
-            raise HintError(
-                f"hint names capability {capability!r}, which no reviewed rule uses")
+            reviewed_pairs.update((capability, gate) for gate in gates)
+    hinted = hints.get("obligations", {})
+    if not isinstance(hinted, Mapping):
+        raise HintError("hint obligations must be an object")
+    for capability, gate_ids in hinted.items():
+        if not isinstance(gate_ids, (list, tuple)):
+            raise HintError(f"hint obligation {capability} must name a list of gates")
         for gate_id in gate_ids:
-            if gate_id not in known_gates:
-                raise HintError(f"hint names gate {gate_id!r}, which no rule selects")
+            if (capability, gate_id) not in reviewed_pairs:
+                raise HintError(
+                    f"hint pairs capability {capability!r} with gate {gate_id!r}, "
+                    "which no approved rule or the full recipe binds together"
+                )
 
     merged = {k: set(v) for k, v in route.obligations.items()}
     _union_obligations(merged, hints.get("obligations", {}))

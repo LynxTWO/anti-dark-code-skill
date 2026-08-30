@@ -390,6 +390,52 @@ class RawParserTests(unittest.TestCase):
         self.assertEqual(result.problems, ())
         self.assertEqual(result.inputs[0].change_kind, "modify")
 
+    def test_a_copy_or_rename_without_a_score_is_rejected(self) -> None:
+        # L-06. Git writes a similarity score on C and R. A score-free one
+        # passed because "no score present" returned true for every status.
+        for status in ("R", "C"):
+            result = self.route.parse_raw_z(raw(
+                f":100644 100644 {OBJ_A} {OBJ_B} {status}{NUL}a.py{NUL}b.py{NUL}"),
+                "committed")
+            self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
+                          f"score-free {status} was accepted")
+
+    def test_an_add_with_two_existing_sides_is_rejected(self) -> None:
+        # An add has no old side. Two real sides is not a record git writes.
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} A{NUL}f.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_delete_with_two_existing_sides_is_rejected(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} D{NUL}f.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_real_add_and_delete_are_still_accepted(self) -> None:
+        result = self.route.parse_raw_z(raw(
+            f":000000 100644 {ZERO} {OBJ_A} A{NUL}new.py{NUL}",
+            f":100644 000000 {OBJ_A} {ZERO} D{NUL}gone.py{NUL}",
+        ), "committed")
+        self.assertEqual(result.problems, ())
+
+    def test_one_payload_cannot_mix_object_widths_across_records(self) -> None:
+        # A repository has one hash width, so every record in one payload must
+        # agree. Checking only within each record let a payload carry both.
+        long_a, long_b = "a" * 64, "b" * 64
+        result = self.route.parse_raw_z(raw(
+            f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}sha1.py{NUL}",
+            f":100644 100644 {long_a} {long_b} M{NUL}sha256.py{NUL}",
+        ), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_consistent_sha256_payload_is_accepted(self) -> None:
+        long_a, long_b = "a" * 64, "b" * 64
+        result = self.route.parse_raw_z(raw(
+            f":100644 100644 {long_a} {long_b} M{NUL}one.py{NUL}",
+            f":100644 100644 {long_b} {long_a} M{NUL}two.py{NUL}",
+        ), "committed")
+        self.assertEqual(result.problems, ())
+
     def test_unknown_source_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             self.route.parse_raw_z(b"", "not-a-source")
@@ -1115,6 +1161,13 @@ POLICY = {
          "match": {"mode_changed": True},
          "requires": {"passes": ["10"], "minimum_level": 1},
          "obligations": {"V21": ["full-suite"]}},
+        # L-08. Forces full without supplying Level 3 or independent review, so
+        # the full recipe is the only thing that can contribute them and a
+        # no-op recipe merge becomes observable.
+        {"id": "bare-full", "review_status": "approved",
+         "match": {"surfaces": ["release"]},
+         "requires": {"minimum_level": 0, "force_full": True},
+         "obligations": {"V09": ["validate-core"]}},
         {"id": "authority", "review_status": "approved",
          "match": {"effects": ["verification-authority"]},
          "requires": {"passes": ["07", "14"], "minimum_level": 3,
@@ -1221,12 +1274,29 @@ class RouteBuildingTests(unittest.TestCase):
         self.assertTrue(built.force_full)
         self.assertIn("ADC-ROUTE-SNAPSHOT-INCOMPLETE", built.unknowns)
 
+    def test_a_bare_force_full_rule_still_gets_the_whole_recipe(self) -> None:
+        # L-08. The authority fixture already supplies Level 3 and independent
+        # review through its own rule, so deleting the recipe merges changed
+        # nothing observable. This rule supplies neither.
+        built = self.route.build_route(
+            (fact(self.route, "VERSION", surface="release", effect="prose"),),
+            self.loaded)
+        self.assertTrue(built.force_full)
+        self.assertEqual(built.minimum_level, 3, "recipe level was not merged")
+        self.assertTrue(built.independent_review, "recipe review was not merged")
+        self.assertTrue(built.passes >= frozenset({"07", "10", "11", "14"}))
+
     def test_a_fact_matching_no_rule_forces_full(self) -> None:
         # A fact can be classified and still match no reviewed rule. That is an
         # unrouted change, not a cheap one.
         built = self.route.build_route(
             (fact(self.route, "odd.py", surface="tests", effect="behavior"),), self.loaded)
         self.assertTrue(built.force_full)
+        # L-08. Asserting only force_full let the reason code be deleted with
+        # no test noticing, and the two ways a route can be unearned would then
+        # be indistinguishable in a receipt.
+        self.assertIn("ADC-ROUTE-UNROUTED-FACT", built.unknowns)
+        self.assertNotIn("ADC-ROUTE-UNMAPPED-PATH", built.unknowns)
 
     def test_a_rule_discriminated_only_by_paths_fires_on_the_right_path(self) -> None:
         built = self.route.build_route(
@@ -1358,6 +1428,43 @@ class HintTests(unittest.TestCase):
         self.assertEqual(raised.minimum_level, 2)
         self.assertIn("07", raised.passes)
         self.assertEqual(raised.obligations["V12"], frozenset({"hostile-environment"}))
+
+    def test_a_hint_level_must_be_a_real_level(self) -> None:
+        # L-05. int() accepted 999 and any numeric string.
+        for bad in (999, -1, "2", 2.0, True, None):
+            with self.assertRaises(self.route.HintError, msg=f"level={bad!r}"):
+                self.route.apply_hints(
+                    self.base, {"minimum_level": bad}, self.loaded)
+
+    def test_a_hint_flag_must_be_a_real_boolean(self) -> None:
+        # bool("false") is True, so a string inverted the flag.
+        for bad in ("false", "true", 1, 0, None):
+            for flag in ("force_full", "independent_review"):
+                with self.assertRaises(self.route.HintError, msg=f"{flag}={bad!r}"):
+                    self.route.apply_hints(self.base, {flag: bad}, self.loaded)
+
+    def test_a_hint_must_name_a_capability_and_gate_that_are_paired(self) -> None:
+        # Checking capability membership and gate membership in separate unions
+        # let a hint pair a capability with a gate no reviewed rule binds to it.
+        with self.assertRaises(self.route.HintError):
+            self.route.apply_hints(
+                self.base, {"obligations": {"V09": ["hostile-environment"]}},
+                self.loaded)
+
+    def test_a_hint_cannot_borrow_a_pairing_from_a_proposed_rule(self) -> None:
+        # A proposed rule never matches, so its pairings are not reviewed
+        # authority and must not widen what a hint may name.
+        policy = json.loads(json.dumps(POLICY))
+        policy["rules"].append({
+            "id": "not-approved", "review_status": "proposed",
+            "match": {"surfaces": ["tests"]},
+            "requires": {"minimum_level": 0},
+            "obligations": {"V21": ["distribution"]}})
+        validated = self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
+        base = self.route.build_route((fact(self.route, "README.md"),), validated)
+        with self.assertRaises(self.route.HintError):
+            self.route.apply_hints(
+                base, {"obligations": {"V21": ["distribution"]}}, validated)
 
     def test_a_hint_cannot_invent_a_rule_match(self) -> None:
         with self.assertRaises(self.route.HintError):
