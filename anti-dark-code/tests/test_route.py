@@ -889,6 +889,17 @@ POLICY = {
          "match": {"surfaces": ["site"]},
          "requires": {"passes": ["11"], "minimum_level": 2},
          "obligations": {"V09": ["distribution"]}},
+        # K-10. Discriminated only by paths, so deleting the path predicate
+        # makes it fire on everything and a test notices.
+        {"id": "secret-path", "review_status": "approved",
+         "match": {"paths": ["secrets/*"]},
+         "requires": {"passes": ["04"], "minimum_level": 2},
+         "obligations": {"V08": ["distribution"]}},
+        # K-11. Discriminated only by mode_changed, for the same reason.
+        {"id": "mode-flip", "review_status": "approved",
+         "match": {"mode_changed": True},
+         "requires": {"passes": ["10"], "minimum_level": 1},
+         "obligations": {"V21": ["full-suite"]}},
         {"id": "authority", "review_status": "approved",
          "match": {"effects": ["verification-authority"]},
          "requires": {"passes": ["07", "14"], "minimum_level": 3,
@@ -976,6 +987,34 @@ class RouteBuildingTests(unittest.TestCase):
             (fact(self.route, "odd.py", surface="tests", effect="behavior"),), self.loaded)
         self.assertTrue(built.force_full)
 
+    def test_a_rule_discriminated_only_by_paths_fires_on_the_right_path(self) -> None:
+        built = self.route.build_route(
+            (fact(self.route, "secrets/key.pem", surface="product",
+                  effect="behavior"),), self.loaded)
+        self.assertIn("secret-path", built.matched_rule_ids)
+        self.assertEqual(built.minimum_level, 2)
+
+    def test_a_rule_discriminated_only_by_paths_ignores_other_paths(self) -> None:
+        # If the path predicate were removed this rule would fire here too.
+        built = self.route.build_route((fact(self.route, "README.md"),), self.loaded)
+        self.assertNotIn("secret-path", built.matched_rule_ids)
+
+    def test_a_rule_discriminated_only_by_mode_fires_on_a_mode_change(self) -> None:
+        built = self.route.build_route(
+            (fact(self.route, "tool.sh", surface="product", effect="behavior",
+                  mode_changed=True),), self.loaded)
+        self.assertIn("mode-flip", built.matched_rule_ids)
+
+    def test_a_rule_discriminated_only_by_mode_ignores_ordinary_changes(self) -> None:
+        built = self.route.build_route((fact(self.route, "README.md"),), self.loaded)
+        self.assertNotIn("mode-flip", built.matched_rule_ids)
+
+    def test_path_matching_is_case_sensitive_in_rules_too(self) -> None:
+        built = self.route.build_route(
+            (fact(self.route, "SECRETS/key.pem", surface="product",
+                  effect="behavior"),), self.loaded)
+        self.assertNotIn("secret-path", built.matched_rule_ids)
+
     def test_order_does_not_change_the_route(self) -> None:
         a = fact(self.route, "README.md")
         b = fact(self.route, "docs/index.html", surface="site")
@@ -1039,6 +1078,22 @@ class HintTests(unittest.TestCase):
             after = self.route.apply_hints(high, hint)
             assert_route_not_lower(self, high, after, f"hint {hint}")
 
+    def test_a_hint_cannot_clear_an_existing_reason_or_unmapped_path(self) -> None:
+        # K-12 and K-13. The earlier hostile-hint route had both sets empty, so
+        # replacing their union with assignment could not show a loss. This
+        # route carries a real reason code and a real unmapped path.
+        carrying = self.route.build_route(
+            (fact(self.route, "mystery.bin", confidence="unknown"),), self.loaded)
+        self.assertTrue(carrying.unknowns, "fixture must carry a reason code")
+        self.assertTrue(carrying.unmapped_paths, "fixture must carry an unmapped path")
+        for hint in ({"unknowns": []}, {"unmapped_paths": []},
+                     {"unknowns": ["other"]}, {"unmapped_paths": ["other"]}, {}):
+            after = self.route.apply_hints(carrying, hint)
+            self.assertIn("ADC-ROUTE-UNMAPPED-PATH", after.unknowns,
+                          f"hint {hint} dropped an existing reason code")
+            self.assertIn("mystery.bin", after.unmapped_paths,
+                          f"hint {hint} dropped an existing unmapped path")
+
     def test_a_hint_cannot_invent_a_rule_match(self) -> None:
         after = self.route.apply_hints(self.base, {"matched_rule_ids": ["authority"]})
         self.assertEqual(after.matched_rule_ids, self.base.matched_rule_ids)
@@ -1085,6 +1140,9 @@ class MonotonicityTests(unittest.TestCase):
                  surface="ci", effect="verification-authority"),
             fact(self.route, "mystery.bin", confidence="unknown"),
             fact(self.route, "notes.md", surface="docs"),
+            fact(self.route, "secrets/key.pem", surface="product", effect="behavior"),
+            fact(self.route, "tool.sh", surface="product", effect="behavior",
+                 mode_changed=True),
         )
 
     def test_adding_any_fact_never_lowers_any_field(self) -> None:
