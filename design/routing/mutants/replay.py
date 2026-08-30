@@ -22,6 +22,7 @@ it names a guarantee the code claims and the tests do not hold it to.
 from __future__ import annotations
 
 import json
+import os
 import platform
 import subprocess
 import sys
@@ -72,8 +73,14 @@ def run_suite(paths=DEFAULT_SUITE) -> tuple[bool, str, int]:
     about the mutant, and treating that as either verdict would put a false
     row in the record. Those raise instead.
     """
+    # The matrix integrity check compares the tree against the matrix, and
+    # during a replay the tree is deliberately wrong. Without this flag that
+    # check would fail for whichever row is applied, and every mutant would
+    # report caught without any behavioural test having noticed.
+    environment = dict(os.environ)
+    environment["ADC_MUTATION_REPLAY"] = "1"
     done = subprocess.run(suite_command(paths), cwd=REPO_ROOT,
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, env=environment)
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
     # pytest exit codes are exact, and text is not. A collection error, an

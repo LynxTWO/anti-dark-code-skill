@@ -2548,5 +2548,87 @@ class SuiteIntegrityTests(unittest.TestCase):
                         f"{bound.__code__.co_firstlineno}")
         self.assertEqual([], unreachable, "; ".join(unreachable))
 
+MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
+
+
+@unittest.skipUnless(MATRIX.is_file(), "mutation matrix is not part of this tree")
+@unittest.skipIf(os.environ.get("ADC_MUTATION_REPLAY") == "1",
+                 "a replay has deliberately mutated the tree")
+class MutationMatrixIntegrityTests(unittest.TestCase):
+    """The matrix describes the source. This checks it still does.
+
+    Skipped during a replay, and that is not a convenience. Replay mutates the
+    tree on purpose, so this check would fail for whichever row is applied and
+    every mutant would report caught without a single behavioural test having
+    noticed. A guard that turns the coverage record into a tautology is worse
+    than no guard.
+
+    Outside a replay it holds two things that have both gone wrong here.
+
+    A committed mutant. a92c869 shipped M01 into the router, turning an
+    obligation union into an assignment, because the authoritative replay was
+    running in the background and `git add -A` took the tree as it was
+    mid-row. The suite was green before that commit and green after: the defect
+    existed only in the window where no test ran. Nothing in a test run could
+    have seen it, and this check would have, because the row's original text
+    was missing from the file.
+
+    Matrix rot. M56's target moved when an unrelated fix rewrote the line it
+    named, and replay reported TARGET MISSING, which reads like a surviving
+    mutant and is really a stale row.
+    """
+
+    def setUp(self) -> None:
+        self.rows = json.loads(MATRIX.read_text(encoding="utf-8"))
+
+    def test_every_mutant_target_is_present_in_its_source(self) -> None:
+        missing = []
+        for row in self.rows:
+            if row.get("superseded_by"):
+                continue
+            source = REPO_ROOT / row["source"]
+            if not source.is_file():
+                missing.append(f"{row['id']} names a source that does not exist: "
+                               f"{row['source']}")
+                continue
+            if row["old"] not in source.read_text(encoding="utf-8"):
+                missing.append(
+                    f"{row['id']} ({row['name']}) cannot be applied: its "
+                    f"original text is absent from {row['source']}. Either the "
+                    "row is stale, or that file is holding the mutant.")
+        self.assertEqual([], missing, "; ".join(missing))
+
+    def test_no_row_records_a_mutant_as_the_current_source(self) -> None:
+        """The narrower half, stated separately so a failure names the danger.
+
+        A row whose replacement text is in the file while its original is not
+        is not ambiguous: that file is currently mutated.
+        """
+        mutated = []
+        for row in self.rows:
+            if row.get("superseded_by"):
+                continue
+            source = REPO_ROOT / row["source"]
+            if not source.is_file():
+                continue
+            text = source.read_text(encoding="utf-8")
+            if row["new"] in text and row["old"] not in text:
+                mutated.append(f"{row['source']} holds {row['id']} ({row['name']})")
+        self.assertEqual([], mutated, "; ".join(mutated))
+
+    def test_every_row_names_a_suite_that_exists(self) -> None:
+        unknown = []
+        for row in self.rows:
+            for path in row.get("suite", ["anti-dark-code/tests/test_route.py"]):
+                if not (REPO_ROOT / path).is_file():
+                    unknown.append(f"{row['id']} names a missing suite: {path}")
+        self.assertEqual([], unknown, "; ".join(unknown))
+
+    def test_mutant_ids_are_unique(self) -> None:
+        seen = [row["id"] for row in self.rows]
+        duplicates = sorted({i for i in seen if seen.count(i) > 1})
+        self.assertEqual([], duplicates,
+                         f"the matrix reuses ids: {duplicates}")
+
 if __name__ == "__main__":
     unittest.main()
