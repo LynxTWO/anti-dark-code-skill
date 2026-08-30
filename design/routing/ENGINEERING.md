@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.6. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Round-four review open.
+Version: 0.7. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Round-five review blocked.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** M2 is blocked by K-01 through K-05 in `HANDOFF-BACK-PURE-LAYER.md`. Receipt and CLI work must wait.
+- **Current gate:** M2 is blocked by L-01 through L-06 in `HANDOFF-BACK-ROUND-FIVE.md`. Receipt and CLI work must wait.
 
 ## 2. Engineering Principles
 
@@ -84,6 +84,12 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-040 | Git path classification is case-sensitive without rewriting literal characters | given simulated host case folding and a POSIX filename containing backslash, when classified, then case and literal-character results stay in Git path semantics |
 | R-041 | Every route predicate and retained hint evidence has a mutation guard | given deletion of path or mode matching, or replacement of unknown and unmapped unions with assignment, when tests run, then at least one focused test fails |
 | R-042 | Policy loading has no internal capability catalog default | given a catalog extended by one id, when policy loading runs, then the caller-supplied catalog accepts it without another code edit; omitting catalog ids is an error |
+| R-043 | Lazy fetch is disabled rather than tuned | given a blobless partial clone whose rename comparison needs a missing blob, when acquisition runs, then no fetch child starts, no object appears, and the snapshot is incomplete |
+| R-044 | The acquisition boundary detects byte changes that preserve metadata | given a tracked file changed after its comparison with size and mtime restored, when the after-check runs, then `ADC-ROUTE-BOUNDARY-VIOLATED` is present and the snapshot is incomplete |
+| R-045 | Policy authority proves loader provenance and the canonical full set | given a directly constructed policy record or a full recipe missing one canonical pass, capability, or gate, when validation or routing runs, then it is rejected |
+| R-046 | Raw grammar is consistent across statuses and the repository object format | given a missing C or R score, an invalid status side, or mixed object widths across records, when parsed, then the payload is malformed and the snapshot is incomplete |
+| R-047 | Hints preserve types and approved obligation bindings | given an out-of-range level, non-boolean flag, cross-capability gate pair, or proposed-only pair, when hint validation runs, then `HintError` is raised |
+| R-048 | Route output is deeply immutable and full-recipe fields have discriminating mutation guards | given a built Route, when a caller tries to mutate a nested field, then the value cannot change; given deletion of one recipe field or reason, when tests run, then at least one focused test fails |
 
 ### 4.2 Assumed requirements
 
@@ -323,6 +329,12 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-040 | simulated case-folding test plus POSIX backslash repository case | `test_route.py` |
 | R-041 | four focused mutation or revert tests | `test_route.py` |
 | R-042 | mandatory catalog input and future-id test | `test_route.py` |
+| R-043 | real blobless partial clone with missing rename blob and fetch trace | `test_route.py` |
+| R-044 | same-size, same-mtime tracked rewrite after its worktree comparison | `test_route.py` |
+| R-045 | direct record construction and one-at-a-time canonical full-set omissions | `test_route.py` |
+| R-046 | status-side, required-score, and payload-wide object-format table | `test_route.py` |
+| R-047 | typed hint values and approved capability-gate pair table | `test_route.py` |
+| R-048 | nested Route mutation attempts and focused recipe-field mutations | `test_route.py` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 

@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.6. Date: 2026-08-29. Status: Round-four review open.
+Version: 0.7. Date: 2026-08-29. Status: Round-five review blocked.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -52,6 +52,12 @@ The documents state what is true. This log preserves why, what else was consider
 | D-033 | 2026-08-29 | Copy detection remains unlimited until exhaustion is structured | Confirmed | |
 | D-034 | 2026-08-29 | Git path matching preserves literal characters | Confirmed | |
 | D-035 | 2026-08-29 | Agent hints carry validated requirements, not computed evidence | Confirmed | |
+| D-036 | 2026-08-29 | Lazy fetch is disabled, not tuned | Confirmed | |
+| D-037 | 2026-08-29 | Metadata fingerprints are diagnostic only | Confirmed | |
+| D-038 | 2026-08-29 | Policy validation proves loader provenance and the canonical full set | Confirmed | |
+| D-039 | 2026-08-29 | Raw grammar is enforced across each record and the payload | Confirmed | |
+| D-040 | 2026-08-29 | Hints use typed values and approved capability-gate bindings | Confirmed | |
+| D-041 | 2026-08-29 | Route results are immutable and every full-recipe field has a mutation guard | Confirmed | |
 
 ---
 
@@ -987,3 +993,128 @@ Hints may write only the five requirement fields, and every pass, capability, an
 Revisit when:
 A new hint field has a deterministic validation source and cannot lower or rewrite computed evidence.
 
+## D-036: Lazy fetch is disabled, not tuned
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-034, SLICE-001 M2
+
+Context:
+Round five ran acquisition in a blobless partial clone. Rename detection started `git fetch`, downloaded a missing blob, and returned a complete snapshot. `fetch.negotiationAlgorithm=noop` was present on the command and the fetch child inherited it.
+
+Decision:
+Every acquisition subprocess sets `GIT_NO_LAZY_FETCH=1`. A missing promisor object makes acquisition incomplete. `fetch.negotiationAlgorithm=noop` is not a no-fetch control and must not be described as one.
+
+Because:
+Negotiation controls what object reachability information a fetch exchanges. It does not prevent Git from starting a fetch. A candidate remote, credential helper, or remote helper must not execute while verification authority reads repository data.
+
+Consequences:
+R-034 includes a real blobless partial clone whose rename comparison needs a missing blob. The test proves that no fetch child starts, no object appears, and the snapshot is incomplete.
+
+Revisit when:
+Git adds a documented command-level no-lazy-fetch option supported by every minimum platform version.
+
+## D-037: Metadata fingerprints are diagnostic only
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-027 and R-034, SLICE-001 M2
+
+Context:
+The boundary fingerprint records index size and mtime plus tracked and untracked file size and mtime. A hostile runner changed a tracked file after the worktree diff, preserved its size and mtime, and the snapshot returned complete with no inputs or problems.
+
+Decision:
+A size-and-mtime fingerprint may support diagnostics and performance measurements. It does not prove that acquisition was read-only. The boundary check uses content identity for the index and every routing-relevant path, or moves acquisition to an isolated copy whose candidate state cannot affect the source repository.
+
+Because:
+Metadata can remain equal while bytes change. A detector with that blind spot cannot support the statement that an unknown execution path becomes a recorded failure.
+
+Consequences:
+The hostile test mutates a tracked file after its comparison, keeps size and mtime equal, and requires `ADC-ROUTE-BOUNDARY-VIOLATED`. Ignored-path writes remain an explicit side-effect limit, not evidence that no candidate program ran.
+
+Revisit when:
+Acquisition runs against a trusted, immutable repository representation.
+
+## D-038: Policy validation proves loader provenance and the canonical full set
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-035 and R-036, SLICE-001 M2
+
+Context:
+The public frozen dataclasses can be constructed directly. A caller built a `ValidatedPolicy` with a Level 0 empty recipe and an approved cheap rule, then passed the type check. `load_policy` also accepts a Level 3 recipe with only pass 00 and one capability because it has no canonical full-set input.
+
+Decision:
+The loader is the only supported constructor for policy authority. The route boundary checks loader provenance or revalidates the immutable value. Loading also requires the caller's canonical pass, capability, and approved gate sets and rejects any incomplete full recipe.
+
+Because:
+A class name proves shape, not that validation ran. Level 3 is a label unless the recipe names the repository's reviewed full set.
+
+Consequences:
+Tests directly construct every exported policy record and require rejection at `build_route`. Separate tests remove one pass, capability, and gate from the canonical full recipe and require `PolicyError` at load.
+
+Revisit when:
+Policy records become private implementation details behind a constructor that callers cannot invoke directly.
+
+## D-039: Raw grammar is enforced across each record and the payload
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-037, SLICE-001 M2
+
+Context:
+The parser accepts C and R without scores, A with an existing old side, D with an existing new side, and one payload containing both 40 and 64 digit object ids. Each case returns inputs with no problem.
+
+Decision:
+Record validation enforces required C and R scores, status-specific absent sides, legal worktree null-object exceptions, and one object format for the complete payload. Repository object format is an acquisition input, not a record-local guess.
+
+Because:
+Per-field character checks accept combinations Git cannot emit. Mixing valid record-local widths does not make a valid repository payload.
+
+Consequences:
+Parser tables include every status, required and forbidden scores, absent-side rules, SHA-1, SHA-256, symlink, gitlink, type-change, and conflict records from real Git.
+
+Revisit when:
+Git documents a new raw status, object format, mode, or null-side form.
+
+## D-040: Hints use typed values and approved capability-gate bindings
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 8.6 and 14, EDD R-020 and R-039, SLICE-001 M2
+
+Context:
+Round five supplied level 999, string `false`, a capability paired with a gate approved only for another capability, and a pair present only in a proposed rule. Every hint was accepted.
+
+Decision:
+Hint validation checks value shapes before conversion. Levels use the closed level set. Boolean fields accept booleans only. Obligation additions must be approved capability-gate pairs from the canonical full recipe or approved rules. Proposed rules do not expand hint vocabulary.
+
+Because:
+Validating capability and gate membership in separate unions loses the relationship that an obligation asserts. Python truth conversion also turns the string `false` into true.
+
+Consequences:
+Invalid shape, range, cross-pair, and proposed-only tests fail with `HintError` before a new Route is built.
+
+Revisit when:
+The policy adds a separate reviewed catalog of hint-only obligation bindings.
+
+## D-041: Route results are immutable and every full-recipe field has a mutation guard
+
+Date: 2026-08-29
+Status: Confirmed
+Area: ADD 5 and 14, EDD R-001, R-003, and R-041, SLICE-001 M2
+
+Context:
+`Route` is frozen, but its obligation mapping is a mutable dictionary. A caller can clear it after routing. Three further mutations also passed all 148 router tests: dropping the full recipe's minimum level, dropping its independent-review flag, and dropping the unrouted-fact reason.
+
+Decision:
+Every nested Route value uses an immutable canonical representation. Focused tests start from a force-full cause that does not already supply the recipe's level or review flag. Each stable reason code and every full-recipe field has a mutation guard.
+
+Because:
+A frozen outer dataclass does not protect a nested dictionary. An authority-path fixture can also hide a missing recipe field when its matching rule supplies the same value.
+
+Consequences:
+Mutation tests use discriminating fixtures and fail one field at a time. Route serialization cannot observe caller changes after construction.
+
+Revisit when:
+A new Route field or force-full cause is added.
