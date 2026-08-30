@@ -441,5 +441,14 @@
     "verdict": "SURVIVED",
     "pytest": "188 passed, 1 skipped in 16.89s",
     "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text."
+  },
+  {
+    "id": "M49",
+    "name": "route trusts an existing mapping proxy",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        # Always rebuild, never trust an existing proxy.",
+    "new": "        if isinstance(self.obligations, MappingProxyType): return\n        # Always rebuild, never trust an existing proxy.",
+    "verdict": "unknown",
+    "pytest": ""
   }
 ]

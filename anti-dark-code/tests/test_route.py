@@ -1442,6 +1442,31 @@ class RouteBuildingTests(unittest.TestCase):
             built.obligations["V99"] = frozenset({"x"})
         self.assertTrue(built.obligations, "obligations were emptied")
 
+    def test_a_proxy_over_mutable_backing_does_not_survive_construction(self) -> None:
+        """Q-01. A MappingProxyType blocks writes through the proxy only.
+
+        It does not freeze the dictionary behind it, so __post_init__ trusting
+        an existing proxy left the Route mutable through that dictionary: the
+        backing could be cleared, or a forged obligation written into it, after
+        the route was computed.
+        """
+        from types import MappingProxyType
+        backing = {"V09": frozenset({"validate-core"})}
+        route = self.route.Route(
+            minimum_level=0, passes=frozenset(),
+            obligations=MappingProxyType(backing),
+            matched_rule_ids=frozenset(), force_full=False,
+            independent_review=False)
+
+        backing.clear()
+        self.assertEqual(dict(route.obligations),
+                         {"V09": frozenset({"validate-core"})},
+                         "clearing the backing dictionary emptied the route")
+
+        backing["V99"] = frozenset({"forged"})
+        self.assertNotIn("V99", route.obligations,
+                         "a write to the backing dictionary reached the route")
+
     def test_obligations_are_immutable_however_a_route_is_made(self) -> None:
         # P-03. Wrapping at the construction sites froze the value those sites
         # produced, not the field. dataclasses.replace with a plain mapping and

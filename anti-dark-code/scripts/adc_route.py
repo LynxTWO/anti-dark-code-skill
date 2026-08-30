@@ -754,11 +754,15 @@ class Route:
         # not the field. dataclasses.replace and direct construction both
         # bypassed it and handed back a mutable mapping holding authority data.
         # Freezing here covers every way a Route can come into existence.
-        if not isinstance(self.obligations, MappingProxyType):
-            object.__setattr__(
-                self, "obligations",
-                MappingProxyType({k: frozenset(v)
-                                  for k, v in sorted(self.obligations.items())}))
+        # Always rebuild, never trust an existing proxy. A MappingProxyType
+        # blocks writes through the proxy and does not freeze the dictionary
+        # behind it, so accepting one left the Route mutable through that
+        # dictionary: it could be cleared, or a forged obligation written in,
+        # after the route was computed. Copying is the only way to own it.
+        object.__setattr__(
+            self, "obligations",
+            MappingProxyType({k: frozenset(v)
+                              for k, v in sorted(self.obligations.items())}))
 
 
 # Rule match keys. Positive predicates only: a rule may not depend on the
