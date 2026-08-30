@@ -1718,3 +1718,52 @@ The router is installed, exercised, and currently saves nothing, which is intend
 
 Revisit when:
 The owner reads the rules and approves any of them, or the shadow comparator from M4 has enough recorded runs to argue a rule is safe.
+
+## D-065: A hard-link test passed on Linux for the wrong reason
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M36, R-050, D-058
+
+Context:
+The first clean replay on a real Linux host reported M36 surviving there while Windows caught it. Nothing in the code is platform-conditional, so the difference had to be in the test.
+
+Decision:
+Keep the end-to-end test and add `test_path_topology_alone_moves_the_fingerprint`, which takes two fingerprints with nothing in between.
+
+Because:
+`test_replacing_a_file_with_a_hard_link_is_detected` asserts a boundary violation after a hard-link swap holding bytes, size, and mtime equal. On Linux git refreshes the index during acquisition, the boundary fires on the index rather than on topology, and the test passes with topology disabled.
+
+Measured, not argued. With topology disabled on Linux, `index_state` changes across acquisition, the violation is still reported, and the test still passes. On a clean tree the topology field moves from `(1, ino, mode)` to `(2, ino, mode)`, so the detector was never at fault.
+
+The new test runs no acquisition, so no index can move, so nothing but path topology can differ. Content, size, and mtime are asserted equal, which means a pass cannot be explained by any of them. M36 is now caught on both hosts, and on Linux the new test is the one that fails while the old one still passes.
+
+This test's own docstring already records removing a timestamp side channel from it in an earlier round. That fix removed one channel and left another, and one host could not see the difference. The general lesson is not about hard links: an end-to-end assertion has as many ways to pass as the system has signals, and the number of them that are the intended one is usually one.
+
+Consequences:
+The old test keeps its end-to-end coverage with the limitation written into its docstring rather than left implied.
+
+## D-066: The record carries two hosts, and the verdict is a function of them
+
+Date: 2026-08-30
+Status: Confirmed
+Area: D-054, D-057, D-058
+
+Context:
+Every active row now has a verified result from Windows 11 with Python 3.14.2 and git 2.50.1, and from the T540P running Ubuntu 24.04.4, kernel 7.0.0-28-generic, Python 3.12.3, git 2.43.0.
+
+Decision:
+56 active rows, both hosts on all of them. 53 caught on both. Three caught on Linux where Windows skips the test that holds them. No survivors and nothing unverified. `derive_verdict` computes the label from every recorded result.
+
+Because:
+The old code read the verdict off whichever host finished the run, so identical evidence produced "caught" when Linux went last and "caught elsewhere" when Windows did. A coverage record that changes with replay order is describing the operator rather than the code.
+
+Caught anywhere is caught, because a guarantee held on one host is held. Caught everywhere and caught somewhere stay distinct: the second means a host could not check it, which is a fact worth keeping rather than averaging away. Every host skipping stays separate again, because it is evidence nobody looked.
+
+M48 closes here. It was a survivor in round eight, then unverified once verdicts were host-qualified, and it is caught on Linux.
+
+Consequences:
+Both trees are verified restored by digest against HEAD after a replay, the remote one included, after a probe once left a mutated file behind and the results were read as real behaviour.
+
+Revisit when:
+A third host is added, or a row disagrees between hosts for a reason other than a skip, which would mean the code is platform-conditional where nobody intended it.

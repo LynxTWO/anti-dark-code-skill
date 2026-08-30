@@ -16,8 +16,15 @@ reports, and they are the parts worth reading first.
     python anti-dark-code/scripts/adc.py validate --mode universal
     python design/routing/mutants/replay.py
 
-Observed here: suite `357 passed, 14 skipped, 45 subtests`, validation
-`0 errors, 1 warning`. The matrix stands at 60 rows.
+Observed: Windows `364 passed, 14 skipped, 45 subtests`; T540P Linux
+`374 passed, 1 skipped`, and that one skip is a test of Windows process
+termination. Validation `0 errors, 1 warning` on both.
+
+The matrix is 60 rows and now carries a verified result from two hosts for
+every active row: Windows 11, Python 3.14.2, git 2.50.1, and Ubuntu 24.04.4,
+kernel 7.0.0-28-generic, Python 3.12.3, git 2.43.0. 53 caught on both, 3 caught
+on Linux where Windows skips the test that holds them, 4 superseded. No
+survivors, nothing unverified.
 
 Rows now carry an optional `suite`. A mutant in `adc_receipt.py` replayed
 against the router suite would have reported caught while proving nothing,
@@ -268,7 +275,9 @@ check before M4.
 ## Open
 
 - M4, the shadow comparator, is not started.
-- The tailnet SSH rule is an owner action.
+- No third host. A row that disagreed between hosts for any reason other than
+  a skip would mean the code is platform-conditional where nobody intended it,
+  and two hosts is the smallest number that can show that at all.
 - The R-id to test mapping is unbuilt, and D-061 records the shape a fix takes:
   every registered id resolves to a named test that exists, with a shrinking
   list of untraced ids so the gap cannot grow quietly.
