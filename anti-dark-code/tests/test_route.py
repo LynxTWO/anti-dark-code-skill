@@ -331,6 +331,63 @@ class RawParserTests(unittest.TestCase):
         self.assertEqual(sorted(r.path for r in result.inputs),
                          ["new/file.py", "other.txt"])
 
+    def test_an_impossible_file_mode_is_rejected(self) -> None:
+        # K-05. Any six octal digits passed. Git writes a closed set of modes.
+        for mode in ("777777", "123456", "100600"):
+            result = self.route.parse_raw_z(
+                raw(f":{mode} 100644 {OBJ_A} {OBJ_B} M{NUL}f.py{NUL}"), "committed")
+            self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
+                          f"mode {mode} was accepted")
+
+    def test_every_real_git_mode_is_accepted(self) -> None:
+        for mode in ("100644", "100755", "120000", "160000"):
+            result = self.route.parse_raw_z(
+                raw(f":{mode} {mode} {OBJ_A} {OBJ_B} M{NUL}f.py{NUL}"), "committed")
+            self.assertEqual(result.problems, (), f"mode {mode} was refused")
+
+    def test_a_score_on_a_status_that_cannot_carry_one_is_rejected(self) -> None:
+        # Git writes a similarity score only for C and R.
+        for status in ("A100", "M50", "D10", "T5"):
+            result = self.route.parse_raw_z(
+                raw(f":100644 100644 {OBJ_A} {OBJ_B} {status}{NUL}f.py{NUL}"), "committed")
+            self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
+                          f"status {status} was accepted")
+
+    def test_an_out_of_range_similarity_score_is_rejected(self) -> None:
+        for status in ("R999", "C101", "R200"):
+            result = self.route.parse_raw_z(raw(
+                f":100644 100644 {OBJ_A} {OBJ_B} {status}{NUL}a.py{NUL}b.py{NUL}"),
+                "committed")
+            self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
+                          f"status {status} was accepted")
+
+    def test_a_valid_similarity_score_is_accepted(self) -> None:
+        for status in ("R100", "C100", "R0", "R95"):
+            result = self.route.parse_raw_z(raw(
+                f":100644 100644 {OBJ_A} {OBJ_B} {status}{NUL}a.py{NUL}b.py{NUL}"),
+                "committed")
+            self.assertEqual(result.problems, (), f"status {status} was refused")
+
+    def test_mixed_object_widths_in_one_record_are_rejected(self) -> None:
+        # A repository has one hash width. Two in one record is corruption.
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {'b' * 64} M{NUL}f.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_null_mode_must_pair_with_a_null_object(self) -> None:
+        # A side that does not exist has both null. The converse is legitimate:
+        # a worktree comparison writes a null object with a real mode because
+        # git has not hashed the file, so that shape must stay accepted.
+        result = self.route.parse_raw_z(
+            raw(f":000000 100644 {OBJ_A} {OBJ_B} A{NUL}f.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_worktree_side_null_object_with_a_real_mode_is_accepted(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {ZERO} M{NUL}f.py{NUL}"), "unstaged")
+        self.assertEqual(result.problems, ())
+        self.assertEqual(result.inputs[0].change_kind, "modify")
+
     def test_unknown_source_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             self.route.parse_raw_z(b"", "not-a-source")
@@ -915,12 +972,14 @@ class ClassificationTests(unittest.TestCase):
             path="auth/login.py", change_kind="modify", source="committed"))
         self.assertEqual({f.sensitivity for f in facts}, {"auth"})
 
-    def test_backslash_separators_normalize_before_matching(self) -> None:
-        # A Windows-shaped path must match a policy written with forward
-        # slashes, otherwise the policy would need two spellings per rule.
+    def test_a_literal_backslash_is_a_filename_character_not_a_separator(self) -> None:
+        # K-09. Git reports forward slashes on every platform, verified against
+        # real output, so rewriting backslashes solved nothing and corrupted a
+        # legal POSIX filename: a file actually named "auth\login.py" was
+        # matched against "auth/*" and handed that rule's sensitivity.
         facts = self._facts(self.route.ChangeInput(
             path="auth\\login.py", change_kind="modify", source="committed"))
-        self.assertEqual({f.sensitivity for f in facts}, {"auth"})
+        self.assertEqual([f.confidence for f in facts], ["unknown"])
 
     def test_classification_is_pure_and_takes_no_repository(self) -> None:
         snapshot = self._snapshot(self.route.ChangeInput(
@@ -929,6 +988,11 @@ class ClassificationTests(unittest.TestCase):
         second = self.route.collect_change_facts(snapshot, CLASSIFIER)
         self.assertEqual(first, second)
 
+
+CAPABILITY_IDS = frozenset(
+    c["id"] for c in json.loads(
+        CAPABILITIES.read_text(encoding="utf-8"))["capabilities"]
+)
 
 GATES = {
     "schema_version": 1,
@@ -991,7 +1055,7 @@ POLICY = {
 
 def loaded(route):
     """POLICY as build_route now requires it: validated and frozen."""
-    return route.load_policy(POLICY, GATES)
+    return route.load_policy(POLICY, GATES, CAPABILITY_IDS)
 
 
 def fact(route, path, **over):
@@ -1106,7 +1170,7 @@ class RouteBuildingTests(unittest.TestCase):
         policy["rules"][0]["review_status"] = "proposed"
         built = self.route.build_route(
             (fact(self.route, "README.md"),),
-            self.route.load_policy(policy, GATES))
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS))
         self.assertNotIn("docs", built.matched_rule_ids)
         self.assertTrue(built.force_full, "an unmatched fact must force full")
 
@@ -1119,18 +1183,19 @@ class HintTests(unittest.TestCase):
         self.base = self.route.build_route((fact(self.route, "README.md"),), loaded(self.route))
 
     def test_a_hint_can_raise_the_level(self) -> None:
-        raised = self.route.apply_hints(self.base, {"minimum_level": 2})
+        raised = self.route.apply_hints(self.base, {"minimum_level": 2}, self.loaded)
         self.assertEqual(raised.minimum_level, 2)
 
     def test_a_hint_can_add_passes_and_obligations(self) -> None:
         raised = self.route.apply_hints(
-            self.base, {"passes": ["07"], "obligations": {"V12": ["hostile-environment"]}})
+            self.base, {"passes": ["07"], "obligations": {"V12": ["hostile-environment"]}},
+            self.loaded)
         self.assertIn("07", raised.passes)
         self.assertEqual(raised.obligations["V12"], frozenset({"hostile-environment"}))
 
     def test_a_hint_can_add_a_gate_to_an_existing_capability(self) -> None:
         raised = self.route.apply_hints(
-            self.base, {"obligations": {"V09": ["distribution"]}})
+            self.base, {"obligations": {"V09": ["distribution"]}}, self.loaded)
         self.assertEqual(raised.obligations["V09"],
                          frozenset({"validate-core", "distribution"}))
 
@@ -1149,13 +1214,10 @@ class HintTests(unittest.TestCase):
             {"passes": []},
             {"obligations": {}},
             {"obligations": {"V09": []}},
-            {"matched_rule_ids": []},
-            {"unmapped_paths": []},
-            {"unknowns": []},
             {"minimum_level": 1, "force_full": False},
         ]
         for hint in hostile:
-            after = self.route.apply_hints(high, hint)
+            after = self.route.apply_hints(high, hint, self.loaded)
             assert_route_not_lower(self, high, after, f"hint {hint}")
 
     def test_a_hint_cannot_clear_an_existing_reason_or_unmapped_path(self) -> None:
@@ -1166,17 +1228,44 @@ class HintTests(unittest.TestCase):
             (fact(self.route, "mystery.bin", confidence="unknown"),), self.loaded)
         self.assertTrue(carrying.unknowns, "fixture must carry a reason code")
         self.assertTrue(carrying.unmapped_paths, "fixture must carry an unmapped path")
-        for hint in ({"unknowns": []}, {"unmapped_paths": []},
-                     {"unknowns": ["other"]}, {"unmapped_paths": ["other"]}, {}):
-            after = self.route.apply_hints(carrying, hint)
+        # A hint can no longer write these fields at all, so the surviving
+        # risk is an allowed hint dropping them on the way through.
+        for hint in ({"minimum_level": 3}, {"passes": ["07"]},
+                     {"force_full": True}, {}):
+            after = self.route.apply_hints(carrying, hint, self.loaded)
             self.assertIn("ADC-ROUTE-UNMAPPED-PATH", after.unknowns,
                           f"hint {hint} dropped an existing reason code")
             self.assertIn("mystery.bin", after.unmapped_paths,
                           f"hint {hint} dropped an existing unmapped path")
 
+    def test_a_hint_cannot_invent_a_pass_capability_or_gate(self) -> None:
+        # K-08. Hints took raw strings with no schema, so an agent could add a
+        # pass, capability, gate, or reason code that does not exist.
+        for hint in ({"passes": ["not-a-pass"]},
+                     {"obligations": {"V99": ["validate-core"]}},
+                     {"obligations": {"V09": ["not-a-gate"]}}):
+            with self.assertRaises(self.route.HintError, msg=f"{hint}"):
+                self.route.apply_hints(self.base, hint, self.loaded)
+
+    def test_a_hint_cannot_write_deterministic_fields(self) -> None:
+        # These record what the router observed. A hint is judgement, not
+        # evidence, so it must not be able to author them at all.
+        for field in ("matched_rule_ids", "unmapped_paths", "unknowns"):
+            with self.assertRaises(self.route.HintError, msg=field):
+                self.route.apply_hints(self.base, {field: ["anything"]}, self.loaded)
+
+    def test_a_valid_hint_still_applies(self) -> None:
+        raised = self.route.apply_hints(
+            self.base, {"minimum_level": 2, "passes": ["07"],
+                        "obligations": {"V12": ["hostile-environment"]}}, self.loaded)
+        self.assertEqual(raised.minimum_level, 2)
+        self.assertIn("07", raised.passes)
+        self.assertEqual(raised.obligations["V12"], frozenset({"hostile-environment"}))
+
     def test_a_hint_cannot_invent_a_rule_match(self) -> None:
-        after = self.route.apply_hints(self.base, {"matched_rule_ids": ["authority"]})
-        self.assertEqual(after.matched_rule_ids, self.base.matched_rule_ids)
+        with self.assertRaises(self.route.HintError):
+            self.route.apply_hints(
+                self.base, {"matched_rule_ids": ["authority"]}, self.loaded)
 
 
 def assert_route_not_lower(case, smaller, larger, context) -> None:
@@ -1241,6 +1330,19 @@ class MonotonicityTests(unittest.TestCase):
                     checked += 1
         self.assertGreater(checked, 50, "the property was barely exercised")
 
+    def test_obligation_key_order_does_not_depend_on_fact_order(self) -> None:
+        # K-07. Set fields compared equal across permutations while the
+        # obligation mapping kept first-insertion order. Dataclass equality
+        # hides that; a serializer would not.
+        import itertools
+        for subset in itertools.combinations(self.pool, 3):
+            orders = [list(self.route.build_route(order, self.loaded).obligations)
+                      for order in itertools.permutations(subset)]
+            self.assertEqual(len(set(map(tuple, orders))), 1,
+                             f"obligation key order changed: {orders}")
+            self.assertEqual(orders[0], sorted(orders[0]),
+                             "obligation keys are not in canonical order")
+
     def test_every_permutation_gives_the_same_route(self) -> None:
         import itertools
         # Route holds a mapping, so it is not hashable. Compare pairwise
@@ -1278,91 +1380,91 @@ class PolicyValidationTests(unittest.TestCase):
         return policy
 
     def test_a_valid_policy_loads(self) -> None:
-        validated = self.route.load_policy(self._policy(), GATES)
+        validated = self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS)
         self.assertEqual(validated.schema_version, 1)
 
     def test_a_wrong_schema_version_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._policy(schema_version=2), GATES)
+            self.route.load_policy(self._policy(schema_version=2), GATES, CAPABILITY_IDS)
 
     def test_a_missing_full_recipe_is_rejected(self) -> None:
         policy = self._policy()
         del policy["full_recipe"]
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_a_full_recipe_naming_an_unknown_gate_is_rejected(self) -> None:
         policy = self._policy()
         policy["full_recipe"]["obligations"]["V09"] = ["no-such-gate"]
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_an_obligation_naming_an_unknown_gate_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V09": ["no-such-gate"]}), GATES)
+                self._with_rule(obligations={"V09": ["no-such-gate"]}), GATES, CAPABILITY_IDS)
 
     def test_an_obligation_naming_an_unapproved_gate_is_rejected(self) -> None:
         # A gate nobody reviewed cannot satisfy a capability.
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V09": ["not-yet-reviewed"]}), GATES)
+                self._with_rule(obligations={"V09": ["not-yet-reviewed"]}), GATES, CAPABILITY_IDS)
 
     def test_an_obligation_naming_a_disabled_gate_is_rejected(self) -> None:
         # A disabled gate will never run, so it covers nothing.
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V09": ["switched-off"]}), GATES)
+                self._with_rule(obligations={"V09": ["switched-off"]}), GATES, CAPABILITY_IDS)
 
     def test_an_empty_obligation_gate_list_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._with_rule(obligations={"V09": []}), GATES)
+            self.route.load_policy(self._with_rule(obligations={"V09": []}), GATES, CAPABILITY_IDS)
 
     def test_an_unknown_capability_id_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V99": ["validate-core"]}), GATES)
+                self._with_rule(obligations={"V99": ["validate-core"]}), GATES, CAPABILITY_IDS)
 
     def test_duplicate_rule_ids_are_rejected(self) -> None:
         policy = self._policy()
         policy["rules"] = [self._rule(), self._rule()]
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_duplicate_gate_ids_are_rejected(self) -> None:
         gates = json.loads(json.dumps(GATES))
         gates["gates"].append({"id": "validate-core", "enabled": True,
                                "review_status": "approved"})
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._policy(), gates)
+            self.route.load_policy(self._policy(), gates, CAPABILITY_IDS)
 
     def test_a_negative_predicate_is_rejected(self) -> None:
         # R-015. A rule that fires on the absence of another fact is not
         # monotonic: adding a file could stop it firing.
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(match={"surfaces": ["docs"], "not_paths": ["x"]}), GATES)
+                self._with_rule(match={"surfaces": ["docs"], "not_paths": ["x"]}), GATES, CAPABILITY_IDS)
 
     def test_an_empty_match_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._with_rule(match={}), GATES)
+            self.route.load_policy(self._with_rule(match={}), GATES, CAPABILITY_IDS)
 
     def test_an_out_of_range_level_is_rejected(self) -> None:
         for level in (-1, 4, "2", None):
             with self.assertRaises(self.route.PolicyError, msg=f"level={level!r}"):
                 self.route.load_policy(
-                    self._with_rule(requires={"minimum_level": level}), GATES)
+                    self._with_rule(requires={"minimum_level": level}), GATES, CAPABILITY_IDS)
 
     def test_a_non_boolean_flag_is_rejected(self) -> None:
         for flag in ("force_full", "independent_review"):
             with self.assertRaises(self.route.PolicyError, msg=flag):
                 self.route.load_policy(
-                    self._with_rule(requires={"minimum_level": 1, flag: "yes"}), GATES)
+                    self._with_rule(requires={"minimum_level": 1, flag: "yes"}), GATES, CAPABILITY_IDS)
 
     def test_an_unknown_pass_id_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(requires={"passes": ["99"], "minimum_level": 0}), GATES)
+                self._with_rule(requires={"passes": ["99"], "minimum_level": 0}), GATES, CAPABILITY_IDS)
 
     def test_a_classifier_enum_typo_is_rejected_at_load(self) -> None:
         # Catching this at load rather than only at classification means a bad
@@ -1371,20 +1473,20 @@ class PolicyValidationTests(unittest.TestCase):
         policy["classifier"] = {"surfaces": [
             {"glob": "*.py", "surface": "BOGUS", "effect": "behavior"}]}
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_a_classifier_entry_without_a_glob_is_rejected_at_load(self) -> None:
         policy = self._policy()
         policy["classifier"] = {"surfaces": [{"surface": "docs", "effect": "prose"}]}
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_a_string_path_pattern_is_rejected(self) -> None:
         # K-02, a routing bypass. Iterating a string yields characters, so the
         # "*" in "*.md" matched every path and handed unrelated files the cheap
         # rule. Every plural predicate must be a list.
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._with_rule(match={"paths": "*.md"}), GATES)
+            self.route.load_policy(self._with_rule(match={"paths": "*.md"}), GATES, CAPABILITY_IDS)
 
     def test_every_plural_predicate_must_be_a_nonempty_list_of_strings(self) -> None:
         for key, bad in (
@@ -1393,7 +1495,7 @@ class PolicyValidationTests(unittest.TestCase):
             ("effects", "prose"), ("change_kinds", "modify"), ("sources", "committed"),
         ):
             with self.assertRaises(self.route.PolicyError, msg=f"{key}={bad!r}"):
-                self.route.load_policy(self._with_rule(match={key: bad}), GATES)
+                self.route.load_policy(self._with_rule(match={key: bad}), GATES, CAPABILITY_IDS)
 
     def test_predicate_members_must_be_closed_enum_values(self) -> None:
         for key, bad in (
@@ -1402,15 +1504,15 @@ class PolicyValidationTests(unittest.TestCase):
             ("sources", ["BOGUS"]),
         ):
             with self.assertRaises(self.route.PolicyError, msg=f"{key}={bad!r}"):
-                self.route.load_policy(self._with_rule(match={key: bad}), GATES)
+                self.route.load_policy(self._with_rule(match={key: bad}), GATES, CAPABILITY_IDS)
 
     def test_mode_changed_must_be_an_actual_boolean(self) -> None:
         # bool("false") is True, so a string here inverted the predicate.
         for bad in ("false", "true", 0, 1, None):
             with self.assertRaises(self.route.PolicyError, msg=f"mode_changed={bad!r}"):
                 self.route.load_policy(
-                    self._with_rule(match={"mode_changed": bad}), GATES)
-        self.route.load_policy(self._with_rule(match={"mode_changed": True}), GATES)
+                    self._with_rule(match={"mode_changed": bad}), GATES, CAPABILITY_IDS)
+        self.route.load_policy(self._with_rule(match={"mode_changed": True}), GATES, CAPABILITY_IDS)
 
     def test_a_full_recipe_below_level_three_is_rejected(self) -> None:
         # K-04. force_full at Level 0 contradicts D-020.
@@ -1418,13 +1520,13 @@ class PolicyValidationTests(unittest.TestCase):
             policy = self._policy()
             policy["full_recipe"]["minimum_level"] = level
             with self.assertRaises(self.route.PolicyError, msg=f"level={level}"):
-                self.route.load_policy(policy, GATES)
+                self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_a_full_recipe_without_passes_is_rejected(self) -> None:
         policy = self._policy()
         policy["full_recipe"]["passes"] = []
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
 
     def test_the_loaded_policy_is_immune_to_later_mutation(self) -> None:
         # K-03, a routing bypass. load_policy returned a shallow copy, so a
@@ -1432,7 +1534,7 @@ class PolicyValidationTests(unittest.TestCase):
         # validation and turn a forced-full route into a cheap one.
         raw = self._policy()
         raw["rules"] = [self._rule(review_status="proposed")]
-        loaded = self.route.load_policy(raw, GATES)
+        loaded = self.route.load_policy(raw, GATES, CAPABILITY_IDS)
         before = self.route.build_route((fact(self.route, "README.md"),), loaded)
 
         raw["rules"][0]["review_status"] = "approved"
@@ -1451,13 +1553,48 @@ class PolicyValidationTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.route.build_route((fact(self.route, "README.md"),), self._policy())
 
+    def test_loading_requires_a_capability_catalog(self) -> None:
+        # K-06. Defaulting to V01 through V22 put a count literal back after
+        # D-029 removed the others, and made the router guess at a list the
+        # catalog file already owns.
+        with self.assertRaises(TypeError):
+            self.route.load_policy(self._policy(), GATES)
+
+    def test_the_capability_set_comes_from_the_shipped_catalog(self) -> None:
+        ids = self.route.capability_ids_from_catalog(CAPABILITIES)
+        catalog = json.loads(CAPABILITIES.read_text(encoding="utf-8"))
+        self.assertEqual(ids, frozenset(c["id"] for c in catalog["capabilities"]))
+        self.assertIn("V21", ids)
+        self.assertIn("V22", ids)
+
+    def test_the_supplied_capability_set_is_the_one_used(self) -> None:
+        # Guessing V01 through V22 is invisible while the guess happens to
+        # equal the catalog. This narrows the supplied set so a guess and the
+        # real argument disagree, which is what D-029 is actually about.
+        narrow = frozenset({"V09"})
+        policy = self._with_rule(obligations={"V09": ["validate-core"]})
+        # The full recipe names V08, V12 and V21, which the narrow set also
+        # excludes. Reduce it so only the rule under test varies.
+        policy["full_recipe"]["obligations"] = {"V09": ["validate-core"]}
+        self.route.load_policy(policy, GATES, narrow)
+
+        policy["rules"][0]["obligations"] = {"V12": ["hostile-environment"]}
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES, narrow)
+
+    def test_a_capability_the_catalog_does_not_define_is_rejected(self) -> None:
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                self._with_rule(obligations={"V23": ["validate-core"]}),
+                GATES, CAPABILITY_IDS)
+
     def test_a_proposed_rule_loads_but_never_matches(self) -> None:
         # D-022. The shipped template carries proposed rules, so loading must
         # accept them. build_route ignores them, which leaves the change
         # unrouted and therefore full.
         policy = self._policy()
         policy["rules"] = [self._rule(review_status="proposed")]
-        validated = self.route.load_policy(policy, GATES)
+        validated = self.route.load_policy(policy, GATES, CAPABILITY_IDS)
         built = self.route.build_route((fact(self.route, "README.md"),), validated)
         self.assertEqual(built.matched_rule_ids, frozenset())
         self.assertTrue(built.force_full)

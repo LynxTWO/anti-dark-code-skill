@@ -17,6 +17,7 @@ program for git to run. See _GIT_ISOLATION.
 from __future__ import annotations
 
 import fnmatch
+import json
 import re
 import os
 import subprocess
@@ -54,9 +55,51 @@ _NULL_MODE = "000000"
 # an optional similarity score. Validating the shape is what separates a real
 # record from a corrupted or truncated one; without it ":bad bad bad bad M"
 # parsed happily and the snapshot claimed to be complete.
-_MODE_RE = re.compile(r"\A[0-7]{6}\Z")
+# Git writes a closed set of modes, not any six octal digits. 000000 is the
+# absent side of a creation or deletion.
+_GIT_MODES = frozenset({"000000", "100644", "100755", "120000", "160000", "040000"})
 _OBJECT_RE = re.compile(r"\A[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?\Z")
-_STATUS_RE = re.compile(r"\A[A-Z][0-9]{0,3}\Z")
+_STATUS_RE = re.compile(r"\A([A-Z])([0-9]{1,3})?\Z")
+# Only copy and rename carry a similarity score, and only 0 through 100.
+_SCORED_STATUSES = frozenset({"C", "R"})
+
+
+def _valid_raw_header(
+    old_mode: str, new_mode: str, old_object: str, new_object: str, status: str
+) -> bool:
+    """Check the record grammar git actually writes, not merely its shape.
+
+    Character-class checks accepted records git cannot emit: mode 777777,
+    status A100, a similarity score of 999, and one 40-digit object beside one
+    64-digit object in the same record. Each of those would have been parsed as
+    a real change and marked complete.
+    """
+    if old_mode not in _GIT_MODES or new_mode not in _GIT_MODES:
+        return False
+    if not _OBJECT_RE.match(old_object) or not _OBJECT_RE.match(new_object):
+        return False
+    # A repository has one hash width, so both sides must agree.
+    if len(old_object) != len(new_object):
+        return False
+    # A null mode means the side does not exist, so its object must be null
+    # too. The converse does not hold: for a worktree comparison git writes a
+    # null object with a real mode, because it has not hashed the file. A real
+    # unstaged record looks like
+    # ":100644 100644 <obj> 0000000000000000000000000000000000000000 M path".
+    null = "0" * len(old_object)
+    if old_mode == _NULL_MODE and old_object != null:
+        return False
+    if new_mode == _NULL_MODE and new_object != null:
+        return False
+    matched = _STATUS_RE.match(status)
+    if not matched:
+        return False
+    letter, score = matched.group(1), matched.group(2)
+    if score is None:
+        return True
+    if letter not in _SCORED_STATUSES:
+        return False
+    return 0 <= int(score) <= 100
 
 
 @dataclass(frozen=True)
@@ -134,11 +177,7 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
             continue
 
         old_mode, new_mode, old_object, new_object, status = parts
-        if not (
-            _MODE_RE.match(old_mode) and _MODE_RE.match(new_mode)
-            and _OBJECT_RE.match(old_object) and _OBJECT_RE.match(new_object)
-            and _STATUS_RE.match(status)
-        ):
+        if not _valid_raw_header(old_mode, new_mode, old_object, new_object, status):
             problems.append("ADC-ROUTE-MALFORMED-RECORD")
             index += 1
             continue
@@ -486,7 +525,6 @@ def _matching_classifications(
     union in build_route decides the rest. No arbitrary precedence is invented.
     """
     matches: list[dict[str, str]] = []
-    candidate = path.replace("\\", "/")
     for entry in classifier.get("surfaces", []):
         glob = entry.get("glob")
         if not glob:
@@ -497,7 +535,10 @@ def _matching_classifications(
         # different receipts per host. Git paths are case-sensitive, so that is
         # the semantics the router commits to everywhere. Separators are
         # normalized first so a policy needs one spelling per rule.
-        if not fnmatch.fnmatchcase(candidate, glob.replace("\\", "/")):
+        # Patterns and paths both live in git's path space, which uses forward
+        # slashes on every platform. Rewriting backslashes was unnecessary for
+        # real git output and corrupted a legal POSIX filename containing one.
+        if not fnmatch.fnmatchcase(path, glob):
             continue
         matches.append(_validated_classification(entry, {
             "surface": entry.get("surface", ""),
@@ -597,9 +638,8 @@ def _fact_matches(fact: ChangeFact, match: Mapping[str, Any]) -> bool:
     if unknown:
         raise ValueError(f"rule uses unsupported match keys: {sorted(unknown)}")
     if "paths" in match:
-        candidate = fact.path.replace("\\", "/")
-        if not any(fnmatch.fnmatchcase(candidate, p.replace("\\", "/"))
-                   for p in match["paths"]):
+        # Git path space, verbatim. See the note in _matching_classifications.
+        if not any(fnmatch.fnmatchcase(fact.path, p) for p in match["paths"]):
             return False
     for key, attribute in (
         ("surfaces", "surface"), ("effects", "effect"), ("breadths", "breadth"),
@@ -701,31 +741,67 @@ def build_route(
     route = Route(
         minimum_level=level,
         passes=frozenset(passes),
-        obligations={k: frozenset(v) for k, v in obligations.items()},
+        # Sorted, so the mapping has one order for a given set of obligations.
+        # Equality hid the difference; a serializer would not have.
+        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},
         matched_rule_ids=frozenset(matched),
         force_full=force_full,
         independent_review=independent_review,
         unmapped_paths=frozenset(unmapped),
         unknowns=frozenset(unknowns),
     )
-    return apply_hints(route, hints) if hints else route
+    return apply_hints(route, hints, policy) if hints else route
 
 
-def apply_hints(route: Route, hints: Mapping[str, Any]) -> Route:
-    """Apply agent hints. Additive only, on every field.
+# Fields a hint may write. The rest record what the router observed, and a
+# hint is judgement rather than evidence, so it must not author them.
+_HINT_FIELDS = frozenset({
+    "minimum_level", "passes", "obligations", "force_full", "independent_review",
+})
+
+
+def apply_hints(
+    route: Route, hints: Mapping[str, Any], policy: ValidatedPolicy
+) -> Route:
+    """Apply agent hints. Additive only, and only over reviewed vocabulary.
 
     A hint may add set members, raise the level, or set a boolean true. It may
-    not remove, lower, or clear anything, and it cannot invent a rule match or
-    change which facts were seen. An agent that believes a route is too heavy
-    has no recourse here by design: only a reviewed rule backed by deterministic
-    evidence may permit less work. See D-006 and R-020.
+    not remove, lower, or clear anything, and it cannot invent a pass, a
+    capability, or a gate: without that check an agent could name evidence no
+    policy defines and the route would carry it. An agent that believes a route
+    is too heavy has no recourse here by design, because only a reviewed rule
+    backed by deterministic evidence may permit less work. See D-006 and R-020.
     """
+    unsupported = set(hints) - _HINT_FIELDS
+    if unsupported:
+        raise HintError(
+            f"hints may not write {sorted(unsupported)}: those fields record what "
+            "the router observed, not what an agent believes"
+        )
+    for pass_id in hints.get("passes", []):
+        if pass_id not in _PASS_IDS:
+            raise HintError(f"hint names unknown pass {pass_id!r}")
+    known_capabilities = {capability for capability, _ in policy.full_recipe.obligations}
+    known_gates: set[str] = {
+        gate for _, gates in policy.full_recipe.obligations for gate in gates}
+    for rule in policy.rules:
+        for capability, gates in rule.obligations:
+            known_capabilities.add(capability)
+            known_gates.update(gates)
+    for capability, gate_ids in hints.get("obligations", {}).items():
+        if capability not in known_capabilities:
+            raise HintError(
+                f"hint names capability {capability!r}, which no reviewed rule uses")
+        for gate_id in gate_ids:
+            if gate_id not in known_gates:
+                raise HintError(f"hint names gate {gate_id!r}, which no rule selects")
+
     merged = {k: set(v) for k, v in route.obligations.items()}
     _union_obligations(merged, hints.get("obligations", {}))
     return Route(
         minimum_level=max(route.minimum_level, int(hints.get("minimum_level", 0))),
         passes=route.passes | frozenset(hints.get("passes", [])),
-        obligations={k: frozenset(v) for k, v in merged.items()},
+        obligations={k: frozenset(merged[k]) for k in sorted(merged)},
         # Rule matches are evidence of what fired, not a requirement a hint may
         # add to. Letting a hint write here would let an agent claim a reviewed
         # rule matched when it did not.
@@ -734,8 +810,8 @@ def apply_hints(route: Route, hints: Mapping[str, Any]) -> Route:
         independent_review=(
             route.independent_review or bool(hints.get("independent_review"))
         ),
-        unmapped_paths=route.unmapped_paths | frozenset(hints.get("unmapped_paths", [])),
-        unknowns=route.unknowns | frozenset(hints.get("unknowns", [])),
+        unmapped_paths=route.unmapped_paths,
+        unknowns=route.unknowns,
     )
 
 
@@ -925,10 +1001,24 @@ def _freeze_obligations(
     ))
 
 
+class HintError(Exception):
+    """A hint that names something no policy or catalog defines."""
+
+
+def capability_ids_from_catalog(path: Path) -> frozenset[str]:
+    """Read the capability ids from the shipped catalog.
+
+    The catalog file is the source of truth. Guessing the range here is what
+    put a count literal back after D-029 removed the others.
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return frozenset(entry["id"] for entry in data["capabilities"])
+
+
 def load_policy(
     data: Mapping[str, Any],
     gates: Mapping[str, Any],
-    capability_ids: Sequence[str] | None = None,
+    capability_ids: Sequence[str],
 ) -> ValidatedPolicy:
     """Validate a routing policy and freeze it.
 
@@ -947,9 +1037,9 @@ def load_policy(
     if data.get("schema_version") != 1:
         raise PolicyError("routing policy schema_version must be 1")
 
-    known_capabilities = set(capability_ids) if capability_ids is not None else {
-        f"V{n:02d}" for n in range(1, 23)
-    }
+    known_capabilities = set(capability_ids)
+    if not known_capabilities:
+        raise PolicyError("a capability catalog is required to validate a policy")
     usable = _usable_gate_ids(gates)
 
     classifier = data.get("classifier", {})
