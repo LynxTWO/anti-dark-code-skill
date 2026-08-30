@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections.abc import Mapping
 from pathlib import Path
 
 # macOS puts temporary directories under /var, a symlink to /private/var. The
@@ -1123,9 +1124,20 @@ POLICY = {
 }
 
 
+FULL_SET = {
+    "passes": ["07", "10", "11", "14"],
+    "obligations": {
+        "V08": ["distribution"],
+        "V09": ["validate-core"],
+        "V12": ["hostile-environment"],
+        "V21": ["full-suite"],
+    },
+}
+
+
 def loaded(route):
     """POLICY as build_route now requires it: validated and frozen."""
-    return route.load_policy(POLICY, GATES, CAPABILITY_IDS)
+    return route.load_policy(POLICY, GATES, CAPABILITY_IDS, FULL_SET)
 
 
 def fact(route, path, **over):
@@ -1140,6 +1152,21 @@ class RouteBuildingTests(unittest.TestCase):
     def setUp(self) -> None:
         self.route = load_route()
         self.loaded = loaded(self.route)
+
+    def test_route_obligations_cannot_be_mutated_after_construction(self) -> None:
+        # L-07. Route was a frozen dataclass holding a plain dict, so
+        # built.obligations.clear() emptied authority data after the route was
+        # computed and without another route computation.
+        built = self.route.build_route(
+            (fact(self.route, "README.md"),), self.loaded)
+        self.assertTrue(built.obligations)
+        # mappingproxy raises AttributeError for clear and TypeError for
+        # assignment. Both are refusals; the point is that neither succeeds.
+        with self.assertRaises((TypeError, AttributeError)):
+            built.obligations.clear()
+        with self.assertRaises((TypeError, AttributeError)):
+            built.obligations["V99"] = frozenset({"x"})
+        self.assertTrue(built.obligations, "obligations were emptied")
 
     def test_a_prose_change_takes_the_cheap_route(self) -> None:
         built = self.route.build_route((fact(self.route, "README.md"),), loaded(self.route))
@@ -1356,7 +1383,7 @@ def assert_route_not_lower(case, smaller, larger, context) -> None:
             case.assertGreaterEqual(b, a, f"{context}: {field.name} decreased")
         elif isinstance(a, (set, frozenset)):
             case.assertTrue(b >= a, f"{context}: {field.name} lost members")
-        elif isinstance(a, dict):
+        elif isinstance(a, Mapping):
             for key, gates in a.items():
                 case.assertIn(key, b, f"{context}: {field.name} dropped {key}")
                 case.assertTrue(b[key] >= gates,
@@ -1657,6 +1684,54 @@ class PolicyValidationTests(unittest.TestCase):
             self.route.load_policy(
                 self._with_rule(obligations={"V23": ["validate-core"]}),
                 GATES, CAPABILITY_IDS)
+
+    def test_a_directly_constructed_policy_is_refused(self) -> None:
+        # L-04. isinstance proves the class, not that anything validated it.
+        # A forged policy with an empty Level 0 recipe routed cheap.
+        forged = self.route.ValidatedPolicy(
+            schema_version=1, classifier=(),
+            full_recipe=self.route.ValidatedRecipe(
+                minimum_level=0, passes=frozenset(),
+                independent_review=False, obligations=()),
+            rules=(self.route.ValidatedRule(
+                id="cheap", approved=True, match=(("surfaces", ("docs",)),),
+                passes=frozenset(), minimum_level=0, force_full=False,
+                independent_review=False, obligations=()),))
+        with self.assertRaises(TypeError):
+            self.route.build_route((fact(self.route, "README.md"),), forged)
+
+    def test_a_loaded_policy_is_accepted(self) -> None:
+        built = self.route.build_route(
+            (fact(self.route, "README.md"),), loaded(self.route))
+        self.assertEqual(built.matched_rule_ids, frozenset({"docs"}))
+
+    def test_a_recipe_missing_a_canonical_pass_is_rejected(self) -> None:
+        # L-03. Level 3 plus nonempty sets is not the same as covering the
+        # repository's canonical full verification.
+        policy = self._policy()
+        policy["full_recipe"]["passes"] = ["07"]
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
+
+    def test_a_recipe_missing_a_canonical_capability_is_rejected(self) -> None:
+        # The gate check would also fire here, so assert which error is raised.
+        # An absent capability and a capability missing gates are different
+        # faults, and a message naming the wrong one sends a policy author
+        # looking in the wrong place.
+        policy = self._policy()
+        policy["full_recipe"]["obligations"] = {"V09": ["validate-core"]}
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
+        self.assertIn("omits canonical capability", str(caught.exception))
+
+    def test_a_recipe_missing_a_canonical_gate_is_rejected(self) -> None:
+        policy = self._policy()
+        policy["full_recipe"]["obligations"]["V12"] = ["validate-core"]
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
+
+    def test_a_recipe_covering_the_canonical_set_is_accepted(self) -> None:
+        self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_proposed_rule_loads_but_never_matches(self) -> None:
         # D-022. The shipped template carries proposed rules, so loading must

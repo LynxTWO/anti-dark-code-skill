@@ -23,6 +23,7 @@ import re
 import os
 import subprocess
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -710,6 +711,11 @@ def build_route(
             "build_route requires a ValidatedPolicy from load_policy, "
             f"not {type(policy).__name__}"
         )
+    if policy.provenance is not _LOADER_PROVENANCE:
+        raise TypeError(
+            "this ValidatedPolicy did not come from load_policy. The type is "
+            "constructible, so the class alone proves nothing about validation"
+        )
 
     level = 0
     passes: set[str] = set()
@@ -765,7 +771,10 @@ def build_route(
         passes=frozenset(passes),
         # Sorted, so the mapping has one order for a given set of obligations.
         # Equality hid the difference; a serializer would not have.
-        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},
+        # Read-only. A frozen dataclass holding a plain dict still let a
+        # caller clear authority data after the route was computed.
+        obligations=MappingProxyType(
+            {k: frozenset(obligations[k]) for k in sorted(obligations)}),
         matched_rule_ids=frozenset(matched),
         force_full=force_full,
         independent_review=independent_review,
@@ -823,7 +832,8 @@ def apply_hints(
     return Route(
         minimum_level=max(route.minimum_level, int(hints.get("minimum_level", 0))),
         passes=route.passes | frozenset(hints.get("passes", [])),
-        obligations={k: frozenset(merged[k]) for k in sorted(merged)},
+        obligations=MappingProxyType(
+            {k: frozenset(merged[k]) for k in sorted(merged)}),
         # Rule matches are evidence of what fired, not a requirement a hint may
         # add to. Letting a hint write here would let an agent claim a reviewed
         # rule matched when it did not.
@@ -868,6 +878,15 @@ class ValidatedRecipe:
         return dict(self.obligations)
 
 
+# Only load_policy can name this. A frozen dataclass has a public constructor,
+# so isinstance proves the class and not that anything validated the value: a
+# forged policy with an empty Level 0 recipe routed cheap. Carrying a token the
+# loader supplies raises that from trivially constructible to deliberately
+# reaching for a module private. Python cannot do better than that, and saying
+# so is more useful than implying the check is absolute.
+_LOADER_PROVENANCE = object()
+
+
 @dataclass(frozen=True)
 class ValidatedPolicy:
     """A routing policy that has been checked and can no longer change.
@@ -883,6 +902,7 @@ class ValidatedPolicy:
     classifier: tuple[tuple[tuple[str, str], ...], ...]
     full_recipe: ValidatedRecipe
     rules: tuple[ValidatedRule, ...]
+    provenance: Any = None
 
     def classifier_map(self) -> dict[str, Any]:
         return {"surfaces": [dict(entry) for entry in self.classifier]}
@@ -1041,6 +1061,7 @@ def load_policy(
     data: Mapping[str, Any],
     gates: Mapping[str, Any],
     capability_ids: Sequence[str],
+    full_set: Mapping[str, Any] | None = None,
 ) -> ValidatedPolicy:
     """Validate a routing policy and freeze it.
 
@@ -1101,6 +1122,27 @@ def load_policy(
                        known_capabilities)
     if not recipe_data.get("obligations"):
         raise PolicyError("full_recipe must name at least one obligation")
+    if full_set is not None:
+        # Level 3 with nonempty sets is not the same as covering the
+        # repository's canonical full verification. Without this a recipe
+        # naming one pass and one capability satisfied every structural check
+        # while omitting most of what a full route is supposed to run.
+        recipe_passes = set(recipe_data.get("passes", []))
+        missing_passes = sorted(set(full_set.get("passes", [])) - recipe_passes)
+        if missing_passes:
+            raise PolicyError(
+                f"full_recipe omits canonical passes {missing_passes}")
+        recipe_obligations = recipe_data.get("obligations", {})
+        for capability, gate_ids in full_set.get("obligations", {}).items():
+            present = set(recipe_obligations.get(capability, []))
+            missing_gates = sorted(set(gate_ids) - present)
+            if capability not in recipe_obligations:
+                raise PolicyError(
+                    f"full_recipe omits canonical capability {capability}")
+            if missing_gates:
+                raise PolicyError(
+                    f"full_recipe capability {capability} omits canonical "
+                    f"gates {missing_gates}")
 
     rules_data = data.get("rules")
     if not isinstance(rules_data, list):
@@ -1136,6 +1178,7 @@ def load_policy(
         ))
 
     return ValidatedPolicy(
+        provenance=_LOADER_PROVENANCE,
         schema_version=1,
         classifier=tuple(frozen_classifier),
         full_recipe=ValidatedRecipe(
