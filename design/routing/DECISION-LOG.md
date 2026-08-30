@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.7. Date: 2026-08-29. Status: Round-five review blocked.
+Version: 0.8. Date: 2026-08-30. Status: Audited.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -1300,7 +1300,7 @@ Status: Confirmed
 Area: ADD 4 to 6, supersedes the reasoning recorded against D-030
 
 Context:
-The owner asked whether acquisition should read from an isolated repository representation rather than the live repository, after enumerating git configuration keys had failed twice. I costed that option and recommended against it. The costing was wrong, which N-07 established: a bare shared clone of a 345-file repository takes 145 to 155 milliseconds and stores about 27 kilobytes, not the 5.6 seconds and 38 megabytes I reported. I had read `du -sb` bytes as megabytes and timed one cold run. The second argument was misapplied as well: the 82 percent raw-to-blob mismatch rules out using our own hash to detect unstaged changes, and says nothing about using one as a boundary digest, which is what was actually built.
+The owner asked whether acquisition should read from an isolated repository representation rather than the live repository, after enumerating git configuration keys had failed twice. I costed that option and recommended against it. The costing was wrong, which N-07 established: a bare shared clone of a 345-file repository takes 0.10 to 0.34 seconds and stores 38,477 logical bytes, not the 5.6 seconds and 38 megabytes I reported. I had read `du -sb` bytes as megabytes and timed one cold run. The second argument was misapplied as well: the 82 percent raw-to-blob mismatch rules out using our own hash to detect unstaged changes, and says nothing about using one as a boundary digest, which is what was actually built.
 
 Both arguments being wrong, the question was reopened and measured again.
 
@@ -1327,6 +1327,12 @@ Options considered:
 
 Consequences:
 The boundary continues to rest on discovery plus detection rather than on isolation by construction. D-030's third layer stays load-bearing, which is why its mutants matter.
+
+Correction, 2026-08-30:
+This entry first said "about 27 kilobytes". That was a measurement taken on a small synthetic repository and attributed to the 345-file one, which is the same class of error as the figure it was correcting. The 345-file clone is 38,477 logical bytes.
+
+Scope of the ruling:
+This rules out the clone forms tested: `--bare --shared`, and by the same capability argument a full bare clone. It does not rule out a representation that carries a complete index and worktree snapshot, because none was built or measured. That remains an open architecture question rather than a closed one.
 
 Revisit when:
 A representation appears that can observe index and worktree state without executing candidate configuration, or the worktree source is dropped from routing entirely.

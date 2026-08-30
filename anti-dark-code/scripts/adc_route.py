@@ -22,6 +22,7 @@ import json
 import weakref
 import re
 import os
+import stat as stat_module
 import subprocess
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -384,10 +385,20 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
     scope misses a write into an ignored directory, which is an accepted limit:
     an ignored path is not part of the change set and cannot alter a route.
     """
-    index = repo / ".git" / "index"
+    # Resolve through git rather than assuming .git/index: a linked worktree
+    # keeps its index elsewhere, and the assumed path would silently fingerprint
+    # nothing at all.
+    located = run(_isolated(["rev-parse", "--git-path", "index"]))
+    if located:
+        index = (repo / located.decode("utf-8", "replace").strip()).resolve()
+    else:
+        index = repo / ".git" / "index"
     try:
         stat = index.stat()
-        index_state: Any = (stat.st_size, stat.st_mtime_ns)
+        # Content, not only size and mtime. Both can be preserved across a
+        # rewrite, which is the blind spot already closed for worktree files.
+        index_digest = hashlib.sha256(index.read_bytes()).hexdigest()
+        index_state: Any = (stat.st_size, stat.st_mtime_ns, index_digest)
     except OSError:
         index_state = None
 
@@ -422,6 +433,25 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
                         stat.st_mode)
         except OSError:
             entries.append((relative, -1, -1, "unreadable"))
+            continue
+        # Branch on what the path actually is. Using lstat for metadata and
+        # then open() for content identified a symlink and immediately read
+        # through it, so a tracked path swapped for a link to data outside the
+        # repository hashed the target's bytes instead of recording the link.
+        if stat_module.S_ISLNK(stat.st_mode):
+            try:
+                target = os.readlink(path)
+            except OSError:
+                entries.append((relative, size, mtime, f"unreadable:{topology}"))
+                continue
+            entries.append((relative, size, mtime, f"symlink:{target}:{topology}"))
+            continue
+        if not stat_module.S_ISREG(stat.st_mode):
+            # A directory, device, socket, or gitlink. Record what it is and do
+            # not open it: opening an unsupported special file is exactly the
+            # kind of side effect this fingerprint exists to avoid.
+            entries.append(
+                (relative, size, mtime, f"special:{stat.st_mode:o}:{topology}"))
             continue
         digest = hashlib.sha256()
         try:

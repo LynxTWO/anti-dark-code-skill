@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 0.7. Date: 2026-08-29. Status: Round-five review blocked.
+Version: 0.8. Date: 2026-08-30. Status: Proposed.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -42,7 +42,7 @@ Every step works against the real repository, real git state, and the real calib
 | Milestone | Status | Contents |
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
-| M2 | Review blocked, 2026-08-30 | The code exists, but N-01 through N-08 in `HANDOFF-BACK-ROUND-SIX.md` block completion. Canonical full-set validation is optional, policy provenance transfers through field replacement, index and path-topology mutations escape the boundary, repository-wide object format and real conflict grammar are not enforced, Route immutability is not a type invariant, and the stored mutation matrix is not replayable. R-049 through R-055 state the closure evidence. |
+| M2 | Done, pending round-eight review, 2026-08-30 | The code exists, but N-01 through N-08 in `HANDOFF-BACK-ROUND-SIX.md` block completion. Canonical full-set validation is optional, policy provenance transfers through field replacement, index and path-topology mutations escape the boundary, repository-wide object format and real conflict grammar are not enforced, Route immutability is not a type invariant, and the stored mutation matrix is not replayable. R-049 through R-055 state the closure evidence. |
 | M3 | Not started | Policy schema, the first routing policy for this repository, and the `route` subcommand with receipt writing and verification. |
 | M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
 

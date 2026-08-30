@@ -1,6 +1,6 @@
 # Assurance Router Architecture Document (ADD)
 
-Version: 0.7. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Round-five review blocked.
+Version: 0.8. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ENGINEERING.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. Where the two conflict, this document's guardrails control.
@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Round-five gate:** six blocking defects remain. A partial clone fetches during rename detection, the metadata fingerprint misses a tracked byte change, policy validation lacks provenance and the canonical full set, hints accept invalid types and obligation pairs, and the raw parser accepts impossible records. M2 is not complete until L-01 through L-06 in `HANDOFF-BACK-ROUND-FIVE.md` close.
+**Current gate:** the round-five and round-six findings are closed. Three mutants are recorded as surviving rather than claimed closed: M36 and M37, which attack the boundary fingerprint's path topology and its use of lstat, and M46, which attacks symlink identification and cannot run where symlinks are unavailable. `mutants/matrix.json` holds their transformations and `mutants/replay.py` reproduces them. Receipt and CLI work waits on the round-eight review.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 

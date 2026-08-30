@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.7. Date: 2026-08-29. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Round-five review blocked.
+Version: 0.8. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** M2 is blocked by L-01 through L-06 in `HANDOFF-BACK-ROUND-FIVE.md`. Receipt and CLI work must wait.
+- **Current gate:** the L and N findings are closed. Two mutants are recorded as surviving rather than claimed closed: M36 and M37 in `mutants/matrix.json`, and M46 while symlinks are unavailable on the reviewing host. Receipt and CLI work waits on the round-eight review.
 
 ## 2. Engineering Principles
 
@@ -31,7 +31,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 |---|---|---|
 | Correct | adding a changed file never lowers any route field | property test over generated fact sets and hints |
 | Auditable | every omitted gate carries a reason code and matched rule id | receipt schema validation |
-| Fast | acquisition under one second on a repository of a few hundred tracked files | timed measurement, 2026-08-29: 0.474s here, 0.853s on a real 345-file repository, 5.4s on a synthetic 3000-file commit where every file changed. The last exceeds the goal, for the same reason D-027 records: unlimited copy detection and a content-level boundary fingerprint are both preferred over silently losing evidence |
+| Fast | acquisition under one second on a repository of a few hundred tracked files, warm | timed measurement, 2026-08-30. Warm: 0.34 to 0.38s here, 0.70 to 0.89s on a real 345-file repository. Cold is different and the goal does not hold there: a reviewer measured 3.30s cold on the same repository, which could not be reproduced here because a genuinely cold cache was unavailable, so that observation stands unrefuted. A synthetic 3000-file commit where every file changed is several seconds, for the reasons D-027 and D-037 record |
 | Deterministic | identical facts produce byte-identical receipts regardless of input order | repeated-run hash comparison |
 | Honest | routing misses are counted per route class, not in aggregate | shadow ledger |
 | Tamper-evident | changed content, modes, index, submodules, policy, calibration, or gate inputs invalidate a receipt | staleness and concurrent-mutation tests |
