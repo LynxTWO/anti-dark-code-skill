@@ -1002,6 +1002,52 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             "no index was fingerprinted for a linked worktree, so the "
             "boundary check covered nothing there")
 
+    def test_a_same_size_index_rewrite_is_detected(self) -> None:
+        # P-02. The index contributed size and mtime only, so an index rewritten
+        # to the same length with its timestamp restored was invisible, which is
+        # the same blind spot L-02 closed for worktree files.
+        index = self.repo / ".git" / "index"
+        original = index.read_bytes()
+        original_stat = index.stat()
+        seen: list[int] = []
+
+        def index_rewriting_runner(args):
+            result = self.route._default_runner(self.repo)(args)
+            seen.append(1)
+            if len(seen) == 5:
+                swapped = bytearray(original)
+                swapped[-1] = (swapped[-1] + 1) % 256
+                index.write_bytes(bytes(swapped))
+                os.utime(index, ns=(original_stat.st_atime_ns,
+                                    original_stat.st_mtime_ns))
+            return result
+
+        try:
+            snap = self.route.read_change_inputs(
+                self.repo, "base-ref", runner=index_rewriting_runner)
+            self.assertEqual(index.stat().st_size, original_stat.st_size)
+            self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
+        finally:
+            index.write_bytes(original)
+
+    def test_a_linked_worktree_index_is_found(self) -> None:
+        # P-02. A linked worktree keeps its index under .git/worktrees/<name>,
+        # so assuming .git/index fingerprints nothing at all there and the
+        # boundary check silently covers less than it claims.
+        linked = Path(self.tmp.name) / "linked"
+        done = subprocess.run(
+            ["git", "-C", str(self.repo), "worktree", "add", "-q",
+             str(linked), "-b", "linked-branch"],
+            capture_output=True, text=True)
+        if done.returncode != 0:
+            self.skipTest(f"git worktree add unavailable: {done.stderr.strip()}")
+        run = self.route._default_runner(linked)
+        index_state = self.route._repo_fingerprint(linked, run)[0]
+        self.assertIsNotNone(
+            index_state,
+            "no index was fingerprinted for a linked worktree, so the "
+            "boundary check covered nothing there")
+
     def test_a_symlink_is_identified_not_followed(self) -> None:
         # P-07. lstat was used for metadata and then open() followed the link
         # for content, so a tracked path swapped for a symlink hashed the
