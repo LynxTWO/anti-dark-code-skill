@@ -1717,5 +1717,19 @@
     "pytest": "not replayed",
     "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
     "results": []
+  },
+  {
+    "id": "M62",
+    "name": "replay normalizes source line endings",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        original = source.read_bytes()",
+    "new": "        original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
+    "verdict": "unverified: replay pending",
+    "pytest": "not replayed",
+    "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
+    "results": []
   }
 ]

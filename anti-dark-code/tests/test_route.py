@@ -2627,6 +2627,29 @@ class SuiteIntegrityTests(unittest.TestCase):
             REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
         self.assertEqual(sys.executable, harness.suite_command(("suite.py",))[0])
 
+    def test_replay_restores_the_exact_source_bytes(self) -> None:
+        """A CRLF source must not return as LF after a successful replay."""
+        harness = load_module(
+            "adc_replay_restoration",
+            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\r\nafter = False\r\n"
+            source.write_bytes(original)
+            harness.REPO_ROOT = root
+            harness.host_identity = lambda: {
+                "platform": "Test", "release": "1", "python": "3",
+                "git": "git version test"}
+            harness.run_suite = lambda paths: (True, "1 failed", 0)
+            row = {
+                "id": "MX", "name": "fixture", "source": "source.py",
+                "old": "before = True", "new": "before = False",
+                "results": []}
+
+            self.assertEqual(0, harness.replay([row], write=False))
+            self.assertEqual(original, source.read_bytes())
+
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
 REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
                         / "requirement-evidence.json")

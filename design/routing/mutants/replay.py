@@ -146,13 +146,14 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
                   f"{row['superseded_by']}")
             continue
         source = REPO_ROOT / row["source"]
-        original = source.read_text(encoding="utf-8")
-        if row["old"] not in original:
+        original = source.read_bytes()
+        old = row["old"].encode("utf-8")
+        new = row["new"].encode("utf-8")
+        if old not in original:
             print(f"  {row['id']}  {row['name']:42} TARGET MISSING")
             survivors.append(row["id"])
             continue
-        source.write_text(
-            original.replace(row["old"], row["new"], 1), encoding="utf-8", newline="")
+        source.write_bytes(original.replace(old, new, 1))
         try:
             caught, summary, skipped = run_suite(
                 tuple(row.get("suite", DEFAULT_SUITE)))
@@ -166,11 +167,11 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
             # KeyboardInterrupt and SystemExit derive from BaseException, so a
             # bare except or a try/finally alone is not enough to guarantee the
             # source comes back. Restore, then re-raise.
-            source.write_text(original, encoding="utf-8", newline="")
+            source.write_bytes(original)
             print(f"\n  interrupted during {row['id']}; source restored")
             raise
         finally:
-            source.write_text(original, encoding="utf-8", newline="")
+            source.write_bytes(original)
         verdict = "caught" if caught else "SURVIVED"
         results = {r["platform"]: r for r in row.get("results", [])}
         results[host["platform"]] = {**host, "verdict": verdict,
