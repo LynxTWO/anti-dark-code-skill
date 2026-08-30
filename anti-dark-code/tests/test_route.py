@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -748,6 +749,75 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         snap = self.route.read_change_inputs(self.repo, "base-ref")
         self.assertNotIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
         self.assertTrue(snap.complete)
+
+    def test_the_runner_environment_blocks_lazy_fetch(self) -> None:
+        """L-01. fetch.negotiationAlgorithm=noop chooses a negotiation strategy.
+
+        It does not stop a partial clone fetching a missing object on demand,
+        which Codex traced: acquisition started a child git fetch and wrote an
+        object while reporting complete. GIT_NO_LAZY_FETCH is the real control.
+
+        A true blobless clone could not be built here, because a local file
+        transport ignores the filter and the resulting objects are packed. This
+        asserts the control is present rather than the behaviour it prevents,
+        and says so rather than implying more coverage than it has.
+        """
+        import subprocess as sp
+        captured: dict[str, str] = {}
+        original = sp.run
+
+        def capture(*args, **kwargs):
+            if kwargs.get("env"):
+                captured.update(kwargs["env"])
+            return original(*args, **kwargs)
+
+        sp.run = capture
+        try:
+            self.route.read_change_inputs(self.repo, "base-ref")
+        finally:
+            sp.run = original
+        self.assertEqual(captured.get("GIT_NO_LAZY_FETCH"), "1")
+
+    def test_negotiation_setting_is_not_used_as_an_isolation_control(self) -> None:
+        # The name may appear in a comment explaining why it is not used. What
+        # must not happen is it sitting in the isolation flags looking like
+        # protection, because it changes negotiation and prevents no fetch.
+        flags = " ".join(self.route._GIT_ISOLATION)
+        self.assertNotIn("fetch.negotiationAlgorithm", flags)
+
+    def test_a_same_size_rewrite_is_detected(self) -> None:
+        """L-02. The fingerprint stored size and mtime, so a write that
+
+        preserved both was invisible: content could change after its own
+        comparison and the snapshot still called itself complete.
+        """
+        victim = self.repo / "victim.txt"
+        victim.write_text("AAAA\n", encoding="utf-8", newline="\n")
+        self._git("add", "victim.txt")
+        self._git("commit", "-qm", "victim")
+        original = victim.stat()
+
+        seen: list[int] = []
+
+        def rewriting_runner(args):
+            result = self.route._default_runner(self.repo)(args)
+            seen.append(1)
+            # Calls one and two are the opening fingerprint's own listings, and
+            # it hashes after both return. Firing here puts the write after the
+            # file's comparison and before the closing fingerprint, which is the
+            # window the detector exists to cover.
+            if len(seen) == 5:
+                # Same byte count, and the timestamp put back afterwards.
+                victim.write_text("BBBB\n", encoding="utf-8", newline="\n")
+                os.utime(victim, ns=(original.st_atime_ns, original.st_mtime_ns))
+            return result
+
+        snap = self.route.read_change_inputs(
+            self.repo, "base-ref", runner=rewriting_runner)
+        self.assertEqual(victim.stat().st_size, original.st_size)
+        self.assertEqual(victim.stat().st_mtime_ns, original.st_mtime_ns)
+        self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
+        self.assertFalse(snap.complete)
 
     def test_acquisition_does_not_write_to_the_repository(self) -> None:
         """R-027. Reading must not modify the index or the worktree.

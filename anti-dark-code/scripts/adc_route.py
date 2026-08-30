@@ -17,6 +17,7 @@ program for git to run. See _GIT_ISOLATION.
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import json
 import re
 import os
@@ -252,9 +253,6 @@ _GIT_ISOLATION = (
     "--no-optional-locks",
     "-c", "core.fsmonitor=false",
     "-c", "diff.external=",
-    # Lazy fetch would reach the network for a missing object in a partial
-    # clone. Routing must work offline and must not talk to a remote.
-    "-c", "fetch.negotiationAlgorithm=noop",
     # Detection silently degrades past a default budget of 1000 paths, which
     # would drop rename and copy provenance without saying so. 0 is unlimited.
     "-c", "diff.renameLimit=0",
@@ -340,14 +338,32 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
             return ("unreadable",)
         listed.extend(_split_z(payload)[0])
 
-    entries: list[tuple[str, int, int]] = []
+    # Content and metadata, because neither alone is sufficient. Size and mtime
+    # can both be preserved across a rewrite, so a write timed after its own
+    # comparison was invisible to metadata. Content alone is equally blind to a
+    # rewrite with identical bytes, which only moves the timestamp. Recording
+    # both means any one of the three moving is enough.
+    #
+    # Measured cost of hashing every tracked file: 0.012s at 104 files, 0.038s
+    # at 345, 0.273s at 3000.
+    entries: list[tuple[str, int, int, str]] = []
     for relative in listed:
+        path = repo / relative
         try:
-            stat = (repo / relative).stat()
+            stat = path.stat()
+            size, mtime = stat.st_size, stat.st_mtime_ns
         except OSError:
-            entries.append((relative, -1, -1))
+            entries.append((relative, -1, -1, "unreadable"))
             continue
-        entries.append((relative, stat.st_size, stat.st_mtime_ns))
+        digest = hashlib.sha256()
+        try:
+            with open(path, "rb") as handle:
+                for chunk in iter(lambda: handle.read(1 << 20), b""):
+                    digest.update(chunk)
+        except OSError:
+            entries.append((relative, size, mtime, "unreadable"))
+            continue
+        entries.append((relative, size, mtime, digest.hexdigest()))
     return (index_state, tuple(sorted(entries)))
 
 
@@ -371,6 +387,12 @@ def _default_runner(repo: Path):
         try:
             environment = dict(os.environ)
             environment["GIT_OPTIONAL_LOCKS"] = "0"
+            # A partial clone fetches a missing object on demand, so a read can
+            # reach the network and write an object. fetch.negotiationAlgorithm
+            # only chooses a negotiation strategy and prevents nothing; this is
+            # the control that does. A missing promisor object then fails the
+            # command, which acquisition already reports as unreadable.
+            environment["GIT_NO_LAZY_FETCH"] = "1"
             done = subprocess.run(
                 ["git", "-C", str(repo), *args],
                 capture_output=True, timeout=30, check=False, env=environment,
