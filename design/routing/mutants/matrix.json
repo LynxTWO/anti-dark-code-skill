@@ -6,7 +6,7 @@
     "old": "into.setdefault(capability, set()).update(gate_ids)",
     "new": "into[capability] = set(gate_ids)",
     "verdict": "caught",
-    "pytest": "6 failed, 172 passed in 12.87s"
+    "pytest": "6 failed, 180 passed in 12.39s"
   },
   {
     "id": "M02",
@@ -15,7 +15,7 @@
     "old": "level = max(level, rule.minimum_level)",
     "new": "level = rule.minimum_level",
     "verdict": "caught",
-    "pytest": "3 failed, 175 passed in 12.63s"
+    "pytest": "3 failed, 183 passed in 12.16s"
   },
   {
     "id": "M03",
@@ -24,7 +24,7 @@
     "old": "force_full = force_full or rule.force_full",
     "new": "force_full = rule.force_full",
     "verdict": "caught",
-    "pytest": "5 failed, 173 passed in 12.68s"
+    "pytest": "5 failed, 181 passed in 12.20s"
   },
   {
     "id": "M04",
@@ -33,7 +33,7 @@
     "old": "        passes.update(recipe.passes)",
     "new": "",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.48s"
+    "pytest": "2 failed, 184 passed in 12.04s"
   },
   {
     "id": "M05",
@@ -42,7 +42,7 @@
     "old": "        level = max(level, recipe.minimum_level)",
     "new": "        pass",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.61s"
+    "pytest": "1 failed, 185 passed in 12.14s"
   },
   {
     "id": "M06",
@@ -51,7 +51,7 @@
     "old": "        independent_review = independent_review or recipe.independent_review",
     "new": "        pass",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.51s"
+    "pytest": "1 failed, 185 passed in 12.12s"
   },
   {
     "id": "M07",
@@ -60,7 +60,7 @@
     "old": "unknowns.add(\"ADC-ROUTE-UNROUTED-FACT\")",
     "new": "pass",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.51s"
+    "pytest": "1 failed, 185 passed in 12.11s"
   },
   {
     "id": "M08",
@@ -69,7 +69,7 @@
     "old": "    worktree_isolation = _filter_overrides(run)",
     "new": "    worktree_isolation = []",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.42s"
+    "pytest": "2 failed, 184 passed in 12.15s"
   },
   {
     "id": "M09",
@@ -78,7 +78,7 @@
     "old": "    if _repo_fingerprint(repo, run) != before:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "4 failed, 174 passed in 11.96s"
+    "pytest": "4 failed, 182 passed in 11.89s"
   },
   {
     "id": "M10",
@@ -87,7 +87,7 @@
     "old": "environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
     "new": "pass",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.47s"
+    "pytest": "1 failed, 185 passed in 12.49s"
   },
   {
     "id": "M11",
@@ -96,7 +96,7 @@
     "old": "\"-c\", \"core.fsmonitor=false\",",
     "new": "",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.81s"
+    "pytest": "2 failed, 184 passed in 12.36s"
   },
   {
     "id": "M12",
@@ -105,7 +105,7 @@
     "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
     "new": "entries.append((relative, size, mtime, f\":{topology}\"))",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.23s"
+    "pytest": "1 failed, 185 passed in 12.47s"
   },
   {
     "id": "M13",
@@ -114,7 +114,7 @@
     "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
     "new": "entries.append((relative, 0, 0, f\"{digest.hexdigest()}:{topology}\"))",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.26s"
+    "pytest": "1 failed, 185 passed in 12.12s"
   },
   {
     "id": "M14",
@@ -123,7 +123,7 @@
     "old": "\"--find-copies-harder\",",
     "new": "",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.20s"
+    "pytest": "1 failed, 185 passed in 12.12s"
   },
   {
     "id": "M15",
@@ -132,7 +132,7 @@
     "old": "    if old_mode not in _GIT_MODES or new_mode not in _GIT_MODES:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.43s"
+    "pytest": "2 failed, 184 passed in 12.15s"
   },
   {
     "id": "M16",
@@ -141,7 +141,7 @@
     "old": "    if len(old_object) != len(new_object):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.12s"
+    "pytest": "1 failed, 185 passed in 12.09s"
   },
   {
     "id": "M17",
@@ -150,7 +150,7 @@
     "old": "    if width is not None and len(old_object) != width:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.39s"
+    "pytest": "2 failed, 184 passed in 12.15s"
   },
   {
     "id": "M18",
@@ -159,7 +159,7 @@
     "old": "    if (has_old, has_new) != sides:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.56s"
+    "pytest": "2 failed, 184 passed in 13.54s"
   },
   {
     "id": "M19",
@@ -168,7 +168,7 @@
     "old": "        return score is not None and 0 <= int(score) <= 100",
     "new": "        return score is None or 0 <= int(score) <= 100",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.41s"
+    "pytest": "1 failed, 185 passed in 13.17s"
   },
   {
     "id": "M20",
@@ -177,7 +177,7 @@
     "old": "    known_capabilities = set(capability_ids)",
     "new": "    known_capabilities = {f'V{n:02d}' for n in range(1,23)}",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.52s"
+    "pytest": "1 failed, 185 passed in 12.91s"
   },
   {
     "id": "M21",
@@ -186,7 +186,7 @@
     "old": "        missing_passes = sorted(set(full_set.get(\"passes\", [])) - recipe_passes)",
     "new": "        missing_passes = []",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.38s"
+    "pytest": "1 failed, 185 passed in 12.83s"
   },
   {
     "id": "M22",
@@ -195,7 +195,7 @@
     "old": "            if capability not in recipe_obligations:",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.56s"
+    "pytest": "1 failed, 185 passed in 12.96s"
   },
   {
     "id": "M23",
@@ -204,7 +204,7 @@
     "old": "    if not _is_validated(policy):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.50s"
+    "pytest": "2 failed, 184 passed in 12.79s"
   },
   {
     "id": "M24",
@@ -213,7 +213,7 @@
     "old": "    if not isinstance(policy, ValidatedPolicy):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.50s"
+    "pytest": "1 failed, 185 passed in 12.91s"
   },
   {
     "id": "M25",
@@ -222,7 +222,7 @@
     "old": "    if not isinstance(value, list) or not value:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.36s"
+    "pytest": "2 failed, 184 passed in 12.66s"
   },
   {
     "id": "M26",
@@ -231,7 +231,7 @@
     "old": "{k: frozenset(obligations[k]) for k in sorted(obligations)}",
     "new": "{k: frozenset(v) for k, v in obligations.items()}",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.14s"
+    "pytest": "1 failed, 185 passed in 13.15s"
   },
   {
     "id": "M27",
@@ -240,7 +240,7 @@
     "old": "    unsupported = set(hints) - _HINT_FIELDS",
     "new": "    unsupported = set()",
     "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.26s"
+    "pytest": "2 failed, 184 passed in 12.57s"
   },
   {
     "id": "M28",
@@ -249,7 +249,7 @@
     "old": "        if isinstance(level, bool) or not isinstance(level, int) or level not in _LEVELS:",
     "new": "        if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.12s"
+    "pytest": "1 failed, 185 passed in 11.96s"
   },
   {
     "id": "M29",
@@ -258,7 +258,7 @@
     "old": "            if (capability, gate_id) not in reviewed_pairs:",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "3 failed, 175 passed in 12.23s"
+    "pytest": "3 failed, 183 passed in 12.07s"
   },
   {
     "id": "M30",
@@ -267,7 +267,7 @@
     "old": "if not fnmatch.fnmatchcase(path, glob):",
     "new": "if not fnmatch.fnmatchcase(path.replace(chr(92),\"/\"), glob):",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.11s"
+    "pytest": "1 failed, 185 passed in 12.26s"
   },
   {
     "id": "M31",
@@ -276,7 +276,7 @@
     "old": "sorted(set(facts), key=_fact_sort_key)",
     "new": "sorted(facts, key=_fact_sort_key)",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.09s"
+    "pytest": "1 failed, 185 passed in 13.31s"
   },
   {
     "id": "M32",
@@ -284,8 +284,10 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "        obligations=MappingProxyType(\n            {k: frozenset(obligations[k]) for k in sorted(obligations)}),",
     "new": "        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},",
-    "verdict": "caught",
-    "pytest": "2 failed, 176 passed in 12.33s"
+    "verdict": "superseded",
+    "pytest": "",
+    "superseded_by": "M40",
+    "note": "the freeze moved to Route.__post_init__, so removing the construction-site wrapper is a no-op"
   },
   {
     "id": "M33",
@@ -294,7 +296,7 @@
     "old": "    return (index_state, tuple(sorted(entries)))",
     "new": "    return (None, tuple(sorted(entries)))",
     "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.09s"
+    "pytest": "1 failed, 185 passed in 15.22s"
   },
   {
     "id": "M34",
@@ -302,8 +304,10 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "        obligations=MappingProxyType(\n            {k: frozenset(merged[k]) for k in sorted(merged)}),",
     "new": "        obligations={k: frozenset(merged[k]) for k in sorted(merged)},",
-    "verdict": "caught",
-    "pytest": "1 failed, 177 passed in 12.23s"
+    "verdict": "superseded",
+    "pytest": "",
+    "superseded_by": "M40",
+    "note": "same: __post_init__ re-freezes whatever a construction site passes"
   },
   {
     "id": "M35",
@@ -311,8 +315,10 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "    \"T\": (True, True),\n}",
     "new": "    \"T\": (True, True), \"U\": (True, True),\n}",
-    "verdict": "caught",
-    "pytest": "3 failed, 175 passed in 12.23s"
+    "verdict": "superseded",
+    "pytest": "",
+    "superseded_by": "M41 and M42",
+    "note": "U is handled before the _STATUS_SIDES lookup, so that entry is unreachable"
   },
   {
     "id": "M36",
@@ -321,7 +327,7 @@
     "old": "topology = (getattr(stat, \"st_nlink\", 0), getattr(stat, \"st_ino\", 0),\n                        stat.st_mode)",
     "new": "topology = 0",
     "verdict": "SURVIVED",
-    "pytest": "178 passed in 12.06s"
+    "pytest": "186 passed in 14.92s"
   },
   {
     "id": "M37",
@@ -330,6 +336,60 @@
     "old": "stat = path.lstat()",
     "new": "stat = path.stat()",
     "verdict": "SURVIVED",
-    "pytest": "178 passed in 12.06s"
+    "pytest": "186 passed in 13.83s"
+  },
+  {
+    "id": "M38",
+    "name": "validated policy registry pins values",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "_VALIDATED_POLICIES: \"weakref.WeakValueDictionary[int, ValidatedPolicy]\" = (\n    weakref.WeakValueDictionary()\n)",
+    "new": "_VALIDATED_POLICIES: dict[int, ValidatedPolicy] = {}",
+    "verdict": "caught",
+    "pytest": "1 failed, 185 passed in 13.38s"
+  },
+  {
+    "id": "M39",
+    "name": "empty canonical full set accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if not canonical_passes or not canonical_obligations:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 185 passed in 13.27s"
+  },
+  {
+    "id": "M40",
+    "name": "route obligations not frozen in post-init",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if not isinstance(self.obligations, MappingProxyType):",
+    "new": "        if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 185 passed in 12.89s"
+  },
+  {
+    "id": "M41",
+    "name": "scored unmerged record accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if score is not None:\n            return False\n        if old_object",
+    "new": "        if False:\n            return False\n        if old_object",
+    "verdict": "caught",
+    "pytest": "1 failed, 185 passed in 15.83s"
+  },
+  {
+    "id": "M42",
+    "name": "committed unmerged record accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        return source is None or source in _UNMERGED_SOURCES",
+    "new": "        return True",
+    "verdict": "caught",
+    "pytest": "1 failed, 185 passed in 13.40s"
+  },
+  {
+    "id": "M43",
+    "name": "width not carried across sources",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        parsed = parse_raw_z(payload, source, snapshot_width[0])",
+    "new": "        parsed = parse_raw_z(payload, source, None)",
+    "verdict": "caught",
+    "pytest": "1 failed, 185 passed in 13.36s"
   }
 ]

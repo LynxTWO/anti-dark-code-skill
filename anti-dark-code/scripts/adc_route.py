@@ -81,9 +81,13 @@ _STATUS_SIDES = {
 }
 
 
+# Only the index and the worktree can hold an unmerged entry. A commit cannot.
+_UNMERGED_SOURCES = frozenset({"staged", "unstaged"})
+
+
 def _valid_raw_header(
     old_mode: str, new_mode: str, old_object: str, new_object: str, status: str,
-    width: int | None = None,
+    width: int | None = None, source: str | None = None,
 ) -> bool:
     """Check the record grammar git actually writes, not merely its shape.
 
@@ -117,6 +121,17 @@ def _valid_raw_header(
     if not matched:
         return False
     letter, score = matched.group(1), matched.group(2)
+
+    if letter == "U":
+        # Exempting U from the side check exempted it from every check, which
+        # is not what the exemption was for. An unmerged entry has more than
+        # one legitimate side shape, but it is never scored, never has both
+        # sides absent, and cannot appear in a commit.
+        if score is not None:
+            return False
+        if old_object == "0" * len(old_object) and new_object == "0" * len(new_object):
+            return False
+        return source is None or source in _UNMERGED_SOURCES
 
     sides = _STATUS_SIDES.get(letter)
     if sides is None:
@@ -166,6 +181,9 @@ class RawParse:
 
     inputs: tuple[ChangeInput, ...] = ()
     problems: tuple[str, ...] = ()
+    # Object width seen in this payload, so the caller can hold every source in
+    # one snapshot to the same repository object format.
+    width: int | None = None
 
 
 def _split_z(payload: bytes) -> tuple[list[str], list[str]]:
@@ -186,7 +204,7 @@ def _split_z(payload: bytes) -> tuple[list[str], list[str]]:
     return [part for part in text.split("\x00") if part != ""], problems
 
 
-def parse_raw_z(payload: bytes, source: str) -> RawParse:
+def parse_raw_z(payload: bytes, source: str, width: int | None = None) -> RawParse:
     """Parse `git diff --raw -z` output into ChangeInput records.
 
     Raw is required rather than --name-status because only raw carries the mode
@@ -200,8 +218,6 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
     fields, problems = _split_z(payload)
     rows: list[ChangeInput] = []
     index = 0
-    # Established by the first well-formed record and enforced on the rest.
-    width: int | None = None
 
     while index < len(fields):
         header = fields[index]
@@ -218,7 +234,7 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
 
         old_mode, new_mode, old_object, new_object, status = parts
         if not _valid_raw_header(
-            old_mode, new_mode, old_object, new_object, status, width
+            old_mode, new_mode, old_object, new_object, status, width, source
         ):
             problems.append("ADC-ROUTE-MALFORMED-RECORD")
             index += 1
@@ -271,7 +287,8 @@ def parse_raw_z(payload: bytes, source: str) -> RawParse:
         ))
         index += wanted + 1
 
-    return RawParse(inputs=tuple(rows), problems=tuple(sorted(set(problems))))
+    return RawParse(inputs=tuple(rows), problems=tuple(sorted(set(problems))),
+                    width=width)
 
 
 def parse_untracked_z(payload: bytes) -> RawParse:
@@ -487,15 +504,22 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     if not base_resolved:
         problems.append("ADC-ROUTE-BASE-UNREACHABLE")
 
+    # A repository has one object format, so every source must agree. Width was
+    # established per parser call, which let one snapshot carry a 40-digit
+    # staged record beside a 64-digit committed one.
+    snapshot_width: list[int | None] = [len(merge_base) if merge_base else None]
+
     def collect(args: list[str], source: str, unreadable_code: str,
                 extra: Sequence[str] = ()) -> None:
         payload = run(_isolated(args, extra))
         if payload is None:
             problems.append(unreadable_code)
             return
-        parsed = parse_raw_z(payload, source)
+        parsed = parse_raw_z(payload, source, snapshot_width[0])
         rows.extend(parsed.inputs)
         problems.extend(parsed.problems)
+        if snapshot_width[0] is None and parsed.width is not None:
+            snapshot_width[0] = parsed.width
 
     if merge_base:
         collect(["diff", *_DIFF_FLAGS, merge_base, "HEAD"],
@@ -694,6 +718,17 @@ class Route:
     independent_review: bool = False
     unmapped_paths: frozenset[str] = frozenset()
     unknowns: frozenset[str] = frozenset()
+
+    def __post_init__(self) -> None:
+        # Wrapping at each construction site froze the value that site passed,
+        # not the field. dataclasses.replace and direct construction both
+        # bypassed it and handed back a mutable mapping holding authority data.
+        # Freezing here covers every way a Route can come into existence.
+        if not isinstance(self.obligations, MappingProxyType):
+            object.__setattr__(
+                self, "obligations",
+                MappingProxyType({k: frozenset(v)
+                                  for k, v in sorted(self.obligations.items())}))
 
 
 # Rule match keys. Positive predicates only: a rule may not depend on the
@@ -1215,6 +1250,20 @@ def load_policy(
                        known_capabilities)
     if not recipe_data.get("obligations"):
         raise PolicyError("full_recipe must name at least one obligation")
+    canonical_passes = set(full_set.get("passes", []))
+    canonical_obligations = full_set.get("obligations", {})
+    if not canonical_passes or not canonical_obligations:
+        raise PolicyError(
+            "the canonical full set must name at least one pass and one "
+            "obligation. An empty one satisfies the argument and checks "
+            "nothing, which is the same as not requiring it"
+        )
+    for pass_id in canonical_passes:
+        if pass_id not in _PASS_IDS:
+            raise PolicyError(f"canonical full set names unknown pass {pass_id!r}")
+    _check_obligations("canonical full set", canonical_obligations, usable,
+                       known_capabilities)
+
     if True:
         # Level 3 with nonempty sets is not the same as covering the
         # repository's canonical full verification. Without this a recipe

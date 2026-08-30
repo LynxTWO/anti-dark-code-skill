@@ -41,6 +41,13 @@ def run_suite() -> tuple[bool, str]:
 def replay(rows: list[dict], write: bool) -> int:
     survivors: list[str] = []
     for row in rows:
+        if row.get("superseded_by"):
+            # The behaviour this mutant attacked moved, so applying it is a
+            # no-op and it would report as surviving. That reads like a gap and
+            # is not one. Its replacement id is recorded on the row.
+            print(f"  {row['id']}  {row['name']:42} superseded by "
+                  f"{row['superseded_by']}")
+            continue
         source = REPO_ROOT / row["source"]
         original = source.read_text(encoding="utf-8")
         if row["old"] not in original:

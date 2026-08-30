@@ -231,10 +231,12 @@ class RawParserTests(unittest.TestCase):
         self.assertEqual(row.path, "copy.py")
 
     def test_type_change_and_unmerged_are_preserved(self) -> None:
+        # Unmerged entries live in the index and the worktree, never in a
+        # commit, so this fixture reads them from the source that can hold one.
         result = self.route.parse_raw_z(raw(
             f":100644 120000 {OBJ_A} {OBJ_B} T{NUL}link.txt{NUL}",
             f":100644 100644 {OBJ_A} {OBJ_B} U{NUL}conflict.py{NUL}",
-        ), "committed")
+        ), "unstaged")
         kinds = {r.path: r.change_kind for r in result.inputs}
         self.assertEqual(kinds["link.txt"], "type-change")
         self.assertEqual(kinds["conflict.py"], "unmerged")
@@ -420,13 +422,34 @@ class RawParserTests(unittest.TestCase):
             ("000000", ZERO, "100644", OBJ_A),
             ("100644", OBJ_A, "000000", ZERO),
             ("100644", OBJ_A, "100644", OBJ_B),
-            ("000000", ZERO, "000000", ZERO),
+            # Both sides null is excluded: it is refused by P-04, because an
+            # unmerged entry with nothing on either side is not a state git
+            # records.
         ):
             result = self.route.parse_raw_z(
                 raw(f":{old_mode} {new_mode} {old_obj} {new_obj} U{NUL}c.py{NUL}"),
                 "unstaged")
             self.assertEqual(result.problems, (),
                              f"unmerged {old_mode}/{new_mode} was refused")
+
+    def test_a_scored_unmerged_record_is_rejected(self) -> None:
+        # P-04. Exempting U from the side check exempted it from everything.
+        # Git never scores an unmerged entry.
+        result = self.route.parse_raw_z(
+            raw(f":100644 100644 {OBJ_A} {OBJ_B} U100{NUL}c.py{NUL}"), "unstaged")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_an_unmerged_record_with_both_sides_null_is_rejected(self) -> None:
+        result = self.route.parse_raw_z(
+            raw(f":000000 000000 {ZERO} {ZERO} U{NUL}c.py{NUL}"), "unstaged")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
+
+    def test_a_committed_unmerged_record_is_rejected(self) -> None:
+        # A commit cannot contain an unmerged entry. Only the index and the
+        # worktree can be in that state.
+        result = self.route.parse_raw_z(
+            raw(f":000000 100644 {ZERO} {OBJ_A} U{NUL}c.py{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems)
 
     def test_an_add_with_two_existing_sides_is_rejected(self) -> None:
         # An add has no old side. Two real sides is not a record git writes.
@@ -576,6 +599,20 @@ class AcquisitionTests(unittest.TestCase):
     def test_a_multi_line_merge_base_result_is_rejected(self) -> None:
         run = RecordingRunner({"merge-base": (BASE + "\n" + OBJ_A + "\n").encode("ascii")})
         snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertFalse(snap.complete)
+
+    def test_object_width_is_consistent_across_the_whole_snapshot(self) -> None:
+        # P-05. Width was established per parser call, so one snapshot could
+        # carry a 40-digit staged record beside a 64-digit committed one. A
+        # repository has one object format.
+        long_a, long_b = "a" * 64, "b" * 64
+        run = RecordingRunner({
+            "merge-base": BASE.encode("ascii") + b"\n",
+            BASE: raw(f":100644 100644 {long_a} {long_b} M{NUL}wide.py{NUL}"),
+            "--cached": raw(f":100644 100644 {OBJ_A} {OBJ_B} M{NUL}narrow.py{NUL}"),
+        })
+        snap = self.route.read_change_inputs(Path("."), "origin/main", runner=run)
+        self.assertIn("ADC-ROUTE-MALFORMED-RECORD", snap.problems)
         self.assertFalse(snap.complete)
 
     def test_framing_problems_reach_the_snapshot(self) -> None:
@@ -1338,6 +1375,25 @@ class RouteBuildingTests(unittest.TestCase):
             built.obligations["V99"] = frozenset({"x"})
         self.assertTrue(built.obligations, "obligations were emptied")
 
+    def test_obligations_are_immutable_however_a_route_is_made(self) -> None:
+        # P-03. Wrapping at the construction sites froze the value those sites
+        # produced, not the field. dataclasses.replace with a plain mapping and
+        # direct construction both handed back a mutable one.
+        import dataclasses
+        built = self.route.build_route(
+            (fact(self.route, "README.md"),), self.loaded)
+        swapped = dataclasses.replace(
+            built, obligations={"V09": frozenset({"validate-core"})})
+        direct = self.route.Route(
+            minimum_level=0, passes=frozenset(),
+            obligations={"V09": frozenset({"validate-core"})},
+            matched_rule_ids=frozenset(), force_full=False,
+            independent_review=False)
+        for name, route in (("replace", swapped), ("direct", direct)):
+            with self.assertRaises((TypeError, AttributeError), msg=name):
+                route.obligations.clear()
+            self.assertTrue(route.obligations, name)
+
     def test_every_route_construction_path_freezes_obligations(self) -> None:
         # M34 and N-05. Only the build path was checked, so the hint path could
         # hand out a mutable mapping, and dataclasses.replace could build a
@@ -1966,6 +2022,19 @@ class PolicyValidationTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.route.build_route((fact(self.route, "README.md"),), tampered)
 
+    def test_the_registry_does_not_pin_policies(self) -> None:
+        # M38. A plain dictionary would keep every policy ever loaded alive,
+        # so a long-running process leaks one per call. The registry has to
+        # hold weak references, and nothing asserted that.
+        import gc
+        policy = loaded(self.route)
+        self.assertIn(id(policy), self.route._VALIDATED_POLICIES)
+        marker = id(policy)
+        del policy
+        gc.collect()
+        self.assertNotIn(marker, self.route._VALIDATED_POLICIES,
+                         "the registry kept a policy alive after its last use")
+
     def test_a_loaded_policy_is_accepted(self) -> None:
         built = self.route.build_route(
             (fact(self.route, "README.md"),), loaded(self.route))
@@ -2001,6 +2070,23 @@ class PolicyValidationTests(unittest.TestCase):
         # accepted a Level 3 recipe naming one pass and one capability.
         with self.assertRaises(TypeError):
             self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS)
+
+    def test_an_empty_canonical_full_set_is_rejected(self) -> None:
+        # P-01. Making the argument required without checking its contents is
+        # the same fault as making it optional: {} satisfied the requirement
+        # and validated nothing, so a Level 3 recipe naming one pass and one
+        # capability passed as canonical.
+        for empty in ({}, {"passes": [], "obligations": {}}, {"passes": []},
+                      {"obligations": {}}):
+            with self.assertRaises(self.route.PolicyError, msg=f"{empty!r}"):
+                self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, empty)
+
+    def test_a_canonical_set_naming_unknown_ids_is_rejected(self) -> None:
+        for bad in ({"passes": ["99"], "obligations": {"V09": ["validate-core"]}},
+                    {"passes": ["07"], "obligations": {"V99": ["validate-core"]}},
+                    {"passes": ["07"], "obligations": {"V09": ["no-such-gate"]}}):
+            with self.assertRaises(self.route.PolicyError, msg=f"{bad!r}"):
+                self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, bad)
 
     def test_a_recipe_covering_the_canonical_set_is_accepted(self) -> None:
         self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, FULL_SET)
