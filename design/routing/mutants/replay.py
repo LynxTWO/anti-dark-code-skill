@@ -66,7 +66,7 @@ INTEGRITY_FILTER = "not MutationMatrixIntegrity"
 
 
 def suite_command(paths) -> list[str]:
-    return ["python", "-m", "pytest", *paths, "-q", "-k", INTEGRITY_FILTER]
+    return [sys.executable, "-m", "pytest", *paths, "-q", "-k", INTEGRITY_FILTER]
 
 
 class SuiteBroken(RuntimeError):

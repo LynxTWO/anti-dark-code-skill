@@ -1703,5 +1703,19 @@
         "skipped": 0
       }
     ]
+  },
+  {
+    "id": "M61",
+    "name": "replay assumes a python launcher alias",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    return [sys.executable, \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "new": "    return [\"python\", \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "verdict": "unverified: replay pending",
+    "pytest": "not replayed",
+    "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
+    "results": []
   }
 ]

@@ -2620,6 +2620,13 @@ class SuiteIntegrityTests(unittest.TestCase):
         ]
         self.assertEqual([], unreachable, "; ".join(unreachable))
 
+    def test_replay_launches_pytest_with_the_current_interpreter(self) -> None:
+        """Python 3-only hosts need no ambient ``python`` launcher alias."""
+        harness = load_module(
+            "adc_replay_launcher",
+            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+        self.assertEqual(sys.executable, harness.suite_command(("suite.py",))[0])
+
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
 REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
                         / "requirement-evidence.json")
