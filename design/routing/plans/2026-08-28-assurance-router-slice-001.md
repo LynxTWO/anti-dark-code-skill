@@ -20,6 +20,8 @@
 
 **Round-six adversarial review gate, 2026-08-30:** Do not start receipt or CLI work. The executable review in `design/routing/HANDOFF-BACK-ROUND-SIX.md` found three blocking defects. Canonical full-set validation can be omitted, loader provenance transfers through `dataclasses.replace`, and index or path-topology mutation can escape the acquisition boundary. Real conflict output is rejected, object width is not enforced across acquisition calls, Route immutability is not a type invariant, and two further authority mutants survive. Tasks 2 through 6 must close N-01 through N-08 and satisfy R-049 through R-055 and S-046 through S-051. D-042 through D-047 are the remediation decisions. Existing code blocks remain historical drafts where they conflict with that review.
 
+**Round-eight adversarial review gate, 2026-08-30:** Do not start receipt or CLI work. `design/routing/HANDOFF-BACK-ROUND-EIGHT.md` found that a mapping proxy backed by mutable data can change a Route after construction. M36, M47, and M48 remain unheld. The parser also rejects a real unmerged form emitted without copy detection, and the real missing-promisor-object test named by R-054 does not exist. Close Q-01 through Q-05 and apply D-049 through D-052 before continuing.
+
 ## Global Constraints
 
 - **Python 3.12+, standard library only.** No new runtime dependency. Every import must survive the hostile-environment matrix and the clean distribution check. `fnmatch` is available and already used for glob matching.

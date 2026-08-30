@@ -1,6 +1,6 @@
 # Assurance Router Decision Log
 
-Version: 0.8. Date: 2026-08-30. Status: Audited.
+Version: 0.9. Date: 2026-08-30. Status: Audited.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
 The documents state what is true. This log preserves why, what else was considered, and what would reopen the question.
@@ -65,6 +65,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-046 | 2026-08-30 | Mutation records contain replay inputs and run through one harness | Confirmed | |
 | D-047 | 2026-08-30 | Cost evidence names units and isolation properties | Confirmed | |
 | D-048 | 2026-08-30 | Acquisition stays on the live repository, for capability not cost | Confirmed | |
+| D-049 | 2026-08-30 | Route freezes by value even when given a mapping proxy | Confirmed | |
+| D-050 | 2026-08-30 | Snapshot object width stays bound to the resolved merge base | Confirmed | |
+| D-051 | 2026-08-30 | Symlink guards carry platform evidence and separate target text | Confirmed | |
+| D-052 | 2026-08-30 | Unmerged side presence comes from modes, not object ids | Confirmed | |
 
 ---
 
@@ -1336,3 +1340,87 @@ This rules out the clone forms tested: `--bare --shared`, and by the same capabi
 
 Revisit when:
 A representation appears that can observe index and worktree state without executing candidate configuration, or the worktree source is dropped from routing entirely.
+
+## D-049: Route freezes by value even when given a mapping proxy
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5, EDD R-048 and R-052, SLICE-001 M2
+
+Context:
+`Route.__post_init__` copies a plain mapping but trusts an existing `MappingProxyType`. A mapping proxy is a read-only view of its backing mapping. It does not make that backing data immutable. Round eight mutated the backing dictionary and a nested set after direct construction and after `dataclasses.replace`; both Route values changed.
+
+Decision:
+Every Route construction copies obligation keys and converts every gate collection to a fresh `frozenset`, even when the input is already a mapping proxy. The fresh dictionary is then wrapped for read-only access. Input wrapper type grants no exemption.
+
+Because:
+The field owns routing authority. Its immutability must depend on its stored value, not on the type the caller chose to wrap around mutable state.
+
+Consequences:
+The focused table adds direct and replaced Routes built from proxies with mutable backing dictionaries and mutable nested gate sets. Mutating any source after construction must leave the Route unchanged.
+
+Revisit when:
+Route obligations move to a dedicated immutable value type that copies and validates at its own boundary.
+
+## D-050: Snapshot object width stays bound to the resolved merge base
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5, EDD R-046 and R-051, SLICE-001 M2
+
+Context:
+M47 removes the merge-base width seed. The suite still passes because its cross-source test supplies a 64-character committed row before a 40-character staged row. The first row seeds the mutant, and the second row still fails. With only the 64-character row beside a resolved 40-character merge base, M47 accepts it and reports the snapshot complete.
+
+Decision:
+The resolved merge-base object id establishes repository width before any diff row is parsed. A focused test supplies one row with the other supported width and must fail M47.
+
+Because:
+Agreement among changed sources is weaker than agreement with the repository state that produced them.
+
+Consequences:
+M47 remains a blocking survivor until the focused test fails it. An unresolved base still blocks completeness, so a malformed first row cannot authorize a shortcut.
+
+Revisit when:
+Acquisition asks Git for the repository object format through a separately verified command and binds that result into the snapshot.
+
+## D-051: Symlink guards carry platform evidence and separate target text
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5, EDD R-050 and R-053, SLICE-001 M2
+
+Context:
+Windows replay reports M37 and M46 as survivors because the symlink test skips without link privilege. Under Ubuntu in WSL, the current test passes and each mutant fails it. M48 removes the link target text while retaining the `symlink:` marker. That mutant passes on both hosts. M36 also survives, although a corrected hard-link probe shows why topology is needed.
+
+Decision:
+Keep `lstat`, topology, symlink identification, and target text. Record platform evidence beside a host-local mutation verdict. Add one hard-link case that fails M36 and one target assertion that fails M48.
+
+Because:
+A skip is not a cross-platform survivor, and a type marker does not prove which target the link names.
+
+Consequences:
+M37 and M46 are held on the supported Linux path. M36 and M48 still block the pure-layer gate. The matrix must not flatten a platform skip into a repository-wide claim.
+
+Revisit when:
+The replay harness runs required host legs itself and records one verdict per platform.
+
+## D-052: Unmerged side presence comes from modes, not object ids
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5, EDD R-037 and R-051, SLICE-001 M2
+
+Context:
+The parser rejects an unmerged row when both object ids are zero. Ubuntu Git 2.43 emits `:000000 100644 <zero> <zero> U` for a plain worktree `git diff --raw -z --no-abbrev` during a real conflict. Adding copy detection causes Git to fill the new object id, which is why the production command and the existing integration test pass.
+
+Decision:
+For `U`, determine whether a side exists from its mode. Continue to refuse a scored row, a committed row, or a row where both modes are null. Accept a real mode paired with a null worktree object id. Test both the production flag set and plain raw output, and state which forms the public parser accepts.
+
+Because:
+Worktree object ids can be null even when the mode says the side exists. Treating object presence as side presence repeats the same rule in two incompatible ways.
+
+Consequences:
+The test that rejects both-null modes remains. A new real-Git case holds the object-null form. The public parser remains narrower than real plain raw output until the parser change lands.
+
+Revisit when:
+The minimum supported Git versions stop emitting this form or the parser becomes private to one fixed command contract.

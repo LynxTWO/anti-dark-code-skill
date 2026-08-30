@@ -1,6 +1,6 @@
 # Assurance Router Engineering Document (EDD)
 
-Version: 0.8. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 0.9. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ARCHITECTURE.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 Rules for placing pieces. Where a section depends on an architecture decision, it references the ADD section number instead of restating it.
@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** the L and N findings are closed. Two mutants are recorded as surviving rather than claimed closed: M36 and M37 in `mutants/matrix.json`, and M46 while symlinks are unavailable on the reviewing host. Receipt and CLI work waits on the round-eight review.
+- **Current gate:** round eight refuted deep Route immutability, found a real Git `U` form outside the production flag set that the parser rejects, and added M47 and M48. M36, M47, and M48 have no discriminating suite guard. M37 and M46 are caught under Ubuntu. The real missing-promisor-object test named by R-054 is still absent. Receipt and CLI work remains blocked.
 
 ## 2. Engineering Principles
 
@@ -89,7 +89,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-045 | Policy authority proves loader provenance and the canonical full set | given a directly constructed policy record or a full recipe missing one canonical pass, capability, or gate, when validation or routing runs, then it is rejected |
 | R-046 | Raw grammar is consistent across statuses and the repository object format | given a missing C or R score, an invalid status side, or mixed object widths across records, when parsed, then the payload is malformed and the snapshot is incomplete |
 | R-047 | Hints preserve types and approved obligation bindings | given an out-of-range level, non-boolean flag, cross-capability gate pair, or proposed-only pair, when hint validation runs, then `HintError` is raised |
-| R-048 | Route output is deeply immutable and full-recipe fields have discriminating mutation guards | given a built Route, when a caller tries to mutate a nested field, then the value cannot change; given deletion of one recipe field or reason, when tests run, then at least one focused test fails |
+| R-048 | Route output is deeply immutable and full-recipe fields have discriminating mutation guards | given a Route built from a plain mapping or a mapping proxy backed by mutable data, when the caller mutates any source or nested field, then the Route cannot change; given deletion of one recipe field or reason, when tests run, then at least one focused test fails |
 
 ### 4.2 Assumed requirements
 
@@ -337,10 +337,10 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-048 | nested Route mutation attempts and focused recipe-field mutations | `test_route.py` |
 | R-049 | mandatory canonical full-set input plus changed-field policy-copy rejection | `test_route.py` |
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
-| R-051 | repository-wide object format plus real source-specific conflict grammar | `test_route.py` |
-| R-052 | direct, replaced, built, copied, and hinted Route immutability table | `test_route.py` |
-| R-053 | data-driven replay of every stored mutation, including M33 and M34 | `mutants/` and `test_route.py` |
-| R-054 | real global filter plus real blobless partial-clone no-execution table | `test_route.py` |
+| R-051 | repository-wide object format plus real source-specific conflict grammar | `test_route.py`; M47 and the plain `git diff --raw` conflict form remain open |
+| R-052 | direct, replaced, built, copied, and hinted Route immutability table | `test_route.py`; pre-wrapped mutable backing remains open |
+| R-053 | data-driven replay of all 48 stored mutations | `mutants/`; 40 caught, 3 superseded, 5 Windows survivors, with M37 and M46 caught under Ubuntu |
+| R-054 | known configured-program tests plus the lazy-fetch environment control | `test_route.py`; no real missing-promisor-object case exists yet |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | review evidence |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.

@@ -1,6 +1,6 @@
 # Assurance Router Architecture Document (ADD)
 
-Version: 0.8. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
+Version: 0.9. Date: 2026-08-30. Authors: Daniel Boyd, Claude Opus 5, Codex. Status: Audited.
 Companion documents: ENGINEERING.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. Where the two conflict, this document's guardrails control.
@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** the round-five and round-six findings are closed. Three mutants are recorded as surviving rather than claimed closed: M36 and M37, which attack the boundary fingerprint's path topology and its use of lstat, and M46, which attacks symlink identification and cannot run where symlinks are unavailable. `mutants/matrix.json` holds their transformations and `mutants/replay.py` reproduces them. Receipt and CLI work waits on the round-eight review.
+**Current gate:** round eight found one live Route immutability bypass and two new surviving authority mutants. A caller can pass a mapping proxy backed by mutable data, M47 removes repository-width binding without failing the suite, and M48 removes symlink target text without failing on a symlink-capable host. M36 also remains unheld. M37 and M46 fail the existing symlink test under Ubuntu, so their Windows survivor labels are platform-local. Receipt and CLI work remains blocked. See D-049 through D-052 and `HANDOFF-BACK-ROUND-EIGHT.md`.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
