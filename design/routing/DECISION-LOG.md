@@ -1011,6 +1011,9 @@ Negotiation controls what object reachability information a fetch exchanges. It 
 Consequences:
 R-034 includes a real blobless partial clone whose rename comparison needs a missing blob. The test proves that no fetch child starts, no object appears, and the snapshot is incomplete.
 
+As shipped, 2026-08-30:
+`fetch.negotiationAlgorithm=noop` is removed from the isolation flags entirely, and `GIT_NO_LAZY_FETCH=1` is set in the runner environment. One honest limit: the fetch could not be reproduced here, because a local file transport ignores the partial-clone filter and the resulting objects are packed, so no single loose object can be removed. The test asserts the control is present rather than the behaviour it prevents, and its docstring says so rather than implying coverage it does not have.
+
 Revisit when:
 Git adds a documented command-level no-lazy-fetch option supported by every minimum platform version.
 
@@ -1031,6 +1034,11 @@ Metadata can remain equal while bytes change. A detector with that blind spot ca
 
 Consequences:
 The hostile test mutates a tracked file after its comparison, keeps size and mtime equal, and requires `ADC-ROUTE-BOUNDARY-VIOLATED`. Ignored-path writes remain an explicit side-effect limit, not evidence that no candidate program ran.
+
+As shipped, 2026-08-30:
+Content identity is used, and metadata is kept alongside it rather than demoted to diagnostics. Switching to content alone broke the existing boundary test, which exposed the mirror-image blind spot: content cannot see a rewrite with identical bytes, because only the timestamp moves. The fingerprint records size, mtime, and a content digest, so any one of the three moving is enough. Mutants M12 and M13 remove one half each and both are caught, which is the evidence that neither half is decorative.
+
+Measured cost of the content digest: acquisition is 0.474s on this repository and 0.853s on a real 345-file repository. A synthetic 3000-file commit where every file changed is 5.4s, which exceeds the goal in EDD section 3 and is recorded there.
 
 Revisit when:
 Acquisition runs against a trusted, immutable repository representation.
@@ -1073,6 +1081,9 @@ Per-field character checks accept combinations Git cannot emit. Mixing valid rec
 
 Consequences:
 Parser tables include every status, required and forbidden scores, absent-side rules, SHA-1, SHA-256, symlink, gitlink, type-change, and conflict records from real Git.
+
+As shipped, 2026-08-30:
+One case was deliberately left looser than the decision implies. An unrecognised status letter still produces a row with change kind `unknown` and a separate `ADC-ROUTE-UNKNOWN-STATUS` report, rather than being refused as malformed. Refusing it would discard the path, and a lost path is worse than an unknown kind that forces the full route anyway.
 
 Revisit when:
 Git documents a new raw status, object format, mode, or null-side form.
