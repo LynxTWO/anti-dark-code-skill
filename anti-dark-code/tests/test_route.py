@@ -2530,8 +2530,51 @@ class PartialCloneAgainstRealGitDaemonTests(unittest.TestCase):
                         "unguarded acquisition fetched the object but still "
                         "reported the change incomplete")
 
+TEST_SUITE_DIR = SKILL_ROOT / "tests"
+
+
+def suite_test_definitions():
+    """Return source node ids and duplicate definitions for the whole suite."""
+    definitions = []
+    duplicates = []
+    for path in sorted(TEST_SUITE_DIR.glob("test_*.py")):
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        module_names: dict[str, list[int]] = {}
+        for node in tree.body:
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef,
+                                 ast.AsyncFunctionDef)):
+                module_names.setdefault(node.name, []).append(node.lineno)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name.startswith("test"):
+                    definitions.append((f"{relative}::{node.name}", node.lineno))
+                continue
+            if not isinstance(node, ast.ClassDef):
+                continue
+            method_names: dict[str, list[int]] = {}
+            for member in node.body:
+                if not isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if not member.name.startswith("test"):
+                    continue
+                method_names.setdefault(member.name, []).append(member.lineno)
+                definitions.append(
+                    (f"{relative}::{node.name}::{member.name}", member.lineno))
+            for name, lines in method_names.items():
+                if len(lines) > 1:
+                    duplicates.append(
+                        f"{relative}:{node.name}.{name} is defined at lines {lines}; "
+                        "only the last definition can run")
+        for name, lines in module_names.items():
+            if len(lines) > 1:
+                duplicates.append(
+                    f"{relative}:{name} is defined at module lines {lines}; "
+                    "only the last definition is reachable")
+    return definitions, duplicates
+
+
 class SuiteIntegrityTests(unittest.TestCase):
-    """Structural checks on this file, because a test that cannot run is worse
+    """Structural checks on the suite, because a test that cannot run is worse
     than one that was never written: it reports as coverage and holds nothing.
 
     This branch has produced that failure twice. A slice edit deleted
@@ -2544,68 +2587,121 @@ class SuiteIntegrityTests(unittest.TestCase):
     """
 
     def test_no_test_name_is_defined_twice(self) -> None:
-        source = Path(__file__).read_text(encoding="utf-8")
-        duplicates = []
-        for node in ast.parse(source).body:
-            if not isinstance(node, ast.ClassDef):
-                continue
-            seen: dict[str, int] = {}
-            for member in node.body:
-                if not isinstance(member, ast.FunctionDef):
-                    continue
-                if not member.name.startswith("test"):
-                    continue
-                if member.name in seen:
-                    duplicates.append(
-                        f"{node.name}.{member.name} is defined at line "
-                        f"{seen[member.name]} and again at line {member.lineno}; "
-                        "the earlier one never runs")
-                seen[member.name] = member.lineno
+        _, duplicates = suite_test_definitions()
         self.assertEqual([], duplicates, "; ".join(duplicates))
 
-    def test_every_defined_test_is_reachable_on_its_class(self) -> None:
-        """The name check above is syntactic. This one asks the class itself.
+    def test_integrity_inventory_covers_every_test_module(self) -> None:
+        definitions, _ = suite_test_definitions()
+        inventoried = {node_id.split("::", 1)[0] for node_id, _ in definitions}
+        candidates = {
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in TEST_SUITE_DIR.glob("test_*.py")
+        }
+        self.assertEqual(
+            candidates, inventoried,
+            "a test module is outside the duplicate and reachability inventory")
 
-        A decorator, an assignment after the definition, or an inherited name
-        can also leave a defined test unreachable, and none of those are a
-        repeated name in the file.
-        """
-        source = Path(__file__).read_text(encoding="utf-8")
-        module = sys.modules[__name__]
-        unreachable = []
-        for node in ast.parse(source).body:
-            if not isinstance(node, ast.ClassDef):
-                continue
-            cls = getattr(module, node.name, None)
-            if cls is None:
-                continue
-            for member in node.body:
-                if not isinstance(member, ast.FunctionDef):
-                    continue
-                if not member.name.startswith("test"):
-                    continue
-                bound = getattr(cls, member.name, None)
-                if member.decorator_list:
-                    # A decorator can return a wrapper whose code object starts
-                    # somewhere else entirely, so the line comparison below
-                    # would report shadowing that is not there.
-                    if bound is None:
-                        unreachable.append(f"{node.name}.{member.name} is not on the class")
-                    continue
-                if bound is None:
-                    unreachable.append(f"{node.name}.{member.name} is not on the class")
-                elif getattr(bound, "__code__", None) is not None and (
-                        bound.__code__.co_firstlineno != member.lineno):
-                    # The class carries a different function under this name
-                    # than the one defined here, which is what shadowing looks
-                    # like from the outside.
-                    unreachable.append(
-                        f"{node.name}.{member.name} defined at line "
-                        f"{member.lineno} resolves to line "
-                        f"{bound.__code__.co_firstlineno}")
+    def test_every_defined_test_is_collected_across_the_suite(self) -> None:
+        """Collection is the authority on decorators, assignments, and names."""
+        definitions, _ = suite_test_definitions()
+        done = subprocess.run(
+            [sys.executable, "-m", "pytest", str(TEST_SUITE_DIR),
+             "--collect-only", "-q"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=120)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        collected = {
+            line.replace("\\", "/")
+            for line in done.stdout.splitlines()
+            if "::" in line and not line.startswith(" ")
+        }
+        unreachable = [
+            f"{node_id} defined at line {line} is not collected"
+            for node_id, line in definitions if node_id not in collected
+        ]
         self.assertEqual([], unreachable, "; ".join(unreachable))
 
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
+REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
+                        / "requirement-evidence.json")
+
+
+class RequirementTraceabilityTests(unittest.TestCase):
+    M4_UNTRACED = frozenset({"R-013", "R-018", "R-022"})
+
+    def test_the_requirement_evidence_map_exists(self) -> None:
+        self.assertTrue(
+            REQUIREMENT_EVIDENCE.is_file(),
+            "D-061 requires design/routing/requirement-evidence.json before M4")
+
+    def test_every_registered_requirement_resolves_to_live_evidence(self) -> None:
+        evidence = json.loads(REQUIREMENT_EVIDENCE.read_text(encoding="utf-8"))
+        engineering = (REPO_ROOT / "design" / "routing"
+                       / "ENGINEERING.md").read_text(encoding="utf-8")
+        confirmed_text = engineering.split(
+            "### 4.1 Confirmed requirements", 1)[1].split("### 4.2", 1)[0]
+        verification_text = engineering.split(
+            "**Verification ledger.**", 1)[1].split("**Test data rule.**", 1)[0]
+        confirmed = set(re.findall(r"^\| (R-\d{3}) \|", confirmed_text, re.M))
+        verification = set(re.findall(
+            r"^\| (R-\d{3}) \|", verification_text, re.M))
+        mapped = set(evidence.get("requirements", {}))
+        untraced = set(evidence.get("untraced", []))
+
+        self.assertEqual(confirmed, verification,
+                         "confirmed and verification ledgers disagree")
+        self.assertEqual(confirmed, mapped,
+                         "the evidence map does not cover the requirement ledger")
+        self.assertLessEqual(
+            untraced, self.M4_UNTRACED,
+            "the explicit untraced list may shrink; adding an id needs review")
+
+        slice_text = (REPO_ROOT / "design" / "routing"
+                      / "SLICE-001-route-shadow.md").read_text(encoding="utf-8")
+        criteria = re.findall(r"^\| (S-\d{3}) \|.*$", slice_text, re.M)
+        missing_links = []
+        for criterion in criteria:
+            line = next(row for row in slice_text.splitlines()
+                        if row.startswith(f"| {criterion} |"))
+            if not re.search(r"R-\d{3}", line):
+                missing_links.append(criterion)
+        self.assertEqual([], missing_links,
+                         f"slice criteria without a requirement: {missing_links}")
+
+        definitions, _ = suite_test_definitions()
+        defined = {node_id for node_id, _ in definitions}
+        problems = []
+        for requirement, record in evidence["requirements"].items():
+            tests = record.get("tests", [])
+            for node_id in tests:
+                if node_id not in defined:
+                    problems.append(f"{requirement} names missing test {node_id}")
+            if requirement in untraced:
+                if tests or record.get("mutation") or record.get("review"):
+                    problems.append(f"{requirement} is untraced but carries evidence")
+                continue
+            if tests:
+                continue
+            mutation = record.get("mutation")
+            if mutation:
+                for key in ("matrix", "runner"):
+                    path = REPO_ROOT / mutation.get(key, "")
+                    if not path.is_file():
+                        problems.append(
+                            f"{requirement} names missing mutation {key} {path}")
+                if not mutation.get("command"):
+                    problems.append(f"{requirement} mutation evidence has no command")
+                continue
+            review = record.get("review")
+            if review:
+                path = REPO_ROOT / review.get("path", "")
+                if not path.is_file():
+                    problems.append(f"{requirement} names missing review file {path}")
+                elif review.get("heading") not in path.read_text(encoding="utf-8"):
+                    problems.append(
+                        f"{requirement} review heading is absent: {review.get('heading')}")
+                continue
+            problems.append(f"{requirement} has no evidence and is not untraced")
+        self.assertEqual([], problems, "; ".join(problems))
 
 
 @unittest.skipUnless(MATRIX.is_file(), "mutation matrix is not part of this tree")

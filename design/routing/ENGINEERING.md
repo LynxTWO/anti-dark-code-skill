@@ -90,6 +90,13 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-046 | Raw grammar is consistent across statuses and the repository object format | given a missing C or R score, an invalid status side, or mixed object widths across records, when parsed, then the payload is malformed and the snapshot is incomplete |
 | R-047 | Hints preserve types and approved obligation bindings | given an out-of-range level, non-boolean flag, cross-capability gate pair, or proposed-only pair, when hint validation runs, then `HintError` is raised |
 | R-048 | Route output is deeply immutable and full-recipe fields have discriminating mutation guards | given a Route built from a plain mapping or a mapping proxy backed by mutable data, when the caller mutates any source or nested field, then the Route cannot change; given deletion of one recipe field or reason, when tests run, then at least one focused test fails |
+| R-049 | Policy authority cannot survive changed fields or an omitted canonical full-set input | given a loaded policy copied with changed authority fields, or a load without the canonical full set, when routing or loading runs, then no selective route is produced |
+| R-050 | The closing acquisition boundary detects index, linked-worktree index, hard-link, and symlink replacement | given each replacement while weaker metadata is held constant, when acquisition closes, then the snapshot is incomplete |
+| R-051 | One repository object format and real conflict grammar govern every acquisition source | given committed, staged, worktree, and conflict records, when acquired, then valid records survive and a cross-source width mismatch blocks |
+| R-052 | Route immutability holds for direct, replaced, copied, built, and hinted values | given every construction path, when source or nested authority data is mutated, then the Route does not change |
+| R-053 | Every stored authority mutation is replayable and caught by its configured suite | given each active row, when replay applies it alone, then its suite fails and the source is restored; a superseded row names its replacement |
+| R-054 | Real configured programs and a real missing promisor object cannot execute or fetch during acquisition | given global filters and a blobless clone missing a required blob, when acquisition runs, then no program or lazy fetch starts |
+| R-055 | Cost evidence names time, byte units, storage sharing, and represented state | given a cost record, when it is used for an architecture decision, then its command, repeated wall times, logical and allocated byte units, sharing mode, and represented state are explicit |
 
 ### 4.2 Assumed requirements
 
@@ -337,11 +344,11 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-048 | nested Route mutation attempts and focused recipe-field mutations | `test_route.py` |
 | R-049 | mandatory canonical full-set input plus changed-field policy-copy rejection | `test_route.py` |
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
-| R-051 | repository-wide object format plus real source-specific conflict grammar | `test_route.py`; M47 and the plain `git diff --raw` conflict form remain open |
-| R-052 | direct, replaced, built, copied, and hinted Route immutability table | `test_route.py`; pre-wrapped mutable backing remains open |
-| R-053 | data-driven replay of all 48 stored mutations | `mutants/`; 40 caught, 3 superseded, 5 Windows survivors, with M37 and M46 caught under Ubuntu |
-| R-054 | known configured-program tests plus the lazy-fetch environment control | `test_route.py`; no real missing-promisor-object case exists yet |
-| R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | review evidence |
+| R-051 | repository-wide object format plus real source-specific conflict grammar | named tests in `requirement-evidence.json`; M47 is caught and the plain raw conflict form is accepted |
+| R-052 | direct, replaced, built, copied, and hinted Route immutability table | named tests in `requirement-evidence.json`; mutable proxy backing is copied |
+| R-053 | data-driven replay of all 60 stored mutations | `mutants/`; 56 active and 4 superseded, with 53 caught on both recorded hosts and 3 caught on Linux where Windows skips |
+| R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
+| R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 

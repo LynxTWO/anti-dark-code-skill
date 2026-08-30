@@ -101,7 +101,7 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 | S-011 | Given an agent hint, when routed, then the result is a superset of the hint-free route | R-011 test |
 | S-012 | Given a computed route at level 1, when `--level 0` is supplied, then the command exits 2 naming the route minimum | R-013 test |
 | S-013 | Given a route, when gates are selected, then every obligation has an approved covering gate, or the route is full | R-012 test |
-| S-014 | Given the suite, when a hard escalator is weakened, then at least one test fails | mutation or revert test |
+| S-014 | Given the suite, when a hard escalator is weakened, then at least one test fails | R-053 mutation replay |
 | S-015 | Given a matched fact, when unrelated facts are added in any order, then its match and requirements remain present | R-015 test |
 | S-016 | Given a capability obligation, when policy validation runs, then explicit approved gate ids cover it or validation blocks | R-016 test |
 | S-017 | Given unchanged porcelain status but changed dirty bytes, index entries, modes, symlink targets, or submodule state, when verified, then the receipt is stale | R-017 test |
