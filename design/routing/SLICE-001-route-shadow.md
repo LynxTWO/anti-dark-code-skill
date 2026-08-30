@@ -43,8 +43,8 @@ Every step works against the real repository, real git state, and the real calib
 |---|---|---|
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
 | M2 | Done, 2026-08-30 | The pure layer, closed through round nine. Q-01 through Q-06 are resolved or recorded: Q-05 is proven against a real blobless clone (D-060) rather than blocked, and M36, M47, and M48 are held. Linux is a required replay host (D-058). |
-| M3 | Done pending review, 2026-08-30 | Policy schema and template, this repository's policy installed with every rule proposed (D-064), the receipt writer and verifier, and the `route` subcommand with `--write` and `--verify`. The canonical full set lives in gates.json (D-062). Receipts bind content and never their own store (D-063). |
-| M4 | Not started | Shadow comparator, plus the mutation or revert test proving a weakened escalator fails the suite. |
+| M3 | Done and accepted, 2026-08-30 | Policy schema and template, this repository's policy installed with every rule proposed (D-064), the receipt writer and verifier, and the `route` subcommand with `--write` and `--verify`. The canonical full set lives in gates.json (D-062). Receipts bind content and never their own store (D-063). The executable evidence map closes D-061 retroactively (D-067). |
+| M4 | Not started; plan blocked | Shadow comparator and non-skipping gate binding. D-069 requires a candidate route for proposed rules and a real before-and-after gate contract before implementation. |
 
 M1 is first because a rule cannot name an obligation until the two catalog entries settled by D-016 exist, and D-004 made obligations capability ids.
 
@@ -149,7 +149,7 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 - [x] `validate --mode universal` reports zero errors.
 - [ ] The clean distribution archive check passes with the new template included.
 - [ ] K-01 through K-13, L-01 through L-09, and N-01 through N-08 are closed with failing-before and passing-after evidence.
-- [x] Every stored mutation is replayable from data. 60 rows, replayed on Linux with none surviving, and required in CI since D-058.
+- [x] Every stored mutation is replayable from data. 63 rows, 59 active and 4 superseded, replayed with real pytest on Windows and T540P Linux with none surviving; source restoration is hash-verified (D-068).
 
 An agent's statement that the slice works is a claim. This list is the evidence.
 
@@ -164,7 +164,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 ## 11. Slice definition of done
 
 - [ ] All acceptance criteria pass with linked evidence.
-- [~] D-026 through D-047 are resolved in code. The S-024 to S-051 half cannot be checked: the evidence column names a file rather than tests, so it distinguishes no requirement. Measured and recorded in D-061, not claimed as passing.
+- [~] D-026 through D-047 are resolved in code. The executable evidence map covers R-001 through R-055 and closes the M3 traceability gap (D-067). R-013, R-018, and R-022 remain a fixed untraced M4 set and are not claimed as passing.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
 - [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.

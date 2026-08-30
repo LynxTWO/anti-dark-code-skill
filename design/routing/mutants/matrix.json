@@ -1713,10 +1713,29 @@
     ],
     "old": "    return [sys.executable, \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
     "new": "    return [\"python\", \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
-    "verdict": "unverified: replay pending",
-    "pytest": "not replayed",
+    "verdict": "caught",
+    "pytest": "1 failed, 203 passed, 6 deselected in 6.06s",
     "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
-    "results": []
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 203 passed, 6 deselected in 6.06s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 202 passed, 1 skipped, 6 deselected in 23.38s",
+        "skipped": 1
+      }
+    ]
   },
   {
     "id": "M62",
@@ -1727,10 +1746,29 @@
     ],
     "old": "        original = source.read_bytes()",
     "new": "        original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
-    "verdict": "unverified: replay pending",
-    "pytest": "not replayed",
+    "verdict": "caught",
+    "pytest": "1 failed, 203 passed, 6 deselected in 6.02s",
     "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
-    "results": []
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 203 passed, 6 deselected in 6.02s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 202 passed, 1 skipped, 6 deselected in 23.49s",
+        "skipped": 1
+      }
+    ]
   },
   {
     "id": "M63",
@@ -1741,9 +1779,28 @@
     ],
     "old": "    if not PYTEST_SUMMARY.fullmatch(summary):",
     "new": "    if False:",
-    "verdict": "unverified: replay pending",
-    "pytest": "not replayed",
+    "verdict": "caught",
+    "pytest": "1 failed, 203 passed, 6 deselected in 5.99s",
     "note": "A Python or pytest startup error may exit 1 without executing a test; only a real pytest outcome summary can turn exit 1 into mutation evidence.",
-    "results": []
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 203 passed, 6 deselected in 5.99s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 202 passed, 1 skipped, 6 deselected in 23.38s",
+        "skipped": 1
+      }
+    ]
   }
 ]

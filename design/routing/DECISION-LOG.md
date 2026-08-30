@@ -1626,7 +1626,7 @@ Acquisition gains a command that reads blob content outside rename detection, wh
 ## D-061: The requirement register names a file, so it proves nothing
 
 Date: 2026-08-30
-Status: Open
+Status: Resolved by D-067
 Area: SLICE-001 section 11, ENGINEERING section 12
 
 Context:
@@ -1767,3 +1767,68 @@ Both trees are verified restored by digest against HEAD after a replay, the remo
 
 Revisit when:
 A third host is added, or a row disagrees between hosts for a reason other than a skip, which would mean the code is platform-conditional where nobody intended it.
+
+## D-067: M3 needed an executable traceability gate
+
+Date: 2026-08-30
+Status: Confirmed
+Area: D-061, M3, SLICE-001 section 11
+
+Context:
+D-061 correctly found that a file-level evidence label could not verify the M3 prerequisite, then let receipt work proceed because the suite and mutation results were substantively strong. Round ten checked the gate itself. R-049 through R-055 were absent from the confirmed register, S-014 had no requirement link, and no machine check resolved registered requirements to collected tests or typed non-test evidence.
+
+Decision:
+M3 should have waited. Strong aggregate evidence did not authorize crossing a prerequisite that could not fail. M3 is accepted retroactively now that `requirement-evidence.json` covers R-001 through R-055, mapped node ids resolve against whole-suite collection, S-014 links R-053, and the only untraced ids are the fixed M4 set R-013, R-018, and R-022.
+
+Because:
+The missing link had already hidden two concrete failures: one deleted test and one shadowed duplicate. A gate that cannot distinguish one requirement from another cannot establish that either is held. The replacement check compares the confirmed ledger, verification ledger, and evidence map; inventories every `test_*.py`; rejects duplicate and uncollected definitions; resolves mapped node ids; validates typed mutation and review evidence; and permits the untraced set only to shrink.
+
+Consequences:
+D-061 closes for M3. M3 is no longer review-gated. This does not approve M4: its three requirements remain explicitly untraced because their behavior is not built.
+
+Revisit when:
+A registered requirement needs a new evidence type, or the untraced set needs to grow. Either change requires review rather than a looser parser.
+
+## D-068: Mutation authority requires a real test runner and exact restoration
+
+Date: 2026-08-30
+Status: Confirmed
+Area: D-058, D-066, R-053, M61 through M63
+
+Context:
+The required T540P replay exposed three harness failures. The runner assumed an ambient `python` command although the host provided only `python3`. Reading mutation targets as text normalized a committed CRLF file to LF during restoration. After switching to the current interpreter, the host lacked pytest; `python -m pytest` exited 1 and the harness labeled the launcher error as a caught mutant without running a test.
+
+Decision:
+Launch suites with `sys.executable`, mutate and restore raw bytes, and accept exit 0 or 1 only when the final line is an anchored pytest outcome summary. M61, M62, and M63 hold those controls. T540P replay uses a disposable virtual environment under `/tmp` with pytest installed by the same command shape as CI, not a machine-wide alias or package change.
+
+Because:
+A nonzero process is not automatically test evidence. The replay must prove that pytest collected and answered the configured suite, and a temporary mutation must restore the exact source bytes rather than an equivalent Python program. Hash checks cover all four mutable source families after every authoritative replay.
+
+Consequences:
+The matrix now has 63 rows: 59 active and 4 superseded. Fifty-six active rows are caught on both Windows 11/Python 3.14.2 and T540P Linux/Python 3.12.3; M37, M46, and M48 are caught on Linux where Windows skips their symlink test. No row survives or remains unverified. No current macOS result was observed in this round; the macOS claim remains limited to the configured CI suite.
+
+Revisit when:
+Pytest changes its terminal-summary grammar, another suite runner is supported, or a mutation source uses bytes that are not UTF-8 for the replacement fragment.
+
+## D-069: M4 is blocked by its plan, not by D-061
+
+Date: 2026-08-30
+Status: Open
+Area: M4, R-013, R-018, R-022, D-064
+
+Context:
+Closing D-061 makes the M3 evidence reviewable, but it does not make the next milestone executable. The current plan's own self-review says Task 10 omits the before-and-after check and leaves receipt loading, freshness, full-recipe selection, and runner integration as placeholders. Task 11 defines a comparator without connecting it to a full gate run.
+
+There is a second contradiction. D-064 keeps every installed rule `proposed`, so the authoritative route is full and selects every gate. The planned comparator reads that route's `selected_gate_ids`; it therefore sees no omitted gates and cannot gather evidence about what any proposed rule would have omitted. The comparator cannot produce the evidence D-064 names as an alternative to owner approval.
+
+Decision:
+Do not start M4 from the current plan. Revise and review the plan first. It must define a candidate shadow route that may evaluate proposed rules without granting execution authority, bind before-and-after repository identity to each gate result for R-018, show the real `run_gates` integration while still running the canonical full set for R-022, and map R-013, R-018, and R-022 to exact collected tests before implementation begins.
+
+Because:
+Implementing the snippets as written would produce a comparator that records no meaningful omissions and a runner that verifies freshness only before work. That would check boxes without satisfying the requirements the boxes name.
+
+Consequences:
+M4 remains not started. No selective execution is enabled, no policy rule is approved, and no gate-runner behavior changes in round ten.
+
+Revisit when:
+`design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md` contains a reviewed replacement for the M4 interfaces and tests, with the D-069 contradictions resolved.

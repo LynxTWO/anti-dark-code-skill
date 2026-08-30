@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** Q-05 is proven against a real blobless clone served by a loopback Git daemon (D-060), and Linux mutation replay is required in CI (D-058). M3 exists: policy validation, receipt writing and verification, and the `route` command are implemented. M3 remains review-gated because D-061 records an unresolved requirement-to-test traceability gap. M4 has not started and may not start until that ruling is closed.
+**Current gate:** Q-05 is proven against a real blobless clone served by a loopback Git daemon (D-060), and Linux mutation replay is required in CI (D-058). M3 is implemented and retroactively accepted after the executable traceability gate closed D-061 (D-067). M4 has not started: D-069 blocks it until the plan defines real before-and-after gate binding and a candidate shadow route that can evaluate proposed rules without authorizing skips.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
@@ -200,7 +200,7 @@ Existing GitHub Actions. Status Confirmed.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 is complete. M3 is implemented and awaits the D-061 traceability ruling.
+- **Current slice:** SLICE-001, read-only shadow routing. M2 and M3 are complete. M4 is not started and is plan-blocked by D-069.
 - **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
 - **Modules not built:** the M4 shadow comparator and gate runner binding. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.

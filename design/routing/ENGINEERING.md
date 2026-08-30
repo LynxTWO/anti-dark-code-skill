@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is implemented. M3 remains review-gated because D-061 records an unresolved requirement-to-test traceability gap. M4 has not started and may not start until that ruling is closed.
+- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is accepted after the executable traceability gate closed D-061 (D-067). M4 is not started and remains plan-blocked by D-069.
 
 ## 2. Engineering Principles
 
@@ -346,7 +346,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
 | R-051 | repository-wide object format plus real source-specific conflict grammar | named tests in `requirement-evidence.json`; M47 is caught and the plain raw conflict form is accepted |
 | R-052 | direct, replaced, built, copied, and hinted Route immutability table | named tests in `requirement-evidence.json`; mutable proxy backing is copied |
-| R-053 | data-driven replay of all 60 stored mutations | `mutants/`; 56 active and 4 superseded, with 53 caught on both recorded hosts and 3 caught on Linux where Windows skips |
+| R-053 | data-driven replay of all 63 stored mutations | `mutants/`; 59 active and 4 superseded, with 56 caught on both recorded hosts and 3 caught on Linux where Windows skips |
 | R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
 
