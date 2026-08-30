@@ -394,8 +394,15 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
     for relative in listed:
         path = repo / relative
         try:
-            stat = path.stat()
+            # lstat, so replacing a file with a symlink to identical content is
+            # a change rather than a look-through.
+            stat = path.lstat()
             size, mtime = stat.st_size, stat.st_mtime_ns
+            # Link count and inode describe the path's topology. A hard link to
+            # identical bytes keeps content, size, and mtime equal, so without
+            # these the file could be swapped underneath the fingerprint.
+            topology = (getattr(stat, "st_nlink", 0), getattr(stat, "st_ino", 0),
+                        stat.st_mode)
         except OSError:
             entries.append((relative, -1, -1, "unreadable"))
             continue
@@ -405,9 +412,9 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
                 for chunk in iter(lambda: handle.read(1 << 20), b""):
                     digest.update(chunk)
         except OSError:
-            entries.append((relative, size, mtime, "unreadable"))
+            entries.append((relative, size, mtime, f"unreadable:{topology}"))
             continue
-        entries.append((relative, size, mtime, digest.hexdigest()))
+        entries.append((relative, size, mtime, f"{digest.hexdigest()}:{topology}"))
     return (index_state, tuple(sorted(entries)))
 
 
@@ -1147,7 +1154,7 @@ def load_policy(
     data: Mapping[str, Any],
     gates: Mapping[str, Any],
     capability_ids: Sequence[str],
-    full_set: Mapping[str, Any] | None = None,
+    full_set: Mapping[str, Any],
 ) -> ValidatedPolicy:
     """Validate a routing policy and freeze it.
 
@@ -1208,7 +1215,7 @@ def load_policy(
                        known_capabilities)
     if not recipe_data.get("obligations"):
         raise PolicyError("full_recipe must name at least one obligation")
-    if full_set is not None:
+    if True:
         # Level 3 with nonempty sets is not the same as covering the
         # repository's canonical full verification. Without this a recipe
         # naming one pass and one capability satisfied every structural check

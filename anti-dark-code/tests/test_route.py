@@ -872,6 +872,42 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             self.repo, "base-ref", runner=staging_runner)
         self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
 
+    def test_replacing_a_file_with_a_hard_link_is_detected(self) -> None:
+        """N-03. A file swapped for a hard link during acquisition is detected.
+
+        Honest limit: this proves the swap is noticed, not which field notices
+        it. Mutants M36 and M37 remove the topology and lstat parts of the
+        fingerprint and this test still passes, because a hard link shares an
+        inode and the timestamps move in ways that are hard to hold still. Those
+        two mutants are recorded as surviving rather than presented as covered.
+        """
+        target = self.repo / "linked.txt"
+        target.write_bytes(b"SAME\n")
+        self._git("add", "linked.txt")
+        self._git("commit", "-qm", "linked")
+        original = target.stat()
+        twin = self.repo / "twin-source.txt"
+        twin.write_bytes(b"SAME\n")
+
+        seen: list[int] = []
+
+        def linking_runner(args):
+            result = self.route._default_runner(self.repo)(args)
+            seen.append(1)
+            if len(seen) == 5:
+                target.unlink()
+                try:
+                    os.link(twin, target)
+                except (OSError, NotImplementedError):
+                    target.write_bytes(b"SAME\n")
+                os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
+            return result
+
+        snap = self.route.read_change_inputs(
+            self.repo, "base-ref", runner=linking_runner)
+        self.assertEqual(target.read_bytes(), b"SAME\n")
+        self.assertIn("ADC-ROUTE-BOUNDARY-VIOLATED", snap.problems)
+
     def test_a_clean_acquisition_reports_no_boundary_violation(self) -> None:
         (self.repo / "src.py").write_text("a\nb\nc\nd\nCHANGED\n", encoding="utf-8")
         snap = self.route.read_change_inputs(self.repo, "base-ref")
@@ -1434,7 +1470,7 @@ class RouteBuildingTests(unittest.TestCase):
         policy["rules"][0]["review_status"] = "proposed"
         built = self.route.build_route(
             (fact(self.route, "README.md"),),
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS))
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET))
         self.assertNotIn("docs", built.matched_rule_ids)
         self.assertTrue(built.force_full, "an unmatched fact must force full")
 
@@ -1680,91 +1716,91 @@ class PolicyValidationTests(unittest.TestCase):
         return policy
 
     def test_a_valid_policy_loads(self) -> None:
-        validated = self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS)
+        validated = self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, FULL_SET)
         self.assertEqual(validated.schema_version, 1)
 
     def test_a_wrong_schema_version_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._policy(schema_version=2), GATES, CAPABILITY_IDS)
+            self.route.load_policy(self._policy(schema_version=2), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_missing_full_recipe_is_rejected(self) -> None:
         policy = self._policy()
         del policy["full_recipe"]
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_full_recipe_naming_an_unknown_gate_is_rejected(self) -> None:
         policy = self._policy()
         policy["full_recipe"]["obligations"]["V09"] = ["no-such-gate"]
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_obligation_naming_an_unknown_gate_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V09": ["no-such-gate"]}), GATES, CAPABILITY_IDS)
+                self._with_rule(obligations={"V09": ["no-such-gate"]}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_obligation_naming_an_unapproved_gate_is_rejected(self) -> None:
         # A gate nobody reviewed cannot satisfy a capability.
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V09": ["not-yet-reviewed"]}), GATES, CAPABILITY_IDS)
+                self._with_rule(obligations={"V09": ["not-yet-reviewed"]}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_obligation_naming_a_disabled_gate_is_rejected(self) -> None:
         # A disabled gate will never run, so it covers nothing.
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V09": ["switched-off"]}), GATES, CAPABILITY_IDS)
+                self._with_rule(obligations={"V09": ["switched-off"]}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_empty_obligation_gate_list_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._with_rule(obligations={"V09": []}), GATES, CAPABILITY_IDS)
+            self.route.load_policy(self._with_rule(obligations={"V09": []}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_unknown_capability_id_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(obligations={"V99": ["validate-core"]}), GATES, CAPABILITY_IDS)
+                self._with_rule(obligations={"V99": ["validate-core"]}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_duplicate_rule_ids_are_rejected(self) -> None:
         policy = self._policy()
         policy["rules"] = [self._rule(), self._rule()]
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_duplicate_gate_ids_are_rejected(self) -> None:
         gates = json.loads(json.dumps(GATES))
         gates["gates"].append({"id": "validate-core", "enabled": True,
                                "review_status": "approved"})
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._policy(), gates, CAPABILITY_IDS)
+            self.route.load_policy(self._policy(), gates, CAPABILITY_IDS, FULL_SET)
 
     def test_a_negative_predicate_is_rejected(self) -> None:
         # R-015. A rule that fires on the absence of another fact is not
         # monotonic: adding a file could stop it firing.
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(match={"surfaces": ["docs"], "not_paths": ["x"]}), GATES, CAPABILITY_IDS)
+                self._with_rule(match={"surfaces": ["docs"], "not_paths": ["x"]}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_empty_match_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._with_rule(match={}), GATES, CAPABILITY_IDS)
+            self.route.load_policy(self._with_rule(match={}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_out_of_range_level_is_rejected(self) -> None:
         for level in (-1, 4, "2", None):
             with self.assertRaises(self.route.PolicyError, msg=f"level={level!r}"):
                 self.route.load_policy(
-                    self._with_rule(requires={"minimum_level": level}), GATES, CAPABILITY_IDS)
+                    self._with_rule(requires={"minimum_level": level}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_non_boolean_flag_is_rejected(self) -> None:
         for flag in ("force_full", "independent_review"):
             with self.assertRaises(self.route.PolicyError, msg=flag):
                 self.route.load_policy(
-                    self._with_rule(requires={"minimum_level": 1, flag: "yes"}), GATES, CAPABILITY_IDS)
+                    self._with_rule(requires={"minimum_level": 1, flag: "yes"}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_an_unknown_pass_id_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
-                self._with_rule(requires={"passes": ["99"], "minimum_level": 0}), GATES, CAPABILITY_IDS)
+                self._with_rule(requires={"passes": ["99"], "minimum_level": 0}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_classifier_enum_typo_is_rejected_at_load(self) -> None:
         # Catching this at load rather than only at classification means a bad
@@ -1773,20 +1809,20 @@ class PolicyValidationTests(unittest.TestCase):
         policy["classifier"] = {"surfaces": [
             {"glob": "*.py", "surface": "BOGUS", "effect": "behavior"}]}
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_classifier_entry_without_a_glob_is_rejected_at_load(self) -> None:
         policy = self._policy()
         policy["classifier"] = {"surfaces": [{"surface": "docs", "effect": "prose"}]}
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_string_path_pattern_is_rejected(self) -> None:
         # K-02, a routing bypass. Iterating a string yields characters, so the
         # "*" in "*.md" matched every path and handed unrelated files the cheap
         # rule. Every plural predicate must be a list.
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(self._with_rule(match={"paths": "*.md"}), GATES, CAPABILITY_IDS)
+            self.route.load_policy(self._with_rule(match={"paths": "*.md"}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_every_plural_predicate_must_be_a_nonempty_list_of_strings(self) -> None:
         for key, bad in (
@@ -1795,7 +1831,7 @@ class PolicyValidationTests(unittest.TestCase):
             ("effects", "prose"), ("change_kinds", "modify"), ("sources", "committed"),
         ):
             with self.assertRaises(self.route.PolicyError, msg=f"{key}={bad!r}"):
-                self.route.load_policy(self._with_rule(match={key: bad}), GATES, CAPABILITY_IDS)
+                self.route.load_policy(self._with_rule(match={key: bad}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_predicate_members_must_be_closed_enum_values(self) -> None:
         for key, bad in (
@@ -1804,15 +1840,15 @@ class PolicyValidationTests(unittest.TestCase):
             ("sources", ["BOGUS"]),
         ):
             with self.assertRaises(self.route.PolicyError, msg=f"{key}={bad!r}"):
-                self.route.load_policy(self._with_rule(match={key: bad}), GATES, CAPABILITY_IDS)
+                self.route.load_policy(self._with_rule(match={key: bad}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_mode_changed_must_be_an_actual_boolean(self) -> None:
         # bool("false") is True, so a string here inverted the predicate.
         for bad in ("false", "true", 0, 1, None):
             with self.assertRaises(self.route.PolicyError, msg=f"mode_changed={bad!r}"):
                 self.route.load_policy(
-                    self._with_rule(match={"mode_changed": bad}), GATES, CAPABILITY_IDS)
-        self.route.load_policy(self._with_rule(match={"mode_changed": True}), GATES, CAPABILITY_IDS)
+                    self._with_rule(match={"mode_changed": bad}), GATES, CAPABILITY_IDS, FULL_SET)
+        self.route.load_policy(self._with_rule(match={"mode_changed": True}), GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_full_recipe_below_level_three_is_rejected(self) -> None:
         # K-04. force_full at Level 0 contradicts D-020.
@@ -1820,13 +1856,13 @@ class PolicyValidationTests(unittest.TestCase):
             policy = self._policy()
             policy["full_recipe"]["minimum_level"] = level
             with self.assertRaises(self.route.PolicyError, msg=f"level={level}"):
-                self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+                self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_a_full_recipe_without_passes_is_rejected(self) -> None:
         policy = self._policy()
         policy["full_recipe"]["passes"] = []
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
     def test_the_loaded_policy_is_immune_to_later_mutation(self) -> None:
         # K-03, a routing bypass. load_policy returned a shallow copy, so a
@@ -1834,7 +1870,7 @@ class PolicyValidationTests(unittest.TestCase):
         # validation and turn a forced-full route into a cheap one.
         raw = self._policy()
         raw["rules"] = [self._rule(review_status="proposed")]
-        loaded = self.route.load_policy(raw, GATES, CAPABILITY_IDS)
+        loaded = self.route.load_policy(raw, GATES, CAPABILITY_IDS, FULL_SET)
         before = self.route.build_route((fact(self.route, "README.md"),), loaded)
 
         raw["rules"][0]["review_status"] = "approved"
@@ -1872,21 +1908,30 @@ class PolicyValidationTests(unittest.TestCase):
         # equal the catalog. This narrows the supplied set so a guess and the
         # real argument disagree, which is what D-029 is actually about.
         narrow = frozenset({"V09"})
+        narrow_full = {"passes": ["07"], "obligations": {"V09": ["validate-core"]}}
         policy = self._with_rule(obligations={"V09": ["validate-core"]})
         # The full recipe names V08, V12 and V21, which the narrow set also
         # excludes. Reduce it so only the rule under test varies.
         policy["full_recipe"]["obligations"] = {"V09": ["validate-core"]}
-        self.route.load_policy(policy, GATES, narrow)
+        self.route.load_policy(policy, GATES, narrow, narrow_full)
 
         policy["rules"][0]["obligations"] = {"V12": ["hostile-environment"]}
         with self.assertRaises(self.route.PolicyError):
-            self.route.load_policy(policy, GATES, narrow)
+            self.route.load_policy(policy, GATES, narrow, narrow_full)
 
     def test_a_capability_the_catalog_does_not_define_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(
                 self._with_rule(obligations={"V23": ["validate-core"]}),
-                GATES, CAPABILITY_IDS)
+                GATES, CAPABILITY_IDS, FULL_SET)
+
+    def test_a_raw_mapping_is_refused_by_the_type_check(self) -> None:
+        # M24. The provenance check would also refuse a mapping, so assert the
+        # message: a caller passing an unvalidated dict should be told the type
+        # is wrong, not sent looking for a loader that never ran.
+        with self.assertRaises(TypeError) as caught:
+            self.route.build_route((fact(self.route, "README.md"),), self._policy())
+        self.assertIn("not dict", str(caught.exception))
 
     def test_a_directly_constructed_policy_is_refused(self) -> None:
         # L-04. isinstance proves the class, not that anything validated it.
@@ -1951,6 +1996,12 @@ class PolicyValidationTests(unittest.TestCase):
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
 
+    def test_loading_requires_the_canonical_full_set(self) -> None:
+        # N-01. Optional validation is not validation. Omitting full_set
+        # accepted a Level 3 recipe naming one pass and one capability.
+        with self.assertRaises(TypeError):
+            self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS)
+
     def test_a_recipe_covering_the_canonical_set_is_accepted(self) -> None:
         self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, FULL_SET)
 
@@ -1960,7 +2011,7 @@ class PolicyValidationTests(unittest.TestCase):
         # unrouted and therefore full.
         policy = self._policy()
         policy["rules"] = [self._rule(review_status="proposed")]
-        validated = self.route.load_policy(policy, GATES, CAPABILITY_IDS)
+        validated = self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
         built = self.route.build_route((fact(self.route, "README.md"),), validated)
         self.assertEqual(built.matched_rule_ids, frozenset())
         self.assertTrue(built.force_full)
