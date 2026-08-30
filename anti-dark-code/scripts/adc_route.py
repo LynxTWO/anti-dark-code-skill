@@ -541,7 +541,7 @@ def _union_obligations(
 
 def build_route(
     facts: Sequence[ChangeFact],
-    policy: Mapping[str, Any],
+    policy: ValidatedPolicy,
     hints: Mapping[str, Any] | None = None,
     snapshot_ok: bool = True,
 ) -> Route:
@@ -552,6 +552,15 @@ def build_route(
     schema change. Adding a fact must never reduce any field, which is the
     property R-001 tests and the reason there is no numeric score.
     """
+    # A plain mapping has never been validated. Accepting one would let a
+    # caller skip load_policy, and would reopen the aliasing hole where a rule
+    # is edited from proposed to approved after review.
+    if not isinstance(policy, ValidatedPolicy):
+        raise TypeError(
+            "build_route requires a ValidatedPolicy from load_policy, "
+            f"not {type(policy).__name__}"
+        )
+
     level = 0
     passes: set[str] = set()
     obligations: dict[str, set[str]] = {}
@@ -564,8 +573,7 @@ def build_route(
     if not snapshot_ok:
         unknowns.add("ADC-ROUTE-SNAPSHOT-INCOMPLETE")
 
-    rules = [r for r in policy.get("rules", [])
-             if str(r.get("review_status", "")).lower() == "approved"]
+    rules = [rule for rule in policy.rules if rule.approved]
 
     for fact in facts:
         if fact.confidence == "unknown":
@@ -576,18 +584,15 @@ def build_route(
             force_full = True
         fired = False
         for rule in rules:
-            if not _fact_matches(fact, rule.get("match", {})):
+            if not _fact_matches(fact, rule.match_map()):
                 continue
             fired = True
-            matched.add(rule["id"])
-            requires = rule.get("requires", {})
-            level = max(level, int(requires.get("minimum_level", 0)))
-            passes.update(requires.get("passes", []))
-            force_full = force_full or bool(requires.get("force_full"))
-            independent_review = (
-                independent_review or bool(requires.get("independent_review"))
-            )
-            _union_obligations(obligations, rule.get("obligations", {}))
+            matched.add(rule.id)
+            level = max(level, rule.minimum_level)
+            passes.update(rule.passes)
+            force_full = force_full or rule.force_full
+            independent_review = independent_review or rule.independent_review
+            _union_obligations(obligations, rule.obligation_map())
         if not fired:
             # A classified fact that no reviewed rule describes is an unrouted
             # change, not a cheap one.
@@ -599,13 +604,11 @@ def build_route(
         # The full route is the policy's own reviewed recipe, not merely a
         # higher level. Raising the level alone would leave a route labelled
         # full that still selected the cheap rule's gates.
-        recipe = policy["full_recipe"]
-        level = max(level, int(recipe.get("minimum_level", 3)))
-        passes.update(recipe.get("passes", []))
-        _union_obligations(obligations, recipe.get("obligations", {}))
-        independent_review = (
-            independent_review or bool(recipe.get("independent_review"))
-        )
+        recipe = policy.full_recipe
+        level = max(level, recipe.minimum_level)
+        passes.update(recipe.passes)
+        _union_obligations(obligations, recipe.obligation_map())
+        independent_review = independent_review or recipe.independent_review
 
     route = Route(
         minimum_level=level,
@@ -646,6 +649,57 @@ def apply_hints(route: Route, hints: Mapping[str, Any]) -> Route:
         unmapped_paths=route.unmapped_paths | frozenset(hints.get("unmapped_paths", [])),
         unknowns=route.unknowns | frozenset(hints.get("unknowns", [])),
     )
+
+
+@dataclass(frozen=True)
+class ValidatedRule:
+    """One reviewed rule, frozen at load so it cannot change afterwards."""
+
+    id: str
+    approved: bool
+    match: tuple[tuple[str, Any], ...]
+    passes: frozenset[str]
+    minimum_level: int
+    force_full: bool
+    independent_review: bool
+    obligations: tuple[tuple[str, frozenset[str]], ...]
+
+    def match_map(self) -> dict[str, Any]:
+        return dict(self.match)
+
+    def obligation_map(self) -> dict[str, frozenset[str]]:
+        return dict(self.obligations)
+
+
+@dataclass(frozen=True)
+class ValidatedRecipe:
+    minimum_level: int
+    passes: frozenset[str]
+    independent_review: bool
+    obligations: tuple[tuple[str, frozenset[str]], ...]
+
+    def obligation_map(self) -> dict[str, frozenset[str]]:
+        return dict(self.obligations)
+
+
+@dataclass(frozen=True)
+class ValidatedPolicy:
+    """A routing policy that has been checked and can no longer change.
+
+    build_route accepts only this type. A plain mapping has never been
+    validated, and load_policy previously returned a shallow copy, so a caller
+    could flip a nested rule from proposed to approved after validation and turn
+    a forced-full route into a cheap one. Freezing the nested records and
+    demanding this type at the boundary closes both halves of that.
+    """
+
+    schema_version: int
+    classifier: tuple[tuple[tuple[str, str], ...], ...]
+    full_recipe: ValidatedRecipe
+    rules: tuple[ValidatedRule, ...]
+
+    def classifier_map(self) -> dict[str, Any]:
+        return {"surfaces": [dict(entry) for entry in self.classifier]}
 
 
 class PolicyError(Exception):
@@ -709,6 +763,53 @@ def _check_obligations(
                 )
 
 
+# Which closed set each plural predicate draws from. Validating membership
+# stops a policy typo from naming a value no fact can ever carry, which would
+# make the rule silently dead rather than obviously wrong.
+_PREDICATE_SETS = {
+    "surfaces": SURFACES,
+    "effects": EFFECTS,
+    "breadths": BREADTHS,
+    "sensitivities": SENSITIVITIES,
+    "change_kinds": CHANGE_KINDS,
+    "sources": CHANGE_SOURCES,
+}
+
+
+def _check_match(where: str, match: Any) -> None:
+    """Validate predicate shapes as well as keys.
+
+    A string is iterable, so `paths: "*.md"` was read as a list of single
+    characters and its "*" matched every path. That handed unrelated files a
+    cheap rule, which is a routing bypass rather than a cosmetic problem.
+    """
+    if not isinstance(match, Mapping) or not match:
+        raise PolicyError(f"{where}: needs a nonempty match")
+    unknown = set(match) - _MATCH_KEYS
+    if unknown:
+        raise PolicyError(
+            f"{where}: unsupported match keys {sorted(unknown)}. Rules match one "
+            "fact with positive predicates only, because a rule keyed on the "
+            "absence of another fact would stop firing when a file is added"
+        )
+    for key, value in match.items():
+        if key == "mode_changed":
+            # bool("false") is True, so a string here inverts the predicate.
+            if not isinstance(value, bool):
+                raise PolicyError(f"{where}: mode_changed must be true or false")
+            continue
+        if not isinstance(value, list) or not value:
+            raise PolicyError(
+                f"{where}: {key} must be a nonempty list, not {type(value).__name__}")
+        for member in value:
+            if not isinstance(member, str) or not member:
+                raise PolicyError(f"{where}: {key} contains a non-string member")
+            allowed = _PREDICATE_SETS.get(key)
+            if allowed is not None and member not in allowed:
+                raise PolicyError(
+                    f"{where}: {key} member {member!r} is not one of {sorted(allowed)}")
+
+
 def _check_requires(where: str, requires: Any) -> None:
     if not isinstance(requires, Mapping):
         raise PolicyError(f"{where}: requires must be an object")
@@ -726,18 +827,32 @@ def _check_requires(where: str, requires: Any) -> None:
             raise PolicyError(f"{where}: {flag} must be true or false")
 
 
+def _freeze_obligations(
+    obligations: Mapping[str, Any]
+) -> tuple[tuple[str, frozenset[str]], ...]:
+    """Sorted by capability, so a policy has one canonical shape."""
+    return tuple(sorted(
+        (capability, frozenset(gate_ids))
+        for capability, gate_ids in obligations.items()
+    ))
+
+
 def load_policy(
     data: Mapping[str, Any],
     gates: Mapping[str, Any],
     capability_ids: Sequence[str] | None = None,
-) -> dict[str, Any]:
-    """Validate a routing policy against the gates that could actually run.
+) -> ValidatedPolicy:
+    """Validate a routing policy and freeze it.
 
     Validating at load rather than only at route time means a bad policy fails
-    before it can route anything. A rule whose review_status is not approved
-    still loads: the shipped template ships every rule proposed so an installing
-    repository has to read and approve each one, and an unapproved rule simply
-    never matches. See D-022.
+    before it can route anything. The result is a frozen ValidatedPolicy built
+    from copies, so nothing the caller still holds can change what was reviewed.
+    A shallow copy was not enough: flipping a nested rule from proposed to
+    approved after validation turned a forced-full route into a cheap one.
+
+    A rule whose review_status is not approved still loads. The shipped template
+    ships every rule proposed so an installing repository has to read and
+    approve each one, and an unapproved rule simply never matches. See D-022.
     """
     if not isinstance(data, Mapping):
         raise PolicyError("routing policy must be an object")
@@ -752,35 +867,48 @@ def load_policy(
     classifier = data.get("classifier", {})
     if not isinstance(classifier, Mapping):
         raise PolicyError("classifier must be an object")
+    frozen_classifier: list[tuple[tuple[str, str], ...]] = []
     for entry in classifier.get("surfaces", []):
         if not isinstance(entry, Mapping) or not entry.get("glob"):
             raise PolicyError(f"classifier entry has no glob: {entry!r}")
+        attrs = {
+            "surface": entry.get("surface", ""),
+            "effect": entry.get("effect", ""),
+            "breadth": entry.get("breadth", "leaf"),
+            "sensitivity": entry.get("sensitivity", "normal"),
+            "confidence": "verified",
+        }
         try:
-            _validated_classification(entry, {
-                "surface": entry.get("surface", ""),
-                "effect": entry.get("effect", ""),
-                "breadth": entry.get("breadth", "leaf"),
-                "sensitivity": entry.get("sensitivity", "normal"),
-                "confidence": "verified",
-            })
+            _validated_classification(entry, attrs)
         except ValueError as exc:
             raise PolicyError(str(exc)) from exc
+        frozen_classifier.append(
+            tuple(sorted({"glob": str(entry["glob"]), **attrs}.items())))
 
-    recipe = data.get("full_recipe")
-    if not isinstance(recipe, Mapping):
+    recipe_data = data.get("full_recipe")
+    if not isinstance(recipe_data, Mapping):
         raise PolicyError("routing policy must define full_recipe")
-    _check_requires("full_recipe", recipe)
-    _check_obligations("full_recipe", recipe.get("obligations", {}), usable,
+    _check_requires("full_recipe", recipe_data)
+    # The full route is the ceiling, so it is validated against its own rule
+    # rather than the generic level check. A recipe at Level 0 would let
+    # force_full be true while selecting the cheapest rung of the ladder.
+    if recipe_data.get("minimum_level") != 3:
+        raise PolicyError(
+            "full_recipe.minimum_level must be 3: it is the canonical full route")
+    if not recipe_data.get("passes"):
+        raise PolicyError("full_recipe must name at least one pass")
+    _check_obligations("full_recipe", recipe_data.get("obligations", {}), usable,
                        known_capabilities)
-    if not recipe.get("obligations"):
+    if not recipe_data.get("obligations"):
         raise PolicyError("full_recipe must name at least one obligation")
 
-    rules = data.get("rules")
-    if not isinstance(rules, list):
+    rules_data = data.get("rules")
+    if not isinstance(rules_data, list):
         raise PolicyError("routing policy must define a rules array")
 
     seen: set[str] = set()
-    for rule in rules:
+    rules: list[ValidatedRule] = []
+    for rule in rules_data:
         if not isinstance(rule, Mapping) or not rule.get("id"):
             raise PolicyError("every rule needs an id")
         rule_id = str(rule["id"])
@@ -788,17 +916,33 @@ def load_policy(
         if rule_id in seen:
             raise PolicyError(f"duplicate rule id: {rule_id}")
         seen.add(rule_id)
-        match = rule.get("match")
-        if not isinstance(match, Mapping) or not match:
-            raise PolicyError(f"{where}: needs a nonempty match")
-        unknown = set(match) - _MATCH_KEYS
-        if unknown:
-            raise PolicyError(
-                f"{where}: unsupported match keys {sorted(unknown)}. Rules match "
-                "one fact with positive predicates only, because a rule keyed on "
-                "the absence of another fact would stop firing when a file is added"
-            )
-        _check_requires(where, rule.get("requires", {}))
+        _check_match(where, rule.get("match"))
+        requires = rule.get("requires", {})
+        _check_requires(where, requires)
         _check_obligations(where, rule.get("obligations", {}), usable,
                            known_capabilities)
-    return dict(data)
+        rules.append(ValidatedRule(
+            id=rule_id,
+            approved=str(rule.get("review_status", "")).lower() == "approved",
+            match=tuple(sorted(
+                (key, tuple(value) if isinstance(value, list) else value)
+                for key, value in rule["match"].items()
+            )),
+            passes=frozenset(requires.get("passes", [])),
+            minimum_level=int(requires.get("minimum_level", 0)),
+            force_full=bool(requires.get("force_full", False)),
+            independent_review=bool(requires.get("independent_review", False)),
+            obligations=_freeze_obligations(rule.get("obligations", {})),
+        ))
+
+    return ValidatedPolicy(
+        schema_version=1,
+        classifier=tuple(frozen_classifier),
+        full_recipe=ValidatedRecipe(
+            minimum_level=3,
+            passes=frozenset(recipe_data.get("passes", [])),
+            independent_review=bool(recipe_data.get("independent_review", False)),
+            obligations=_freeze_obligations(recipe_data.get("obligations", {})),
+        ),
+        rules=tuple(rules),
+    )

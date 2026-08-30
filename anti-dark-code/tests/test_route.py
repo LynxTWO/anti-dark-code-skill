@@ -850,6 +850,19 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(first, second)
 
 
+GATES = {
+    "schema_version": 1,
+    "gates": [
+        {"id": "validate-core", "enabled": True, "review_status": "approved"},
+        {"id": "distribution", "enabled": True, "review_status": "approved"},
+        {"id": "hostile-environment", "enabled": True, "review_status": "approved"},
+        {"id": "full-suite", "enabled": True, "review_status": "approved"},
+        {"id": "not-yet-reviewed", "enabled": True, "review_status": "proposed"},
+        {"id": "switched-off", "enabled": False, "review_status": "approved"},
+    ],
+}
+
+
 POLICY = {
     "schema_version": 1,
     "classifier": {"surfaces": []},
@@ -885,6 +898,11 @@ POLICY = {
 }
 
 
+def loaded(route):
+    """POLICY as build_route now requires it: validated and frozen."""
+    return route.load_policy(POLICY, GATES)
+
+
 def fact(route, path, **over):
     base = dict(path=path, change_kind="modify", source="committed",
                 surface="docs", effect="prose", breadth="leaf",
@@ -896,9 +914,10 @@ def fact(route, path, **over):
 class RouteBuildingTests(unittest.TestCase):
     def setUp(self) -> None:
         self.route = load_route()
+        self.loaded = loaded(self.route)
 
     def test_a_prose_change_takes_the_cheap_route(self) -> None:
-        built = self.route.build_route((fact(self.route, "README.md"),), POLICY)
+        built = self.route.build_route((fact(self.route, "README.md"),), loaded(self.route))
         self.assertEqual(built.minimum_level, 0)
         self.assertFalse(built.force_full)
         self.assertEqual(built.matched_rule_ids, frozenset({"docs"}))
@@ -907,7 +926,7 @@ class RouteBuildingTests(unittest.TestCase):
         built = self.route.build_route((
             fact(self.route, "README.md"),
             fact(self.route, "docs/index.html", surface="site"),
-        ), POLICY)
+        ), self.loaded)
         self.assertEqual(built.passes, frozenset({"06", "11"}))
         self.assertEqual(built.minimum_level, 2)
         self.assertEqual(built.matched_rule_ids, frozenset({"docs", "site"}))
@@ -918,7 +937,7 @@ class RouteBuildingTests(unittest.TestCase):
         built = self.route.build_route((
             fact(self.route, "README.md"),
             fact(self.route, "docs/index.html", surface="site"),
-        ), POLICY)
+        ), self.loaded)
         self.assertEqual(built.obligations["V09"],
                          frozenset({"validate-core", "distribution"}))
 
@@ -928,7 +947,7 @@ class RouteBuildingTests(unittest.TestCase):
         built = self.route.build_route((
             fact(self.route, ".github/workflows/tests.yml",
                  surface="ci", effect="verification-authority"),
-        ), POLICY)
+        ), self.loaded)
         self.assertTrue(built.force_full)
         self.assertEqual(built.minimum_level, 3)
         self.assertTrue(built.passes >= frozenset({"07", "10", "11", "14"}))
@@ -939,14 +958,14 @@ class RouteBuildingTests(unittest.TestCase):
 
     def test_unmapped_path_forces_full_and_is_recorded(self) -> None:
         built = self.route.build_route(
-            (fact(self.route, "mystery.bin", confidence="unknown"),), POLICY)
+            (fact(self.route, "mystery.bin", confidence="unknown"),), self.loaded)
         self.assertTrue(built.force_full)
         self.assertIn("mystery.bin", built.unmapped_paths)
         self.assertIn("ADC-ROUTE-UNMAPPED-PATH", built.unknowns)
 
     def test_an_incomplete_snapshot_forces_full(self) -> None:
         built = self.route.build_route(
-            (fact(self.route, "README.md"),), POLICY, snapshot_ok=False)
+            (fact(self.route, "README.md"),), self.loaded, snapshot_ok=False)
         self.assertTrue(built.force_full)
         self.assertIn("ADC-ROUTE-SNAPSHOT-INCOMPLETE", built.unknowns)
 
@@ -954,19 +973,21 @@ class RouteBuildingTests(unittest.TestCase):
         # A fact can be classified and still match no reviewed rule. That is an
         # unrouted change, not a cheap one.
         built = self.route.build_route(
-            (fact(self.route, "odd.py", surface="tests", effect="behavior"),), POLICY)
+            (fact(self.route, "odd.py", surface="tests", effect="behavior"),), self.loaded)
         self.assertTrue(built.force_full)
 
     def test_order_does_not_change_the_route(self) -> None:
         a = fact(self.route, "README.md")
         b = fact(self.route, "docs/index.html", surface="site")
-        self.assertEqual(self.route.build_route((a, b), POLICY),
-                         self.route.build_route((b, a), POLICY))
+        self.assertEqual(self.route.build_route((a, b), self.loaded),
+                         self.route.build_route((b, a), self.loaded))
 
     def test_an_unapproved_rule_never_matches(self) -> None:
         policy = json.loads(json.dumps(POLICY))
         policy["rules"][0]["review_status"] = "proposed"
-        built = self.route.build_route((fact(self.route, "README.md"),), policy)
+        built = self.route.build_route(
+            (fact(self.route, "README.md"),),
+            self.route.load_policy(policy, GATES))
         self.assertNotIn("docs", built.matched_rule_ids)
         self.assertTrue(built.force_full, "an unmatched fact must force full")
 
@@ -974,7 +995,9 @@ class RouteBuildingTests(unittest.TestCase):
 class HintTests(unittest.TestCase):
     def setUp(self) -> None:
         self.route = load_route()
-        self.base = self.route.build_route((fact(self.route, "README.md"),), POLICY)
+        self.loaded = loaded(self.route)
+        self.loaded = loaded(self.route)
+        self.base = self.route.build_route((fact(self.route, "README.md"),), loaded(self.route))
 
     def test_a_hint_can_raise_the_level(self) -> None:
         raised = self.route.apply_hints(self.base, {"minimum_level": 2})
@@ -999,7 +1022,7 @@ class HintTests(unittest.TestCase):
             fact(self.route, ".github/workflows/tests.yml",
                  surface="ci", effect="verification-authority"),
             fact(self.route, "docs/index.html", surface="site"),
-        ), POLICY)
+        ), self.loaded)
         hostile = [
             {"minimum_level": 0},
             {"force_full": False},
@@ -1054,6 +1077,7 @@ class MonotonicityTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.route = load_route()
+        self.loaded = loaded(self.route)
         self.pool = (
             fact(self.route, "README.md"),
             fact(self.route, "docs/index.html", surface="site"),
@@ -1068,11 +1092,11 @@ class MonotonicityTests(unittest.TestCase):
         checked = 0
         for size in range(0, len(self.pool)):
             for subset in itertools.combinations(self.pool, size):
-                smaller = self.route.build_route(subset, POLICY)
+                smaller = self.route.build_route(subset, self.loaded)
                 for extra in self.pool:
                     if extra in subset:
                         continue
-                    larger = self.route.build_route(subset + (extra,), POLICY)
+                    larger = self.route.build_route(subset + (extra,), self.loaded)
                     assert_route_not_lower(
                         self, smaller, larger,
                         f"{[f.path for f in subset]} + {extra.path}")
@@ -1086,24 +1110,11 @@ class MonotonicityTests(unittest.TestCase):
         for size in (2, 3):
             for subset in itertools.combinations(self.pool, size):
                 orders = list(itertools.permutations(subset))
-                expected = self.route.build_route(orders[0], POLICY)
+                expected = self.route.build_route(orders[0], self.loaded)
                 for order in orders[1:]:
                     self.assertEqual(
-                        self.route.build_route(order, POLICY), expected,
+                        self.route.build_route(order, self.loaded), expected,
                         f"order changed the route: {[f.path for f in order]}")
-
-
-GATES = {
-    "schema_version": 1,
-    "gates": [
-        {"id": "validate-core", "enabled": True, "review_status": "approved"},
-        {"id": "distribution", "enabled": True, "review_status": "approved"},
-        {"id": "hostile-environment", "enabled": True, "review_status": "approved"},
-        {"id": "full-suite", "enabled": True, "review_status": "approved"},
-        {"id": "not-yet-reviewed", "enabled": True, "review_status": "proposed"},
-        {"id": "switched-off", "enabled": False, "review_status": "approved"},
-    ],
-}
 
 
 class PolicyValidationTests(unittest.TestCase):
@@ -1129,8 +1140,8 @@ class PolicyValidationTests(unittest.TestCase):
         return policy
 
     def test_a_valid_policy_loads(self) -> None:
-        loaded = self.route.load_policy(self._policy(), GATES)
-        self.assertEqual(loaded["schema_version"], 1)
+        validated = self.route.load_policy(self._policy(), GATES)
+        self.assertEqual(validated.schema_version, 1)
 
     def test_a_wrong_schema_version_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
@@ -1230,14 +1241,86 @@ class PolicyValidationTests(unittest.TestCase):
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(policy, GATES)
 
+    def test_a_string_path_pattern_is_rejected(self) -> None:
+        # K-02, a routing bypass. Iterating a string yields characters, so the
+        # "*" in "*.md" matched every path and handed unrelated files the cheap
+        # rule. Every plural predicate must be a list.
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(self._with_rule(match={"paths": "*.md"}), GATES)
+
+    def test_every_plural_predicate_must_be_a_nonempty_list_of_strings(self) -> None:
+        for key, bad in (
+            ("paths", "*.md"), ("paths", []), ("paths", [""]), ("paths", [1]),
+            ("surfaces", "docs"), ("surfaces", []), ("surfaces", [None]),
+            ("effects", "prose"), ("change_kinds", "modify"), ("sources", "committed"),
+        ):
+            with self.assertRaises(self.route.PolicyError, msg=f"{key}={bad!r}"):
+                self.route.load_policy(self._with_rule(match={key: bad}), GATES)
+
+    def test_predicate_members_must_be_closed_enum_values(self) -> None:
+        for key, bad in (
+            ("surfaces", ["BOGUS"]), ("effects", ["BOGUS"]), ("breadths", ["BOGUS"]),
+            ("sensitivities", ["BOGUS"]), ("change_kinds", ["BOGUS"]),
+            ("sources", ["BOGUS"]),
+        ):
+            with self.assertRaises(self.route.PolicyError, msg=f"{key}={bad!r}"):
+                self.route.load_policy(self._with_rule(match={key: bad}), GATES)
+
+    def test_mode_changed_must_be_an_actual_boolean(self) -> None:
+        # bool("false") is True, so a string here inverted the predicate.
+        for bad in ("false", "true", 0, 1, None):
+            with self.assertRaises(self.route.PolicyError, msg=f"mode_changed={bad!r}"):
+                self.route.load_policy(
+                    self._with_rule(match={"mode_changed": bad}), GATES)
+        self.route.load_policy(self._with_rule(match={"mode_changed": True}), GATES)
+
+    def test_a_full_recipe_below_level_three_is_rejected(self) -> None:
+        # K-04. force_full at Level 0 contradicts D-020.
+        for level in (0, 1, 2):
+            policy = self._policy()
+            policy["full_recipe"]["minimum_level"] = level
+            with self.assertRaises(self.route.PolicyError, msg=f"level={level}"):
+                self.route.load_policy(policy, GATES)
+
+    def test_a_full_recipe_without_passes_is_rejected(self) -> None:
+        policy = self._policy()
+        policy["full_recipe"]["passes"] = []
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES)
+
+    def test_the_loaded_policy_is_immune_to_later_mutation(self) -> None:
+        # K-03, a routing bypass. load_policy returned a shallow copy, so a
+        # caller could flip a nested rule from proposed to approved after
+        # validation and turn a forced-full route into a cheap one.
+        raw = self._policy()
+        raw["rules"] = [self._rule(review_status="proposed")]
+        loaded = self.route.load_policy(raw, GATES)
+        before = self.route.build_route((fact(self.route, "README.md"),), loaded)
+
+        raw["rules"][0]["review_status"] = "approved"
+        raw["rules"][0]["requires"]["minimum_level"] = 0
+        raw["full_recipe"]["minimum_level"] = 0
+        raw["classifier"]["surfaces"].append(
+            {"glob": "*", "surface": "docs", "effect": "prose"})
+
+        after = self.route.build_route((fact(self.route, "README.md"),), loaded)
+        self.assertEqual(after, before, "mutating the source policy changed routing")
+        self.assertTrue(after.force_full)
+
+    def test_build_route_refuses_an_unvalidated_policy(self) -> None:
+        # A plain mapping has never been checked. Accepting one lets a caller
+        # skip load_policy entirely.
+        with self.assertRaises(TypeError):
+            self.route.build_route((fact(self.route, "README.md"),), self._policy())
+
     def test_a_proposed_rule_loads_but_never_matches(self) -> None:
         # D-022. The shipped template carries proposed rules, so loading must
         # accept them. build_route ignores them, which leaves the change
         # unrouted and therefore full.
         policy = self._policy()
         policy["rules"] = [self._rule(review_status="proposed")]
-        loaded = self.route.load_policy(policy, GATES)
-        built = self.route.build_route((fact(self.route, "README.md"),), loaded)
+        validated = self.route.load_policy(policy, GATES)
+        built = self.route.build_route((fact(self.route, "README.md"),), validated)
         self.assertEqual(built.matched_rule_ids, frozenset())
         self.assertTrue(built.force_full)
 
