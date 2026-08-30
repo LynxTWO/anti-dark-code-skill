@@ -336,9 +336,21 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "stat = path.lstat()",
     "new": "stat = path.stat()",
-    "verdict": "SURVIVED",
+    "verdict": "caught elsewhere",
     "pytest": "188 passed, 1 skipped in 16.88s",
-    "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege."
+    "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "WSL2 Ubuntu",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "reported_by": "Codex round eight",
+        "pytest": "reported, not measured in this repository",
+        "verdict": "caught",
+        "skipped": 0
+      }
+    ]
   },
   {
     "id": "M38",
@@ -418,9 +430,21 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "        if stat_module.S_ISLNK(stat.st_mode):",
     "new": "        if False:",
-    "verdict": "SURVIVED",
+    "verdict": "caught elsewhere",
     "pytest": "188 passed, 1 skipped in 16.84s",
-    "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege."
+    "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "WSL2 Ubuntu",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "reported_by": "Codex round eight",
+        "pytest": "reported, not measured in this repository",
+        "verdict": "caught",
+        "skipped": 0
+      }
+    ]
   },
   {
     "id": "M47",
@@ -438,9 +462,10 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "            entries.append((relative, size, mtime, f\"symlink:{target}:{topology}\"))",
     "new": "            entries.append((relative, size, mtime, f\"symlink:{topology}\"))",
-    "verdict": "SURVIVED",
+    "verdict": "unverified: needs a symlink-capable host",
     "pytest": "188 passed, 1 skipped in 16.89s",
-    "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text."
+    "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text.",
+    "note": "Codex reported this surviving under Ubuntu against the earlier symlink test, which asserted only the marker. That test now asserts the recorded target and retargets the link, so the Ubuntu result is stale. Unverified on a symlink-capable host."
   },
   {
     "id": "M49",

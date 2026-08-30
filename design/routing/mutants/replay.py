@@ -22,11 +22,33 @@ it names a guarantee the code claims and the tests do not hold it to.
 from __future__ import annotations
 
 import json
+import platform
 import subprocess
 import sys
 from pathlib import Path
 
 MATRIX = Path(__file__).with_name("matrix.json")
+
+
+def host_identity() -> dict:
+    """Facts that change what a replay can observe.
+
+    A mutant attacking symlink handling survives on a host that cannot create
+    symlinks, because the test skips. That is a fact about the host, not about
+    the code, and one unqualified verdict cannot carry both it and the answer
+    from a host that can. Every result records where it came from.
+    """
+    try:
+        git = subprocess.run(["git", "--version"], capture_output=True,
+                             text=True).stdout.strip()
+    except OSError:
+        git = "unknown"
+    return {
+        "platform": platform.system(),
+        "release": platform.release(),
+        "python": platform.python_version(),
+        "git": git,
+    }
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SUITE = ["python", "-m", "pytest", "anti-dark-code/tests/test_route.py", "-q"]
 
@@ -35,7 +57,7 @@ class SuiteBroken(RuntimeError):
     """The suite did not run, so the mutant proved nothing either way."""
 
 
-def run_suite() -> tuple[bool, str]:
+def run_suite() -> tuple[bool, str, int]:
     """Return whether the mutant was caught, plus the summary line.
 
     A mutant is caught when tests fail. It is not caught when they pass. A
@@ -51,15 +73,28 @@ def run_suite() -> tuple[bool, str]:
     # a result, and an earlier version of this check read a syntax error as a
     # caught mutant. 1 means tests failed, 0 means they passed, everything else
     # means the suite did not answer the question.
+    # A skip means the host could not exercise the guarantee, which is a fact
+    # about the host and not about the mutant.
+    skipped = 0
+    parts = summary.split()
+    for index, token in enumerate(parts):
+        if token.startswith("skipped") and index:
+            try:
+                skipped = int(parts[index - 1])
+            except ValueError:
+                skipped = 0
     if done.returncode == 1:
-        return True, summary
+        return True, summary, skipped
     if done.returncode == 0:
-        return False, summary
+        return False, summary, skipped
     raise SuiteBroken(f"pytest exit {done.returncode}: {summary}")
 
 
 def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
     survivors: list[str] = []
+    host = host_identity()
+    print(f"  host: {host['platform']} {host['release']}, "
+          f"python {host['python']}, {host['git']}\n")
     for row in rows:
         if row.get("superseded_by"):
             # The behaviour this mutant attacked moved, so applying it is a
@@ -77,7 +112,7 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
         source.write_text(
             original.replace(row["old"], row["new"], 1), encoding="utf-8", newline="")
         try:
-            caught, summary = run_suite()
+            caught, summary, skipped = run_suite()
         except SuiteBroken as broken:
             row["verdict"] = "INCONCLUSIVE"
             row["pytest"] = str(broken)
@@ -93,10 +128,22 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False) -> int:
             raise
         finally:
             source.write_text(original, encoding="utf-8", newline="")
-        row["verdict"] = "caught" if caught else "SURVIVED"
+        verdict = "caught" if caught else "SURVIVED"
+        results = {r["platform"]: r for r in row.get("results", [])}
+        results[host["platform"]] = {**host, "verdict": verdict,
+                                     "pytest": summary, "skipped": skipped}
+        row["results"] = [results[k] for k in sorted(results)]
+        # Caught anywhere is caught. A host that cannot exercise the guarantee
+        # reports a skip, and a skip is not evidence of absence.
+        anywhere = [r for r in row["results"] if r["verdict"] == "caught"]
+        row["verdict"] = "caught" if anywhere else "SURVIVED"
+        if anywhere and verdict == "SURVIVED":
+            row["verdict"] = "caught elsewhere"
         row["pytest"] = summary
-        print(f"  {row['id']}  {row['name']:42} {row['verdict']}")
-        if not caught:
+        note = "" if verdict == row["verdict"] else (
+            f"  (here: {verdict}{', ' + str(skipped) + ' skipped' if skipped else ''})")
+        print(f"  {row['id']}  {row['name']:42} {row['verdict']}{note}")
+        if row["verdict"] == "SURVIVED":
             survivors.append(row["id"])
     print(f"\n  {len(rows)} mutants, {len(survivors)} not caught: "
           f"{survivors or 'none'}")

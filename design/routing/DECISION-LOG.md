@@ -69,6 +69,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-050 | 2026-08-30 | Snapshot object width stays bound to the resolved merge base | Confirmed | |
 | D-051 | 2026-08-30 | Symlink guards carry platform evidence and separate target text | Confirmed | |
 | D-052 | 2026-08-30 | Unmerged side presence comes from modes, not object ids | Confirmed | |
+| D-053 | 2026-08-30 | parse_raw_z is public for any raw git output | Confirmed | |
+| D-054 | 2026-08-30 | Mutation verdicts are platform-qualified | Confirmed | |
+| D-055 | 2026-08-30 | Route is not picklable, and does not need to be | Confirmed | |
+| D-056 | 2026-08-30 | The missing-promisor case is blocked, not closed | Open | |
 
 ---
 
@@ -1424,3 +1428,91 @@ The test that rejects both-null modes remains. A new real-Git case holds the obj
 
 Revisit when:
 The minimum supported Git versions stop emitting this form or the parser becomes private to one fixed command contract.
+
+## D-053: parse_raw_z is public for any raw git output
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 5, Q-01 question 1
+
+Context:
+Codex asked whether `parse_raw_z` is a public parser for any raw git output or a private helper for the flags acquisition happens to use. The answer decides whether Q-02 needed a code fix or only a narrower document contract.
+
+Decision:
+It is public for any raw git output.
+
+Because:
+ADD section 5 already lists it among the public interfaces, and the suite calls it directly at 46 sites with payloads that acquisition never produces. A parser documented as public and exercised as public is public. Narrowing the contract to `_DIFF_FLAGS` would also have made the Q-02 defect unreachable by definition rather than fixed, which is the wrong way to close a finding: the conflict form Codex found is real git output whether or not our own flags produce it.
+
+Consequences:
+The grammar must accept every raw form git emits, not only the forms these flags produce. That is a wider obligation and it is the one the interface already advertises.
+
+Revisit when:
+The parser gains a caller that supplies output from a different command family.
+
+## D-054: Mutation verdicts are platform-qualified
+
+Date: 2026-08-30
+Status: Confirmed
+Area: Q-06, mutants/matrix.json, mutants/replay.py
+
+Context:
+M37 and M46 attack symlink handling. They survive on Windows because the symlink test skips, and Codex showed both are caught under WSL2 Ubuntu. A single unqualified verdict cannot carry both facts, and the Windows answer had been standing in for the repository's.
+
+Decision:
+Each replay result records the host: platform, release, python, git, and the skip count. A row is `caught` when any recorded host caught it, `caught elsewhere` when this host did not but another did, and `SURVIVED` only when no host has caught it. A skip is a fact about the host, not evidence about the code.
+
+Because:
+The alternative reading, that a mutant survives because the local host cannot exercise the guarantee, is exactly the false-gap problem the superseded-mutant handling already solved in the other direction.
+
+Consequences:
+Cross-platform results enter the matrix as reported evidence attributed to the reporter, not as measurements made here. M37 and M46 carry Codex's Ubuntu result on that basis.
+
+Revisit when:
+A required platform leg is added, which would make one host's silence a failure rather than a gap.
+
+## D-056: The missing-promisor case is blocked, not closed
+
+Date: 2026-08-30
+Status: Open
+Area: R-043, Q-05, D-036
+
+Context:
+`GIT_NO_LAZY_FETCH=1` is set, and the test asserts the control is present rather than the behaviour it prevents. Codex traced a real lazy fetch in round five, so the defect was real. Neither of us has since built the case as a checked-in test.
+
+Decision:
+Record this as blocked and unknown rather than closed. The test keeps its downgraded docstring, which says what it asserts and what it does not.
+
+Because:
+This host cannot build a blobless clone: a local file transport ignores the partial-clone filter, and the resulting objects are packed, so no single loose object can be removed. Inventing a test that passes without exercising a real missing promisor object would be the exact failure this cycle keeps finding.
+
+The likely path is a transport that honours filtering, such as a local `git daemon`, which would let a real blobless clone be built in a fixture. That adds a daemon to the test environment, which is an environment decision rather than a code one and is not taken unilaterally.
+
+Consequences:
+R-043 stays open. The isolation claim rests on the control being present plus Codex's round-five trace, and the documents say so.
+
+Revisit when:
+A test environment that honours partial-clone filtering is agreed, or the promisor case is demonstrated another way.
+
+## D-055: Route is not picklable, and does not need to be
+
+Date: 2026-08-30
+Status: Confirmed
+Area: ADD 7, Q-01 question 3
+
+Context:
+Codex asked whether `Route` is expected to support `pickle` or `deepcopy`. Measured against the committed source: `copy.copy` succeeds and the copy stays immutable, while `copy.deepcopy` and `pickle.dumps` both raise `TypeError: cannot pickle 'mappingproxy' object`.
+
+Decision:
+Route is an in-process value. Pickling and deep copying are not supported, and the mapping proxy that prevents them is kept.
+
+Because:
+Nothing serializes a Route directly. Receipts serialize through `receipt_payload`, which reads a Route and builds a plain dictionary of authoritative fields, so the wire format never touches the object. Making Route picklable would mean giving up the proxy or adding a reduce hook that hands out a mutable mapping, and the immutability it protects has now been the subject of four findings: P-03, L-07, N-05, and Q-01. Trading that for a capability no caller needs is a bad exchange.
+
+`copy.copy` working is enough for the shallow-copy cases that exist, and it preserves immutability rather than defeating it.
+
+Consequences:
+A future caller that needs a Route across a process boundary must serialize the receipt payload, not the Route. If one ever needs the object itself, the answer is a conversion function, not a reduce hook.
+
+Revisit when:
+A caller needs a Route across a process or cache boundary and the receipt payload cannot carry it.
