@@ -25,21 +25,29 @@ Read first:
 
 ## 1. Restore the two-host record
 
-M88 through M91 carry Windows results only, and M68 was retargeted after the guard was rewritten so its Linux record is stale. Replay all 91 rows on T540P under the D-068 rules. Do this first; it is small and it is the strongest evidence this project has.
+**Every row already replayed clean on Linux.** CI run `33401038643` at `ab90f51` reports `success  Mutation replay (Linux)`, and that job runs `replay.py` over the whole matrix on `ubuntu-latest`, fails if any mutant survives, and fails again if the tree is left dirty. So the two-host *fact* is established at this head.
+
+What is missing is the two-host *record*. CI deliberately runs without `--write`, because a job that rewrote the matrix would be grading its own homework, so `matrix.json` still has no Linux `results` entries for M88 through M91, and M68's entry is stale after retargeting.
+
+Replay on T540P under the D-068 rules to record those per-row verdicts. Treat it as bookkeeping rather than discovery: if a row that CI just passed now fails on T540P, that is a finding about the host or the harness, and it outranks everything below.
 
 ## 2. Section 9, item by item, with the state already established
 
 ### "Automated tests ... passing on Linux, macOS, and Windows" — closeable now
 
-macOS has been observed. `.github/workflows/tests.yml:27` runs `[ubuntu-latest, macos-latest, windows-latest]`, and run `33345218999` at `8f46a76` reported `success  macos-latest / Python 3.12`. The project spent fourteen rounds saying "no observed macOS result" without reading the job list.
+macOS has been observed, at this head. CI run **`33401038643`** at **`ab90f51`** reports `success  macos-latest / Python 3.12`, alongside `windows-latest / 3.12`, `ubuntu-latest / 3.12`, and `ubuntu-latest / 3.13`, all green:
 
-The catch is real, though: `tests.yml` fires on `pull_request` and `push: main` only, so **5 of the slice's 90 commits ever ran the matrix**, and `codex/round-twelve-m4` never ran CI at all. PR #23 now puts the round-thirteen head through the full matrix.
+    https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/33401038643
 
-Tick this against **PR #23's run id and sha**, not against `33345218999`, which predates roughly 1,400 lines of router and test change. Do not tick the "every acceptance criterion" half from a CI run: no job proves S-001..S-051 coverage. Split the bullet.
+The project spent fourteen rounds recording "no current macOS result" without reading the job list. `tests.yml:27` had run `macos-latest` the whole time.
+
+The catch is real, though: `tests.yml` fires on `pull_request` and `push: main` only, so before PR #23 only 5 of the slice's 90 commits had ever run the matrix, and `codex/round-twelve-m4` never ran CI at all. Keep a PR open for your branch so your own head gets covered; a topic branch without one has no CI evidence whatsoever.
+
+Tick this against run `33401038643` and sha `ab90f51`. Do not tick the "every acceptance criterion" half from a CI run: no job proves S-001..S-051 coverage. Split the bullet, and let `requirement-evidence.json` own the coverage half.
 
 ### "The clean distribution archive check passes" — closeable now
 
-The `distribution` job at `tests.yml:72-98` is exactly that check: it extracts `git archive HEAD` and validates the tree with `--mode distribution`. It passed in the same run. Tick it against PR #23's run.
+The `distribution` job at `tests.yml:72-98` is exactly that check: it extracts `git archive HEAD` and validates the tree with `--mode distribution`. It reports `success  Clean distribution archive` in run `33401038643`. Tick it against that run.
 
 ### "K-01 through K-13, L-01 through L-09, N-01 through N-08" — needs a disposition table
 
