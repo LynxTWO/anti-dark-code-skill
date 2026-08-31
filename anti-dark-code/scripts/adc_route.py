@@ -747,6 +747,19 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
     ("skill policy", "anti-dark-code/SKILL.md"),
 )
 
+
+def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
+    """Source-tree paths plus the paths produced by the managed installer."""
+    paths: list[tuple[str, str]] = []
+    for label, path in SELF_GRADING_PATHS:
+        paths.append((label, path))
+        if path.startswith("anti-dark-code/"):
+            paths.append((
+                f"{label}, installed layout",
+                f".agents/skills/{path}",
+            ))
+    return tuple(paths)
+
 # What counts as grading a path as authority. `verification-authority` is the
 # effect the shipped force-full rule matches. `skill-policy` is the surface its
 # own force-full rule matches, and SKILL.md carries instruction authority
@@ -794,7 +807,7 @@ def _check_self_grading(
     A guard that samples is a guard an adversary aims around.
     """
     demoted: list[str] = []
-    for label, path in SELF_GRADING_PATHS:
+    for label, path in _self_grading_guard_paths():
         entries = _matching_classifications(path, classifier)
         if not entries:
             continue

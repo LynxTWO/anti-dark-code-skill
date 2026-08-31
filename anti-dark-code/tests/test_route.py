@@ -3176,6 +3176,23 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                 self.gates_source["canonical_full_set"])
         self.assertIn("adc_route.py", str(caught.exception))
 
+    def test_source_only_authority_cannot_hide_the_installed_router(self) -> None:
+        # D-071 portability. The managed installer moves this module beneath
+        # .agents/skills. A policy that recognizes only the source-tree
+        # spelling must not pass the guard while its broad product glob grades
+        # the installed router as ordinary code.
+        data = json.loads(json.dumps(self.policy_source))
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "**/scripts/adc_route.py":
+                entry["glob"] = "anti-dark-code/scripts/adc_route.py"
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn(
+            ".agents/skills/anti-dark-code/scripts/adc_route.py",
+            str(caught.exception))
+
     def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
         # The classifier is untouched here, so a guard that checked only the
         # classification passed this policy. Measured against it: ten of the
