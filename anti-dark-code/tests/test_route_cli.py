@@ -26,6 +26,7 @@ TEMPLATE = SKILL_ROOT / "assets" / "templates" / "calibration" / "routing-policy
 
 GATES = {
     "schema_version": 1,
+    "execution_policy": {"owner_confirmed_safe_to_execute": True},
     "canonical_full_set": {
         "passes": ["07", "10", "11", "14"],
         "obligations": {
@@ -287,6 +288,40 @@ class StaleReceiptCliTests(_RoutedGateCliFixture):
         self.assertEqual(2, done.returncode, done.stdout + done.stderr)
         self.assertIn("STALE", done.stdout)
         self.assertIn("ADC-STALE-004", done.stdout)
+
+
+class ReceiptIntegrityCliTests(_RoutedGateCliFixture):
+    def test_an_edited_authoritative_route_is_refused(self) -> None:
+        data = json.loads(self.receipt.read_text(encoding="utf-8"))
+        data["authoritative"]["route"]["minimum_level"] = 0
+        data["authoritative"]["route"]["force_full"] = False
+        self.receipt.write_text(
+            json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        done = self._run("--route", str(self.receipt))
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("REFUSED", done.stdout)
+        self.assertIn("run_id", done.stdout)
+
+
+class ShadowComparatorCliTests(_RoutedGateCliFixture):
+    def test_real_gate_outcomes_feed_the_candidate_shadow_record(self) -> None:
+        done = self._run(
+            "--route", str(self.receipt), "--allow-exec", "--keep-going")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        shadows = sorted(
+            (self.repo / ".anti-dark-code" / "runs").glob("*/shadow.json"))
+        self.assertEqual(1, len(shadows), done.stdout)
+        shadow = json.loads(shadows[0].read_text(encoding="utf-8"))
+        self.assertEqual("candidate-shadow",
+                         shadow["candidate"]["provenance"])
+        self.assertEqual(
+            set(GATES["canonical_full_set"]["obligations"]["V01"]
+                + GATES["canonical_full_set"]["obligations"]["V08"]
+                + GATES["canonical_full_set"]["obligations"]["V09"]
+                + GATES["canonical_full_set"]["obligations"]["V12"]
+                + GATES["canonical_full_set"]["obligations"]["V21"]),
+            set(shadow["gate_results"]))
+        self.assertEqual({"pass"}, set(shadow["gate_results"].values()))
 
 
 if __name__ == "__main__":

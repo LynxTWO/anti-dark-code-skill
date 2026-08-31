@@ -883,6 +883,48 @@ class Route:
                               for k, v in sorted(self.obligations.items())}))
 
 
+@dataclass(frozen=True)
+class CandidateRoute:
+    """What proposed rules would select, with no execution authority.
+
+    This is deliberately not a Route. A boolean on Route would be one missed
+    condition away from allowing proposed rules to narrow a real gate run.
+    """
+
+    minimum_level: int = 0
+    passes: frozenset[str] = frozenset()
+    obligations: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    matched_rule_ids: frozenset[str] = frozenset()
+    force_full: bool = False
+    considered_rule_ids: frozenset[str] = frozenset()
+    provenance: str = field(init=False, default="candidate-shadow")
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "obligations",
+            MappingProxyType({k: frozenset(v)
+                              for k, v in sorted(self.obligations.items())}))
+
+    def selected_gate_ids(self) -> tuple[str, ...]:
+        return tuple(sorted({gate for gates in self.obligations.values()
+                             for gate in gates}))
+
+    def as_payload(self) -> dict[str, Any]:
+        return {
+            "provenance": self.provenance,
+            "minimum_level": self.minimum_level,
+            "selected_passes": sorted(self.passes),
+            "capability_to_gate_ids": {
+                capability: sorted(gates)
+                for capability, gates in sorted(self.obligations.items())
+            },
+            "selected_gate_ids": list(self.selected_gate_ids()),
+            "matched_rule_ids": sorted(self.matched_rule_ids),
+            "force_full": self.force_full,
+            "considered_rule_ids": sorted(self.considered_rule_ids),
+        }
+
+
 # Rule match keys. Positive predicates only: a rule may not depend on the
 # absence, count, or ordering of other facts. A negative predicate would break
 # monotonicity, because adding a file could stop a rule firing. See R-015.
@@ -1020,6 +1062,61 @@ def build_route(
         unknowns=frozenset(unknowns),
     )
     return apply_hints(route, hints, policy) if hints else route
+
+
+def build_candidate_route(
+    facts: Sequence[ChangeFact],
+    policy: ValidatedPolicy,
+    snapshot_ok: bool = True,
+) -> CandidateRoute | None:
+    """Evaluate approved and proposed rules for shadow comparison only."""
+    if not isinstance(policy, ValidatedPolicy) or not _is_validated(policy):
+        raise TypeError(
+            "build_candidate_route requires the exact ValidatedPolicy returned "
+            "by load_policy")
+    if not snapshot_ok:
+        # What a candidate would skip is not measurable when the change set is
+        # incomplete. Returning a forced-full Candidate would turn "unknown"
+        # into a comparable route class and overstate the evidence.
+        return None
+
+    level = 0
+    passes: set[str] = set()
+    obligations: dict[str, set[str]] = {}
+    matched: set[str] = set()
+    force_full = False
+    considered = {rule.id for rule in policy.rules if not rule.approved}
+
+    for fact in facts:
+        if fact.confidence == "unknown":
+            force_full = True
+        fired = False
+        for rule in policy.rules:
+            if not _fact_matches(fact, rule.match_map()):
+                continue
+            fired = True
+            matched.add(rule.id)
+            level = max(level, rule.minimum_level)
+            passes.update(rule.passes)
+            force_full = force_full or rule.force_full
+            _union_obligations(obligations, rule.obligation_map())
+        if not fired:
+            force_full = True
+
+    if force_full:
+        recipe = policy.full_recipe
+        level = max(level, recipe.minimum_level)
+        passes.update(recipe.passes)
+        _union_obligations(obligations, recipe.obligation_map())
+
+    return CandidateRoute(
+        minimum_level=level,
+        passes=frozenset(passes),
+        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},
+        matched_rule_ids=frozenset(matched),
+        force_full=force_full,
+        considered_rule_ids=frozenset(considered),
+    )
 
 
 # Fields a hint may write. The rest record what the router observed, and a

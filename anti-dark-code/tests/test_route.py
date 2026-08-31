@@ -2802,6 +2802,75 @@ class CanonicalFullTests(unittest.TestCase):
             self.assertNotIn("extra-enabled", planned.stdout)
 
 
+class CandidateRouteTests(unittest.TestCase):
+    """Proposed rules produce measurements, never execution authority."""
+
+    def setUp(self) -> None:
+        self.route = load_route()
+        source = json.loads(json.dumps(POLICY))
+        source["rules"][0]["review_status"] = "proposed"
+        self.policy = self.route.load_policy(
+            source, GATES, CAPABILITY_IDS, FULL_SET)
+        self.candidate = self.route.build_candidate_route(
+            (fact(self.route, "README.md"),), self.policy,
+            snapshot_ok=True)
+
+    def test_proposed_rules_build_a_separate_candidate_type(self) -> None:
+        self.assertIsInstance(self.candidate, self.route.CandidateRoute)
+        self.assertNotIsInstance(self.candidate, self.route.Route)
+        self.assertEqual("candidate-shadow", self.candidate.provenance)
+        self.assertEqual(frozenset({"docs"}),
+                         self.candidate.considered_rule_ids)
+        self.assertEqual(("validate-core",),
+                         self.candidate.selected_gate_ids())
+
+    def test_an_incomplete_snapshot_has_no_candidate_route(self) -> None:
+        self.assertIsNone(self.route.build_candidate_route(
+            (fact(self.route, "README.md"),), self.policy,
+            snapshot_ok=False))
+
+    def test_a_candidate_route_is_refused_by_the_receipt_writer(self) -> None:
+        receipt = load_module(
+            "candidate_receipt",
+            SKILL_ROOT / "scripts" / "adc_receipt.py")
+        snapshot = self.route.ChangeSnapshot(base="HEAD", base_resolved=True)
+        with self.assertRaises(receipt.ReceiptError):
+            receipt.authoritative_payload(
+                self.candidate, (), snapshot, receipt.Binding(), GATES)
+        with self.assertRaises(receipt.ReceiptError):
+            receipt.build_receipt(self.candidate)
+
+    def test_a_candidate_selection_cannot_remove_a_gate(self) -> None:
+        adc = load_adc()
+        with self.assertRaises(TypeError):
+            adc.select_route_gates(
+                GATES, GATES["gates"], self.candidate,
+                level=3, force_full=False)
+
+    def test_an_unrecognised_outcome_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            load_adc().shadow_result(
+                {"route": {"selected_gate_ids": ["validate-core"]}},
+                self.candidate, {"validate-core": "maybe"})
+
+    def test_an_aborted_run_is_not_a_clean_targeted_verification(self) -> None:
+        result = load_adc().shadow_result(
+            {"route": {"selected_gate_ids": ["validate-core", "full-suite"]}},
+            self.candidate,
+            {"validate-core": "not-run", "full-suite": "fail"})
+        self.assertFalse(result["selected_all_passed"])
+        self.assertFalse(result["routing_miss"])
+
+    def test_a_candidate_omitting_a_failing_gate_is_a_routing_miss(self) -> None:
+        result = load_adc().shadow_result(
+            {"route": {"selected_gate_ids": ["validate-core", "full-suite"]}},
+            self.candidate,
+            {"validate-core": "pass", "full-suite": "fail"})
+        self.assertTrue(result["selected_all_passed"])
+        self.assertEqual(["full-suite"], result["missed_gate_ids"])
+        self.assertTrue(result["routing_miss"])
+
+
 @unittest.skipUnless(shutil.which("git"), "git is required")
 class GateLifecycleTests(unittest.TestCase):
     """R-018 against a real repository and the real gate subprocess loop."""

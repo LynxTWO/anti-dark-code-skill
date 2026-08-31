@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013, R-018, and R-022 are implemented, while the candidate comparator remains.
+**Current gate:** M4 is implemented in round twelve. The slice remains shadow-only: no candidate route or receipt can skip a gate, and the human walkthrough remains.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
@@ -200,10 +200,10 @@ Existing GitHub Actions. Status Confirmed.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 and M3 are complete. M4 is in progress; R-013, R-018, and R-022 are built and the candidate comparator remains.
+- **Current slice:** SLICE-001, read-only shadow routing. M2, M3, and M4 are implemented; the human walkthrough still gates slice completion.
 - **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
-- **Modules built in M4:** routed level enforcement, canonical force-full gate selection, receipt preflight, and per-gate freshness binding.
-- **Modules not built:** the M4 shadow comparator. Nothing can skip a gate.
+- **Modules built in M4:** routed level enforcement, canonical force-full gate selection, receipt preflight, per-gate freshness binding, the type-separated `CandidateRoute`, and the real-outcome shadow comparator.
+- **Modules not built:** selective local or CI execution. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.
 
 ---

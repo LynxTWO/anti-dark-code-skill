@@ -252,6 +252,12 @@ def _fact_payload(fact: Any) -> dict[str, Any]:
     return {f.name: getattr(fact, f.name) for f in dataclass_fields(fact)}
 
 
+def _is_candidate_route(value: Any) -> bool:
+    """Recognize the non-authoritative type without importing the router."""
+    return (type(value).__name__ == "CandidateRoute"
+            and getattr(value, "provenance", None) == "candidate-shadow")
+
+
 def _omissions(
     route: Any,
     gates_source: Mapping[str, Any],
@@ -297,6 +303,9 @@ def authoritative_payload(
     change in a different order produce the same bytes, which is what makes the
     hash an identity rather than a timestamp. See R-002 and S-001.
     """
+    if _is_candidate_route(route):
+        raise ReceiptError(
+            "CandidateRoute is shadow evidence and cannot become authority")
     if operator_escalation is not None:
         if not isinstance(operator_escalation, Mapping):
             raise ReceiptError("operator_escalation must be an object")
@@ -353,6 +362,9 @@ def build_receipt(
     nothing in it can change `run_id`, and a reader can tell at a glance which
     half of the file carries authority.
     """
+    if _is_candidate_route(payload):
+        raise ReceiptError(
+            "CandidateRoute is shadow evidence and cannot become a receipt")
     return {
         "run_id": digest(payload),
         "authoritative": dict(payload),
@@ -385,6 +397,9 @@ def verify_receipt(
                                   f"receipt schema_version is "
                                   f"{payload.get('schema_version')!r}, "
                                   f"expected {SCHEMA_VERSION}"),))
+    if receipt.get("run_id") != digest(payload):
+        raise ReceiptError(
+            "receipt run_id does not match its authoritative payload")
 
     recorded = payload.get("binding")
     if not isinstance(recorded, Mapping):

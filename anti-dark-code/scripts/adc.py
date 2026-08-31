@@ -2598,6 +2598,80 @@ def obligations_are_covered(
         for gate_ids in obligations.values())
 
 
+KNOWN_GATE_OUTCOMES = frozenset({
+    "pass", "fail", "config-error", "stale", "not-run", "skipped",
+})
+
+
+def _is_candidate_route(value: Any) -> bool:
+    return (type(value).__name__ == "CandidateRoute"
+            and getattr(value, "provenance", None) == "candidate-shadow")
+
+
+def shadow_result(
+    authoritative_payload: dict[str, Any],
+    candidate: Any | None,
+    gate_results: dict[str, str],
+) -> dict[str, Any]:
+    """Compare candidate omissions with outcomes from the authoritative run."""
+    route_payload = authoritative_payload.get("route", {})
+    authoritative_ids = route_payload.get("selected_gate_ids", [])
+    if (not isinstance(authoritative_ids, list)
+            or not all(isinstance(gate, str) for gate in authoritative_ids)):
+        raise ValueError("authoritative route has invalid selected_gate_ids")
+
+    unknown = sorted(set(gate_results.values()) - KNOWN_GATE_OUTCOMES)
+    if unknown:
+        raise ValueError(f"unrecognised gate outcomes: {unknown}")
+
+    if candidate is None:
+        return {
+            "schema_version": 2,
+            "measurable": False,
+            "reason": "snapshot incomplete",
+            "authoritative": {
+                "selected_gate_ids": sorted(authoritative_ids)},
+            "candidate": None,
+            "gate_results": dict(sorted(gate_results.items())),
+        }
+    if not _is_candidate_route(candidate):
+        raise TypeError("shadow_result requires a CandidateRoute or None")
+
+    selected = set(candidate.selected_gate_ids())
+    omitted = {gate_id: outcome for gate_id, outcome in gate_results.items()
+               if gate_id not in selected}
+    missed = sorted(gate_id for gate_id, outcome in omitted.items()
+                    if outcome != "pass")
+    selected_all_passed = bool(selected) and all(
+        gate_results.get(gate_id) == "pass" for gate_id in selected)
+    return {
+        "schema_version": 2,
+        "measurable": True,
+        "route_class": {
+            "matched_rule_ids": sorted(candidate.matched_rule_ids),
+            "force_full": candidate.force_full,
+        },
+        "authoritative": {
+            "selected_gate_ids": sorted(authoritative_ids)},
+        "candidate": candidate.as_payload(),
+        "gate_results": dict(sorted(gate_results.items())),
+        "omitted_gate_results": dict(sorted(omitted.items())),
+        "missed_gate_ids": missed,
+        "selected_all_passed": selected_all_passed,
+        "routing_miss": bool(missed) and selected_all_passed,
+    }
+
+
+def write_shadow(repo: Path, run_id: str,
+                 record: dict[str, Any]) -> Path:
+    target = repo / ".anti-dark-code" / "runs" / run_id / "shadow.json"
+    if not target.parent.is_dir():
+        raise RuntimeError(
+            f"gate run directory does not exist for shadow record: {run_id}")
+    write_json_atomic(target, record)
+    return target
+
+
 def _receipt_route(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise SystemExit(f"REFUSED: no routing receipt at {path}")
@@ -2618,8 +2692,62 @@ def _receipt_route(path: Path) -> dict[str, Any]:
     return route
 
 
+def select_route_gates(
+    config: dict[str, Any],
+    configured_gates: list[dict[str, Any]],
+    route: Any | None,
+    *,
+    level: int,
+    force_full: bool,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Select only from authoritative route data; reject candidates by type."""
+    if _is_candidate_route(route):
+        raise TypeError("CandidateRoute cannot select executable gates")
+    if route is not None:
+        if not isinstance(route, dict):
+            raise TypeError("gate selection requires authoritative route data")
+        routed_force_full = route.get("force_full")
+        if type(routed_force_full) is not bool:
+            raise TypeError("authoritative route has no boolean force_full")
+        force_full = force_full or routed_force_full
+
+    if force_full:
+        # R-022: the canonical set is named directly. Applicability globs and
+        # unrelated enabled gates cannot shrink or enlarge the full recipe.
+        full_set = config.get("canonical_full_set")
+        obligations = (full_set.get("obligations")
+                       if isinstance(full_set, dict) else None)
+        if not isinstance(obligations, dict) or not obligations:
+            raise ValueError("force-full routing requires canonical obligations")
+        canonical_ids = {
+            gate_id for gate_ids in obligations.values()
+            if isinstance(gate_ids, list)
+            for gate_id in gate_ids if isinstance(gate_id, str)}
+        present = {str(gate.get("id")) for gate in configured_gates}
+        missing = sorted(canonical_ids - present)
+        if not canonical_ids or missing:
+            detail = ", ".join(missing) if missing else "no canonical gate ids"
+            raise ValueError(f"canonical full set is incomplete: {detail}")
+        return ([gate for gate in configured_gates
+                 if str(gate.get("id")) in canonical_ids], True)
+    return ([gate for gate in configured_gates
+             if gate.get("enabled") and gate_level(gate) <= level], False)
+
+
+class GateRunResult(int):
+    """An exit code that keeps the executed run summary available to callers."""
+
+    summary: dict[str, Any]
+
+    def __new__(cls, code: int, summary: dict[str, Any]):
+        result = int.__new__(cls, code)
+        result.summary = summary
+        return result
+
+
 def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None,
-              keep_going: bool, force_full: bool = False) -> int:
+              keep_going: bool, force_full: bool = False,
+              route: Any | None = None) -> int:
     repo = repo.resolve()
     config_path = safe_calibration_dir(repo, "gate configuration read") / "gates.json"
     if not config_path.exists():
@@ -2644,33 +2772,13 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
 
     configured_gates = [
         gate for gate in config.get("gates", []) if isinstance(gate, dict)]
-    if force_full:
-        full_set = config.get("canonical_full_set")
-        obligations = (full_set.get("obligations")
-                       if isinstance(full_set, dict) else None)
-        if not isinstance(obligations, dict) or not obligations:
-            print("REFUSED: force-full routing requires canonical obligations")
-            return 2
-        canonical_ids = {
-            gate_id for gate_ids in obligations.values()
-            if isinstance(gate_ids, list)
-            for gate_id in gate_ids if isinstance(gate_id, str)}
-        present = {str(gate.get("id")) for gate in configured_gates}
-        missing = sorted(canonical_ids - present)
-        if not canonical_ids or missing:
-            detail = ", ".join(missing) if missing else "no canonical gate ids"
-            print(f"REFUSED: canonical full set is incomplete: {detail}")
-            return 2
-        # R-022: force_full names the canonical set directly. Applicability
-        # globs and unrelated enabled gates have no authority to shrink or
-        # enlarge what the validated full recipe means.
-        candidates = [
-            gate for gate in configured_gates
-            if str(gate.get("id")) in canonical_ids]
-    else:
-        candidates = [
-            gate for gate in configured_gates
-            if gate.get("enabled") and gate_level(gate) <= level]
+    try:
+        candidates, force_full = select_route_gates(
+            config, configured_gates, route,
+            level=level, force_full=force_full)
+    except ValueError as exc:
+        print(f"REFUSED: {exc}")
+        return 2
     changed = changed_files(repo, changed_from) if changed_from else None
     if not force_full:
         candidates = [g for g in candidates if gate_applies(g, changed)]
@@ -2975,12 +3083,12 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
             f"RESULT: {passed} passed, {len(failures)} failed, "
             f"{len(stale)} stale{detail}, {duration_all:.3f}s. "
             f"Redacted artifacts: {rel(run_dir, repo)}")
-        return 2
+        return GateRunResult(2, summary)
     if failures:
         print(f"RESULT: {passed} passed, {len(failures)} failed, {duration_all:.3f}s. Redacted artifacts: {rel(run_dir, repo)}")
-        return 1
+        return GateRunResult(1, summary)
     print(f"RESULT: {passed} passed, 0 failed, {duration_all:.3f}s. Redacted artifacts: {rel(run_dir, repo)}")
-    return 0
+    return GateRunResult(0, summary)
 
 
 def parse_candidates(path: Path) -> list[dict[str, str]]:
@@ -3945,11 +4053,45 @@ def command_bootstrap(args: argparse.Namespace) -> int:
     return 0
 
 
+def _candidate_shadow_context(
+    receipt_path: Path,
+    verify_args: argparse.Namespace,
+    route_module: Any,
+) -> tuple[dict[str, Any], Any | None]:
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid routing receipt: {exc}") from exc
+    payload = receipt.get("authoritative")
+    if not isinstance(payload, dict):
+        raise ValueError("routing receipt has no authoritative payload")
+    fact_rows = payload.get("emitted_facts")
+    if not isinstance(fact_rows, list):
+        raise ValueError("routing receipt has no emitted_facts array")
+    snapshot_complete = payload.get("snapshot_complete")
+    if type(snapshot_complete) is not bool:
+        raise ValueError("routing receipt has no boolean snapshot_complete")
+
+    validated, _, _, _ = _load_route_inputs(verify_args)
+    try:
+        facts = tuple(route_module.ChangeFact(**row) for row in fact_rows
+                      if isinstance(row, dict))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"routing receipt has invalid emitted facts: {exc}") from exc
+    if len(facts) != len(fact_rows):
+        raise ValueError("routing receipt has a non-object emitted fact")
+    candidate = route_module.build_candidate_route(
+        facts, validated, snapshot_ok=snapshot_complete)
+    return payload, candidate
+
+
 def command_gates(args: argparse.Namespace) -> int:
+    repo = Path(args.repo).resolve()
     requested = args.level
     force_full = False
+    route_data: dict[str, Any] | None = None
+    shadow_context: tuple[dict[str, Any], Any | None] | None = None
     if args.route:
-        repo = Path(args.repo).resolve()
         receipt_path = Path(args.route)
         route_module, receipt_module = load_router_helpers()
         calibration = safe_calibration_dir(
@@ -3961,9 +4103,15 @@ def command_gates(args: argparse.Namespace) -> int:
             verify_args, repo, route_module, receipt_module)
         if verdict != 0:
             return 2
-        route = _receipt_route(receipt_path)
-        minimum = route["minimum_level"]
-        force_full = route["force_full"]
+        route_data = _receipt_route(receipt_path)
+        try:
+            shadow_context = _candidate_shadow_context(
+                receipt_path, verify_args, route_module)
+        except (TypeError, ValueError) as exc:
+            print(f"REFUSED: {exc}")
+            return 2
+        minimum = route_data["minimum_level"]
+        force_full = route_data["force_full"]
         accepted, level = check_route_level(minimum, requested)
         if not accepted:
             print(
@@ -3972,10 +4120,20 @@ def command_gates(args: argparse.Namespace) -> int:
             return 2
     else:
         level = 0 if requested is None else requested
-    return run_gates(
-        Path(args.repo), level=level, allow_exec=args.allow_exec,
+    result = run_gates(
+        repo, level=level, allow_exec=args.allow_exec,
         changed_from=args.changed_from, keep_going=args.keep_going,
-        force_full=force_full)
+        force_full=force_full, route=route_data)
+    if shadow_context is not None and isinstance(result, GateRunResult):
+        payload, candidate = shadow_context
+        gate_results = {
+            gate_id: result.summary["outcomes"].get(gate_id, "not-run")
+            for gate_id in result.summary["planned_gate_ids"]
+        }
+        record = shadow_result(payload, candidate, gate_results)
+        written = write_shadow(repo, result.summary["run_id"], record)
+        print(f"SHADOW: {written}")
+    return int(result)
 
 
 def command_flowback(args: argparse.Namespace) -> int:
@@ -4311,7 +4469,11 @@ def _route_verify(args: argparse.Namespace, repo: Path,
         print(f"REFUSED: {error}")
         return 2
 
-    verdict = receipt_module.verify_receipt(receipt, current)
+    try:
+        verdict = receipt_module.verify_receipt(receipt, current)
+    except receipt_module.ReceiptError as error:
+        print(f"REFUSED: {error}")
+        return 2
     if verdict.fresh:
         print(f"FRESH {receipt.get('run_id', '')[:12]}")
         return 0

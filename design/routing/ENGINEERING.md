@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013, R-018, and R-022 are implemented, while the candidate comparator remains.
+- **Current gate:** M4 is implemented in round twelve. Candidate routes are shadow-only, real gate outcomes feed their comparator, and the human walkthrough remains before slice completion.
 
 ## 2. Engineering Principles
 

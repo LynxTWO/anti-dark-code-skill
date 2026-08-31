@@ -1813,7 +1813,7 @@ Pytest changes its terminal-summary grammar, another suite runner is supported, 
 ## D-069: M4 is blocked by its plan, not by D-061
 
 Date: 2026-08-30
-Status: Open
+Status: Resolved
 Area: M4, R-013, R-018, R-022, D-064
 
 Context:
@@ -1830,8 +1830,11 @@ Implementing the snippets as written would produce a comparator that records no 
 Consequences:
 M4 remains not started. No selective execution is enabled, no policy rule is approved, and no gate-runner behavior changes in round ten.
 
+Resolution in round twelve:
+The reviewed Tasks 10 through 12 named the missing seams, and M4 implemented them in order. R-013, R-022, and R-018 now have exact collected runner evidence; a separate `CandidateRoute` evaluates proposed rules but is refused by both receipt authority and executable gate selection; real gate outcomes feed `shadow.json`. No policy rule was approved and no selective execution was enabled.
+
 Revisit when:
-`design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md` contains a reviewed replacement for the M4 interfaces and tests, with the D-069 contradictions resolved.
+Reopen if a future M4 consumer reconnects candidate data to receipt authority or executable selection, or stops binding comparison to real gate outcomes.
 
 ## D-070: Node-id reachability is necessary and not sufficient evidence
 
@@ -1957,3 +1960,26 @@ Binding construction and verification fail closed with a named error instead of 
 
 Revisit when:
 The owner selects the durable unreadable-fingerprint semantics in round thirteen, or another fingerprint sentinel is introduced.
+
+## D-074: Candidate routes are a separate shadow-only type
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M4, D-064, D-069, receipt authority, gate selection
+
+Context:
+D-064 keeps shipped rules proposed, so the authoritative route runs the canonical set and cannot reveal what those rules would have omitted. Measuring proposed rules therefore needs a second representation, but letting that representation share the authoritative `Route` type would make one forgotten condition sufficient to narrow execution. While connecting the comparator, a second authority gap became visible: receipt freshness compared the binding without recomputing the authoritative `run_id`, so edited route fields could still be reported fresh.
+
+Decision:
+`CandidateRoute` is a distinct immutable type with constant `candidate-shadow` provenance. It evaluates approved and proposed rules, returns no candidate for an incomplete snapshot, and serializes only into `shadow.json`. The receipt writer and executable selector reject it by type. The comparator consumes the actual gate summary, uses the closed outcome vocabulary `pass`, `fail`, `config-error`, `stale`, `not-run`, and `skipped`, and treats every non-pass omission as a miss only when every candidate-selected gate passed.
+
+`verify_receipt` also recomputes `run_id` after the foreign-schema guard and refuses a same-schema authoritative payload whose digest does not match. Candidate reconstruction therefore starts from a fresh, internally consistent receipt.
+
+Because:
+Shadow evidence must be able to describe a cheaper hypothetical route without ever becoming permission to run one. A separate type makes that boundary structural, and comparing against real gate outcomes makes the record evidence rather than a disconnected forecast.
+
+Consequences:
+Every routed executable run remains authoritative and, under the shipped proposed-only policy, canonical-full. Its run directory may also contain `shadow.json`, which records both authoritative and candidate gate ids, every real outcome, missed omissions, and the candidate route class. M4 is implemented without approving a rule or enabling selective execution.
+
+Revisit when:
+The owner reviews accumulated shadow records for a rule, or any consumer proposes accepting candidate data at an authority boundary.

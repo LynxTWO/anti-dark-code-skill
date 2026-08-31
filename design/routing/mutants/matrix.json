@@ -2068,6 +2068,39 @@
     "pytest": "1 failed, 229 passed, 6 deselected in 8.70s"
   },
   {
+    "id": "M72",
+    "name": "candidate builder returns an authoritative Route",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    return CandidateRoute(\n        minimum_level=level,\n        passes=frozenset(passes),\n        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},\n        matched_rule_ids=frozenset(matched),\n        force_full=force_full,\n        considered_rule_ids=frozenset(considered),\n    )",
+    "new": "    return Route(\n        minimum_level=level,\n        passes=frozenset(passes),\n        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},\n        matched_rule_ids=frozenset(matched),\n        force_full=force_full,\n        independent_review=False,\n    )",
+    "verdict": "caught",
+    "note": "D-074. Returning the authoritative type erases the structural refusal that keeps proposed rules out of receipts and executable selection.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "4 failed, 233 passed, 6 deselected in 11.51s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "4 failed, 232 passed, 1 skipped, 6 deselected in 44.98s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "4 failed, 233 passed, 6 deselected in 11.51s"
+  },
+  {
     "id": "M73",
     "name": "unreadable fingerprint falls through to tuple unpacking",
     "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -2099,5 +2132,38 @@
       }
     ],
     "pytest": "1 failed, 19 passed in 0.58s"
+  },
+  {
+    "id": "M74",
+    "name": "receipt verification trusts an edited authoritative payload",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if receipt.get(\"run_id\") != digest(payload):\n        raise ReceiptError(\n            \"receipt run_id does not match its authoritative payload\")\n",
+    "new": "",
+    "verdict": "caught",
+    "note": "D-074. Binding freshness is not payload integrity; the recorded run id must still cover the route fields consumed by gates.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 15 passed in 6.70s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 15 passed in 23.04s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 15 passed in 6.70s"
   }
 ]

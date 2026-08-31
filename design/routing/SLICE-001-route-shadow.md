@@ -44,7 +44,7 @@ Every step works against the real repository, real git state, and the real calib
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
 | M2 | Done, 2026-08-30 | The pure layer, closed through round nine. Q-01 through Q-06 are resolved or recorded: Q-05 is proven against a real blobless clone (D-060) rather than blocked, and M36, M47, and M48 are held. Linux is a required replay host (D-058). |
 | M3 | Implemented | Policy schema and template, this repository's policy installed with every rule proposed (D-064), the receipt writer and verifier, and the `route` subcommand with `--write` and `--verify`. D-070's four partial requirements are closed by contract: D-071 grades every self-grading path class as authority and refuses a policy that does not, and D-072 refuses a tree holding a submodule rather than pretending to bind one. The slice still needs its human walkthrough. |
-| M4 | In progress | R-013, R-018, and R-022 are implemented. The non-authoritative candidate comparator remains. |
+| M4 | Implemented, 2026-08-30 | R-013, R-018, and R-022 are traced to runner evidence. `CandidateRoute` evaluates proposed rules but is refused by receipts and executable selection; the comparator is written beside real gate outcomes. Nothing can skip a gate. |
 
 M1 is first because a rule cannot name an obligation until the two catalog entries settled by D-016 exist, and D-004 made obligations capability ids.
 
