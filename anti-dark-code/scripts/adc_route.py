@@ -777,27 +777,62 @@ def _check_self_grading(
     away from approval, and refusing at load is the only moment where the answer
     is still cheap. An unmapped path is still not a failure: confidence
     `unknown` forces the full recipe on its own.
+
+    Every *shape* is considered too, and that is the third correction this guard
+    has needed. It used to build one fact per classification with change_kind
+    "modify" and source "unstaged". `_MATCH_KEYS` lets a rule key on
+    change_kinds, sources and mode_changed as well, so a rule narrowed to the
+    one shape the probe happened to use satisfied the guard while leaving every
+    other shape to a cheaper rule. Measured: narrowing the authority rule to
+    `change_kinds: ["modify"]` and adding an approved rule for
+    `["delete", "add", "rename"]` loaded clean, and deleting
+    `anti-dark-code/tests/test_route.py` then routed at Level 0. Deleting a
+    router test is the plainest self-grading act there is. See D-078.
+
+    The cross-product is small and the check is cheap next to the fingerprint
+    the same command runs, so the guard enumerates it rather than sampling it.
+    A guard that samples is a guard an adversary aims around.
     """
     demoted: list[str] = []
     for label, path in SELF_GRADING_PATHS:
         entries = _matching_classifications(path, classifier)
         if not entries:
             continue
-        facts = [ChangeFact(path=path, change_kind="modify", source="unstaged",
-                            **entry) for entry in entries]
-        # Union semantics: one fact reaching one force-full rule is enough, and
-        # one fact reaching no rule at all is enough, because that is unrouted.
-        safe = any(
-            fact.confidence == "unknown"
-            or not [rule for rule in rules
-                    if _fact_matches(fact, dict(rule.match))]
-            or any(rule.force_full for rule in rules
-                   if _fact_matches(fact, dict(rule.match)))
-            for fact in facts)
-        if safe:
+        unsafe_shapes: list[tuple[str, str, bool]] = []
+        for change_kind in sorted(CHANGE_KINDS):
+            for source in sorted(CHANGE_SOURCES):
+                for mode_changed in (False, True):
+                    facts = [
+                        ChangeFact(path=path, change_kind=change_kind,
+                                   source=source, mode_changed=mode_changed,
+                                   **entry)
+                        for entry in entries]
+                    # Union semantics: one fact reaching one force-full rule is
+                    # enough, and one fact reaching no rule at all is enough,
+                    # because that is an unrouted fact.
+                    safe = any(
+                        fact.confidence == "unknown"
+                        or not [rule for rule in rules
+                                if _fact_matches(fact, dict(rule.match))]
+                        or any(rule.force_full for rule in rules
+                               if _fact_matches(fact, dict(rule.match)))
+                        for fact in facts)
+                    if not safe:
+                        unsafe_shapes.append(
+                            (change_kind, source, mode_changed))
+        if not unsafe_shapes:
             continue
         seen = sorted({f"{e['surface']}/{e['effect']}" for e in entries})
-        demoted.append(f"{label} ({path}) classified as {' and '.join(seen)}")
+        # Name one failing shape. All of them would bury the answer, and one
+        # concrete "a delete of this path routes cheaply" is what a reader acts
+        # on.
+        kind, source, mode_changed = unsafe_shapes[0]
+        demoted.append(
+            f"{label} ({path}) classified as {' and '.join(seen)}: a "
+            f"{kind} from {source} with mode_changed={str(mode_changed).lower()} "
+            f"takes a route below the full recipe"
+            + (f", and {len(unsafe_shapes) - 1} other shapes do too"
+               if len(unsafe_shapes) > 1 else ""))
     if demoted:
         raise PolicyError(
             "this policy would route a change to what verifies the repository "

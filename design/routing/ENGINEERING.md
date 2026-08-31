@@ -311,7 +311,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
 | R-017 | Bytes, index, and symlink checks, plus a real submodule fixture proving the receipt is refused and an ordinary tree still verifies fresh | `SubmoduleContractTests` in `test_route.py`; D-072 |
-| R-018 | One receipt read is verified before selection; its identity, validated policy, and gate configuration remain one in-memory authority context; repository identity is compared immediately before each real gate and again after it; movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests`, `StaleReceiptCliTests`, and `ReceiptIntegrityCliTests`; exact nodes in `requirement-evidence.json`; D-075 and D-076 |
+| R-018 | One receipt read is verified before selection; its identity, validated policy, and gate configuration remain one in-memory authority context; two identities are compared before and after each real gate, the receipt-comparable one and a timestamp-keeping lifecycle one, so a change the gate itself restored is still caught; movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests`, `StaleReceiptCliTests`, and `ReceiptIntegrityCliTests`; exact nodes in `requirement-evidence.json`; D-075, D-076 and D-077 |
 | R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
 | R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
@@ -415,6 +415,7 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-013 | Index bytes or path topology change while content metadata stays equal | acquisition reports a changed repository as complete | R-050 and D-043 | Open |
 | U-014 | Per-call width inference or one status-side table disagrees with repository Git output | valid conflicts block or mixed repository identity is accepted | R-051 and D-044 | Open |
 | U-015 | A future round removes an id from the `untraced` list and maps it to a test that collects but does not exercise the clause | the traceability gate reports progress that did not happen, which is exactly how D-070 arose | the guard cannot check this; `REVIEWED_UNTRACED` in `test_route.py` is a review record, and shrinking it needs a named reviewer (D-071) | Open |
+| U-016 | A gate restores both the bytes and the timestamp of a file it changed while running | a gate result is accepted against content that is not in the tree | out of scope for before-and-after sampling; recorded in D-077 rather than claimed as covered | Open |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done

@@ -211,6 +211,46 @@ def _identity_and_unsupported(
     }), unsupported
 
 
+def lifecycle_identity(repo: Path, route_module: Any, runner: Any = None) -> str:
+    """One digest over whether anything touched the tree, timestamps included.
+
+    Deliberately not `worktree_identity`, and the difference is the point.
+
+    A receipt binds what a route depended on, and a route does not depend on a
+    timestamp, so `worktree_identity` drops size and mtime: restoring the bytes
+    must not leave a receipt stale. See D-063.
+
+    A gate lifecycle asks a different question. R-018 is about whether anything
+    changed *while a gate ran*, and a gate that rewrites a tracked file and puts
+    it back has changed an input during its own run whatever the final bytes
+    say. Measured against the real runner: a gate that wrote a tracked file,
+    read the changed value, and restored the original passed cleanly with exit
+    0 and no stale row, and its own log recorded that it had observed the
+    changed content. The full fingerprint moves there because mtime does. See
+    D-077.
+
+    The run store is excluded for the same reason as in the binding: the runner
+    writes its own logs, and a check that stales on its own output is noise
+    rather than evidence.
+
+    The residual is a caller that restores the timestamp as well as the bytes.
+    That is a deliberate act rather than an ordinary gate, and it is recorded in
+    D-077 rather than claimed as covered.
+    """
+    run = runner or route_module._default_runner(repo)
+    fingerprint = route_module._repo_fingerprint(repo, run)
+    if fingerprint == ("unreadable",):
+        raise ReceiptError(
+            "repository fingerprint is unreadable; lifecycle identity is refused")
+    if len(fingerprint) != 2:
+        raise ReceiptError(
+            "repository fingerprint has an unsupported result shape")
+    index_state, entries = fingerprint
+    kept = [list(entry) for entry in entries
+            if not str(entry[0]).replace("\\", "/").startswith(RUN_STORE + "/")]
+    return digest({"index": index_state, "entries": sorted(kept)})
+
+
 def collect_binding(
     repo: Path,
     route_module: Any,

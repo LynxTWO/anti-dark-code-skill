@@ -909,17 +909,71 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             "a repository-configured content filter ran during acquisition")
         self.assertTrue(snap.inputs, "acquisition must still work while isolated")
 
+    def _install_global_filter(self, name: str = "global-style") -> tuple[Path, Path]:
+        """Declare the filter in an isolated global config, not the repository's.
+
+        N-08. The previous version of this test called `_install_filter`, which
+        runs `git config` without `--global` and therefore writes the local
+        repository config. The "global" test was mechanically identical to the
+        local one and proved nothing about global configuration, while R-054
+        cited it for exactly that claim.
+        """
+        hooks = self.repo / ".git" / "hooks"
+        hooks.mkdir(parents=True, exist_ok=True)
+        sentinel = self.repo / f"{name}-sentinel.txt"
+        probe = hooks / f"{name}-probe"
+        probe.write_text(
+            "#!/bin/sh\n"
+            f'echo executed >> "{sentinel.as_posix()}"\n'
+            "cat\n",
+            encoding="utf-8", newline="\n",
+        )
+        probe.chmod(0o755)
+        (self.repo / ".gitattributes").write_text(
+            f"*.txt filter={name}\n", encoding="utf-8", newline="\n")
+        self._git("add", ".gitattributes")
+        self._git("commit", "-qm", "attributes")
+        config = Path(self.tmp.name) / f"{name}-gitconfig"
+        config.write_text(
+            f'[filter "{name}"]\n'
+            f"\tclean = .git/hooks/{name}-probe\n"
+            "\trequired = true\n",
+            encoding="utf-8", newline="\n")
+        return sentinel, config
+
     def test_a_globally_configured_filter_is_also_neutralized(self) -> None:
         # git-lfs installs filter.lfs.* globally. A driver the repository did
         # not define locally must be neutralized too.
-        sentinel = self._install_filter("global-style")
+        sentinel, config = self._install_global_filter()
         (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
         self._git("add", "payload.txt")
         self._git("commit", "-qm", "payload")
         (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
         sentinel.unlink(missing_ok=True)
-        self.route.read_change_inputs(self.repo, "base-ref")
-        self.assertFalse(sentinel.exists())
+
+        with mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(config)}):
+            # Prove the fixture before trusting the result. Without this the
+            # test passes when the global config is not in effect at all, which
+            # is exactly how N-08 survived eight rounds.
+            listed = subprocess.run(
+                ["git", "-C", str(self.repo), "config", "--get-regexp",
+                 r"^filter\."],
+                capture_output=True, text=True, timeout=60).stdout
+            self.assertIn("filter.global-style.clean", listed,
+                          "the global config is not in effect, so this test "
+                          "would prove nothing")
+            local = subprocess.run(
+                ["git", "-C", str(self.repo), "config", "--local",
+                 "--get-regexp", r"^filter\."],
+                capture_output=True, text=True, timeout=60).stdout
+            self.assertNotIn("global-style", local,
+                             "the driver must come from global config only")
+
+            self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(
+            sentinel.exists(),
+            "a globally configured content filter ran during acquisition")
 
     def test_a_boundary_violation_is_detected_and_reported(self) -> None:
         """The list of neutralized keys cannot be proven complete.
@@ -2954,6 +3008,44 @@ class GateLifecycleTests(unittest.TestCase):
                             summary["stale"][0]["identity_after"])
         self.assertEqual(2, code)
 
+    def test_a_gate_that_restores_what_it_changed_is_still_stale(self) -> None:
+        # R-018 says an input changing *during a gate* stales that gate. A gate
+        # that writes a tracked file, uses the changed value, and puts the
+        # original back satisfies that antecedent while leaving the bound
+        # identity equal at both ends. Before D-077 this passed with exit 0 and
+        # no stale row, and the gate's own log recorded that it had read the
+        # changed content.
+        reverting = {
+            "id": "writes-then-reverts", "level": 3, "enabled": True,
+            "review_status": "approved", "cwd": ".", "timeout_seconds": 30,
+            "argv": [
+                sys.executable, "-c",
+                "from pathlib import Path;"
+                "p = Path('tracked.txt');"
+                "original = p.read_text(encoding='utf-8');"
+                "p.write_text('during\\n', encoding='utf-8');"
+                "p.read_text(encoding='utf-8');"
+                "p.write_text(original, encoding='utf-8')",
+            ],
+        }
+        self._write_gates([reverting])
+        code = self.adc.run_gates(
+            self.repo, level=3, allow_exec=True,
+            changed_from=None, keep_going=False)
+        summary = self._summary()
+        self.assertEqual(2, code)
+        self.assertEqual("stale", summary["outcomes"]["writes-then-reverts"])
+        row = summary["stale"][0]
+        # The bound identity is equal at both ends, which is exactly why the
+        # lifecycle identity has to exist. If this assertion ever fails the
+        # test has stopped proving what it was written for.
+        self.assertEqual(row["identity_before"], row["identity_after"])
+        self.assertNotEqual(row["lifecycle_before"], row["lifecycle_after"])
+        self.assertTrue(row["restored_during_gate"])
+        self.assertEqual(
+            "before\n",
+            (self.repo / "tracked.txt").read_text(encoding="utf-8"))
+
     def test_a_gate_that_changes_nothing_is_not_marked_stale(self) -> None:
         self._write_gates([self.stable])
         code = self.adc.run_gates(
@@ -3123,6 +3215,77 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
+
+    def test_a_rule_narrowed_to_the_probe_shape_is_refused(self) -> None:
+        # D-078. The guard used to build one fact per classification with
+        # change_kind "modify" and source "unstaged". A rule narrowed to that
+        # shape satisfied it while a cheap rule took every other shape.
+        # Measured before the fix: this policy loaded, and deleting
+        # anti-dark-code/tests/test_route.py routed at Level 0.
+        data = json.loads(json.dumps(self.policy_source))
+        for rule in data["rules"]:
+            if rule["id"] == "verification-authority":
+                rule["match"]["change_kinds"] = ["modify"]
+        data["rules"].append({
+            "id": "authority-deletions-are-cheap",
+            "review_status": "approved",
+            "match": {"effects": ["verification-authority"],
+                      "change_kinds": ["delete", "add", "rename"]},
+            "requires": {"passes": ["06"], "minimum_level": 0},
+            "obligations": {"V09": ["validate-core"]},
+        })
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        message = str(caught.exception)
+        self.assertIn("test_route.py", message)
+        # The message has to name a concrete shape, or a reader cannot act on
+        # it. Which shape is reported first is sorted order, not significance,
+        # so this checks that one is named rather than which one.
+        self.assertRegex(
+            message, r"a \w[\w-]* from \w+ with mode_changed=(true|false)")
+
+    def test_a_rule_narrowed_to_one_source_is_refused(self) -> None:
+        # The same hole through a different dimension. `sources` and
+        # `mode_changed` are match keys too, so covering only change_kinds
+        # would leave the class open.
+        data = json.loads(json.dumps(self.policy_source))
+        for rule in data["rules"]:
+            if rule["id"] == "verification-authority":
+                rule["match"]["sources"] = ["unstaged"]
+        data["rules"].append({
+            "id": "committed-authority-is-cheap",
+            "review_status": "approved",
+            "match": {"effects": ["verification-authority"],
+                      "sources": ["committed", "staged", "untracked"]},
+            "requires": {"passes": ["06"], "minimum_level": 0},
+            "obligations": {"V09": ["validate-core"]},
+        })
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+
+    def test_every_shape_of_a_self_grading_change_forces_full(self) -> None:
+        # The positive form, against the shipped policy with every rule
+        # approved: no combination of change kind, source, and mode flag routes
+        # a self-grading path below the full recipe.
+        policy = self._approved_policy()
+        escaped = []
+        for _, path in self.route.SELF_GRADING_PATHS:
+            for kind in sorted(self.route.CHANGE_KINDS):
+                for source in sorted(self.route.CHANGE_SOURCES):
+                    snapshot = self.route.ChangeSnapshot(
+                        inputs=(self.route.ChangeInput(
+                            path=path, change_kind=kind, source=source),),
+                        base="HEAD", base_resolved=True, problems=())
+                    facts = self.route.collect_change_facts(
+                        snapshot, policy.classifier_map())
+                    route = self.route.build_route(facts, policy, snapshot_ok=True)
+                    if not route.force_full:
+                        escaped.append(f"{path} as {kind}/{source}")
+        self.assertEqual([], escaped, "; ".join(escaped[:8]))
 
     def test_an_unmapped_self_grading_path_is_not_a_load_failure(self) -> None:
         # Unmapped carries confidence unknown, which forces full already. The

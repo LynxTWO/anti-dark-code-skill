@@ -2033,3 +2033,99 @@ Process-level swap-and-restore tests prove that later policy or gate bytes canno
 
 Revisit when:
 Execution authority moves to a separate process with an authenticated, serialized preflight context.
+## D-077: A gate lifecycle and a receipt binding ask different questions
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M4, R-018, D-063, D-075
+
+Context:
+Round twelve implemented R-018 by capturing repository identity immediately before and immediately after each real gate subprocess, and closed the requirement with ten collected nodes and an empty `untraced` list.
+
+Both captures used `worktree_identity`, which keeps each entry's path and its content-and-topology field and deliberately drops size and mtime. D-063 is right about why: a receipt binds what a route depended on, a route does not depend on a timestamp, and a receipt that goes stale after its bytes are restored trains a reader to ignore staleness.
+
+R-018 asks a different question. Its clause is "when an input changes after preflight **or during a gate**, then that gate result is marked stale". A gate that rewrites a tracked file, uses the changed value, and restores the original bytes satisfies that antecedent exactly, and leaves the bound identity equal at both ends.
+
+Measured against the real runner, not argued: a gate whose command wrote `during` to a tracked file, read it back, and then restored the original passed cleanly with exit 0, no stale row, and `outcomes` recording `pass`. Its own redacted log recorded `gate observed during`. The gate's result depended on content that was not in the tree when the run ended, which is the evidence R-018 exists to reject.
+
+Decision:
+The gate lifecycle gets its own identity. `lifecycle_identity` digests the same entries as the binding, with the same run-store exclusion, and keeps size and mtime. `run_gates` captures both before and after each gate and marks the gate `stale` when **either** moves.
+
+The stale row records both pairs plus `restored_during_gate`, so a reader can tell a change that survived the gate from one the gate put back. What a receipt binds is unchanged: `worktree_identity`, `collect_binding`, and `verify_receipt` keep D-063 semantics exactly.
+
+Because:
+The two questions are genuinely different and had been answered with one value. "Is this the tree the receipt bound" must ignore timestamps. "Did anything touch the tree while this gate ran" must not.
+
+Deriving both from the one fingerprint pass the runner already performs keeps the cost where it was and avoids a second implementation of the rule.
+
+Consequences:
+A gate that rewrites a tracked file with identical bytes, or otherwise moves an mtime inside the repository, is now `stale` rather than `pass`. That is stricter, and it is intended: a gate that writes into the tree it is verifying is exactly the case R-018 names. Ignored paths and the run store are out of scope, so a gate's own logs and generated artifacts do not stale it, and the counterexample test holds that.
+
+If that strictness proves wrong for a real gate, the fix is to make that gate not write into the worktree, not to widen what counts as unchanged.
+
+The residual is a caller that restores the timestamp along with the bytes. That is a deliberate act rather than an ordinary gate. It is recorded here rather than claimed as covered, and U-016 carries it.
+
+R-018's registered clause is unchanged, because the requirement always said this. It was the implementation that was narrower than the clause, and round twelve's empty `untraced` list asserted a coverage that one measurement disproved.
+
+Revisit when:
+A real gate needs to write into the worktree it verifies, or the residual timestamp-restoring case stops being theoretical.
+## D-078: The self-grading guard enumerates shapes instead of sampling one
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071
+
+Context:
+This is the third correction to the same guard, and the pattern is worth naming: each version checked something adjacent to the property rather than the property, and each survived its own tests until someone attacked it.
+
+1. The first version checked whether the classifier graded a path as authority. Wrong, because `build_route` sets `fired` on any match, so a cheap approved rule matching `effects: ["verification-authority"]` suppressed the unrouted fallback. Ten of eleven classes fell below the full recipe with the classifier untouched.
+2. The second version checked the routing outcome, but built one fact per classification with `change_kind` "modify" and `source` "unstaged".
+
+`_MATCH_KEYS` lets a rule key on `change_kinds`, `sources`, and `mode_changed`. A rule narrowed to the one shape the probe used therefore satisfied the guard while leaving every other shape to a cheaper rule.
+
+Measured: narrowing the shipped `verification-authority` rule to `change_kinds: ["modify"]` and adding an approved rule matching `["delete", "add", "rename"]` at `minimum_level: 0` loaded clean, and **deleting `anti-dark-code/tests/test_route.py` then routed at Level 0**. Ten of the eleven classes were reachable that way. Deleting a router test is the plainest self-grading act there is.
+
+Decision:
+The guard enumerates the cross-product of every dimension a rule can key on: all nine change kinds, all four sources, and both mode-changed values, for each classification of each self-grading path. A policy is refused unless every shape leaves `force_full` true.
+
+The refusal names one concrete failing shape and counts the rest, because "a delete of this path routes cheaply" is what a reader acts on and a list of sixty-four is not.
+
+Because:
+A guard that samples is a guard an adversary aims around, and twice now the aim did not even need to be deliberate: a plausible narrowing of a rule was enough. The cross-product is 72 shapes per classification, against a load cost previously measured at 0.000205 seconds and a fingerprint at 0.148 seconds in the same command. Enumerating is affordable; sampling was never the cheaper option, only the shorter one.
+
+Consequences:
+A policy that narrows an authority rule by change kind, source, or mode flag is refused at load unless another rule still forces full for the shapes it gave up. The shipped template is unaffected: its `verification-authority` rule keys on effect alone and therefore matches every shape.
+
+M90 holds the enumeration against reversion to sampling.
+
+The lesson generalizes beyond this guard. Three times the check was written against the shape of the current attack rather than the shape of the guarantee. `test_every_shape_of_a_self_grading_change_forces_full` now asserts the guarantee directly, over the real policy, so a future narrowing has to move that test rather than slip past a probe.
+
+Revisit when:
+`_MATCH_KEYS` gains a dimension. The enumeration must gain it in the same change, and a test should fail if it does not.
+
+## D-079: N-08 was a test that proved nothing, cited as evidence
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, R-054, N-08
+
+Context:
+N-08 was raised in the round-six adversarial review and never addressed. No fix commit, no decision, no verdict in eight subsequent rounds, and it reproduced verbatim at `b9b1e71`.
+
+`test_a_globally_configured_filter_is_also_neutralized` called `_install_filter`, which runs `git config` with no `--global`, writing the local repository config. The "global" test was therefore mechanically identical to the local one directly above it. Nothing in the file set `GIT_CONFIG_GLOBAL`.
+
+`requirement-evidence.json` cited that test as evidence for R-054, whose clause is "given global filters ... no program starts". The evidence resolved, collected, and passed, and did not exercise the clause.
+
+Decision:
+The test declares the driver in an isolated global config file, sets `GIT_CONFIG_GLOBAL` for the acquisition call so the router's own git subprocesses inherit it, and asserts its own fixture before trusting its result: the driver must be visible through effective config and absent from local config.
+
+Because:
+Without the fixture assertion the test passes whether or not the global config is in effect, which is exactly how it survived eight rounds. A test that cannot fail for the reason it exists is not evidence, and one cited in a traceability map is worse than none, because it consumes the attention that would have found the gap.
+
+Consequences:
+`_filter_overrides` is unchanged: it already discovers drivers through effective configuration, so the guarantee held all along. What was missing was any proof of it. M91 mutates discovery to `--local` and is caught, which is the evidence R-054 always claimed.
+
+This is the second time a test in this repository was found to be present, collected, and inert. `a4949a8` records the first. The suite-reachability guards added in round ten catch a test that never runs; neither they nor the traceability map can catch a test that runs and asserts the wrong thing.
+
+Revisit when:
+Another cited test is suspected of the same. The check is cheap: mutate the production behaviour it claims to hold and see whether it fails.

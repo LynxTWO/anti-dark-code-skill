@@ -2980,6 +2980,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         timeout_termination: dict[str, Any] | None = None
         proc: subprocess.Popen[Any] | None = None
         identity_before: str | None = None
+        lifecycle_before: str | None = None
         stale_before_launch = False
         try:
             raw_path.touch(mode=0o600, exist_ok=False)
@@ -2987,7 +2988,16 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
                 if monitor_identity:
                     # Immediately before Popen: bounded-log setup is complete,
                     # and no executable repository code has run.
+                    #
+                    # Two identities, because two different questions are being
+                    # asked. The first is receipt-comparable and answers "is
+                    # this the tree the receipt bound". The second includes
+                    # timestamps and answers "did anything touch the tree while
+                    # this gate ran", which the first cannot see through a
+                    # write-and-restore. See D-077.
                     identity_before = receipt_module.worktree_identity(
+                        repo, route_module)
+                    lifecycle_before = receipt_module.lifecycle_identity(
                         repo, route_module)
                 stale_before_launch = (
                     expected_worktree_identity is not None
@@ -3060,23 +3070,35 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
             break
 
         identity_after: str | None = None
+        lifecycle_after: str | None = None
         if monitor_identity:
             try:
                 # After redaction and before pass/fail classification. The run
                 # store is excluded, so retaining the log cannot stale itself.
                 identity_after = receipt_module.worktree_identity(
                     repo, route_module)
+                lifecycle_after = receipt_module.lifecycle_identity(
+                    repo, route_module)
             except receipt_module.ReceiptError as exc:
                 identity_refusal = str(exc)
                 identity_after = "<unreadable>"
+                lifecycle_after = "<unreadable>"
 
-        if identity_before != identity_after:
+        # Either signal is enough. The bound identity catches a change that
+        # survives the gate; the lifecycle identity catches one the gate undid
+        # before exiting, which R-018 names and the bound identity cannot see.
+        if identity_before != identity_after or lifecycle_before != lifecycle_after:
             stale.append({
                 "gate_id": gate_id,
                 "phase": "during-gate",
                 "expected_identity": expected_worktree_identity,
                 "identity_before": identity_before,
                 "identity_after": identity_after,
+                # Recorded separately so a reader can tell a change that
+                # survived the gate from one the gate put back.
+                "lifecycle_before": lifecycle_before,
+                "lifecycle_after": lifecycle_after,
+                "restored_during_gate": (identity_before == identity_after),
                 "exit_code": exit_code,
             })
             outcomes[gate_id] = "stale"
