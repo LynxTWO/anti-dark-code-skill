@@ -226,7 +226,7 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 - Every authoritative array is sorted by a documented canonical key before hashing. `normalized_json_hash` stabilizes object-key order but does not sort arrays.
 - `run_id` is derived from the authoritative receipt hash. Timestamps and display-only environment details live outside that hash and cannot change routing authority.
 - Receipt freshness uses object ids where git already has them and hashes current bytes, executable modes, and symlink targets where it does not. A porcelain-status digest is not sufficient because different dirty bytes can produce identical status text.
-- The gate runner checks the authoritative identity immediately before and after each gate. An after-check mismatch preserves the output for diagnosis but cannot satisfy a capability.
+- The gate runner reads the receipt once, verifies that exact object, and carries its immutable authoritative route and verified worktree identity to execution. Every pre-gate identity must equal the verified identity, and every post-gate identity must equal its pre-gate identity; either mismatch preserves diagnostic output but cannot satisfy a capability.
 - Enum values are closed sets. An unrecognized value is an error, not a passthrough.
 - Canonical `ChangeFact` order includes `related_path` and every other serialized field after exact duplicate facts are removed.
 - Git directory boundaries use forward slashes and classifier matching is case-sensitive on every host. The collector does not rewrite literal backslash characters.
@@ -311,7 +311,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
 | R-017 | Bytes, index, and symlink checks, plus a real submodule fixture proving the receipt is refused and an ordinary tree still verifies fresh | `SubmoduleContractTests` in `test_route.py`; D-072 |
-| R-018 | A fresh receipt is required before selection; identity is captured immediately before and after each real gate, movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests` and `StaleReceiptCliTests`; exact nodes in `requirement-evidence.json` |
+| R-018 | One receipt read is verified before selection; its exact identity is compared immediately before each real gate and again after it, movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests`, `StaleReceiptCliTests`, and `ReceiptIntegrityCliTests`; exact nodes in `requirement-evidence.json`; D-075 |
 | R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
 | R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
@@ -405,7 +405,7 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-003 | A rule is added that is broader than intended | requirements quietly loosen for a whole path class | rules carry `review_status`, and policy changes force the full route | Watching |
 | U-004 | Q-001 resolves to fewer than five new capabilities | the catalog extension is smaller than planned | D-016 limits the extension to affected-unit testing and input fuzz testing | Resolved |
 | U-005 | Provisional routing encourages an agent to under-plan before implementing | work starts too narrow | the final route supersedes, and slice 1 builds no provisional path | Watching |
-| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 binds content and refuses unbindable state (D-072); R-018 verifies the receipt before selection and fingerprints immediately before and after every routed gate | Resolved |
+| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 binds content and refuses unbindable state (D-072); R-018 consumes one verified receipt and holds every routed gate to its verified, pre-gate, and post-gate identities (D-075) | Resolved |
 | U-007 | A capability and a gate appear in parallel arrays with no provable relationship | an unrelated gate is treated as evidence | R-016 policy-local capability-to-gate binding | Open |
 | U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table, both measured against the classifier with the rules approved (D-071) | Watching |
 | U-009 | A Git configuration path starts a program or network request before routing | repository code runs at the trust boundary | R-034 hostile execution-family table | Open |

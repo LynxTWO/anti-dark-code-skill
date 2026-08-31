@@ -2839,12 +2839,25 @@ class CandidateRouteTests(unittest.TestCase):
                 self.candidate, (), snapshot, receipt.Binding(), GATES)
         with self.assertRaises(receipt.ReceiptError):
             receipt.build_receipt(self.candidate)
+        with self.assertRaises(receipt.ReceiptError):
+            receipt.authoritative_payload(
+                self.candidate.as_payload(), (), snapshot,
+                receipt.Binding(), GATES)
+        with self.assertRaises(receipt.ReceiptError):
+            receipt.build_receipt(self.candidate.as_payload())
 
     def test_a_candidate_selection_cannot_remove_a_gate(self) -> None:
         adc = load_adc()
         with self.assertRaises(TypeError):
             adc.select_route_gates(
                 GATES, GATES["gates"], self.candidate,
+                level=3, force_full=False)
+
+    def test_a_serialized_candidate_cannot_select_executable_gates(self) -> None:
+        adc = load_adc()
+        with self.assertRaises(TypeError):
+            adc.select_route_gates(
+                GATES, GATES["gates"], self.candidate.as_payload(),
                 level=3, force_full=False)
 
     def test_an_unrecognised_outcome_raises(self) -> None:
@@ -2969,6 +2982,29 @@ class GateLifecycleTests(unittest.TestCase):
         self.assertEqual(2, code)
         self.assertLess(summary["passed"] + len(summary["failures"]),
                         summary["planned"])
+
+    def test_a_change_after_preflight_refuses_before_gate_launch(self) -> None:
+        route = load_route()
+        receipt = load_module(
+            "prelaunch_identity_receipt",
+            SKILL_ROOT / "scripts" / "adc_receipt.py")
+        expected = receipt.worktree_identity(self.repo, route)
+        (self.repo / "tracked.txt").write_text(
+            "after preflight\n", encoding="utf-8")
+
+        code = self.adc.run_gates(
+            self.repo, level=3, allow_exec=True,
+            changed_from=None, keep_going=False,
+            expected_worktree_identity=expected,
+            verified_receipt_run_id="verified-run")
+
+        summary = self._summary()
+        self.assertEqual(2, code)
+        self.assertEqual("stale", summary["outcomes"]["writes-during-run"])
+        self.assertEqual("before-launch", summary["stale"][0]["phase"])
+        self.assertEqual("after preflight\n",
+                         (self.repo / "tracked.txt").read_text(encoding="utf-8"))
+        self.assertEqual("verified-run", summary["verified_receipt_run_id"])
 
 
 class SelfGradingAuthorityTests(unittest.TestCase):

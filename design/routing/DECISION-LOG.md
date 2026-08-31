@@ -1983,3 +1983,30 @@ Every routed executable run remains authoritative and, under the shipped propose
 
 Revisit when:
 The owner reviews accumulated shadow records for a rule, or any consumer proposes accepting candidate data at an authority boundary.
+
+## D-075: Gate execution consumes one verified receipt and its exact identity
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M4, R-018, receipt authority, gate execution
+
+Context:
+The round-twelve independent review found two races after the first M4 implementation. Receipt preflight verified the repository, but `run_gates` treated the identity immediately before `Popen` as a new baseline and compared only the post-gate identity with it. A repository change after preflight but before launch could therefore be accepted. The command also read and verified the receipt, then read the path twice more for route selection and candidate reconstruction, so replacement between reads could feed unverified bytes to execution and shadow evidence.
+
+The runner itself exposed the first boundary while it was repaired. `current_source_identity` used ordinary `git status`, which refreshed index metadata after receipt verification and changed the repository fingerprint even though no source byte moved.
+
+Decision:
+Complete stable run-artifact setup before receipt creation and before executable preflight. Read receipt JSON once, validate every required object layer, verify that exact object, and freeze its authoritative payload. Route selection and candidate reconstruction consume only that immutable verified object; replacement of the receipt path afterward has no authority.
+
+Carry the verified receipt's worktree identity and `run_id` into `run_gates` and its summary. Immediately before every `Popen`, compare a fresh identity with the verified identity; a mismatch records `stale` in phase `before-launch`, starts no subprocess, and returns 2. The existing post-gate comparison remains and records phase `during-gate`. Gate-planning Git diagnostics use `--no-optional-locks` so the runner does not refresh the index after preflight.
+
+Candidate provenance is refused in both live-object and serialized-mapping form. Malformed receipt JSON, including a non-object root or binding, refuses with exit 2 rather than reaching mapping access and a traceback.
+
+Because:
+Freshness is authority over exact bytes, not permission to choose a later baseline. Verification is meaningful only when every authority consumer uses the same object that was checked and every gate starts against the same repository identity that object bound.
+
+Consequences:
+The process-level seam tests mutate the repository and replace the receipt immediately after verification; neither reaches execution authority. M75 through M82 hold the preflight identity comparison, single-read receipt consumption for both route and candidate data, serialized candidate refusals, receipt shape and exit-code refusals, and the read-only Git diagnostic.
+
+Revisit when:
+The gate runner moves receipt verification into another process, or execution is redesigned around an operating-system snapshot that makes the preflight-to-launch boundary atomic.

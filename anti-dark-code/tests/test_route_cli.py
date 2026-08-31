@@ -289,6 +289,35 @@ class StaleReceiptCliTests(_RoutedGateCliFixture):
         self.assertIn("STALE", done.stdout)
         self.assertIn("ADC-STALE-004", done.stdout)
 
+    def test_a_process_change_after_preflight_refuses_before_launch(self) -> None:
+        code = """
+import importlib.util
+import sys
+from pathlib import Path
+
+adc_path, repo, receipt, source = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("adc_preflight_seam", adc_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+original = module._verify_loaded_route_receipt
+def move_after_preflight(*args, **kwargs):
+    result = original(*args, **kwargs)
+    Path(source).write_text("moved at seam\\n", encoding="utf-8")
+    return result
+module._verify_loaded_route_receipt = move_after_preflight
+raise SystemExit(module.main([
+    "gates", "--repo", repo, "--route", receipt, "--allow-exec"
+]))
+"""
+        done = subprocess.run(
+            [sys.executable, "-B", "-c", code, str(ADC), str(self.repo),
+             str(self.receipt), str(self.source)],
+            capture_output=True, text=True, timeout=300)
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("STALE", done.stdout)
+        self.assertIn("before launch", done.stdout)
+
 
 class ReceiptIntegrityCliTests(_RoutedGateCliFixture):
     def test_an_edited_authoritative_route_is_refused(self) -> None:
@@ -301,6 +330,98 @@ class ReceiptIntegrityCliTests(_RoutedGateCliFixture):
         self.assertEqual(2, done.returncode, done.stdout + done.stderr)
         self.assertIn("REFUSED", done.stdout)
         self.assertIn("run_id", done.stdout)
+
+    def test_a_verified_receipt_is_not_reread_for_route_selection(self) -> None:
+        replacement = json.loads(self.receipt.read_text(encoding="utf-8"))
+        replacement["authoritative"]["route"]["minimum_level"] = 0
+        replacement["authoritative"]["route"]["force_full"] = False
+        code = """
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+adc_path, repo, receipt, replacement = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("adc_receipt_swap", adc_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+original = module._verify_loaded_route_receipt
+def swap_after_verification(*args, **kwargs):
+    result = original(*args, **kwargs)
+    Path(receipt).write_text(replacement, encoding="utf-8")
+    return result
+module._verify_loaded_route_receipt = swap_after_verification
+raise SystemExit(module.main([
+    "gates", "--repo", repo, "--route", receipt
+]))
+"""
+        done = subprocess.run(
+            [sys.executable, "-B", "-c", code, str(ADC), str(self.repo),
+             str(self.receipt), json.dumps(replacement)],
+            capture_output=True, text=True, timeout=300)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertIn("Level <= 2", done.stdout)
+        self.assertNotIn("Level <= 0", done.stdout)
+
+    def test_a_verified_receipt_is_not_reread_for_candidate_reconstruction(self) -> None:
+        replacement = json.loads(self.receipt.read_text(encoding="utf-8"))
+        replacement["authoritative"]["emitted_facts"] = [
+            {"not_a_change_fact": True}]
+        code = """
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+adc_path, repo, receipt, replacement = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("adc_candidate_swap", adc_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+original = module._verify_loaded_route_receipt
+def swap_after_verification(*args, **kwargs):
+    result = original(*args, **kwargs)
+    Path(receipt).write_text(replacement, encoding="utf-8")
+    return result
+module._verify_loaded_route_receipt = swap_after_verification
+raise SystemExit(module.main([
+    "gates", "--repo", repo, "--route", receipt
+]))
+"""
+        done = subprocess.run(
+            [sys.executable, "-B", "-c", code, str(ADC), str(self.repo),
+             str(self.receipt), json.dumps(replacement)],
+            capture_output=True, text=True, timeout=300)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertIn("GATE PLAN", done.stdout)
+        self.assertNotIn("invalid emitted facts", done.stdout + done.stderr)
+
+    def test_a_non_object_receipt_refuses_without_a_traceback(self) -> None:
+        original = json.loads(self.receipt.read_text(encoding="utf-8"))
+        invalid_route = json.loads(json.dumps(original))
+        invalid_route["authoritative"]["route"]["minimum_level"] = "two"
+        receipt_module = load_adc().load_router_helpers()[1]
+        invalid_route["run_id"] = receipt_module.digest(
+            invalid_route["authoritative"])
+        cases = [
+            ("root", []),
+            ("binding", {
+                **original,
+                "authoritative": {
+                    **original["authoritative"], "binding": []},
+            }),
+            ("route-field", invalid_route),
+        ]
+        for label, value in cases:
+            with self.subTest(label=label):
+                self.receipt.write_text(
+                    json.dumps(value) + "\n", encoding="utf-8")
+                done = self._run("--route", str(self.receipt))
+                self.assertEqual(
+                    2, done.returncode, done.stdout + done.stderr)
+                self.assertIn("REFUSED", done.stdout)
+                self.assertNotIn("Traceback", done.stdout + done.stderr)
 
 
 class ShadowComparatorCliTests(_RoutedGateCliFixture):

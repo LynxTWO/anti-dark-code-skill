@@ -2165,5 +2165,269 @@
       }
     ],
     "pytest": "1 failed, 15 passed in 6.70s"
+  },
+  {
+    "id": "M75",
+    "name": "gate launch accepts a post-preflight repository identity",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "                stale_before_launch = (\n                    expected_worktree_identity is not None\n                    and identity_before != expected_worktree_identity)",
+    "new": "                stale_before_launch = False",
+    "verdict": "caught",
+    "note": "R-018 and D-075. The identity immediately before Popen must still equal the identity verified against the receipt, not merely become the baseline for the post-gate comparison.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed, 3 subtests passed in 9.93s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 27.77s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 18 passed in 27.77s"
+  },
+  {
+    "id": "M76",
+    "name": "gate selection rereads the receipt after verification",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        route_data = verified_receipt.route",
+    "new": "        route_data = _receipt_route(_read_route_receipt(receipt_path)[\"authoritative\"])",
+    "verdict": "caught",
+    "note": "D-075. Verification and every authority consumer must share the same immutable in-memory receipt object so file replacement cannot swap in unverified route fields.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed, 3 subtests passed in 9.61s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 27.05s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 18 passed in 27.05s"
+  },
+  {
+    "id": "M77",
+    "name": "serialized candidate provenance reaches gate selection",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    provenance = (value.get(\"provenance\")\n                  if isinstance(value, Mapping)\n                  else getattr(value, \"provenance\", None))\n    return provenance == \"candidate-shadow\"",
+    "new": "    return (type(value).__name__ == \"CandidateRoute\"\n            and getattr(value, \"provenance\", None) == \"candidate-shadow\")",
+    "verdict": "caught",
+    "note": "D-074 and D-075. Candidate provenance is non-authoritative in both its live type and serialized mapping form.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 238 passed, 6 deselected in 10.57s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 237 passed, 1 skipped, 6 deselected in 42.66s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "1 failed, 237 passed, 1 skipped, 6 deselected in 42.66s"
+  },
+  {
+    "id": "M78",
+    "name": "non-object receipt reaches mapping access",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if not isinstance(receipt, dict):\n        raise ValueError(\"REFUSED: routing receipt must be an object\")",
+    "new": "",
+    "verdict": "caught",
+    "note": "D-075. Untrusted receipt JSON must be shape-checked and refused with exit 2 rather than reaching attribute access and a traceback.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 20 passed, 2 subtests passed in 9.37s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 27.12s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 18 passed in 27.12s"
+  },
+  {
+    "id": "M79",
+    "name": "gate planning refreshes the Git index after preflight",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    read_only = [\"--no-optional-locks\"]",
+    "new": "    read_only = []",
+    "verdict": "caught",
+    "note": "D-075. Gate-run diagnostics must not refresh index metadata after receipt verification and make the runner appear to race itself.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed, 3 subtests passed in 9.50s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 26.18s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 18 passed in 26.18s"
+  },
+  {
+    "id": "M80",
+    "name": "serialized candidate provenance reaches receipt authority",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    provenance = (value.get(\"provenance\")\n                  if isinstance(value, Mapping)\n                  else getattr(value, \"provenance\", None))\n    return provenance == \"candidate-shadow\"",
+    "new": "    return (type(value).__name__ == \"CandidateRoute\"\n            and getattr(value, \"provenance\", None) == \"candidate-shadow\")",
+    "verdict": "caught",
+    "note": "D-074 and D-075. Candidate provenance is refused by receipt authority in both live-object and serialized-mapping form.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 238 passed, 6 deselected in 9.51s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 237 passed, 1 skipped, 6 deselected in 42.32s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "1 failed, 237 passed, 1 skipped, 6 deselected in 42.32s"
+  },
+  {
+    "id": "M81",
+    "name": "candidate reconstruction rereads the receipt after verification",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            shadow_context = _candidate_shadow_context(\n                verified_receipt.authoritative, verify_args, route_module)",
+    "new": "            shadow_context = _candidate_shadow_context(\n                _read_route_receipt(receipt_path)[\"authoritative\"],\n                verify_args, route_module)",
+    "verdict": "caught",
+    "note": "D-075. Shadow reconstruction consumes the same immutable authoritative payload that passed verification, never a second read from the receipt path.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed, 3 subtests passed in 9.42s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed, 2 subtests passed in 28.87s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 19 passed, 2 subtests passed in 28.87s"
+  },
+  {
+    "id": "M82",
+    "name": "invalid verified route shape escapes as SystemExit one",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        try:\n            route = _receipt_route(frozen_payload)\n        except ValueError as exc:\n            print(exc)\n            return 2, None",
+    "new": "        route = _receipt_route(frozen_payload)",
+    "verdict": "caught",
+    "note": "D-075. A same-schema, internally hashed receipt with an invalid authoritative route field must still refuse at the process boundary with exit 2.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 20 passed, 2 subtests passed in 9.22s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 20 passed, 2 subtests passed in 29.21s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 20 passed, 2 subtests passed in 29.21s"
   }
 ]

@@ -84,7 +84,7 @@ DECISION: Interface style. Status Confirmed. See D-002.
 3. The pure collector validates every closed enum, uses case-sensitive Git-path globs on every platform, and preserves literal path characters. It emits facts across six dimensions: surface, effect, breadth, sensitivity, change kind, confidence. Rename and copy records classify both the old and new path. An unmerged, unsupported, or undecodable record forces the full route and names the record.
 4. Each rule matches one fact using positive predicates only. Matching requirements combine monotonically. A rule may not depend on the absence, count, or ordering of other facts.
 5. A receipt is written, bound to identity hashes.
-6. The gate runner verifies receipt freshness immediately before each gate starts and again after it exits. A concurrent change makes that execution stale and unusable as evidence.
+6. The gate runner reads and verifies one receipt object, carries that exact binding identity forward, compares it with the repository immediately before every gate starts, and checks again after the gate exits. A replacement receipt or concurrent repository change cannot become the accepted baseline; it makes the execution stale and unusable as evidence.
 7. The shadow comparator runs the full set anyway and records any gate that failed while the route said it was unnecessary.
 
 - **Trigger points:** the agent before implementation for a provisional route, the agent after implementation for the final route, and CI on a pull request.

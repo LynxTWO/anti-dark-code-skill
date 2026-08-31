@@ -254,8 +254,10 @@ def _fact_payload(fact: Any) -> dict[str, Any]:
 
 def _is_candidate_route(value: Any) -> bool:
     """Recognize the non-authoritative type without importing the router."""
-    return (type(value).__name__ == "CandidateRoute"
-            and getattr(value, "provenance", None) == "candidate-shadow")
+    provenance = (value.get("provenance")
+                  if isinstance(value, Mapping)
+                  else getattr(value, "provenance", None))
+    return provenance == "candidate-shadow"
 
 
 def _omissions(
