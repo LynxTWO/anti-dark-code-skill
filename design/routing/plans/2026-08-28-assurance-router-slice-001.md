@@ -1672,338 +1672,248 @@ porcelain status text and excludes the skill trees by pathspec."
 
 ---
 
-## Task 10: Bind the gate runner without letting it skip
+## Task 10: Bind the gate runner, and hold every gate result to the tree it ran against
+
+R-018 is the requirement this task exists for, and the round-ten Self-Review was right that the previous version did not implement it. Verifying a receipt before the run proves the tree was right when the run started. It says nothing about the tree while a gate was executing, which is the window the requirement names.
+
+**Production seams, by name and line.** A helper-only unit test is not runner integration evidence, so the plan names where the code goes:
+
+- `run_gates(repo, level, allow_exec, changed_from, keep_going)`, `anti-dark-code/scripts/adc.py:2573`. The only function that executes gates.
+- The per-gate loop, `for gate in gates:` at `adc.py:2691`.
+- The pass path, `passed += 1` at `adc.py:2773`.
+- The failure path, `failures.append(...)` at `adc.py:2815`.
+- The run record, `summary` at `adc.py:2821`, written to `run_dir/summary.json`.
+- `_route_verify`, `adc.py:4101`, which already builds a current `Binding` and calls `verify_receipt`.
 
 **Files:**
-- Modify: `anti-dark-code/scripts/adc.py` (`run_gates`, near line 2569)
-- Test: `anti-dark-code/tests/test_route.py`
+- Modify: `anti-dark-code/scripts/adc.py` (`run_gates`, and a `--route` argument on the `gates` subparser)
+- Test: `anti-dark-code/tests/test_route.py`, `anti-dark-code/tests/test_route_cli.py`
 
 **Interfaces:**
-- Consumes: `verify_receipt` from Task 8.
-- Produces: `gates --route <path>` that refuses a stale receipt, refuses a `--level` below the route minimum, and still runs the full approved set.
+- Consumes: `verify_receipt` and `collect_binding` from Task 8, `worktree_identity` from `adc_receipt`.
+- Produces: `gates --route <receipt>` that refuses a stale receipt, refuses a `--level` below the route minimum, runs the canonical full set, and marks any gate whose tree moved under it.
 
-- [ ] **Step 1: Write the failing test**
+### The lifecycle, in order
 
-```python
-class GateBindingTests(unittest.TestCase):
-    def setUp(self) -> None:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "adc", SKILL_ROOT / "scripts" / "adc.py")
-        assert spec and spec.loader
-        self.adc = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.adc)
+1. **Before the run.** Load the receipt, build a current `Binding`, call `verify_receipt`. Not fresh prints `STALE <run_id>` with every reason and returns 2. This also carries D-072: a tree holding an unbindable path reports `ADC-STALE-009` and never runs a routed gate.
+2. **Level.** `check_route_level(route_minimum, requested)` returns `(False, minimum)` when the request would lower the route. The caller prints the minimum by name and returns 2. `--level` above the minimum is accepted and used.
+3. **Selection.** When `route.force_full` is true, the gate list comes from `canonical_full_set` in `gates.json` and the changed-file filter at `adc.py:2600` is not applied. `include_globs` may not remove a gate from a forced-full run, and no candidate selection reaches this code at all.
+4. **Before each gate.** `identity_before = worktree_identity(repo, route_module)`, taken immediately before `subprocess.Popen`.
+5. **After each gate.** `identity_after = worktree_identity(repo, route_module)`, taken where `duration` is computed at `adc.py:2771`, after the log is redacted and before the `exit_code == 0` branch.
+6. **When they differ.** The gate outcome is `stale`, whatever its exit code. It is appended to a new `stale` list carrying `gate_id`, `identity_before`, `identity_after`, and the exit code, and it is not counted in `passed`.
+7. **Then stop.** A tree that moved under one gate makes every later gate result equally unexplained, so the run ends and returns 2 even when `--keep-going` was passed. `keep_going` is a decision about failing gates, not about the repository moving underneath the run. This is an explicit choice, not an accident of control flow: `--keep-going` continuing here would produce a summary that reads like evidence.
+8. **Obligations.** Only an outcome of `pass` satisfies an obligation. A `stale` outcome satisfies nothing.
 
-    def test_level_below_route_minimum_is_refused(self) -> None:
-        self.assertEqual(self.adc.check_route_level(route_minimum=2, requested=0),
-                         (False, 2))
+The cost is two fingerprints per gate. `_repo_fingerprint` was measured at 0.012s over 104 files, 0.038s over 345, and 0.273s over 3,000, so a five-gate run over this repository adds well under a second. Reusing gate N's `identity_after` as gate N+1's `identity_before` is sound, because the run store is excluded from the fingerprint and nothing else runs between them, but this task computes both explicitly. The saving is small and the reuse is the kind of shortcut that is correct until someone adds a step between gates.
 
-    def test_level_above_route_minimum_is_allowed(self) -> None:
-        allowed, effective = self.adc.check_route_level(route_minimum=1, requested=3)
-        self.assertTrue(allowed)
-        self.assertEqual(effective, 3)
-
-    def test_missing_level_takes_the_route_minimum(self) -> None:
-        allowed, effective = self.adc.check_route_level(route_minimum=2, requested=None)
-        self.assertTrue(allowed)
-        self.assertEqual(effective, 2)
-
-    def test_uncovered_obligation_forces_full(self) -> None:
-        covered = self.adc.obligations_are_covered(
-            {"V09": {"validate-core"}}, approved_gate_ids={"validate-core"})
-        self.assertTrue(covered)
-        uncovered = self.adc.obligations_are_covered(
-            {"V12": {"hostile-environment"}}, approved_gate_ids={"validate-core"})
-        self.assertFalse(uncovered)
-```
-
-- [ ] **Step 2: Run the test to verify it fails**
-
-Run: `python -m pytest anti-dark-code/tests/test_route.py::GateBindingTests -q`
-Expected: FAIL, `check_route_level` not defined.
-
-- [ ] **Step 3: Implement the binding**
-
-In `adc.py`:
+- [ ] **Step 1: Write the failing tests**
 
 ```python
-def check_route_level(route_minimum: int, requested: int | None) -> tuple[bool, int]:
-    """--level may raise above the computed route. It may never lower it.
+class GateLifecycleTests(unittest.TestCase):
+    """R-018 against the real runner, not against a helper.
 
-    Returning the refusal rather than raising keeps the caller's exit code in
-    one place. See D-005: deterministic tooling establishes the minimum and
-    judgment may only raise it.
+    The gate here writes into the worktree while it runs. That is the whole
+    point: a mutation during a gate is the case the requirement names, and
+    nothing short of executing a real gate produces it.
     """
-    if requested is None:
-        return True, route_minimum
-    if requested < route_minimum:
-        return False, route_minimum
-    return True, requested
 
+    def setUp(self) -> None:
+        self.adc = load_adc()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tmp.name) / "repo"
+        # A real repository, a real calibration directory, a real gates.json
+        # with owner_confirmed_safe_to_execute, and two gates: one that writes
+        # a tracked file while it runs, one that does not.
+        ...
 
-def obligations_are_covered(
-    capability_to_gate_ids: Mapping[str, set[str]], approved_gate_ids: set[str]
-) -> bool:
-    """Every required capability needs at least one approved covering gate."""
-    return all(
-        bool(set(gate_ids) & approved_gate_ids)
-        for gate_ids in capability_to_gate_ids.values()
-    )
+    def test_a_mutation_during_a_gate_marks_that_gate_stale(self) -> None:
+        code = self.adc.run_gates(self.repo, level=3, allow_exec=True,
+                                  changed_from=None, keep_going=False)
+        summary = json.loads((self._run_dir() / "summary.json").read_text())
+        stale = {row["gate_id"] for row in summary["stale"]}
+        self.assertIn("writes-during-run", stale)
+        self.assertNotEqual(summary["stale"][0]["identity_before"],
+                            summary["stale"][0]["identity_after"])
+        self.assertEqual(2, code)
+
+    def test_a_gate_that_changes_nothing_is_not_marked_stale(self) -> None:
+        # The counterexample. Without it, marking every gate stale passes.
+        ...
+
+    def test_a_stale_gate_result_cannot_satisfy_an_obligation(self) -> None:
+        self.assertFalse(self.adc.obligations_are_covered(
+            {"V21": {"full-suite"}}, approved_gate_ids={"full-suite"},
+            outcomes={"full-suite": "stale"}))
+
+    def test_an_empty_obligation_map_is_not_covered(self) -> None:
+        # all([]) is True. An obligation map that failed to load must not read
+        # as complete coverage.
+        self.assertFalse(self.adc.obligations_are_covered(
+            {}, approved_gate_ids={"full-suite"}, outcomes={}))
+
+    def test_the_run_stops_when_the_tree_moves_even_with_keep_going(self) -> None:
+        code = self.adc.run_gates(self.repo, level=3, allow_exec=True,
+                                  changed_from=None, keep_going=True)
+        summary = json.loads((self._run_dir() / "summary.json").read_text())
+        self.assertEqual(2, code)
+        self.assertLess(summary["passed"] + len(summary["failures"]),
+                        summary["planned"])
 ```
 
-Add `--route` to the `gates` subparser. When supplied: load the receipt, call `verify_receipt`, print `REFUSED: stale route receipt` and return 2 on a mismatch, then apply `check_route_level`. On refusal print the route minimum by name and return 2.
+```python
+class CanonicalFullTests(unittest.TestCase):
+    def test_force_full_runs_the_canonical_set_despite_include_globs(self) -> None:
+        # Every gate carries an include_globs that the changed file does not
+        # match. Under force_full the filter must not remove one.
+        ...
 
-The receipt is read for its level floor and its coverage report only. This slice still runs every approved, enabled, applicable gate at the effective level. Do not filter the gate list by `selected_gate_ids`.
+    def test_a_candidate_selection_cannot_remove_a_gate(self) -> None:
+        # A CandidateRoute selecting one gate, handed to the selector, must
+        # raise rather than narrow the run. See Task 11.
+        ...
 
-- [ ] **Step 4: Run the tests to verify they pass**
-
-Run: `python -m pytest anti-dark-code/tests -q`
-Expected: PASS with no regression.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add anti-dark-code/scripts/adc.py anti-dark-code/tests/test_route.py
-git commit -m "Bind the gate runner to a route without letting it skip
-
---level becomes an escalate-only override: it may raise above the
-computed minimum and exits 2 when it would lower it. A stale receipt
-refuses execution. The runner still executes every approved applicable
-gate, because nothing in this slice is allowed to skip."
+    def test_level_may_raise_the_route_minimum(self) -> None:
+        ...
 ```
+
+Process-level, because R-013 and R-018 are exit codes and printed text, and a function that returns a tuple proves neither:
+
+```python
+class RouteLevelCliTests(unittest.TestCase):
+    def test_a_level_below_the_route_minimum_exits_two_and_names_it(self) -> None:
+        done = self._run("gates", "--route", str(self.receipt), "--level", "0")
+        self.assertEqual(2, done.returncode)
+        self.assertIn("route minimum is 3", done.stdout)
+
+    def test_a_level_above_the_route_minimum_is_accepted(self) -> None:
+        ...
+
+
+class StaleReceiptCliTests(unittest.TestCase):
+    def test_a_stale_receipt_refuses_the_run_with_exit_two(self) -> None:
+        self._write_receipt()
+        (self.repo / "src.py").write_text("moved\n", encoding="utf-8")
+        done = self._run("gates", "--route", str(self.receipt))
+        self.assertEqual(2, done.returncode)
+        self.assertIn("ADC-STALE-004", done.stdout)
+```
+
+- [ ] **Step 2: Run them and watch them fail** for the stated reason in each case: `run_gates` takes no `--route`, `obligations_are_covered` takes no `outcomes`, and `summary` has no `stale` key.
+
+- [ ] **Step 3: Implement**, at the seams named above.
+
+- [ ] **Step 4: Full suite, and the mutation rows from Task 12.**
+
+- [ ] **Step 5: Commit.**
 
 ---
 
-## Task 11: Record shadow comparisons
+## Task 11: Measure proposed rules without letting one route anything
+
+**The contradiction this resolves.** Under D-064 every installed rule is `proposed`, so the authoritative route forces the canonical full set and `selected_gate_ids` names every gate. A comparator reading that route sees no omission, so it cannot measure what a proposed rule would have skipped. The previous version of this task read exactly that field, which made shadow mode structurally incapable of producing the evidence D-064 says would justify approving a rule.
 
 **Files:**
-- Modify: `anti-dark-code/scripts/adc_route.py`
+- Modify: `anti-dark-code/scripts/adc_route.py`, `anti-dark-code/scripts/adc_receipt.py`, `anti-dark-code/scripts/adc.py`
 - Test: `anti-dark-code/tests/test_route.py`
 
-**Interfaces:**
-- Consumes: `Route` (Task 6), receipt payload (Task 8).
-- Produces: `shadow_result(payload, gate_results) -> dict[str, Any]` and `write_shadow(result, repo, run_id) -> Path`.
+### The candidate route
 
-- [ ] **Step 1: Write the failing test**
+A separate type, not a `Route`:
 
 ```python
-class ShadowTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.route = load_route_module()
-        self.payload = {"run_id": "ADC-R-abc", "selected_gate_ids": ["validate-core"],
-                        "matched_rule_ids": ["ordinary-prose"], "force_full": False}
+@dataclass(frozen=True)
+class CandidateRoute:
+    """What a proposed rule would have selected. Never executable.
 
-    def test_omitted_gate_that_failed_is_a_routing_miss(self) -> None:
-        result = self.route.shadow_result(
-            self.payload, {"validate-core": "pass", "hostile-environment": "fail"})
-        self.assertTrue(result["routing_miss"])
-        self.assertIn("hostile-environment", result["missed_gates"])
-
-    def test_omitted_gate_that_passed_is_not_a_miss(self) -> None:
-        result = self.route.shadow_result(
-            self.payload, {"validate-core": "pass", "hostile-environment": "pass"})
-        self.assertFalse(result["routing_miss"])
-
-    def test_selected_gate_failing_is_not_a_routing_miss(self) -> None:
-        # The route selected it and it failed. The route was right.
-        result = self.route.shadow_result(
-            self.payload, {"validate-core": "fail", "hostile-environment": "pass"})
-        self.assertFalse(result["routing_miss"])
-
-    def test_route_class_is_recorded_for_per_class_counting(self) -> None:
-        result = self.route.shadow_result(self.payload, {"validate-core": "pass"})
-        self.assertEqual(result["route_class"], "ordinary-prose")
-```
-
-- [ ] **Step 2: Run the test to verify it fails**
-
-Run: `python -m pytest anti-dark-code/tests/test_route.py::ShadowTests -q`
-Expected: FAIL, `shadow_result` not defined.
-
-- [ ] **Step 3: Implement the comparator**
-
-Append to `adc_route.py`:
-
-```python
-def shadow_result(
-    payload: Mapping[str, Any], gate_results: Mapping[str, str]
-) -> dict[str, Any]:
-    """Compare what the route would have run against what actually ran.
-
-    A routing miss is the only outcome that matters: targeted verification
-    green while an omitted gate failed. A selected gate failing is the route
-    working, not a miss. Results carry their route class because a hundred
-    successful documentation routes do not validate the leaf-code route.
+    A separate class rather than a Route with a flag. Every consumer of a
+    route -- the gate selector, the receipt writer, the obligation check --
+    takes a Route, so handing one of them a candidate is a TypeError at the
+    call site rather than a quieter route somewhere downstream. A boolean
+    would have been one forgotten `if` away from authorising a skip.
     """
-    selected = set(payload.get("selected_gate_ids", []))
-    omitted_failures = sorted(
-        gate_id for gate_id, outcome in gate_results.items()
-        if gate_id not in selected and outcome != "pass"
-    )
-    selected_all_passed = all(
-        outcome == "pass" for gate_id, outcome in gate_results.items() if gate_id in selected
-    )
-    rules = sorted(payload.get("matched_rule_ids", []))
-    return {
-        "schema_version": 1,
-        "run_id": payload.get("run_id"),
-        "route_class": ",".join(rules) if rules else "unmapped",
-        "selected_gate_ids": sorted(selected),
-        "gate_results": dict(sorted(gate_results.items())),
-        "missed_gates": omitted_failures,
-        "routing_miss": bool(omitted_failures) and selected_all_passed,
-    }
 
-
-def write_shadow(result: Mapping[str, Any], repo: Path, run_id: str) -> Path:
-    run_dir = repo / ".anti-dark-code" / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-    target = run_dir / "shadow.json"
-    target.write_text(
-        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return target
+    minimum_level: int
+    passes: frozenset[str]
+    obligations: Mapping[str, frozenset[str]]
+    matched_rule_ids: frozenset[str]
+    force_full: bool
+    considered_rule_ids: frozenset[str]
+    provenance: str = "candidate-shadow"
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- **Construction.** `build_candidate_route(facts, policy, snapshot_ok)` evaluates approved rules and proposed rules alike, recording in `considered_rule_ids` which proposed rules it treated as approved. It returns `None` when `snapshot_ok` is false: what a proposed rule would have skipped is not a measurable question when the change set is not fully known.
+- **Provenance.** `provenance` is a constant field, present in the type and in every serialization, so a candidate read back from disk is identifiable without inferring it from context.
+- **Serialization.** Into `shadow.json` under a `candidate` key. Never into a receipt.
+- **Refusal.** `authoritative_payload` and `build_receipt` raise `ReceiptError` when handed a `CandidateRoute`, and the gate selector raises `TypeError`. Both are tested, because "never flows into gate selection" is a claim about what the code refuses, and an unexercised refusal is a comment.
 
-Run: `python -m pytest anti-dark-code/tests/test_route.py -q`
-Expected: PASS.
+### Comparator integration
 
-- [ ] **Step 5: Commit**
+The previous version defined `shadow_result` and connected it to nothing. It is now fed by the real run.
 
-```bash
-git add anti-dark-code/scripts/adc_route.py anti-dark-code/tests/test_route.py
-git commit -m "Record shadow comparisons per route class
+- **Where outcomes come from.** `run_gates` returns its `summary` dict (Task 10 already extends it with `stale`). `adc.py` builds the outcome map from `summary`: `passed` gates are `pass`, entries in `failures` are `fail` or `config-error`, entries in `stale` are `stale`, gates that were planned and never reached are `not-run`.
+- **The vocabulary is closed.** `pass`, `fail`, `config-error`, `stale`, `not-run`, `skipped`. An outcome outside that set raises rather than being compared, because an unrecognized outcome silently treated as a pass is the failure mode this whole comparator exists to detect.
+- **Where it is written.** `write_shadow` writes `.anti-dark-code/runs/<run_id>/shadow.json` atomically through `write_json_atomic`, into the run directory `run_gates` already created, so a shadow record and its gate logs share one directory and one id.
 
-A routing miss is targeted verification green while an omitted gate
-failed. A selected gate failing is the route working. Results carry
-their route class, because a hundred successful documentation routes do
-not validate the leaf-code route."
+```python
+def shadow_result(payload, candidate, gate_results):
+    """Compare what a proposed rule would have skipped against what happened.
+
+    `payload` is the authoritative receipt, which under D-064 selects
+    everything. `candidate` is what the proposed rules would have selected.
+    The measurable question is about the candidate's omissions, so it is the
+    candidate's selection this reads, and the authoritative route is recorded
+    beside it to show what actually ran.
+    """
+    if candidate is None:
+        return {"schema_version": 2, "measurable": False,
+                "reason": "snapshot incomplete"}
+    unknown = sorted(set(gate_results.values()) - KNOWN_OUTCOMES)
+    if unknown:
+        raise ValueError(f"unrecognised gate outcomes: {unknown}")
+
+    selected = set(candidate.selected_gate_ids())
+    omitted = {gate_id: outcome for gate_id, outcome in gate_results.items()
+               if gate_id not in selected}
+    # Any non-pass omitted outcome is a miss. Not only "fail": a gate the
+    # candidate would have skipped that then went stale or never ran is a gate
+    # the candidate cannot claim was safe to skip.
+    missed = sorted(g for g, outcome in omitted.items() if outcome != "pass")
+    # Every selected gate must have actually produced a pass. `all()` over a
+    # missing gate is vacuously true, which would let an aborted run read as a
+    # clean targeted verification.
+    selected_all_passed = bool(selected) and all(
+        gate_results.get(gate_id) == "pass" for gate_id in selected)
+    ...
 ```
+
+- `routing_miss` is `bool(missed) and selected_all_passed`, unchanged in meaning and now computed over a candidate that can actually omit something.
+- `route_class` carries the candidate's matched rule ids **and** its `force_full`, because a forced-full candidate and a rule-matched candidate are different classes and the previous label could not tell them apart.
+- The record carries both routes: `authoritative.selected_gate_ids` and `candidate.selected_gate_ids`, so a reader can see that the run executed everything while the candidate would not have.
+
+- [ ] **Step 1 through 5** follow the same shape as Task 10: failing tests first, including `test_a_candidate_route_is_refused_by_the_receipt_writer`, `test_an_unrecognised_outcome_raises`, `test_an_aborted_run_is_not_a_clean_targeted_verification`, and `test_a_candidate_omitting_a_failing_gate_is_a_routing_miss`.
 
 ---
 
-## Task 12: Prove a weakened escalator fails the suite
+## Task 12: Hold every escalator with a mutation row
 
-The mutation test. Without it, every guardrail above is a comment.
+The inline mutation tests this task used to describe no longer match the code: they call `load_policy(data, gates)` with two arguments and read `full_recipe["gate_ids"]`, and neither has existed since Task 5 and D-062. That is a stale plan, not a stale implementation.
 
-**Files:**
-- Test: `anti-dark-code/tests/test_route.py`
+The mechanism this task now names already exists: `design/routing/mutants/matrix.json` and `design/routing/mutants/replay.py`, replayed on two required hosts under D-058 and D-068. A mutation is a row, not an inline test.
 
-**Interfaces:**
-- Consumes: everything.
-- Produces: no production code. This task only adds tests.
+**Rows this task adds**, each naming the exact text it replaces:
 
-- [ ] **Step 1: Write the mutation tests**
+| Row | Target | Mutation | Held by |
+|---|---|---|---|
+| M64 | `adc_route._check_self_grading` | drop the `demoted` raise | `SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused` |
+| M65 | `adc_route._check_self_grading` | treat an unmatched path as a failure | `test_an_unmapped_self_grading_path_is_not_a_load_failure` |
+| M66 | `adc_route.parse_raw_z` | read only `new_mode` for the gitlink check | `test_a_submodule_added_or_deleted_is_also_unsupported` |
+| M67 | `adc_receipt.verify_receipt` | drop the `unsupported_paths` check | `SubmoduleContractTests::test_a_receipt_over_a_submodule_tree_never_verifies_fresh` |
+| M68 | `adc.run_gates` | skip the post-gate identity capture | `GateLifecycleTests::test_a_mutation_during_a_gate_marks_that_gate_stale` |
+| M69 | `adc.run_gates` | continue after a stale gate when `keep_going` | `test_the_run_stops_when_the_tree_moves_even_with_keep_going` |
+| M70 | `adc.obligations_are_covered` | restore the vacuous `all([])` | `test_an_empty_obligation_map_is_not_covered` |
+| M71 | `adc_route.build_candidate_route` | return a `Route` instead of a `CandidateRoute` | `test_a_candidate_route_is_refused_by_the_receipt_writer` |
 
-```python
-class EscalatorMutationTests(unittest.TestCase):
-    """Weakening any hard escalator must fail at least one test.
-
-    These mutate the policy or the route in the way a careless edit would, and
-    assert the system notices. A guardrail nothing tests is a comment.
-    """
-
-    def setUp(self) -> None:
-        self.route = load_route_module()
-        template = (SKILL_ROOT / "assets" / "templates" / "calibration"
-                    / "routing-policy.json")
-        self.data = json.loads(template.read_text(encoding="utf-8"))
-        named = set(self.data["full_recipe"]["gate_ids"])
-        for rule in self.data["rules"]:
-            for gate_ids in rule.get("obligations", {}).values():
-                named.update(gate_ids)
-        self.gates = named
-
-    def _facts(self, path, policy):
-        snap = self.route.ChangeSnapshot(
-            inputs=(self.route.ChangeInput(
-                path=path, change_kind="modify", source="committed"),),
-            base="abc", base_resolved=True)
-        return self.route.collect_change_facts(snap, policy["classifier"])
-
-    def test_removing_force_full_from_the_authority_rule_is_detected(self) -> None:
-        mutated = json.loads(json.dumps(self.data))
-        for rule in mutated["rules"]:
-            if rule["id"] == "verification-authority":
-                rule["requires"]["force_full"] = False
-        policy = self.route.load_policy(mutated, self.gates)
-        facts = self._facts(".github/workflows/tests.yml", policy)
-        built = self.route.build_route(facts, policy)
-        self.assertFalse(built.force_full,
-                         "mutation did not take effect; the test proves nothing")
-        # The real policy must not behave this way.
-        real = self.route.load_policy(self.data, self.gates)
-        self.assertTrue(self.route.build_route(
-            self._facts(".github/workflows/tests.yml", real), real).force_full)
-
-    def test_reclassifying_skill_md_as_prose_is_detected(self) -> None:
-        mutated = json.loads(json.dumps(self.data))
-        mutated["classifier"]["surfaces"].insert(
-            0, {"glob": "anti-dark-code/SKILL.md", "surface": "docs",
-                "effect": "prose", "breadth": "leaf"})
-        policy = self.route.load_policy(mutated, self.gates)
-        built = self.route.build_route(self._facts("anti-dark-code/SKILL.md", policy), policy)
-        self.assertFalse(built.force_full)
-        real = self.route.load_policy(self.data, self.gates)
-        self.assertTrue(self.route.build_route(
-            self._facts("anti-dark-code/SKILL.md", real), real).force_full)
-
-    def test_hints_that_try_to_subtract_are_ignored(self) -> None:
-        real = self.route.load_policy(self.data, self.gates)
-        built = self.route.build_route(self._facts(".github/workflows/tests.yml", real), real)
-        for hostile in ({"force_full": False}, {"minimum_level": 0},
-                        {"passes": []}, {"obligations": {}},
-                        {"independent_review": False}):
-            after = self.route.apply_hints(built, hostile)
-            self.assertTrue(after.force_full)
-            self.assertGreaterEqual(after.minimum_level, built.minimum_level)
-            self.assertTrue(after.passes >= built.passes)
-
-    def test_unknown_path_cannot_be_hinted_into_a_fast_path(self) -> None:
-        real = self.route.load_policy(self.data, self.gates)
-        snap = self.route.ChangeSnapshot(
-            inputs=(self.route.ChangeInput(
-                path="totally/unmapped/thing.bin", change_kind="modify", source="committed"),),
-            base="abc", base_resolved=True)
-        facts = self.route.collect_change_facts(snap, real["classifier"])
-        built = self.route.build_route(facts, real)
-        self.assertTrue(built.force_full)
-        self.assertTrue(self.route.apply_hints(built, {"force_full": False}).force_full)
-```
-
-- [ ] **Step 2: Run the tests**
-
-Run: `python -m pytest anti-dark-code/tests/test_route.py::EscalatorMutationTests -q`
-Expected: PASS. If any mutation test passes trivially because the mutation had no effect, the assertion `"mutation did not take effect"` fires and tells you the test proves nothing.
-
-- [ ] **Step 3: Run the whole suite and validate**
-
-Run: `python -m pytest anti-dark-code/tests -q`
-Expected: PASS on the full suite, well above the 131 baseline.
-
-Run: `python anti-dark-code/scripts/adc.py validate --mode universal`
-Expected: `0 errors`.
-
-- [ ] **Step 4: Verify the hygiene rules on everything written**
-
-```bash
-grep -rn $'—\|–' anti-dark-code/scripts/adc_route.py anti-dark-code/tests/test_route.py
-grep -rnioE "robust|seamless|cutting-edge|world-class|blazing|game-changing|weaponize|delve|showcases|leverages" anti-dark-code/scripts/adc_route.py anti-dark-code/tests/test_route.py
-```
-Expected: both return nothing.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add anti-dark-code/tests/test_route.py
-git commit -m "Prove a weakened escalator fails the suite
-
-Each mutation test first asserts the mutation actually took effect, so a
-test cannot pass by mutating nothing. Covers removing force_full from the
-authority rule, reclassifying SKILL.md as prose, hints that try to
-subtract, and hinting an unmapped path onto a fast path."
-```
+M64 through M67 are implementable now; M68 through M71 land with Tasks 10 and 11. A row whose target does not yet exist is not added to the matrix, because `MutationMatrixIntegrityTests` checks every row against the tree and a row for unwritten code would fail honestly and noisily.
 
 ---
 
@@ -2055,14 +1965,22 @@ whole point of the slice."
 
 ## Self-Review
 
-**Spec coverage.** Incomplete. The round-two execution verified meaningful checks for S-003, S-004, S-006, and part of S-010. S-001, S-002, S-005, S-007 through S-009, and S-011 through S-023 still need stronger or executable checks. A task mention is not coverage. `design/routing/HANDOFF-BACK-PLAN.md` records the criterion-by-criterion gaps.
+**Spec coverage.** Incomplete, and re-reviewed in round eleven for the four requirements D-070 reopened. The round-two execution verified meaningful checks for S-003, S-004, S-006, and part of S-010. S-001, S-002, S-005, S-007 through S-009, and S-011 through S-023 still need stronger or executable checks. A task mention is not coverage. `design/routing/HANDOFF-BACK-PLAN.md` records the criterion-by-criterion gaps.
 
-**Known gaps.** Task 10 describes a before-and-after check but does not show or test it. Task 9 calls `current_route_identity` but does not implement it. Symlink, index, submodule, policy, gates, calibration, repository binding, and concurrent-mutation identity remain unimplemented in this plan.
+**Known gaps.** Task 9 calls `current_route_identity` but does not implement it. Concurrent-mutation identity remains unimplemented: Task 10 now names the seams, the lifecycle, and the exact tests, but no code has been written for it, so R-018 stays untraced. Symlink, index, policy, gates, calibration, and repository-binding identity are implemented and held by collected tests; that clause of this paragraph was stale from round four and is corrected here. Submodule state is not bound and deliberately never will be by this slice: D-072 refuses such a tree instead.
 
 **Type consistency.** `read_change_inputs` returns `ChangeSnapshot` everywhere. `collect_change_facts(snapshot, classifier)` takes the snapshot, never a repo. `build_route(facts, policy, hints, snapshot_ok)` keeps that order in every call. `receipt_payload` and `verify_receipt` agree on the `identity` mapping shape.
 
-**Placeholder scan.** Failed. Task 9 describes `current_route_identity` without code. Task 10 describes receipt loading, freshness checks, full-recipe selection, and runner integration without code. Task 11 defines a comparator but does not connect it to a full gate run. These are blocking placeholders.
+**Placeholder scan.** One blocking placeholder remains, and it is named rather than described away.
+
+Resolved in round eleven. Task 10 no longer describes runner integration in the abstract: it names `run_gates` at `adc.py:2573`, the gate loop at `2691`, the pass and failure paths at `2773` and `2815`, and the summary at `2821`, and it states the before-and-after capture points, the stale outcome, the stop decision, and its cost. Task 11 no longer defines a comparator connected to nothing: it defines `CandidateRoute` as a separate type, says where outcomes come from, closes the outcome vocabulary, and says where `shadow.json` is written. Task 12 no longer carries inline mutation code that does not compile against the current signatures; it names eight matrix rows instead.
+
+Still blocking. Task 9 describes `current_route_identity` without code.
+
+Not a placeholder, but not built either: R-013, R-018, and R-022 have planned test node ids in Tasks 10 and 11 and no implementation. They stay in the `untraced` list until their tests exist and collect. A plan naming a test is not a test.
 
 **Round-four execution.** The baseline reproduced at `245 passed, 13 skipped, 45 subtests passed`; the router suite reported `114 passed`; validation reported zero errors and one warning. The expanded monotonic check passed 2,304 extensions. Four new mutations survived. A real clean filter ran and wrote a worktree file while acquisition returned complete. The pure layer is not ready for Task 8.
+
+**Round-eleven execution.** M3's four partial requirements were closed by contract rather than by relabelling. R-005 and R-021 are held by `SelfGradingAuthorityTests`, which routes all eleven self-grading path classes through the installed classifier with every rule approved, plus an ordinary-documentation counterexample. R-017 and R-019 are held by `SubmoduleContractTests` against a real submodule and a real untracked embedded repository, plus three raw-parser tests. The full suite reported `387 passed, 14 skipped, 45 subtests passed`, up from 371, and the mutation matrix reported 67 rows with none surviving. See D-071 and D-072.
 
 **Plan location.** This plan does not live in `docs/superpowers/plans/`, the skill default, because `docs/` in this repository is the published GitHub Pages site. Writing a plan there would publish it. The same reasoning produced D-015 for the design documents.
