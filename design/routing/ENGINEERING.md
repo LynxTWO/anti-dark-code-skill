@@ -298,7 +298,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-002 | shuffled-input hash equality | `test_route.py` |
 | R-003 | unmapped path forces full | `test_route.py` |
 | R-004 | `SKILL.md` classification test | `test_route.py` |
-| R-005 | Every self-grading path class routed through the real classifier with the rules approved, plus an ordinary-path counterexample and a load-time refusal | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
+| R-005 | Every self-grading path class routed through the real classifier with the rules approved, plus source and managed-install probes, an ordinary-path counterexample, and a load-time refusal | `SelfGradingAuthorityTests` in `test_route.py`; D-071, D-078, D-082; M68, M90, M92 |
 | R-006 | change-kind coverage test | `test_route.py` |
 | R-007 | unreachable base test | `test_route.py` |
 | R-008 | worktree mutation invalidates receipt | `test_route.py` |
@@ -314,8 +314,8 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-018 | One receipt read is verified before selection; its identity, validated policy, and gate configuration remain one in-memory authority context; two identities are compared before and after each real gate, the receipt-comparable one and a timestamp-keeping lifecycle one, so a change the gate itself restored is still caught; movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests`, `StaleReceiptCliTests`, and `ReceiptIntegrityCliTests`; exact nodes in `requirement-evidence.json`; D-075, D-076 and D-077 |
 | R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
-| R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
-| R-022 | Force-full execution takes exactly the canonical set and bypasses changed-file applicability globs | `CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs`; exact node in `requirement-evidence.json` |
+| R-021 | The eleven self-grading path classes, in source and managed installed layouts, measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; exact nodes in `requirement-evidence.json`; D-071, D-082 |
+| R-022 | Force-full execution takes exactly the canonical set, bypasses changed-file applicability globs, and refuses candidate selection at the executable boundary | `CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs` and `CandidateRouteTests::test_a_candidate_selection_cannot_remove_a_gate`; exact nodes in `requirement-evidence.json` |
 | R-023 | canonical order and timestamp-independence tests | `test_route.py` |
 | R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
 | R-025 | real-repository staged change is not also unstaged | `test_route.py` |
@@ -346,7 +346,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
 | R-051 | repository-wide object format plus real source-specific conflict grammar | named tests in `requirement-evidence.json`; M47 is caught and the plain raw conflict form is accepted |
 | R-052 | direct, replaced, built, copied, and hinted Route immutability table | named tests in `requirement-evidence.json`; mutable proxy backing is copied |
-| R-053 | data-driven replay of all 63 stored mutations | `mutants/`; 59 active and 4 superseded, with 56 caught on both recorded hosts and 3 caught on Linux where Windows skips |
+| R-053 | data-driven replay of all 92 stored mutations | `mutants/`; 88 active and 4 superseded, with 85 caught on both recorded hosts and 3 caught on Linux where Windows skips; source restoration is hash-verified by D-068 |
 | R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
 
@@ -427,6 +427,8 @@ The path table has one test per class. A newly imported helper or newly authorit
 - [ ] No new runtime dependency.
 - [ ] Documents and DECISION-LOG.md updated if any decision changed.
 - [ ] Deliberate self-review pass against this checklist.
+
+D-080 withdraws the retrospective per-change claim before `ea8733c` because the evidence cannot be reconstructed. The replacement is a qualified slice-level result. From `ea8733c` forward, the exact commit trailer `EDD-Checklist: satisfied` records item 5; each commit still names the host and workflow evidence that supports the other items.
 
 **Per release:**
 

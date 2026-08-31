@@ -1539,7 +1539,7 @@ change identity by being written at a different time."
 
 **Interfaces:**
 - Consumes: everything from Tasks 3 through 8.
-- Produces: `adc.py route --repo . --changed-from <ref> [--phase task|merge] [--write]`, exit 0 on a computed route, exit 2 on unreadable Git or invalid policy.
+- Produces: `adc.py route --repo . --base <ref> [--phase task|merge] [--write]`, exit 0 on a computed route, exit 2 on unreadable Git or invalid policy.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1579,7 +1579,7 @@ In `anti-dark-code/scripts/adc.py`, beside the other `sub.add_parser` calls near
 ```python
     p = sub.add_parser("route", help="Read-only change-impact route for the current diff")
     p.add_argument("--repo", default=".")
-    p.add_argument("--changed-from", required=True)
+    p.add_argument("--base", default="HEAD")
     p.add_argument("--phase", choices=("task", "merge"), default="task")
     p.add_argument("--write", action="store_true")
     p.set_defaults(func=command_route)
@@ -1610,7 +1610,7 @@ Then the command function:
 def command_route(args: argparse.Namespace) -> int:
     route_module = load_route_helper()
     repo = Path(args.repo)
-    snapshot = route_module.read_change_inputs(repo, args.changed_from)
+    snapshot = route_module.read_change_inputs(repo, args.base)
     policy_path = safe_calibration_dir(repo, "routing policy read") / "routing-policy.json"
     if not policy_path.exists():
         print("NO POLICY: no routing-policy.json in calibration. Full verification required.")
@@ -1654,7 +1654,7 @@ Expected: PASS with no regression.
 
 Run the command for real:
 ```bash
-python anti-dark-code/scripts/adc.py route --repo . --changed-from origin/main
+python anti-dark-code/scripts/adc.py route --repo . --base origin/main
 ```
 Expected: one `ROUTE` line, then `SHADOW ONLY`.
 
@@ -1922,43 +1922,39 @@ M64 through M67 are implementable now; M68 through M71 land with Tasks 10 and 11
 **Files:**
 - Modify: `design/routing/SLICE-001-route-shadow.md`, `design/routing/ARCHITECTURE.md`
 
-- [ ] **Step 1: Run every piece of evidence section 9 of the slice brief requires**
+- [x] **Step 1: Run every piece of evidence section 9 of the slice brief requires**
 
 ```bash
 python -m pytest anti-dark-code/tests -q
-python anti-dark-code/scripts/adc.py validate --mode universal
-python anti-dark-code/scripts/adc.py route --repo . --changed-from origin/main --write
+python anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal
+python anti-dark-code/scripts/adc.py route --repo . --base origin/main --write
 ```
 
-Record the actual counts and the receipt path. Do not paraphrase them.
+Round-fourteen result: `425 passed, 14 skipped, 48 subtests passed`; `VALID (universal): 0 errors, 1 warning(s)`; and a Level 3, force-full, complete route with receipt `59f3951317c0e7bc897bc5b137fc05f9b29766170d4cd4f47795f62725632137.json`, verified `FRESH` at checkpoint `ea8733c`.
 
-- [ ] **Step 2: Exercise the two required error paths and record what happened**
+- [x] **Step 2: Exercise the two required error paths and record what happened**
 
 ```bash
-python anti-dark-code/scripts/adc.py route --repo . --changed-from refs/heads/does-not-exist
+python anti-dark-code/scripts/adc.py route --repo . --base refs/heads/does-not-exist
 ```
-Expected: full route with an unreachable-base reason code, or exit 2. Record which.
+Actual: exit 0, Level 3, `force_full=true`, `complete=false`, and `ADC-ROUTE-BASE-UNREACHABLE`.
 
-Temporarily corrupt the calibration `routing-policy.json` with invalid JSON, run the command, confirm exit 2 with no receipt written, then restore the file.
+The invalid-JSON probe returned exit 2 with `REFUSED` and did not add a receipt. The calibration file was restored byte-for-byte.
 
-- [ ] **Step 3: Tick section 9 and section 11 of the slice brief with the recorded evidence**
+- [x] **Step 3: Tick section 9 and section 11 of the slice brief with the recorded evidence**
 
-Replace each checkbox with the observed result. A tick with no number beside it is not evidence.
+Section 9 and section 11 now carry counts, commit and workflow ids, the qualified EDD range, and the 30-item finding ledger. The human walkthrough remains unchecked.
 
 - [ ] **Step 4: Update ADD section 15**
 
-Change the current build boundary to name SLICE-002 as the next brief, and move SLICE-001's modules from "builds" to "built". Set the slice brief status to Done.
+Do not execute this step in round fourteen. The round-fourteen handoff reserves `Done` and the ADD boundary change for the owner after the walkthrough.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit the evidence closure**
 
 ```bash
 git add design/routing/
-git commit -m "Close SLICE-001 with recorded evidence
-
-Ticks carry observed counts rather than assertions. Error paths for an
-unreachable base and an invalid policy were exercised and recorded. The
-router explains routes and still cannot skip anything, which was the
-whole point of the slice."
+git commit -m "routing: close slice evidence for owner review" \
+  -m "EDD-Checklist: satisfied"
 ```
 
 ---

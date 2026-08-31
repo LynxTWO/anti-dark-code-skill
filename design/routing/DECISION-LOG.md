@@ -73,6 +73,34 @@ The documents state what is true. This log preserves why, what else was consider
 | D-054 | 2026-08-30 | Mutation verdicts are platform-qualified | Confirmed | |
 | D-055 | 2026-08-30 | Route is not picklable, and does not need to be | Confirmed | |
 | D-056 | 2026-08-30 | The missing-promisor case is blocked, not closed | Open | |
+| D-057 | 2026-08-30 | The T540P was reachable, and the diagnosis was wrong | Corrected | |
+| D-058 | 2026-08-30 | Linux is a required replay host, and it runs in CI | Confirmed | |
+| D-059 | 2026-08-30 | macOS is verified for the suite and is not a replay host | Confirmed | |
+| D-060 | 2026-08-30 | The missing-promisor case is proven with a real transport | Confirmed | |
+| D-061 | 2026-08-30 | The requirement register names a file, so it proves nothing | Reopened | D-070 |
+| D-062 | 2026-08-30 | The canonical full set belongs to the gates, not the policy | Confirmed | |
+| D-063 | 2026-08-30 | A receipt binds content, not timestamps, and never its own store | Confirmed | |
+| D-064 | 2026-08-30 | This repository's policy ships with every rule unapproved | Confirmed | |
+| D-065 | 2026-08-30 | A hard-link test passed on Linux for the wrong reason | Confirmed | |
+| D-066 | 2026-08-30 | The record carries two hosts, and the verdict is a function of them | Confirmed | |
+| D-067 | 2026-08-30 | M3 needed an executable traceability gate | Reopened | D-070 |
+| D-068 | 2026-08-30 | Mutation authority requires a real test runner and exact restoration | Confirmed | |
+| D-069 | 2026-08-30 | M4 is blocked by its plan, not by D-061 | Resolved | |
+| D-070 | 2026-08-30 | Node-id reachability is necessary and not sufficient evidence | Open | |
+| D-071 | 2026-08-30 | A classifier is what makes a path authority, and it is checked at load | Confirmed | |
+| D-072 | 2026-08-30 | A submodule is refused, not bound | Confirmed | |
+| D-073 | 2026-08-30 | An unreadable repository fingerprint refuses the binding provisionally | Provisional | D-083 |
+| D-074 | 2026-08-30 | Candidate routes are a separate shadow-only type | Confirmed | |
+| D-075 | 2026-08-30 | Gate execution consumes one verified receipt and its exact identity | Confirmed | |
+| D-076 | 2026-08-30 | Verified execution authority is a closed in-memory context | Confirmed | |
+| D-077 | 2026-08-31 | A gate lifecycle and a receipt binding ask different questions | Confirmed | |
+| D-078 | 2026-08-31 | The self-grading guard enumerates shapes instead of sampling one | Confirmed | |
+| D-079 | 2026-08-31 | N-08 was a test that proved nothing, cited as evidence | Confirmed | |
+| D-080 | 2026-08-31 | Per-change EDD evidence starts at a review-trailer anchor | Confirmed | |
+| D-081 | 2026-08-31 | The historical live-mutant scan is retired behind maintained guards | Confirmed | |
+| D-082 | 2026-08-31 | Self-grading probes source and managed installed layouts | Confirmed | |
+| D-083 | 2026-08-31 | An unreadable fingerprint raises a typed receipt refusal | Confirmed | |
+| D-084 | 2026-08-31 | Worktree-writing gates remain stale for this slice | Confirmed | |
 
 ---
 
@@ -2129,3 +2157,110 @@ This is the second time a test in this repository was found to be present, colle
 
 Revisit when:
 Another cited test is suspected of the same. The check is cheap: mutate the production behaviour it claims to hold and see whether it fails.
+
+## D-080: Per-change EDD evidence starts at a review-trailer anchor
+
+Date: 2026-08-31
+Status: Confirmed
+Area: EDD 17, SLICE-001 sections 9 and 11
+
+Context:
+SLICE-001 claimed that the EDD section 17 checklist was satisfied for every change. That claim cannot be reconstructed. Commit `a92c869` carried a live mutant through a green suite, and `a4949a8` records a test that was present but absent from the run. The required workflow also runs only for pull requests and pushes to `main`, so it has no record for most intermediate branch commits.
+
+Decision:
+Withdraw the per-change claim for the range before `ea8733c`. The replacement for that range is a slice-level claim: the current suite passes, the latest PR 23 base passed the required three-platform matrix and distribution checks, the branch delta has Windows suite evidence and two-host mutation evidence, no runtime dependency was added, and the complete mutation matrix has no survivor.
+
+From `ea8733c` forward, every commit carries the exact trailer `EDD-Checklist: satisfied`. The trailer records a deliberate review of all five EDD section 17 items. It does not invent CI coverage for intermediate branch commits; the evidence beside the commit must still say which host or required workflow ran.
+
+Because:
+A retrospective tick would erase known counterexamples. A named forward anchor gives item 5 a durable artifact and gives later audits a point they can check without pretending missing historical runs exist.
+
+Consequences:
+The slice checklist is qualified rather than retrospectively checked. Commits after the anchor without the trailer violate this decision. The slice-level platform statement continues to distinguish acceptance coverage, required-branch CI, and the branch delta.
+
+Revisit when:
+The required workflow starts recording every branch commit, or a stronger signed review artifact replaces the trailer.
+
+## D-081: The historical live-mutant scan is retired behind maintained guards
+
+Date: 2026-08-31
+Status: Confirmed
+Area: mutation evidence, D-068, EDD 11
+
+Context:
+Round thirteen reran the historical scan over 164 commits. Fifty-eight commits carried a matrix, with 2,994 active row and commit pairs in pass one and 7,423 in pass two. It again found `a92c869` with M01 as the only live-mutant state and exactly 12 matrix-drift pairs. Roughly one hundred commits added since the earlier scan produced no new historical state.
+
+Decision:
+Retire the standing historical rerun. `MutationMatrixIntegrityTests` now holds row identity, targets, results, host records, and harness behavior at HEAD. The required `Tests` aggregator holds the candidate at pull-request and `main` integration boundaries.
+
+Because:
+The scan is useful forensic evidence, but repeated history-wide execution has stopped finding new states. Maintained guards fail where a new defect can still ship.
+
+Consequences:
+The CI guard does not see intermediate branch commits. A mutant introduced and fixed before the pull request or merge is therefore absent from CI history, but it also does not ship. The historical scan remains available for an investigation and is no longer a standing slice gate.
+
+Revisit when:
+The matrix schema changes, an integrity guard regresses, or evidence suggests a live mutant reached a reviewed integration boundary.
+
+## D-082: Self-grading probes source and managed installed layouts
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071
+
+Context:
+D-071 named literal source-tree paths. A policy could classify those spellings as authority, classify the managed `.agents/skills/anti-dark-code/` spellings as ordinary product code, pass the load guard, and route the installed router below the full recipe.
+
+Decision:
+The load guard checks each source-tree path and the corresponding managed installed path. Paths already rooted in `.agents/skills/` or `.github/` are checked once. The existing cross-product over change kind, source, and mode remains unchanged.
+
+Because:
+The installer changes the path spelling, not the authority of the file. A guard that protects only the development layout does not protect the repository that consumes the skill.
+
+Consequences:
+`test_source_only_authority_cannot_hide_the_installed_router` fails against the source-only guard and passes with the installed alias included. M92 reverts the guard to the literal list and is caught on Linux and Windows. The source existence test still checks real source files; policy loading checks both layouts.
+
+Revisit when:
+The managed install root changes or another supported installer places authoritative files under a third repository-relative prefix.
+
+## D-083: An unreadable fingerprint raises a typed receipt refusal
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M4, R-017, R-018, D-073, `_repo_fingerprint`
+
+Context:
+D-073 implemented alternative 1 provisionally. Alternatives 2 and 3 would either create a synthetic identity that can never match or move the failure into snapshot completeness.
+
+Decision:
+Confirm alternative 1. `_identity_and_unsupported` raises `ReceiptError` for the unreadable sentinel. Receipt construction, verification, and routed preflight catch that type, print `REFUSED`, return 2, and mint no digest.
+
+Because:
+Two failed reads are not evidence that the repository had the same state. The receipt layer has enough information to refuse and not enough information to build an identity or a complete snapshot.
+
+Consequences:
+D-073 is superseded. The owner can still reopen the model if repository acquisition and receipt binding are combined under one typed failure context.
+
+Revisit when:
+Another fingerprint sentinel is introduced or acquisition gains an object that can carry this failure without losing its cause.
+
+## D-084: Worktree-writing gates remain stale for this slice
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M4, R-018, D-077
+
+Context:
+D-077 marks a gate stale when it changes content or repository-local lifecycle metadata, even if it restores the original bytes. The current repository gate file has no executable `argv`, and `owner_confirmed_safe_to_execute` is false, so no reviewed real gate contradicts that strictness.
+
+Decision:
+Keep D-077 unchanged for SLICE-001. A future mutation-replay command or other gate that writes must run in an isolated checkout, not in the worktree whose receipt it verifies.
+
+Because:
+Accepting a restored write would accept a result computed against content absent from the final tree. No current executable gate needs that exception.
+
+Consequences:
+M88 continues to hold the stale condition. A proposed gate that needs repository-local writes must supply isolation evidence before approval.
+
+Revisit when:
+A real reviewed gate cannot avoid writing into its verification target and the owner is prepared to change R-018 rather than weaken it silently.

@@ -725,7 +725,8 @@ _UNMAPPED = {
     "confidence": "unknown",
 }
 
-# One representative real path per self-grading class R-005 and R-021 name.
+# One representative real source path per self-grading class R-005 and R-021
+# name. The load guard derives the managed-install spelling from this record.
 # Measured, not assumed: with this repository's rules approved in memory, five
 # of these took ordinary routes. The router graded itself as Level 2 product
 # code, the capability catalog as a Level 2 schema, and a routing-owning pass
@@ -805,6 +806,10 @@ def _check_self_grading(
     The cross-product is small and the check is cheap next to the fingerprint
     the same command runs, so the guard enumerates it rather than sampling it.
     A guard that samples is a guard an adversary aims around.
+
+    Source and managed installed spellings are both checked. The installer
+    moves `anti-dark-code/...` beneath `.agents/skills/anti-dark-code/...`;
+    authority does not change when that prefix does. See D-082.
     """
     demoted: list[str] = []
     for label, path in _self_grading_guard_paths():
