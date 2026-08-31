@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013 is implemented, while R-018, R-022, and the candidate comparator remain.
+**Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013 and R-022 are implemented, while R-018 and the candidate comparator remain.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
@@ -200,9 +200,9 @@ Existing GitHub Actions. Status Confirmed.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 and M3 are complete. M4 is in progress; R-013 is built and R-018 and R-022 remain unbuilt.
+- **Current slice:** SLICE-001, read-only shadow routing. M2 and M3 are complete. M4 is in progress; R-013 and R-022 are built and R-018 remains unbuilt.
 - **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
-- **Modules not built:** the M4 shadow comparator, canonical-full gate selection, and per-gate freshness binding. Nothing can skip a gate.
+- **Modules not built:** the M4 shadow comparator and per-gate freshness binding. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.
 
 ---

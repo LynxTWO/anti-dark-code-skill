@@ -1,8 +1,7 @@
 {
   "schema_version": 2,
   "untraced": [
-    "R-018",
-    "R-022"
+    "R-018"
   ],
   "requirements": {
     "R-001": {
@@ -153,7 +152,11 @@
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
       ]
     },
-    "R-022": {},
+    "R-022": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs"
+      ]
+    },
     "R-023": {
       "tests": [
         "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id",

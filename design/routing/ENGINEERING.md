@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013 is implemented, while R-018 and R-022 remain unbuilt.
+- **Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013 and R-022 are implemented, while R-018 remains unbuilt.
 
 ## 2. Engineering Principles
 
@@ -315,7 +315,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
 | R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
-| R-022 | Not built: force-full bypasses changed-file gate globs | untraced in `requirement-evidence.json`; D-069 |
+| R-022 | Force-full execution takes exactly the canonical set and bypasses changed-file applicability globs | `CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs`; exact node in `requirement-evidence.json` |
 | R-023 | canonical order and timestamp-independence tests | `test_route.py` |
 | R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
 | R-025 | real-repository staged change is not also unstaged | `test_route.py` |

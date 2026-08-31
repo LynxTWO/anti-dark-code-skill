@@ -2580,22 +2580,28 @@ def check_route_level(route_minimum: int,
     return True, requested
 
 
-def _receipt_route_minimum(path: Path) -> int:
+def _receipt_route(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise SystemExit(f"REFUSED: no routing receipt at {path}")
     try:
         receipt = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise SystemExit(f"REFUSED: invalid routing receipt: {exc}") from exc
-    minimum = receipt.get("authoritative", {}).get("route", {}).get(
-        "minimum_level")
+    route = receipt.get("authoritative", {}).get("route")
+    if not isinstance(route, dict):
+        raise SystemExit("REFUSED: routing receipt has no authoritative route")
+    minimum = route.get("minimum_level")
     if type(minimum) is not int or minimum not in (0, 1, 2, 3):
         raise SystemExit(
             "REFUSED: routing receipt has no valid authoritative minimum_level")
-    return minimum
+    if type(route.get("force_full")) is not bool:
+        raise SystemExit(
+            "REFUSED: routing receipt has no valid authoritative force_full flag")
+    return route
 
 
-def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None, keep_going: bool) -> int:
+def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None,
+              keep_going: bool, force_full: bool = False) -> int:
     repo = repo.resolve()
     config_path = safe_calibration_dir(repo, "gate configuration read") / "gates.json"
     if not config_path.exists():
@@ -2618,12 +2624,38 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         print("REFUSED: gate planning and execution cannot use unbound, invalid, or foreign calibration.")
         return 2
 
-    candidates = [
-        g for g in config.get("gates", [])
-        if isinstance(g, dict) and g.get("enabled") and gate_level(g) <= level
-    ]
+    configured_gates = [
+        gate for gate in config.get("gates", []) if isinstance(gate, dict)]
+    if force_full:
+        full_set = config.get("canonical_full_set")
+        obligations = (full_set.get("obligations")
+                       if isinstance(full_set, dict) else None)
+        if not isinstance(obligations, dict) or not obligations:
+            print("REFUSED: force-full routing requires canonical obligations")
+            return 2
+        canonical_ids = {
+            gate_id for gate_ids in obligations.values()
+            if isinstance(gate_ids, list)
+            for gate_id in gate_ids if isinstance(gate_id, str)}
+        present = {str(gate.get("id")) for gate in configured_gates}
+        missing = sorted(canonical_ids - present)
+        if not canonical_ids or missing:
+            detail = ", ".join(missing) if missing else "no canonical gate ids"
+            print(f"REFUSED: canonical full set is incomplete: {detail}")
+            return 2
+        # R-022: force_full names the canonical set directly. Applicability
+        # globs and unrelated enabled gates have no authority to shrink or
+        # enlarge what the validated full recipe means.
+        candidates = [
+            gate for gate in configured_gates
+            if str(gate.get("id")) in canonical_ids]
+    else:
+        candidates = [
+            gate for gate in configured_gates
+            if gate.get("enabled") and gate_level(gate) <= level]
     changed = changed_files(repo, changed_from) if changed_from else None
-    candidates = [g for g in candidates if gate_applies(g, changed)]
+    if not force_full:
+        candidates = [g for g in candidates if gate_applies(g, changed)]
     blocked: list[tuple[dict[str, Any], str]] = []
     gates: list[dict[str, Any]] = []
     runtime_environments: dict[int, tuple[dict[str, str], dict[str, Any], list[str]]] = {}
@@ -3831,8 +3863,11 @@ def command_bootstrap(args: argparse.Namespace) -> int:
 
 def command_gates(args: argparse.Namespace) -> int:
     requested = args.level
+    force_full = False
     if args.route:
-        minimum = _receipt_route_minimum(Path(args.route))
+        route = _receipt_route(Path(args.route))
+        minimum = route["minimum_level"]
+        force_full = route["force_full"]
         accepted, level = check_route_level(minimum, requested)
         if not accepted:
             print(
@@ -3843,7 +3878,8 @@ def command_gates(args: argparse.Namespace) -> int:
         level = 0 if requested is None else requested
     return run_gates(
         Path(args.repo), level=level, allow_exec=args.allow_exec,
-        changed_from=args.changed_from, keep_going=args.keep_going)
+        changed_from=args.changed_from, keep_going=args.keep_going,
+        force_full=force_full)
 
 
 def command_flowback(args: argparse.Namespace) -> int:

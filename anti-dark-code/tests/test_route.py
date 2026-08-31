@@ -2722,6 +2722,85 @@ class CanonicalFullTests(unittest.TestCase):
         self.assertEqual((True, 3), check(2, 3))
         self.assertEqual((False, 2), check(2, 1))
 
+    @unittest.skipUnless(shutil.which("git"), "git is required")
+    def test_force_full_runs_the_canonical_set_despite_include_globs(self) -> None:
+        # Applying changed-file globs before honoring force_full removes every
+        # canonical gate in this fixture; selecting every enabled gate adds the
+        # noncanonical counterexample instead.
+        with tempfile.TemporaryDirectory() as raw_root:
+            repo = Path(raw_root) / "repo"
+            repo.mkdir()
+
+            def git(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args], capture_output=True,
+                    text=True, timeout=60, check=True)
+
+            git("init", "-q", "-b", "main", ".")
+            git("config", "user.email", "t@example.invalid")
+            git("config", "user.name", "Test")
+            (repo / "src.py").write_text("one\n", encoding="utf-8")
+            git("add", "-A")
+            git("commit", "-qm", "one")
+            (repo / "src.py").write_text("two\n", encoding="utf-8")
+
+            calibration = repo / ".anti-dark-code" / "calibration"
+            calibration.mkdir(parents=True)
+            policy_path = (SKILL_ROOT / "assets" / "templates" /
+                           "calibration" / "routing-policy.json")
+            shutil.copyfile(policy_path, calibration / "routing-policy.json")
+            canonical_ids = (
+                "validate-core", "full-suite", "distribution",
+                "hostile-environment", "mutation-replay")
+            gates = {
+                "schema_version": 1,
+                "canonical_full_set": {
+                    "passes": ["07", "10", "11", "14"],
+                    "obligations": {
+                        "V01": ["mutation-replay"],
+                        "V08": ["distribution"],
+                        "V09": ["validate-core"],
+                        "V12": ["hostile-environment"],
+                        "V21": ["full-suite"],
+                    },
+                },
+                "gates": [
+                    {"id": gate_id, "enabled": True,
+                     "review_status": "approved", "level": 0,
+                     "argv": [sys.executable, "-c", "raise SystemExit(0)"],
+                     "timeout_seconds": 30, "include_globs": ["docs/**"]}
+                    for gate_id in (*canonical_ids, "extra-enabled")
+                ],
+            }
+            (calibration / "gates.json").write_text(
+                json.dumps(gates, indent=2) + "\n", encoding="utf-8")
+            adc = load_adc()
+            assessment = adc.assess_repository_binding(repo, calibration)
+            adc.write_repository_binding(
+                calibration, assessment,
+                accepted_unbound=assessment["status"] == "unbound")
+
+            routed = subprocess.run(
+                [sys.executable, "-B", str(SKILL_ROOT / "scripts" / "adc.py"),
+                 "route", "--repo", str(repo), "--calibration",
+                 str(calibration), "--base", "HEAD", "--write"],
+                capture_output=True, text=True, timeout=300)
+            self.assertEqual(0, routed.returncode, routed.stdout + routed.stderr)
+            receipts = sorted((repo / ".anti-dark-code" / "runs").glob("*.json"))
+            self.assertEqual(1, len(receipts), routed.stdout)
+
+            planned = subprocess.run(
+                [sys.executable, "-B", str(SKILL_ROOT / "scripts" / "adc.py"),
+                 "gates", "--repo", str(repo), "--route", str(receipts[0]),
+                 "--changed-from", "HEAD"],
+                capture_output=True, text=True, timeout=300)
+            self.assertEqual(0, planned.returncode, planned.stdout + planned.stderr)
+            self.assertIn("GATE PLAN: 5 approved gate(s)", planned.stdout)
+            self.assertIn("Level <= 3", planned.stdout)
+            for gate_id in canonical_ids:
+                self.assertIn(gate_id, planned.stdout)
+            self.assertNotIn("extra-enabled", planned.stdout)
+
 
 class SelfGradingAuthorityTests(unittest.TestCase):
     """R-005 and R-021 against the installed policy, with the rules approved.
@@ -3036,11 +3115,11 @@ REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
 
 
 class RequirementTraceabilityTests(unittest.TestCase):
-    # Reviewed by Codex in round twelve. R-013 left this set only after the
-    # lower and higher process exits plus the absent-level contract collected
-    # and passed; a node-id mention alone would repeat D-070.
+    # Reviewed by Codex in round twelve. R-013 and R-022 left this set only
+    # after their process-level floor and real canonical-run contracts
+    # collected and passed; a node-id mention alone would repeat D-070.
     REVIEWED_UNTRACED = frozenset({
-        "R-005", "R-017", "R-018", "R-019", "R-021", "R-022"})
+        "R-005", "R-017", "R-018", "R-019", "R-021"})
 
     def test_the_requirement_evidence_map_exists(self) -> None:
         self.assertTrue(
