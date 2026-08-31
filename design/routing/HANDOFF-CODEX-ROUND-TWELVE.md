@@ -4,7 +4,24 @@ Date: 2026-08-30. Starting point: the head of `claude/round-eleven-evidence-cont
 
 ## Objective
 
-Restore two-host evidence, disprove what round eleven asserted, resolve one owner decision, then implement M4. **In that order.** M4 implementation is permitted this round, and only after the review in step 2 is done and recorded. A green suite is not the gate; the review is.
+**Implement M4.** That is the deliverable this round is judged on. Three smaller pieces come first because they are cheap and they change what M4 should look like, but none of them is the point.
+
+Round eleven was a specification round and said so. This one is not. A round that produces a careful review, a repaired document, and no working gate runner has failed, however good the review is.
+
+### What a failed round looks like
+
+- The adversarial review consumed the round and M4 was not started.
+- M4 was "planned further" instead of built.
+- A finding was used as a reason to stop, when it blocked one of R-013, R-018, and R-022 and the other two could have been built.
+- The round waited on an owner answer that could have been worked around and recorded.
+
+### Bounding the review so it cannot eat the round
+
+Section 2 is a **fixed list of named checks**, not an open hunt. Run each one, record what it found in one or two sentences, and move on. A check that finds nothing is a result worth one line, not an investigation. If a check does find something:
+
+- If it does not block M4, record it as a finding for round thirteen and keep going.
+- If it blocks part of M4, build the parts it does not block and say exactly which clause is held up and why.
+- Only a finding that makes the whole gate runner unsafe to build justifies stopping, and that needs to be argued, not asserted.
 
 Read completely before changing anything:
 
@@ -44,11 +61,11 @@ Round eleven found that round ten's independent review had understated two of it
 - The 64-commit historical live-mutant scan was spot-verified at its conclusion, not rerun.
 - One existing test was changed in the same patch as the production code it grades: `test_every_real_git_mode_is_accepted` became `test_every_real_git_mode_parses_into_a_record`. Read that change adversarially.
 
-## 3. One owner decision, then stop for it
+## 3. One owner decision, packaged without stalling
 
 `_repo_fingerprint` returns `("unreadable",)` when a `git ls-files` call fails, and both `worktree_identity` and `_identity_and_unsupported` unpack it into two names. That is a `ValueError` traceback where a refusal belongs, reachable whenever git fails mid-run, which is exactly when a clean refusal matters.
 
-It was left unfixed deliberately: what "unreadable" means for a receipt is a design decision. Present the narrow alternatives and stop for the owner rather than choosing:
+It was left unfixed deliberately: what "unreadable" means for a receipt is a design decision. Record the narrow alternatives:
 
 1. raise a typed `ReceiptError` and refuse to build or verify a binding;
 2. return an identity that can never match, so every receipt over such a tree is stale;
@@ -56,11 +73,22 @@ It was left unfixed deliberately: what "unreadable" means for a receipt is a des
 
 Whichever is chosen needs a test that makes `run` return `None` and asserts the refusal, plus a matrix row.
 
-## 4. Then implement M4
+Do not stop the round for the answer. Write the packet, implement the option that keeps M4 moving, mark it provisional in the decision log, and let the owner overrule it in round thirteen. This is a crash-versus-refusal bug, not a policy approval, so provisional is allowed here in a way it is not for a routing rule.
+
+## 4. Implement M4, the actual work of this round
 
 Against the repaired Tasks 10 through 12, which name the seams: `run_gates` at `adc.py:2573`, the gate loop at `2691`, the pass and failure paths at `2773` and `2815`, the summary at `2821`.
 
-Close R-013, R-018, and R-022 with the node ids the plan already names. Add M68 through M71 from the Task 12 table as the rows for the new escalators, renumbering from M69 since M68 is taken.
+Build in this order, so that a round cut short still lands something whole:
+
+1. **R-013 first.** `check_route_level` plus `--route` on the `gates` subparser, with the two process-level CLI tests. It is the smallest of the three, it needs no new type, and it makes `gates --route` exist for everything after it.
+2. **R-022 next.** Under `force_full`, take the gate list from `canonical_full_set` and do not apply the changed-file filter at `adc.py:2600`. Still no new type, and it is what stops anything later from removing a gate.
+3. **R-018 third.** The per-gate identity capture, the `stale` outcome, the summary key, and the stop-even-with-keep-going decision. This is the one that needs a real gate writing into the worktree while it runs, so it is the largest.
+4. **The candidate route last.** `CandidateRoute`, its refusals, and the comparator. It is the only piece with no requirement id riding on it, so it is the right thing to lose if the round runs out.
+
+Each step is a commit with its tests passing and its matrix rows caught before the next one starts. Add the new escalator rows from the Task 12 table renumbered from M69, since M68 is taken.
+
+If only steps 1 and 2 land, that is a real round: two requirements closed with collected tests. Say so plainly and hand the rest on.
 
 ## Traceability gate
 
@@ -81,10 +109,15 @@ Close R-013, R-018, and R-022 with the node ids the plan already names. Add M68 
 
 ## Deliverables
 
-1. A two-host matrix at 68 rows or more, with every active row recorded on Windows and T540P Linux.
-2. A recorded verdict on D-071 and D-072: upheld, amended, or reversed, with the measurement behind it.
-3. The owner decision packet for `_repo_fingerprint`, and its implementation if the owner answered.
-4. M4 implemented, or an explicit statement of what blocked it.
-5. `design/routing/HANDOFF-BACK-ROUND-TWELVE.md` with the M4 verdict, the review verdict, unresolved owner decisions, exact files changed, and what was not checked.
+In order of what this round is judged on.
+
+1. **M4 implemented.** `gates --route` refusing a stale receipt and a downgrade, per-gate before-and-after identity capture, the canonical full set running independently of applicability filters, a `CandidateRoute` that cannot reach receipt authority or gate selection, and a comparator fed by real gate outcomes. R-013, R-018, and R-022 traced to collected node ids, or an exact statement of which clause is not built and what blocked it.
+2. New matrix rows for every escalator M4 adds, replayed and caught.
+3. A two-host matrix, every active row recorded on Windows and T540P Linux.
+4. A one-or-two-sentence result for each named check in section 2. Upheld, amended, or reversed, with the measurement behind it.
+5. The owner decision packet for `_repo_fingerprint`. Do not block on it: record the alternatives, pick the one that keeps M4 moving, mark it provisional, and let the owner overrule.
+6. `design/routing/HANDOFF-BACK-ROUND-TWELVE.md` with the M4 status first, then the review results, unresolved owner decisions, exact files changed, and what was not checked.
+
+If time runs short, cut section 2 before cutting M4.
 
 Do not treat round eleven's contracts as accepted because their tests pass. Round eleven's own guard passed its tests for four commits while a one-rule bypass sat underneath it.
