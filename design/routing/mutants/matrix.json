@@ -1955,9 +1955,18 @@
         "verdict": "caught",
         "pytest": "4 failed, 239 passed, 6 deselected in 9.89s",
         "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "4 failed, 238 passed, 1 skipped, 6 deselected in 46.98s",
+        "skipped": 1
       }
     ],
-    "pytest": "4 failed, 239 passed, 6 deselected in 9.89s"
+    "pytest": "4 failed, 238 passed, 1 skipped, 6 deselected in 46.98s"
   },
   {
     "id": "M69",
@@ -2672,9 +2681,18 @@
         "verdict": "caught",
         "pytest": "2 failed, 241 passed, 6 deselected in 9.71s",
         "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 240 passed, 1 skipped, 6 deselected in 45.28s",
+        "skipped": 1
       }
     ],
-    "pytest": "2 failed, 241 passed, 6 deselected in 9.71s"
+    "pytest": "2 failed, 240 passed, 1 skipped, 6 deselected in 45.28s"
   },
   {
     "id": "M91",
@@ -2696,8 +2714,17 @@
         "verdict": "caught",
         "pytest": "1 failed, 242 passed, 6 deselected in 9.83s",
         "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 241 passed, 1 skipped, 6 deselected in 45.49s",
+        "skipped": 1
       }
     ],
-    "pytest": "1 failed, 242 passed, 6 deselected in 9.83s"
+    "pytest": "1 failed, 241 passed, 1 skipped, 6 deselected in 45.49s"
   }
 ]
