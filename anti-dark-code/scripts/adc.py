@@ -2570,6 +2570,31 @@ def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: floa
     return result
 
 
+def check_route_level(route_minimum: int,
+                      requested: int | None) -> tuple[bool, int]:
+    """Return whether a requested level preserves the receipt's minimum."""
+    if requested is None:
+        return True, route_minimum
+    if requested < route_minimum:
+        return False, route_minimum
+    return True, requested
+
+
+def _receipt_route_minimum(path: Path) -> int:
+    if not path.is_file():
+        raise SystemExit(f"REFUSED: no routing receipt at {path}")
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"REFUSED: invalid routing receipt: {exc}") from exc
+    minimum = receipt.get("authoritative", {}).get("route", {}).get(
+        "minimum_level")
+    if type(minimum) is not int or minimum not in (0, 1, 2, 3):
+        raise SystemExit(
+            "REFUSED: routing receipt has no valid authoritative minimum_level")
+    return minimum
+
+
 def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None, keep_going: bool) -> int:
     repo = repo.resolve()
     config_path = safe_calibration_dir(repo, "gate configuration read") / "gates.json"
@@ -3805,7 +3830,20 @@ def command_bootstrap(args: argparse.Namespace) -> int:
 
 
 def command_gates(args: argparse.Namespace) -> int:
-    return run_gates(Path(args.repo), level=args.level, allow_exec=args.allow_exec, changed_from=args.changed_from, keep_going=args.keep_going)
+    requested = args.level
+    if args.route:
+        minimum = _receipt_route_minimum(Path(args.route))
+        accepted, level = check_route_level(minimum, requested)
+        if not accepted:
+            print(
+                f"REFUSED: requested Level {requested} would lower the routed "
+                f"verification; route minimum is {minimum}.")
+            return 2
+    else:
+        level = 0 if requested is None else requested
+    return run_gates(
+        Path(args.repo), level=level, allow_exec=args.allow_exec,
+        changed_from=args.changed_from, keep_going=args.keep_going)
 
 
 def command_flowback(args: argparse.Namespace) -> int:
@@ -4190,7 +4228,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("gates", help="Dry-run or execute reviewed deterministic gates")
     p.add_argument("--repo", default=".")
-    p.add_argument("--level", type=int, choices=(0, 1, 2, 3), default=0)
+    p.add_argument("--level", type=int, choices=(0, 1, 2, 3))
+    p.add_argument("--route", help="Routing receipt whose minimum level may only be raised")
     p.add_argument("--allow-exec", action="store_true")
     p.add_argument("--changed-from")
     p.add_argument("--keep-going", action="store_true")

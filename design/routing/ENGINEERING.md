@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is implemented. D-070 reopens its review because four M3 requirements have only partial evidence. M4 is not started and remains plan-blocked by D-069.
+- **Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013 is implemented, while R-018 and R-022 remain unbuilt.
 
 ## 2. Engineering Principles
 
@@ -306,7 +306,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-010 | two-rule union test | `test_route.py` |
 | R-011 | hint monotonicity test | `test_route.py` |
 | R-012 | obligation coverage test | `test_route.py` |
-| R-013 | Not built: `--level` downgrade refusal | untraced in `requirement-evidence.json`; D-069 |
+| R-013 | A routed gate command rejects a lower level and accepts an equal or higher level | `RouteLevelCliTests` and `CanonicalFullTests::test_level_may_raise_the_route_minimum`; exact nodes in `requirement-evidence.json` |
 | R-014 | `calibration/gates.json` produces a fact | `test_route.py` |
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |

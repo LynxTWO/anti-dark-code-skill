@@ -44,7 +44,7 @@ Every step works against the real repository, real git state, and the real calib
 | M1 | Done | Extend the catalog with V21 Affected-unit testing and V22 Input fuzz testing, as settled by D-016. No other capability id is added in this milestone. |
 | M2 | Done, 2026-08-30 | The pure layer, closed through round nine. Q-01 through Q-06 are resolved or recorded: Q-05 is proven against a real blobless clone (D-060) rather than blocked, and M36, M47, and M48 are held. Linux is a required replay host (D-058). |
 | M3 | Implemented | Policy schema and template, this repository's policy installed with every rule proposed (D-064), the receipt writer and verifier, and the `route` subcommand with `--write` and `--verify`. D-070's four partial requirements are closed by contract: D-071 grades every self-grading path class as authority and refuses a policy that does not, and D-072 refuses a tree holding a submodule rather than pretending to bind one. The slice still needs its human walkthrough. |
-| M4 | Not started; plan blocked | Shadow comparator and non-skipping gate binding. D-069 requires a candidate route for proposed rules and a real before-and-after gate contract before implementation. |
+| M4 | In progress | R-013 is implemented. R-018, R-022, and the non-authoritative candidate comparator remain. |
 
 M1 is first because a rule cannot name an obligation until the two catalog entries settled by D-016 exist, and D-004 made obligations capability ids.
 
@@ -164,7 +164,7 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 ## 11. Slice definition of done
 
 - [ ] All acceptance criteria pass with linked evidence.
-- [~] D-026 through D-047 are resolved in code. The executable evidence map covers R-001 through R-055. D-071 and D-072 close the four partial M3 requirements with collected tests; three unbuilt M4 requirements remain untraced, R-013, R-018, and R-022. None is claimed as passing.
+- [~] D-026 through D-047 are resolved in code. The executable evidence map covers R-001 through R-055. D-071 and D-072 close the four partial M3 requirements with collected tests; R-013 is now traced to collected process and unit tests, while R-018 and R-022 remain untraced.
 - [ ] All EDD guardrails hold. No unlabeled shortcuts inside the boundary.
 - [ ] Nothing in the repository is able to skip a check as a result of this slice.
 - [ ] V21 and V22 added exactly as D-016 records. Q-002 and Q-003 still open and still not blocking.

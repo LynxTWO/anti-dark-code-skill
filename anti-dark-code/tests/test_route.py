@@ -2712,6 +2712,17 @@ INSTALLED_CALIBRATION = (REPO_ROOT / ".agents" / "skills" / "anti-dark-code"
                          / "calibration")
 
 
+class CanonicalFullTests(unittest.TestCase):
+    def test_level_may_raise_the_route_minimum(self) -> None:
+        # Accepting the lower request, or defaulting an absent request to zero,
+        # would let the command run less verification than the receipt requires.
+        check = getattr(load_adc(), "check_route_level", None)
+        self.assertIsNotNone(check, "adc.py has no route-level guard")
+        self.assertEqual((True, 2), check(2, None))
+        self.assertEqual((True, 3), check(2, 3))
+        self.assertEqual((False, 2), check(2, 1))
+
+
 class SelfGradingAuthorityTests(unittest.TestCase):
     """R-005 and R-021 against the installed policy, with the rules approved.
 
@@ -3025,8 +3036,11 @@ REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
 
 
 class RequirementTraceabilityTests(unittest.TestCase):
+    # Reviewed by Codex in round twelve. R-013 left this set only after the
+    # lower and higher process exits plus the absent-level contract collected
+    # and passed; a node-id mention alone would repeat D-070.
     REVIEWED_UNTRACED = frozenset({
-        "R-005", "R-013", "R-017", "R-018", "R-019", "R-021", "R-022"})
+        "R-005", "R-017", "R-018", "R-019", "R-021", "R-022"})
 
     def test_the_requirement_evidence_map_exists(self) -> None:
         self.assertTrue(
