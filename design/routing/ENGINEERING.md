@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013 and R-022 are implemented, while R-018 remains unbuilt.
+- **Current gate:** M3 is closed by D-071 and D-072. M4 is in progress in round twelve: R-013, R-018, and R-022 are implemented, while the candidate comparator remains.
 
 ## 2. Engineering Principles
 
@@ -311,7 +311,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
 | R-017 | Bytes, index, and symlink checks, plus a real submodule fixture proving the receipt is refused and an ordinary tree still verifies fresh | `SubmoduleContractTests` in `test_route.py`; D-072 |
-| R-018 | Not built: mutation before launch and during a gate invalidates its evidence | untraced in `requirement-evidence.json`; D-069 |
+| R-018 | A fresh receipt is required before selection; identity is captured immediately before and after each real gate, movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests` and `StaleReceiptCliTests`; exact nodes in `requirement-evidence.json` |
 | R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
 | R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
@@ -405,7 +405,7 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-003 | A rule is added that is broader than intended | requirements quietly loosen for a whole path class | rules carry `review_status`, and policy changes force the full route | Watching |
 | U-004 | Q-001 resolves to fewer than five new capabilities | the catalog extension is smaller than planned | D-016 limits the extension to affected-unit testing and input fuzz testing | Resolved |
 | U-005 | Provisional routing encourages an agent to under-plan before implementing | work starts too narrow | the final route supersedes, and slice 1 builds no provisional path | Watching |
-| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 content identity, and a tree holding state the binding cannot follow is refused (D-072). R-018 before-and-after verification is still unbuilt, so this stays open | Open |
+| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 binds content and refuses unbindable state (D-072); R-018 verifies the receipt before selection and fingerprints immediately before and after every routed gate | Resolved |
 | U-007 | A capability and a gate appear in parallel arrays with no provable relationship | an unrelated gate is treated as evidence | R-016 policy-local capability-to-gate binding | Open |
 | U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table, both measured against the classifier with the rules approved (D-071) | Watching |
 | U-009 | A Git configuration path starts a program or network request before routing | repository code runs at the trust boundary | R-034 hostile execution-family table | Open |

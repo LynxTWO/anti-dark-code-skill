@@ -2802,6 +2802,106 @@ class CanonicalFullTests(unittest.TestCase):
             self.assertNotIn("extra-enabled", planned.stdout)
 
 
+@unittest.skipUnless(shutil.which("git"), "git is required")
+class GateLifecycleTests(unittest.TestCase):
+    """R-018 against a real repository and the real gate subprocess loop."""
+
+    def setUp(self) -> None:
+        self.adc = load_adc()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.repo = Path(self.tmp.name) / "repo"
+        self.repo.mkdir()
+        self._git("init", "-q", "-b", "main", ".")
+        self._git("config", "user.email", "t@example.invalid")
+        self._git("config", "user.name", "Test")
+        (self.repo / "tracked.txt").write_text("before\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "fixture")
+
+        self.calibration = self.repo / ".anti-dark-code" / "calibration"
+        self.calibration.mkdir(parents=True)
+        self.writer = {
+            "id": "writes-during-run", "level": 3, "enabled": True,
+            "review_status": "approved", "cwd": ".", "timeout_seconds": 30,
+            "argv": [
+                sys.executable, "-c",
+                "from pathlib import Path; "
+                "Path('tracked.txt').write_text('during\\n', encoding='utf-8')",
+            ],
+        }
+        self.stable = {
+            "id": "changes-nothing", "level": 3, "enabled": True,
+            "review_status": "approved", "cwd": ".", "timeout_seconds": 30,
+            "argv": [sys.executable, "-c", "raise SystemExit(0)"],
+        }
+        self._write_gates([self.writer, self.stable])
+
+    def _git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", str(self.repo), *args], capture_output=True,
+            text=True, timeout=60, check=True)
+
+    def _write_gates(self, gates: list[dict[str, object]]) -> None:
+        (self.calibration / "gates.json").write_text(json.dumps({
+            "schema_version": 1,
+            "execution_policy": {"owner_confirmed_safe_to_execute": True},
+            "gates": gates,
+        }, indent=2) + "\n", encoding="utf-8")
+        assessment = self.adc.assess_repository_binding(
+            self.repo, self.calibration)
+        self.adc.write_repository_binding(
+            self.calibration, assessment,
+            accepted_unbound=assessment["status"] == "unbound",
+            rebound=assessment["status"] == "mismatch")
+
+    def _summary(self) -> dict[str, object]:
+        summaries = sorted(
+            (self.repo / ".anti-dark-code" / "runs").glob("*/summary.json"))
+        self.assertEqual(1, len(summaries))
+        return json.loads(summaries[0].read_text(encoding="utf-8"))
+
+    def test_a_mutation_during_a_gate_marks_that_gate_stale(self) -> None:
+        code = self.adc.run_gates(
+            self.repo, level=3, allow_exec=True,
+            changed_from=None, keep_going=False)
+        summary = self._summary()
+        stale = {row["gate_id"] for row in summary["stale"]}
+        self.assertIn("writes-during-run", stale)
+        self.assertNotEqual(summary["stale"][0]["identity_before"],
+                            summary["stale"][0]["identity_after"])
+        self.assertEqual(2, code)
+
+    def test_a_gate_that_changes_nothing_is_not_marked_stale(self) -> None:
+        self._write_gates([self.stable])
+        code = self.adc.run_gates(
+            self.repo, level=3, allow_exec=True,
+            changed_from=None, keep_going=False)
+        summary = self._summary()
+        self.assertEqual([], summary["stale"])
+        self.assertEqual(1, summary["passed"])
+        self.assertEqual(0, code)
+
+    def test_a_stale_gate_result_cannot_satisfy_an_obligation(self) -> None:
+        self.assertFalse(self.adc.obligations_are_covered(
+            {"V21": {"full-suite"}},
+            approved_gate_ids={"full-suite"},
+            outcomes={"full-suite": "stale"}))
+
+    def test_an_empty_obligation_map_is_not_covered(self) -> None:
+        self.assertFalse(self.adc.obligations_are_covered(
+            {}, approved_gate_ids={"full-suite"}, outcomes={}))
+
+    def test_the_run_stops_when_the_tree_moves_even_with_keep_going(self) -> None:
+        code = self.adc.run_gates(
+            self.repo, level=3, allow_exec=True,
+            changed_from=None, keep_going=True)
+        summary = self._summary()
+        self.assertEqual(2, code)
+        self.assertLess(summary["passed"] + len(summary["failures"]),
+                        summary["planned"])
+
+
 class SelfGradingAuthorityTests(unittest.TestCase):
     """R-005 and R-021 against the installed policy, with the rules approved.
 
@@ -3115,11 +3215,11 @@ REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"
 
 
 class RequirementTraceabilityTests(unittest.TestCase):
-    # Reviewed by Codex in round twelve. R-013 and R-022 left this set only
-    # after their process-level floor and real canonical-run contracts
+    # Reviewed by Codex in round twelve. R-013, R-018, and R-022 left this set
+    # only after their process-level refusals and real runner contracts
     # collected and passed; a node-id mention alone would repeat D-070.
     REVIEWED_UNTRACED = frozenset({
-        "R-005", "R-017", "R-018", "R-019", "R-021"})
+        "R-005", "R-017", "R-019", "R-021"})
 
     def test_the_requirement_evidence_map_exists(self) -> None:
         self.assertTrue(

@@ -170,7 +170,17 @@ def _identity_and_unsupported(
     D-072.
     """
     run = runner or route_module._default_runner(repo)
-    index_state, entries = route_module._repo_fingerprint(repo, run)
+    fingerprint = route_module._repo_fingerprint(repo, run)
+    if fingerprint == ("unreadable",):
+        # Provisional D-073. An acquisition failure is not an identity. Giving
+        # it a digest would let unrelated failures compare equal; unpacking it
+        # used to leak a ValueError traceback instead of refusing cleanly.
+        raise ReceiptError(
+            "repository fingerprint is unreadable; binding is refused")
+    if len(fingerprint) != 2:
+        raise ReceiptError(
+            "repository fingerprint has an unsupported result shape")
+    index_state, entries = fingerprint
     mark = getattr(route_module, "GITLINK_MARK", "gitlink-unsupported") + ":"
     unsupported = tuple(sorted(
         str(entry[0]) for entry in entries

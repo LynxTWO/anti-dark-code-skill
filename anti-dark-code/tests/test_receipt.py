@@ -196,6 +196,18 @@ class ReceiptFreshnessTests(unittest.TestCase):
         self.assertTrue(verdict.fresh, verdict.reasons)
         self.assertEqual(0, verdict.exit_code)
 
+    def test_an_unreadable_fingerprint_refuses_binding_construction(self) -> None:
+        """Provisional D-073: unreadable input is not a fake identity."""
+        with self.assertRaises(RECEIPT.ReceiptError) as caught:
+            RECEIPT.collect_binding(
+                self.repo, ROUTE,
+                base_identity=self.head, head_identity=self.head,
+                policy_source=POLICY, gates_source=GATES,
+                calibration_paths=[self.calibration],
+                repo_binding_identity="repo-1",
+                runner=lambda _args: None)
+        self.assertIn("fingerprint", str(caught.exception))
+
     def test_a_changed_worktree_is_stale(self) -> None:
         receipt = self._receipt()
         (self.repo / "src.py").write_text("changed\n", encoding="utf-8")

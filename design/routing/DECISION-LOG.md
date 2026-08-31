@@ -1934,3 +1934,26 @@ A repository containing a submodule cannot use routing receipts and always takes
 
 Revisit when:
 Submodule state is bound for real, with a fixture per Git behavior the claim depends on, or a repository that installs this skill needs receipts over a tree containing one.
+
+## D-073: An unreadable repository fingerprint refuses the binding provisionally
+
+Date: 2026-08-30
+Status: Provisional
+Area: M4, R-017, R-018, `_repo_fingerprint`
+
+Context:
+`_repo_fingerprint` returns `("unreadable",)` when either `git ls-files` call fails. `worktree_identity` and `_identity_and_unsupported` previously unpacked that one-item sentinel into two names, leaking a `ValueError` traceback at exactly the boundary where a clean refusal matters.
+
+Three narrow alternatives remain owner-reviewable: (1) raise a typed `ReceiptError` and refuse to construct or verify a binding; (2) return an identity that can never match, making every receipt over the failed read stale; or (3) treat the read as an incomplete snapshot, force the full recipe, and refuse a receipt in the same shape as D-072.
+
+Decision:
+Implement alternative 1 provisionally. `_identity_and_unsupported` recognizes the sentinel and raises `ReceiptError`; the route writer, route verifier, and routed gate preflight catch that type, print `REFUSED`, and return 2. No digest is minted for a failed read.
+
+Because:
+Two unrelated acquisition failures must not compare as one identity, and the receipt layer cannot honestly turn a mid-read Git failure into a complete snapshot. The typed refusal is the narrowest change that closes the crash without inventing authority or weakening M4.
+
+Consequences:
+Binding construction and verification fail closed with a named error instead of a traceback. This is provisional implementation evidence, not owner approval of the long-term unreadable-state model; round thirteen may replace it with alternative 2 or 3 while preserving clean refusal.
+
+Revisit when:
+The owner selects the durable unreadable-fingerprint semantics in round thirteen, or another fingerprint sentinel is introduced.

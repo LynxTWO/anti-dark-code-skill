@@ -1,8 +1,6 @@
 {
   "schema_version": 2,
-  "untraced": [
-    "R-018"
-  ],
+  "untraced": [],
   "requirements": {
     "R-001": {
       "tests": [
@@ -119,7 +117,16 @@
         "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_the_identity_alone_still_cannot_see_the_submodule_move"
       ]
     },
-    "R-018": {},
+    "R-018": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_changes_nothing_is_not_marked_stale",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_mutation_during_a_gate_marks_that_gate_stale",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_stale_gate_result_cannot_satisfy_an_obligation",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_an_empty_obligation_map_is_not_covered",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_the_run_stops_when_the_tree_moves_even_with_keep_going",
+        "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_a_stale_receipt_refuses_the_run_with_exit_two"
+      ]
+    },
     "R-019": {
       "tests": [
         "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_repository_mid_merge_still_acquires",

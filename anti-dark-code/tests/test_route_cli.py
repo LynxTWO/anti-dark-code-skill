@@ -199,9 +199,7 @@ class RouteCommandTests(unittest.TestCase):
 
 
 @unittest.skipUnless(shutil.which("git"), "git is required")
-class RouteLevelCliTests(unittest.TestCase):
-    """R-013 at the process boundary where exit status is authoritative."""
-
+class _RoutedGateCliFixture(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -262,6 +260,10 @@ class RouteLevelCliTests(unittest.TestCase):
             [sys.executable, "-B", str(ADC), "gates", "--repo", str(self.repo),
              *args], capture_output=True, text=True, timeout=300)
 
+
+class RouteLevelCliTests(_RoutedGateCliFixture):
+    """R-013 at the process boundary where exit status is authoritative."""
+
     def test_a_level_below_the_route_minimum_exits_two_and_names_it(self) -> None:
         # Removing the downgrade refusal makes this process exit zero.
         done = self._run("--route", str(self.receipt), "--level", "0")
@@ -274,6 +276,17 @@ class RouteLevelCliTests(unittest.TestCase):
         done = self._run("--route", str(self.receipt), "--level", "3")
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
         self.assertIn("Level <= 3", done.stdout)
+
+
+class StaleReceiptCliTests(_RoutedGateCliFixture):
+    """R-018 refusal at the process boundary, including exit status."""
+
+    def test_a_stale_receipt_refuses_the_run_with_exit_two(self) -> None:
+        self.source.write_text("moved after receipt\n", encoding="utf-8")
+        done = self._run("--route", str(self.receipt))
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("STALE", done.stdout)
+        self.assertIn("ADC-STALE-004", done.stdout)
 
 
 if __name__ == "__main__":

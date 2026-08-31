@@ -1967,5 +1967,137 @@
       }
     ],
     "pytest": "2 failed, 220 passed, 1 skipped, 6 deselected in 37.81s"
+  },
+  {
+    "id": "M69",
+    "name": "gate runner reuses the pre-gate identity",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "                identity_after = receipt_module.worktree_identity(\n                    repo, route_module)",
+    "new": "                identity_after = identity_before",
+    "verdict": "caught",
+    "note": "R-018. Reusing the pre-gate value removes the post-gate observation and accepts a gate that changes a tracked file while it runs.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 228 passed, 6 deselected in 10.35s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 227 passed, 1 skipped, 6 deselected in 41.37s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "2 failed, 228 passed, 6 deselected in 10.35s"
+  },
+  {
+    "id": "M70",
+    "name": "keep-going continues after a stale gate",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "            # --keep-going governs failing gates, not a repository that moved\n            # underneath the evidence boundary.\n            break",
+    "new": "            # --keep-going governs failing gates, not a repository that moved\n            # underneath the evidence boundary.\n            if not keep_going:\n                break",
+    "verdict": "caught",
+    "note": "R-018. Repository movement ends the run even when ordinary gate failures would be allowed to continue.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 229 passed, 6 deselected in 8.87s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 228 passed, 1 skipped, 6 deselected in 42.45s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "1 failed, 229 passed, 6 deselected in 8.87s"
+  },
+  {
+    "id": "M71",
+    "name": "empty obligations are vacuous coverage",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    return bool(obligations) and all(",
+    "new": "    return all(",
+    "verdict": "caught",
+    "note": "R-018. all([]) is true, so the explicit nonempty guard prevents a missing obligation map from reading as complete coverage.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 229 passed, 6 deselected in 8.70s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 228 passed, 1 skipped, 6 deselected in 42.07s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "1 failed, 229 passed, 6 deselected in 8.70s"
+  },
+  {
+    "id": "M73",
+    "name": "unreadable fingerprint falls through to tuple unpacking",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "    if fingerprint == (\"unreadable\",):\n        # Provisional D-073. An acquisition failure is not an identity. Giving\n        # it a digest would let unrelated failures compare equal; unpacking it\n        # used to leak a ValueError traceback instead of refusing cleanly.\n        raise ReceiptError(\n            \"repository fingerprint is unreadable; binding is refused\")\n    if len(fingerprint) != 2:\n        raise ReceiptError(\n            \"repository fingerprint has an unsupported result shape\")\n",
+    "new": "",
+    "verdict": "caught",
+    "note": "Provisional D-073. A failed Git read must raise ReceiptError instead of leaking the prior ValueError traceback.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed in 0.58s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed in 6.96s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 19 passed in 0.58s"
   }
 ]

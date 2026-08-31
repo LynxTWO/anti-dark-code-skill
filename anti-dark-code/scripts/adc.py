@@ -2580,6 +2580,24 @@ def check_route_level(route_minimum: int,
     return True, requested
 
 
+def obligations_are_covered(
+    obligations: dict[str, Sequence[str]] | Any,
+    approved_gate_ids: set[str],
+    outcomes: dict[str, str],
+) -> bool:
+    """Whether every required capability has an approved passing gate.
+
+    An empty mapping is not evidence of coverage, and only the closed `pass`
+    outcome can satisfy an obligation. In particular, a zero exit code whose
+    repository identity moved is `stale` and satisfies nothing.
+    """
+    return bool(obligations) and all(
+        bool(gate_ids) and any(
+            gate_id in approved_gate_ids and outcomes.get(gate_id) == "pass"
+            for gate_id in gate_ids)
+        for gate_ids in obligations.values())
+
+
 def _receipt_route(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise SystemExit(f"REFUSED: no routing receipt at {path}")
@@ -2706,6 +2724,12 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
 
     ensure_run_gitignore(repo)
     require_no_symlink_components(repo / ".anti-dark-code" / "runs", repo, "gate run creation")
+    route_module, receipt_module = load_router_helpers()
+    # Routed verification requires Git. Preserve the pre-existing unversioned
+    # gate-runner mode, but once a run starts inside a repository every capture
+    # must succeed; a later Git failure is a refusal, never a disabled check.
+    monitor_identity = (
+        git_output(repo, ["rev-parse", "--is-inside-work-tree"]) == "true")
     source_identity = current_source_identity(repo)
     gate_material = [
         {
@@ -2720,6 +2744,9 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     run_dir = repo / ".anti-dark-code" / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
     failures: list[dict[str, Any]] = []
+    stale: list[dict[str, Any]] = []
+    outcomes: dict[str, str] = {}
+    identity_refusal: str | None = None
     passed = 0
     started_all = time.monotonic()
 
@@ -2745,6 +2772,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         packet_path = run_dir / f"{failure_id}.json"
         write_json_atomic(packet_path, packet)
         failures.append({"gate_id": gate_id, "failure_id": failure_id, "packet": rel(packet_path, repo), "config_error": message})
+        outcomes[gate_id] = "config-error"
         print(f"FAIL {gate_id} config={message} packet={rel(packet_path, repo)}")
 
     for gate in gates:
@@ -2785,9 +2813,15 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         launch_error: str | None = None
         timeout_termination: dict[str, Any] | None = None
         proc: subprocess.Popen[Any] | None = None
+        identity_before: str | None = None
         try:
             raw_path.touch(mode=0o600, exist_ok=False)
             with raw_path.open("w", encoding="utf-8", newline="\n") as raw_log:
+                if monitor_identity:
+                    # Immediately before Popen: bounded-log setup is complete,
+                    # and no executable repository code has run.
+                    identity_before = receipt_module.worktree_identity(
+                        repo, route_module)
                 proc = subprocess.Popen(
                     argv,
                     cwd=cwd,
@@ -2810,6 +2844,13 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
                 except KeyboardInterrupt:
                     terminate_gate_process_tree(proc)
                     raise
+        except receipt_module.ReceiptError as exc:
+            identity_refusal = str(exc)
+            exit_code = 125
+            if raw_path.exists():
+                write_text_atomic(
+                    raw_path,
+                    f"[anti-dark-code] REFUSED before gate launch: {exc}\n")
         except FileNotFoundError as exc:
             exit_code = 127
             launch_error = str(exc)
@@ -2826,8 +2867,37 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
                     raw_path.unlink(missing_ok=True)
 
         duration = round(time.monotonic() - started, 3)
+        if identity_refusal is not None:
+            print(f"REFUSED: {identity_refusal}")
+            break
+
+        identity_after: str | None = None
+        if monitor_identity:
+            try:
+                # After redaction and before pass/fail classification. The run
+                # store is excluded, so retaining the log cannot stale itself.
+                identity_after = receipt_module.worktree_identity(
+                    repo, route_module)
+            except receipt_module.ReceiptError as exc:
+                identity_refusal = str(exc)
+                identity_after = "<unreadable>"
+
+        if identity_before != identity_after:
+            stale.append({
+                "gate_id": gate_id,
+                "identity_before": identity_before,
+                "identity_after": identity_after,
+                "exit_code": exit_code,
+            })
+            outcomes[gate_id] = "stale"
+            print(f"STALE {gate_id} exit={exit_code} ({duration:.3f}s)")
+            # --keep-going governs failing gates, not a repository that moved
+            # underneath the evidence boundary.
+            break
+
         if exit_code == 0:
             passed += 1
+            outcomes[gate_id] = "pass"
             print(f"PASS {gate_id} ({duration:.3f}s)")
             continue
 
@@ -2870,6 +2940,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         packet_path = run_dir / f"{failure_id}.json"
         write_json_atomic(packet_path, packet)
         failures.append({"gate_id": gate_id, "failure_id": failure_id, "packet": rel(packet_path, repo), "exit_code": exit_code})
+        outcomes[gate_id] = "fail"
         print(f"FAIL {gate_id} exit={exit_code} packet={rel(packet_path, repo)}")
         if not keep_going:
             break
@@ -2886,12 +2957,25 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         ],
         "changed_from": changed_from,
         "changed_files": changed or [],
+        "planned": len(gates),
+        "planned_gate_ids": [
+            str(g.get("id") or "unnamed") for g in gates],
         "passed": passed,
         "failed": len(failures),
+        "outcomes": outcomes,
+        "stale": stale,
         "duration_seconds": duration_all,
         "failures": failures,
     }
     write_json_atomic(run_dir / "summary.json", summary)
+    if stale or identity_refusal is not None:
+        detail = (f", refusal={identity_refusal}"
+                  if identity_refusal is not None else "")
+        print(
+            f"RESULT: {passed} passed, {len(failures)} failed, "
+            f"{len(stale)} stale{detail}, {duration_all:.3f}s. "
+            f"Redacted artifacts: {rel(run_dir, repo)}")
+        return 2
     if failures:
         print(f"RESULT: {passed} passed, {len(failures)} failed, {duration_all:.3f}s. Redacted artifacts: {rel(run_dir, repo)}")
         return 1
@@ -3865,7 +3949,19 @@ def command_gates(args: argparse.Namespace) -> int:
     requested = args.level
     force_full = False
     if args.route:
-        route = _receipt_route(Path(args.route))
+        repo = Path(args.repo).resolve()
+        receipt_path = Path(args.route)
+        route_module, receipt_module = load_router_helpers()
+        calibration = safe_calibration_dir(
+            repo, "routing receipt verification")
+        verify_args = argparse.Namespace(
+            repo=str(repo), calibration=str(calibration),
+            verify=str(receipt_path))
+        verdict = _route_verify(
+            verify_args, repo, route_module, receipt_module)
+        if verdict != 0:
+            return 2
+        route = _receipt_route(receipt_path)
         minimum = route["minimum_level"]
         force_full = route["force_full"]
         accepted, level = check_route_level(minimum, requested)
@@ -4109,12 +4205,17 @@ def command_route(args: argparse.Namespace) -> int:
                               capture_output=True, text=True, timeout=30)
         return done.stdout.strip() if done.returncode == 0 else None
 
-    binding = receipt_module.collect_binding(
-        repo, route_module,
-        base_identity=identity(args.base), head_identity=identity("HEAD"),
-        policy_source=policy_source, gates_source=gates_source,
-        calibration_paths=calibration_paths,
-        repo_binding_identity=_route_binding_identity(_route_calibration_dir(args)))
+    try:
+        binding = receipt_module.collect_binding(
+            repo, route_module,
+            base_identity=identity(args.base), head_identity=identity("HEAD"),
+            policy_source=policy_source, gates_source=gates_source,
+            calibration_paths=calibration_paths,
+            repo_binding_identity=_route_binding_identity(
+                _route_calibration_dir(args)))
+    except receipt_module.ReceiptError as error:
+        print(f"REFUSED: {error}")
+        return 2
 
     payload = receipt_module.authoritative_payload(
         route, facts, snapshot, binding, gates_source)
@@ -4194,16 +4295,21 @@ def _route_verify(args: argparse.Namespace, repo: Path,
                               capture_output=True, text=True, timeout=30)
         return done.stdout.strip() if done.returncode == 0 else None
 
-    current = receipt_module.collect_binding(
-        repo, route_module,
-        # The base the receipt was written against, not a fresh guess. Verifying
-        # against a different base would report the receipt stale for a reason
-        # that has nothing to do with the repository moving.
-        base_identity=recorded.get("base_identity"),
-        head_identity=identity("HEAD"),
-        policy_source=policy_source, gates_source=gates_source,
-        calibration_paths=calibration_paths,
-        repo_binding_identity=_route_binding_identity(_route_calibration_dir(args)))
+    try:
+        current = receipt_module.collect_binding(
+            repo, route_module,
+            # The base the receipt was written against, not a fresh guess.
+            # Verifying against a different base would report the receipt stale
+            # for a reason unrelated to repository movement.
+            base_identity=recorded.get("base_identity"),
+            head_identity=identity("HEAD"),
+            policy_source=policy_source, gates_source=gates_source,
+            calibration_paths=calibration_paths,
+            repo_binding_identity=_route_binding_identity(
+                _route_calibration_dir(args)))
+    except receipt_module.ReceiptError as error:
+        print(f"REFUSED: {error}")
+        return 2
 
     verdict = receipt_module.verify_receipt(receipt, current)
     if verdict.fresh:
