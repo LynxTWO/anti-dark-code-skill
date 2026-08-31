@@ -347,11 +347,40 @@ class RawParserTests(unittest.TestCase):
             self.assertIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
                           f"mode {mode} was accepted")
 
-    def test_every_real_git_mode_is_accepted(self) -> None:
+    def test_every_real_git_mode_parses_into_a_record(self) -> None:
+        # Accepted means parsed, not waved through. Every real mode has to
+        # produce its record; whether the snapshot stays complete is a separate
+        # question, and 160000 is the mode where the two answers differ.
         for mode in ("100644", "100755", "120000", "160000"):
             result = self.route.parse_raw_z(
                 raw(f":{mode} {mode} {OBJ_A} {OBJ_B} M{NUL}f.py{NUL}"), "committed")
-            self.assertEqual(result.problems, (), f"mode {mode} was refused")
+            self.assertEqual(len(result.inputs), 1, f"mode {mode} produced no record")
+            self.assertNotIn("ADC-ROUTE-MALFORMED-RECORD", result.problems,
+                             f"mode {mode} was refused as malformed")
+
+    def test_only_the_gitlink_mode_withdraws_snapshot_completeness(self) -> None:
+        # D-072. A gitlink names a commit in another repository, which nothing
+        # in this snapshot represents, so the record parses and the snapshot
+        # stops calling itself complete.
+        for mode in ("100644", "100755", "120000"):
+            result = self.route.parse_raw_z(
+                raw(f":{mode} {mode} {OBJ_A} {OBJ_B} M{NUL}f.py{NUL}"), "committed")
+            self.assertEqual(result.problems, (), f"mode {mode} raised a problem")
+        gitlink = self.route.parse_raw_z(
+            raw(f":160000 160000 {OBJ_A} {OBJ_B} M{NUL}vendor{NUL}"), "committed")
+        self.assertEqual(gitlink.problems, ("ADC-ROUTE-SUBMODULE-UNSUPPORTED",))
+        self.assertEqual(gitlink.inputs[0].path, "vendor")
+
+    def test_a_submodule_added_or_deleted_is_also_unsupported(self) -> None:
+        # The null mode on one side is creation or deletion. Reading only the
+        # new mode would miss a submodule being removed, which changes the tree
+        # the same way.
+        added = self.route.parse_raw_z(
+            raw(f":000000 160000 {'0' * 40} {OBJ_B} A{NUL}vendor{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-SUBMODULE-UNSUPPORTED", added.problems)
+        deleted = self.route.parse_raw_z(
+            raw(f":160000 000000 {OBJ_A} {'0' * 40} D{NUL}vendor{NUL}"), "committed")
+        self.assertIn("ADC-ROUTE-SUBMODULE-UNSUPPORTED", deleted.problems)
 
     def test_a_score_on_a_status_that_cannot_carry_one_is_rejected(self) -> None:
         # Git writes a similarity score only for C and R.
@@ -2678,6 +2707,277 @@ class SuiteIntegrityTests(unittest.TestCase):
                                return_value=launcher_error):
             with self.assertRaises(harness.SuiteBroken):
                 harness.run_suite(("suite.py",))
+
+INSTALLED_CALIBRATION = (REPO_ROOT / ".agents" / "skills" / "anti-dark-code"
+                         / "calibration")
+
+
+class SelfGradingAuthorityTests(unittest.TestCase):
+    """R-005 and R-021 against the installed policy, with the rules approved.
+
+    Approving the rules in memory is the whole point. D-064 ships every rule
+    proposed, so an unapproved policy forces the full recipe on everything and
+    every one of these assertions would pass without the classifier saying
+    anything about authority at all. That is the reading that let the router
+    grade a change to itself as Level 2 product code. See D-071.
+    """
+
+    def setUp(self) -> None:
+        self.route = load_route()
+        self.policy_source = json.loads(
+            (INSTALLED_CALIBRATION / "routing-policy.json").read_text(
+                encoding="utf-8"))
+        self.gates_source = json.loads(
+            (INSTALLED_CALIBRATION / "gates.json").read_text(encoding="utf-8"))
+
+    def _approved_policy(self):
+        data = json.loads(json.dumps(self.policy_source))
+        for rule in data["rules"]:
+            rule["review_status"] = "approved"
+        return self.route.load_policy(
+            data, self.gates_source, sorted(CAPABILITY_IDS),
+            self.gates_source["canonical_full_set"])
+
+    def _route_for(self, path: str, policy):
+        snapshot = self.route.ChangeSnapshot(
+            inputs=(self.route.ChangeInput(
+                path=path, change_kind="modify", source="unstaged"),),
+            base="HEAD", base_resolved=True, problems=())
+        facts = self.route.collect_change_facts(snapshot, policy.classifier_map())
+        return self.route.build_route(facts, policy, snapshot_ok=True)
+
+    def test_every_self_grading_path_class_forces_the_full_recipe(self) -> None:
+        policy = self._approved_policy()
+        demoted = []
+        for label, path in self.route.SELF_GRADING_PATHS:
+            route = self._route_for(path, policy)
+            if not route.force_full:
+                demoted.append(f"{label} ({path}) routed at level "
+                               f"{route.minimum_level} without force_full")
+        self.assertEqual([], demoted, "; ".join(demoted))
+
+    def test_each_named_self_grading_path_exists(self) -> None:
+        # A path that has moved would pass the test above by never matching a
+        # cheap rule, which is the accidental pass this contract replaces.
+        missing = [f"{label}: {path}"
+                   for label, path in self.route.SELF_GRADING_PATHS
+                   if not (REPO_ROOT / path).exists()]
+        self.assertEqual([], missing, "; ".join(missing))
+
+    def test_an_ordinary_documentation_path_does_not_force_full(self) -> None:
+        # The counterexample. Without it, a policy that forced full on
+        # everything would satisfy the test above and prove nothing.
+        route = self._route_for("design/routing/ARCHITECTURE.md",
+                                self._approved_policy())
+        self.assertFalse(route.force_full)
+        self.assertEqual(0, route.minimum_level)
+
+    def test_the_installed_policy_loads(self) -> None:
+        self.route.load_policy(
+            json.loads(json.dumps(self.policy_source)), self.gates_source,
+            sorted(CAPABILITY_IDS), self.gates_source["canonical_full_set"])
+
+    def test_a_policy_grading_the_router_as_product_code_is_refused(self) -> None:
+        data = json.loads(json.dumps(self.policy_source))
+        data["classifier"]["surfaces"] = [
+            entry for entry in data["classifier"]["surfaces"]
+            if entry.get("effect") != "verification-authority"
+            or entry.get("glob") == "**/tests/*.py"]
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn("adc_route.py", str(caught.exception))
+
+    def test_an_unmapped_self_grading_path_is_not_a_load_failure(self) -> None:
+        # Unmapped carries confidence unknown, which forces full already. The
+        # guard exists for the path that is classified and classified cheaply,
+        # not for the one no entry describes.
+        data = json.loads(json.dumps(self.policy_source))
+        data["classifier"]["surfaces"] = []
+        policy = self.route.load_policy(
+            data, self.gates_source, sorted(CAPABILITY_IDS),
+            self.gates_source["canonical_full_set"])
+        for _, path in self.route.SELF_GRADING_PATHS:
+            self.assertTrue(self._route_for(path, policy).force_full, path)
+
+
+class SubmoduleContractTests(unittest.TestCase):
+    """R-017 and R-019 for gitlinks, against a real submodule.
+
+    Before D-072 this fixture was the counterexample: an ordinary edit to a
+    tracked file inside the submodule left the receipt binding byte-identical
+    while git reported the parent dirty, so a receipt taken before the edit
+    still verified fresh.
+    """
+
+    def setUp(self) -> None:
+        self.route = load_route()
+        self.receipt = load_module(
+            "adc_receipt", SKILL_ROOT / "scripts" / "adc_receipt.py")
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.child, self.parent = root / "child", root / "parent"
+        self.child.mkdir()
+        self._git(self.child, "init", "-q", "-b", "main", ".")
+        self._identify(self.child)
+        (self.child / "value.txt").write_text("one\n", encoding="utf-8")
+        self._git(self.child, "add", "-A")
+        self._git(self.child, "commit", "-qm", "one")
+        self.first = self._read(self.child, "rev-parse", "HEAD")
+        (self.child / "value.txt").write_text("two\n", encoding="utf-8")
+        self._git(self.child, "commit", "-qam", "two")
+        self.second = self._read(self.child, "rev-parse", "HEAD")
+
+        self.parent.mkdir()
+        self._git(self.parent, "init", "-q", "-b", "main", ".")
+        self._identify(self.parent)
+        (self.parent / "top.txt").write_text("top\n", encoding="utf-8")
+        self._git(self.parent, "add", "-A")
+        self._git(self.parent, "commit", "-qm", "top")
+        added = subprocess.run(
+            ["git", "-C", str(self.parent), "-c", "protocol.file.allow=always",
+             "submodule", "add", "-q", self.child.as_uri(), "vendor"],
+            capture_output=True, text=True)
+        if added.returncode != 0:
+            # A host that refuses a file transport cannot hold this claim, and
+            # a verdict that does not say so reads as evidence. See D-054.
+            self.tmp.cleanup()
+            self.skipTest(f"this host cannot add a file submodule: "
+                          f"{added.stderr.strip()[:120]}")
+        self._git(self.parent, "commit", "-qm", "add submodule")
+        self.sub = self.parent / "vendor"
+        self.runner = self.route._default_runner(self.parent)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _git(self, repo: Path, *args: str) -> None:
+        subprocess.run(["git", "-C", str(repo), *args], check=True,
+                       capture_output=True)
+
+    def _identify(self, repo: Path) -> None:
+        self._git(repo, "config", "user.email", "t@example.invalid")
+        self._git(repo, "config", "user.name", "Test")
+
+    def _read(self, repo: Path, *args: str) -> str:
+        return subprocess.run(["git", "-C", str(repo), *args], check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def _binding(self):
+        return self.receipt.collect_binding(
+            self.parent, self.route, base_identity=None, head_identity=None,
+            policy_source={}, gates_source={}, runner=self.runner)
+
+    def test_a_gitlink_is_reported_as_unbindable(self) -> None:
+        self.assertEqual(("vendor",), tuple(self._binding().unsupported_paths))
+
+    def test_a_receipt_over_a_submodule_tree_never_verifies_fresh(self) -> None:
+        binding = self._binding()
+        receipt = self.receipt.build_receipt(
+            {"schema_version": self.receipt.SCHEMA_VERSION,
+             "binding": binding.as_payload()})
+        # Verified against the very binding it was built from. Every field
+        # matches, and it is still refused, because a matching field cannot
+        # mean the tree stood still when a path in it is unbindable.
+        verdict = self.receipt.verify_receipt(receipt, binding)
+        self.assertFalse(verdict.fresh)
+        self.assertIn(self.receipt.STALE_UNSUPPORTED,
+                      {code for code, _ in verdict.reasons})
+        self.assertEqual(2, verdict.exit_code)
+
+    def test_an_ordinary_tree_still_verifies_fresh(self) -> None:
+        # The counterexample. Without it this contract is satisfied by refusing
+        # every receipt.
+        plain = Path(self.tmp.name) / "plain"
+        plain.mkdir()
+        self._git(plain, "init", "-q", "-b", "main", ".")
+        self._identify(plain)
+        (plain / "top.txt").write_text("top\n", encoding="utf-8")
+        self._git(plain, "add", "-A")
+        self._git(plain, "commit", "-qm", "top")
+        binding = self.receipt.collect_binding(
+            plain, self.route, base_identity=None, head_identity=None,
+            policy_source={}, gates_source={},
+            runner=self.route._default_runner(plain))
+        self.assertEqual((), tuple(binding.unsupported_paths))
+        receipt = self.receipt.build_receipt(
+            {"schema_version": self.receipt.SCHEMA_VERSION,
+             "binding": binding.as_payload()})
+        self.assertTrue(self.receipt.verify_receipt(receipt, binding).fresh)
+
+    def test_the_identity_alone_still_cannot_see_the_submodule_move(self) -> None:
+        # Recorded rather than fixed. This is why the contract refuses the tree
+        # instead of binding the pointer: the identity is blind here, and a
+        # future change that claims to bind submodule state has to move this.
+        before = self.receipt.worktree_identity(self.parent, self.route, self.runner)
+        self._git(self.sub, "checkout", "-q", self.first)
+        after = self.receipt.worktree_identity(self.parent, self.route, self.runner)
+        self.assertEqual(self.first, self._read(self.sub, "rev-parse", "HEAD"))
+        self.assertEqual(before, after)
+
+    def test_an_untracked_embedded_repository_is_also_unbindable(self) -> None:
+        # Not a submodule: no gitlink, no .gitmodules entry. Git still refuses
+        # to look inside it and lists it as a directory with a trailing slash,
+        # so the fingerprint can bind its contents no better than a gitlink's.
+        # This is why the test is "is a directory" rather than "mode 160000".
+        plain = Path(self.tmp.name) / "host"
+        plain.mkdir()
+        self._git(plain, "init", "-q", "-b", "main", ".")
+        self._identify(plain)
+        (plain / "top.txt").write_text("top\n", encoding="utf-8")
+        self._git(plain, "add", "-A")
+        self._git(plain, "commit", "-qm", "top")
+        inner = plain / "embedded"
+        inner.mkdir()
+        self._git(inner, "init", "-q", "-b", "main", ".")
+        self._identify(inner)
+        (inner / "x.txt").write_text("x\n", encoding="utf-8")
+        self._git(inner, "add", "-A")
+        self._git(inner, "commit", "-qm", "x")
+
+        binding = self.receipt.collect_binding(
+            plain, self.route, base_identity=None, head_identity=None,
+            policy_source={}, gates_source={},
+            runner=self.route._default_runner(plain))
+        self.assertEqual(("embedded/",), tuple(binding.unsupported_paths))
+        receipt = self.receipt.build_receipt(
+            {"schema_version": self.receipt.SCHEMA_VERSION,
+             "binding": binding.as_payload()})
+        self.assertFalse(self.receipt.verify_receipt(receipt, binding).fresh)
+
+    def test_an_ordinary_untracked_directory_is_not_unbindable(self) -> None:
+        # The counterexample for the case above. An untracked directory git
+        # will happily recurse into must not be refused.
+        (self.parent / "notes").mkdir()
+        (self.parent / "notes" / "a.txt").write_text("a\n", encoding="utf-8")
+        binding = self._binding()
+        self.assertEqual(("vendor",), tuple(binding.unsupported_paths))
+
+    def test_a_dirty_submodule_makes_the_snapshot_incomplete(self) -> None:
+        (self.sub / "value.txt").write_text("edited\n", encoding="utf-8")
+        snapshot = self.route.read_change_inputs(self.parent, "HEAD", self.runner)
+        self.assertIn("ADC-ROUTE-SUBMODULE-UNSUPPORTED", snapshot.problems)
+        self.assertFalse(snapshot.complete)
+
+    def test_so_the_route_forces_full(self) -> None:
+        (self.sub / "value.txt").write_text("edited\n", encoding="utf-8")
+        snapshot = self.route.read_change_inputs(self.parent, "HEAD", self.runner)
+        policy_source = json.loads(
+            (INSTALLED_CALIBRATION / "routing-policy.json").read_text(
+                encoding="utf-8"))
+        gates_source = json.loads(
+            (INSTALLED_CALIBRATION / "gates.json").read_text(encoding="utf-8"))
+        for rule in policy_source["rules"]:
+            rule["review_status"] = "approved"
+        policy = self.route.load_policy(
+            policy_source, gates_source, sorted(CAPABILITY_IDS),
+            gates_source["canonical_full_set"])
+        facts = self.route.collect_change_facts(snapshot, policy.classifier_map())
+        route = self.route.build_route(facts, policy, snapshot_ok=snapshot.complete)
+        self.assertTrue(route.force_full)
+        self.assertIn("ADC-ROUTE-SNAPSHOT-INCOMPLETE", route.unknowns)
+
 
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"
 REQUIREMENT_EVIDENCE = (REPO_ROOT / "design" / "routing"

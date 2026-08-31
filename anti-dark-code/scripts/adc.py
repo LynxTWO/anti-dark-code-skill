@@ -4063,10 +4063,25 @@ def command_route(args: argparse.Namespace) -> int:
         # a reader who does not see it will think the router is being cautious
         # for no reason.
         print(f"  snapshot incomplete: {', '.join(sorted(snapshot.problems))}")
+    unsupported = sorted(binding.unsupported_paths)
+    if unsupported:
+        # Printed on the read-only path too, not only before a write. A reader
+        # who runs `route` and sees a plausible line has been told the route is
+        # trustworthy, and for this tree it is the freshness binding, not the
+        # route, that cannot be trusted. See D-072.
+        print(f"  unbindable paths: {', '.join(unsupported)}")
     for capability, gate_ids in sorted(route.obligations.items()):
         print(f"  {capability}: {', '.join(sorted(gate_ids))}")
 
     if args.write:
+        if unsupported:
+            # A receipt that cannot go stale is worse than no receipt: it is a
+            # standing claim that the tree has not moved. Refuse to write one
+            # rather than leave a file that always verifies fresh.
+            print("REFUSED: this tree contains a path the freshness binding "
+                  "cannot hold, so a receipt written here could not go stale: "
+                  + ", ".join(unsupported))
+            return 2
         runs = repo / ".anti-dark-code" / "runs"
         runs.mkdir(parents=True, exist_ok=True)
         target = runs / f"{receipt['run_id']}.json"

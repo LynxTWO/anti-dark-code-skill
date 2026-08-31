@@ -1861,3 +1861,72 @@ M3 remains implemented but review-gated. M4 remains not started for both reasons
 
 Revisit when:
 An owner-reviewed authority-path contract and a submodule-state contract have exact collected tests and implementation evidence, or the confirmed requirements are explicitly revised through the design documents.
+## D-071: A classifier is what makes a path authority, and it is checked at load
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M3, R-005, R-021, D-064, D-070
+
+Context:
+D-070 reopened R-005 and R-021 after finding that their only mapped test built a CI fact by hand. The round-eleven review measured every path class the requirement names against the installed classifier, with the rules approved in memory as D-064 defers rather than removes.
+
+Eleven classes were measured. Five took ordinary routes: the router itself and the installer took the Level 2 product route, the capability catalog and the shipped policy template took the Level 2 schema route, and a routing-owning pass reference took the Level 0 docs route. Two more forced full for a reason that was not the requirement: `calibration/gates.json` and the installed routing policy matched no classifier glob at all, so they were unmapped, and an unmapped path forces full because its confidence is unknown. Only four classes forced full because something had graded them as authority.
+
+D-070 recorded three of the five. The two it missed were the installer and the policy template.
+
+Decision:
+Authority is stated in the classifier and enforced at load.
+
+The shipped policy template classifies the router, the receipt writer, the installer, the capability catalog, every `calibration/*.json`, and every `references/*.md` with the effect `verification-authority`, which the template's existing force-full rule already matches. `load_policy` refuses a policy that matches one of the paths in `SELF_GRADING_PATHS` with only non-authority entries.
+
+The guard checks classification, not rules, and it does not treat an unmapped path as a failure. Both follow from where the guarantee can actually be lost. An unmapped path forces full already. A path classified as authority whose force-full rule was deleted matches no approved rule, which is an unrouted fact, which forces full too. The single reachable hole is a self-grading path matched by an ordinary entry, and that is the one the guard closes.
+
+Because:
+The alternative was a hard escalator inside `build_route`: a path list in code that forces full whatever the policy says. It was rejected. Routing authority already lives in one reviewable place, and a second copy in code would be invisible to the reader approving the policy, which is the same drift the project refuses elsewhere. A classifier entry is data a reviewer reads; a guard that refuses to load an under-classifying policy is not a second routing rule, because it computes no route.
+
+Narrowing R-005 and R-021 to what the classifier happened to cover was also rejected. The requirement was not wrong. The classifier was.
+
+Consequences:
+An installed policy predating this change is refused at load with the demoted paths named, and updating from the template resolves it. Six classifier entries are added, so a self-grading path now emits two facts, one ordinary and one authority; the monotonic union takes the higher, which is what makes the addition safe.
+
+The guard cannot prevent a future round from deleting a `SELF_GRADING_PATHS` entry. `test_each_named_self_grading_path_exists` holds the list against the tree so a stale entry fails rather than passing silently, but the list itself is a review record, like `REVIEWED_UNTRACED`. See U-015.
+
+Revisit when:
+A repository that installs this skill needs a self-grading path this list does not name, or the router gains a module that grades other code.
+
+## D-072: A submodule is refused, not bound
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M3, R-017, R-019, D-070
+
+Context:
+D-070 recorded that no router, receipt, or test module named submodule behavior. The round-eleven review built a real parent repository with a real submodule and measured what that absence costs.
+
+`worktree_identity` keeps each entry's path and its content-and-topology field and deliberately drops size and mtime, because a route does not depend on a timestamp. A gitlink is not a regular file, so it has no content digest: its field is the constant `special:<directory mode>:<topology>`. Nothing in it moves when the submodule does.
+
+Measured, with no timestamp handling and no adversary: an ordinary edit to a tracked file inside the submodule left the receipt binding byte-identical while git reported the parent dirty. Moving the submodule's checked-out commit to a different commit did the same. A control change to an ordinary tracked file moved the binding, so the harness was sound. A receipt taken before either change still verified as fresh.
+
+Acquisition had the matching gap. A gitlink record parsed as an ordinary modification, the snapshot called itself complete, and no problem code was raised.
+
+Decision:
+Fail closed. Bind nothing about a submodule and refuse the tree instead.
+
+`_repo_fingerprint` marks a listed path that is a directory with `GITLINK_MARK`. The test is "is a directory", not "mode 160000", because git lists a directory here for exactly the cases where it will not look inside one: a gitlink from `ls-files`, and an untracked embedded repository from `ls-files --others`, which arrives with a trailing slash. Both hold another repository's state, and the fingerprint can bind neither. An ordinary untracked directory is recursed into and listed as its files, so it is unaffected; a test holds that counterexample. `Binding` carries `unsupported_paths`, inside the hashed authoritative payload. `verify_receipt` returns not fresh with `ADC-STALE-009` whenever the current binding names one, before comparing any other field. `route --write` refuses to write a receipt for such a tree, and `route` prints the unbindable paths on the read-only path too. The raw parser records `ADC-ROUTE-SUBMODULE-UNSUPPORTED` for mode `160000` on either side, which withdraws snapshot completeness and forces the full recipe.
+
+R-017 is amended to match: freshness binds content, modes, index entries, and symlink targets, and refuses to certify a tree holding state it cannot bind. R-019 needed no amendment. It already said unsupported records block selective routing, and a gitlink is now one.
+
+Because:
+Binding real submodule state was the other option, and it is the better end state. It was not taken now because it is a larger surface than it looks: nested submodules, uninitialized submodules, a submodule whose HEAD is detached, one whose remote is unreachable, and the recursion policy for each. Every one of those is a real-repository fixture this slice has not built, and a partial implementation of submodule binding is the same failure D-070 exists to record — evidence that resolves and does not cover the clause.
+
+Refusing is not a smaller version of binding. It is a different, complete guarantee: no receipt over such a tree can ever claim freshness.
+
+Consequences:
+A repository containing a submodule cannot use routing receipts and always takes the full recipe. That is a real cost, and it is the honest one until submodule state is bound.
+
+`SCHEMA_VERSION` becomes 2. A receipt written under schema 1 was produced by code that could not see a submodule, so it is refused as a schema mismatch rather than compared field by field. Receipts are local run artifacts under an ignored path, so nothing durable is invalidated.
+
+`test_the_identity_alone_still_cannot_see_the_submodule_move` records the blindness rather than hiding it. A later change that claims to bind submodule state has to move that assertion, which is where a reviewer will look.
+
+Revisit when:
+Submodule state is bound for real, with a fixture per Git behavior the claim depends on, or a repository that installs this skill needs receipts over a tree containing one.

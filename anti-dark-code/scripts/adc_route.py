@@ -35,6 +35,12 @@ CHANGE_KINDS = frozenset({
 })
 CHANGE_SOURCES = frozenset({"committed", "staged", "unstaged", "untracked"})
 
+# Git's mode for a gitlink, and the marker a fingerprint entry carries for one.
+# Both named once, because a literal repeated across acquisition and freshness
+# is two chances to update one of them.
+GITLINK_MODE = "160000"
+GITLINK_MARK = "gitlink-unsupported"
+
 # Git raw status letters. A letter absent here becomes "unknown" and is
 # reported, so an unrecognised record blocks the fast path instead of passing
 # as an ordinary modification.
@@ -250,6 +256,14 @@ def parse_raw_z(payload: bytes, source: str, width: int | None = None) -> RawPar
         kind = _RAW_STATUS.get(status[0], "unknown")
         if kind == "unknown":
             problems.append("ADC-ROUTE-UNKNOWN-STATUS")
+        if GITLINK_MODE in (old_mode, new_mode):
+            # R-019 already says an unsupported record blocks selective
+            # routing, and a gitlink is one: what changed is a commit in
+            # another repository, which nothing in this snapshot represents.
+            # The row is still kept, because the path is real and a reader
+            # needs to see it; it is the completeness of the snapshot that is
+            # withdrawn, which is what forces the full recipe. See D-072.
+            problems.append("ADC-ROUTE-SUBMODULE-UNSUPPORTED")
 
         wanted = 2 if kind in _TWO_PATH_KINDS else 1
         if index + wanted >= len(fields):
@@ -453,10 +467,27 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
                 continue
             entries.append((relative, size, mtime, f"symlink:{target}:{topology}"))
             continue
+        if stat_module.S_ISDIR(stat.st_mode):
+            # git never lists an ordinary directory here. It lists a directory
+            # for exactly the cases where it will not look inside one: a
+            # gitlink from ls-files, and an untracked embedded repository from
+            # ls-files --others, which arrives with a trailing slash. Both are
+            # the same problem, which is why the test is "is a directory" and
+            # not "mode 160000": whatever is in there is another repository's
+            # business, and the only fields this can record are the directory's
+            # own mode and topology, which do not move when its contents do.
+            #
+            # Measured against real Git: an ordinary edit to a tracked file
+            # inside a submodule left this fingerprint byte-identical while git
+            # reported the parent dirty. The receipt refuses such a tree
+            # instead of binding nothing and calling it fresh. See D-072.
+            entries.append(
+                (relative, size, mtime, f"{GITLINK_MARK}:{stat.st_mode:o}:{topology}"))
+            continue
         if not stat_module.S_ISREG(stat.st_mode):
-            # A directory, device, socket, or gitlink. Record what it is and do
-            # not open it: opening an unsupported special file is exactly the
-            # kind of side effect this fingerprint exists to avoid.
+            # A device or socket. Record what it is and do not open it: opening
+            # an unsupported special file is exactly the kind of side effect
+            # this fingerprint exists to avoid.
             entries.append(
                 (relative, size, mtime, f"special:{stat.st_mode:o}:{topology}"))
             continue
@@ -693,6 +724,67 @@ _UNMAPPED = {
     "sensitivity": "normal",
     "confidence": "unknown",
 }
+
+# One representative real path per self-grading class R-005 and R-021 name.
+# Measured, not assumed: with this repository's rules approved in memory, five
+# of these took ordinary routes. The router graded itself as Level 2 product
+# code, the capability catalog as a Level 2 schema, and a routing-owning pass
+# reference as Level 0 prose. See D-071.
+SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
+    ("router code and Git interpretation", "anti-dark-code/scripts/adc_route.py"),
+    ("receipt authority", "anti-dark-code/scripts/adc_receipt.py"),
+    ("installer and distribution controls", "anti-dark-code/scripts/adc.py"),
+    ("capability catalog", "anti-dark-code/assets/verification-capabilities.json"),
+    ("gate configuration",
+     ".agents/skills/anti-dark-code/calibration/gates.json"),
+    ("routing policy",
+     ".agents/skills/anti-dark-code/calibration/routing-policy.json"),
+    ("routing-owning pass reference",
+     "anti-dark-code/references/00-preflight.md"),
+    ("continuous integration", ".github/workflows/tests.yml"),
+    ("router tests", "anti-dark-code/tests/test_route.py"),
+    ("shared test support", "anti-dark-code/tests/test_adc.py"),
+    ("skill policy", "anti-dark-code/SKILL.md"),
+)
+
+# What counts as grading a path as authority. `verification-authority` is the
+# effect the shipped force-full rule matches. `skill-policy` is the surface its
+# own force-full rule matches, and SKILL.md carries instruction authority
+# rather than verification authority, so both are accepted.
+_AUTHORITY_EFFECTS = frozenset({"verification-authority"})
+_AUTHORITY_SURFACES = frozenset({"skill-policy"})
+
+
+def _check_self_grading(classifier: Mapping[str, Any]) -> None:
+    """Refuse a policy that grades its own authority below authority.
+
+    An unmapped self-grading path is not a failure here. It carries confidence
+    `unknown`, and `build_route` forces the full recipe on that already, so the
+    fail-closed path needs no help. The hole this closes is the other one: a
+    self-grading path matched by an ordinary entry, which is how the router came
+    to route a change to itself as Level 2 product code.
+
+    Checking the classifier rather than the rules is deliberate. A policy that
+    classifies these as authority but ships no force-full rule leaves the fact
+    matching no approved rule, which is an unrouted fact, which forces full too.
+    Classification is therefore the only place the guarantee can be lost.
+    """
+    demoted: list[str] = []
+    for label, path in SELF_GRADING_PATHS:
+        matched = _matching_classifications(path, classifier)
+        if not matched:
+            continue
+        if any(entry["effect"] in _AUTHORITY_EFFECTS
+               or entry["surface"] in _AUTHORITY_SURFACES for entry in matched):
+            continue
+        seen = sorted({f"{e['surface']}/{e['effect']}" for e in matched})
+        demoted.append(f"{label} ({path}) classified as {' and '.join(seen)}")
+    if demoted:
+        raise PolicyError(
+            "the classifier grades this skill's own verification authority "
+            "below authority, so an approved rule could route a change to what "
+            "verifies the repository more cheaply than a change it verifies: "
+            + "; ".join(demoted))
 
 
 def _fact_sort_key(fact: ChangeFact) -> tuple[Any, ...]:
@@ -1274,6 +1366,9 @@ def load_policy(
             raise PolicyError(str(exc)) from exc
         frozen_classifier.append(
             tuple(sorted({"glob": str(entry["glob"]), **attrs}.items())))
+    # After every entry validates, because a classifier with an invalid
+    # dimension has a worse problem than an under-classified path.
+    _check_self_grading(classifier)
 
     recipe_data = data.get("full_recipe")
     if not isinstance(recipe_data, Mapping):

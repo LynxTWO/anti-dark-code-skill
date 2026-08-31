@@ -58,7 +58,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-014 | The fact collector does not drop `.agents/skills/` or `.anti-dark-code/` paths | given a change to `calibration/gates.json`, when collected, then a fact exists for it |
 | R-015 | Rules match one fact at a time with positive predicates only | given a previously matched fact, when any other fact is added, then the first match and its requirements remain present |
 | R-016 | Every capability obligation is bound in policy to one or more explicit gate ids | given a route, when policy validation runs, then each capability has a nonempty gate set and every named gate exists |
-| R-017 | Receipt freshness binds content, modes, index entries, symlink targets, and submodule state rather than status text alone | given a dirty file whose bytes change while its porcelain status stays the same, when verified, then the receipt is stale |
+| R-017 | Receipt freshness binds content, modes, index entries, and symlink targets rather than status text alone, and refuses to certify a tree holding state it cannot bind | given a dirty file whose bytes change while its porcelain status stays the same, when verified, then the receipt is stale; given a tree containing a submodule, when verified, then the receipt is refused and names the unbindable path (D-072) |
 | R-018 | Concurrent repository changes cannot produce accepted gate evidence | given a fresh receipt, when an input changes after preflight or during a gate, then that gate result is marked stale and cannot satisfy an obligation |
 | R-019 | Git acquisition represents old and new rename or copy paths, mode-only and type changes, conflicts, staged, unstaged, untracked, and submodule changes | given each supported record, when acquired, then no routing-relevant path or status is lost; unsupported records block selective routing |
 | R-020 | Agent hints are additive data only | given any valid hint, when applied, then it cannot change facts, rule matches, comparison base, existing set members, a true boolean to false, or the computed minimum level downward |
@@ -298,7 +298,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-002 | shuffled-input hash equality | `test_route.py` |
 | R-003 | unmapped path forces full | `test_route.py` |
 | R-004 | `SKILL.md` classification test | `test_route.py` |
-| R-005 | Partial: one synthetic CI fact; the required real authority-path table is missing | partial tests in `requirement-evidence.json`; D-070 |
+| R-005 | Every self-grading path class routed through the real classifier with the rules approved, plus an ordinary-path counterexample and a load-time refusal | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
 | R-006 | change-kind coverage test | `test_route.py` |
 | R-007 | unreachable base test | `test_route.py` |
 | R-008 | worktree mutation invalidates receipt | `test_route.py` |
@@ -310,11 +310,11 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-014 | `calibration/gates.json` produces a fact | `test_route.py` |
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
-| R-017 | Partial: bytes, index, and symlink checks exist; submodule-state freshness is missing | partial tests in `requirement-evidence.json`; D-070 |
+| R-017 | Bytes, index, and symlink checks, plus a real submodule fixture proving the receipt is refused and an ordinary tree still verifies fresh | `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-018 | Not built: mutation before launch and during a gate invalidates its evidence | untraced in `requirement-evidence.json`; D-069 |
-| R-019 | Partial: rename, copy, mode, type, conflict, and source-union checks exist; submodule representation is missing | partial tests in `requirement-evidence.json`; D-070 |
+| R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
-| R-021 | Partial: one synthetic CI fact; the required real self-grading path table is missing | partial tests in `requirement-evidence.json`; D-070 |
+| R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
 | R-022 | Not built: force-full bypasses changed-file gate globs | untraced in `requirement-evidence.json`; D-069 |
 | R-023 | canonical order and timestamp-independence tests | `test_route.py` |
 | R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
@@ -405,15 +405,16 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-003 | A rule is added that is broader than intended | requirements quietly loosen for a whole path class | rules carry `review_status`, and policy changes force the full route | Watching |
 | U-004 | Q-001 resolves to fewer than five new capabilities | the catalog extension is smaller than planned | D-016 limits the extension to affected-unit testing and input fuzz testing | Resolved |
 | U-005 | Provisional routing encourages an agent to under-plan before implementing | work starts too narrow | the final route supersedes, and slice 1 builds no provisional path | Watching |
-| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 content identity and R-018 before-and-after verification | Open |
+| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 content identity, and a tree holding state the binding cannot follow is refused (D-072). R-018 before-and-after verification is still unbuilt, so this stays open | Open |
 | U-007 | A capability and a gate appear in parallel arrays with no provable relationship | an unrelated gate is treated as evidence | R-016 policy-local capability-to-gate binding | Open |
-| U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table | Open |
+| U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table, both measured against the classifier with the rules approved (D-071) | Watching |
 | U-009 | A Git configuration path starts a program or network request before routing | repository code runs at the trust boundary | R-034 hostile execution-family table | Open |
 | U-010 | A mutable or malformed policy bypasses its one validation pass | an unreviewed rule produces a cheap route | R-035 and R-036 | Open |
 | U-011 | Route equality hides order differences later preserved by a receipt | authoritative bytes depend on fact order | R-038 | Open |
 | U-012 | A copied policy retains loader provenance after authority fields change | an unreviewed recipe produces a cheap route | R-049 and D-042 | Open |
 | U-013 | Index bytes or path topology change while content metadata stays equal | acquisition reports a changed repository as complete | R-050 and D-043 | Open |
 | U-014 | Per-call width inference or one status-side table disagrees with repository Git output | valid conflicts block or mixed repository identity is accepted | R-051 and D-044 | Open |
+| U-015 | A future round removes an id from the `untraced` list and maps it to a test that collects but does not exercise the clause | the traceability gate reports progress that did not happen, which is exactly how D-070 arose | the guard cannot check this; `REVIEWED_UNTRACED` in `test_route.py` is a review record, and shrinking it needs a named reviewer (D-071) | Open |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done
