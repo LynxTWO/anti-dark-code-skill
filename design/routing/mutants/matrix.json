@@ -2726,5 +2726,38 @@
       }
     ],
     "pytest": "1 failed, 241 passed, 1 skipped, 6 deselected in 45.49s"
+  },
+  {
+    "id": "M92",
+    "name": "self-grading guard probes source layout only",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    for label, path in _self_grading_guard_paths():",
+    "new": "    for label, path in SELF_GRADING_PATHS:",
+    "verdict": "caught",
+    "note": "D-071 portability. Reverting the guard to literal source-tree paths accepts a source-only authority classifier while the installed router is graded as ordinary product code.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-30-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 243 passed, 6 deselected in 10.08s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 242 passed, 1 skipped, 6 deselected in 45.37s",
+        "skipped": 1
+      }
+    ],
+    "pytest": "1 failed, 243 passed, 6 deselected in 10.08s"
   }
 ]
