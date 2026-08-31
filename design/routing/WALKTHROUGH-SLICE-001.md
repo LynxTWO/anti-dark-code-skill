@@ -10,14 +10,16 @@ This script reviews evidence and asks you six questions. It does not approve a r
 
 ```powershell
 git fetch origin
-git checkout claude/round-fifteen-verify
+git switch --detach origin/claude/round-fifteen-verify
 git log -1 --format="%h %s"
 git status --short
 ```
 
-Expected: the last command prints nothing, or only untracked `.anti-dark-code/`. The commit line will be the most recent round-fifteen commit; the branch name is what matters, not the subject.
+`--detach` on purpose. A plain `git checkout` of that branch exits 128 if any worktree already holds it, which is likely: the agents that produced this work keep their own worktrees. Detaching reads the same commit without claiming the branch.
 
-If `git status` shows tracked modifications, stop. Every number below describes a clean tree.
+Expected: `git status --short` prints nothing, or only untracked `.anti-dark-code/`, which is the local run store.
+
+If it shows tracked modifications, stop. Every number below describes a clean tree, and three provenance tests in `test_adc.py` compare the working tree against `git archive HEAD` and will fail on any difference.
 
 ## 1. Read the rules you are being asked not to approve (4 minutes)
 
@@ -57,10 +59,10 @@ Expected: `False` and `[]`. No gate carries a command, so nothing local can exec
 ## 2. Check the two execution-authority boundaries (3 minutes)
 
 ```powershell
-python -m pytest -q anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_selection_cannot_remove_a_gate anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs
+python -m pytest -q anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_selection_cannot_remove_a_gate anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_route_is_refused_by_the_receipt_writer anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs
 ```
 
-Expected: `2 passed`.
+Expected: `3 passed`. The middle one is the receipt-writer refusal named in question 2; without it that question asks you to ratify a boundary nothing here demonstrates.
 
 The first holds that shadow data measuring a proposed rule can never enter executable gate selection. The second holds that a forced-full route runs the canonical set even when every gate's `include_globs` would have excluded the changed file.
 
@@ -97,10 +99,14 @@ Expected: `STALE` with `ADC-STALE-004 worktree_identity`, then `FRESH` again onc
 ## 4. Run the evidence (10 minutes, mostly waiting)
 
 ```powershell
-python -m pytest anti-dark-code/tests -q
+python -m pytest anti-dark-code/tests -q -p no:cacheprovider
 ```
 
-Expected: `431 passed, 14 skipped, 48 subtests passed`. Roughly three minutes. The 14 skips are platform-dependent tests, mostly symlink cases this host cannot create.
+**The pass count is host-dependent, so read the failure count, not the total.** Expected: `0 failed`, and a total in the low 400s. The author's Windows host reported `436 passed, 14 skipped, 48 subtests passed`; GitHub's `windows-latest` runner reported a higher total for the same commit, because it can create symlinks and therefore runs tests this host skips. A different total is not a finding. A failure is.
+
+Roughly three minutes.
+
+`-p no:cacheprovider` is not cosmetic. Without it pytest writes `anti-dark-code/.pytest_cache`, which lands inside the managed skill tree, changes its digest, and fails the three provenance tests in `test_adc.py`. That is a real trap and it cost the author a wrong diagnosis.
 
 ```powershell
 python anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal
@@ -119,7 +125,11 @@ rows 95 | active 91 | recorded on both hosts 83
 awaiting a Linux record: ['M02', 'M03', 'M04', 'M05', 'M40', 'M93', 'M94', 'M95']
 ```
 
-Those eight are round fifteen's own: three new rows and five retargeted when D-087 removed their ambiguity. Their Windows verdicts are recorded and their Linux verdicts are not, so the matrix says so instead of claiming a two-host record it does not have. The Linux *fact* for the whole matrix is the `Mutation replay (Linux)` job below, which replays every row and fails on any survivor; the per-row Linux *record* is a bookkeeping run that has not happened yet.
+Those eight are round fifteen's own: three new rows and five retargeted when D-087 removed their ambiguity. Each carries a Windows verdict from a full replay at this head, which reported `95 mutants, 0 not caught`; none carries a Linux verdict yet.
+
+Two different things are being distinguished, and the difference is the honest part. The Linux **fact** for the whole matrix is established: the `Mutation replay (Linux)` job in the CI run below replays every row on Linux and fails if any survives. The Linux **per-row record** is bookkeeping that has not been done, because CI deliberately runs without `--write` so that a job cannot rewrite the record it is grading.
+
+An earlier version of this document said those eight had Windows verdicts recorded when they had none at all. That was wrong, and it is the second time a statement here outran the tree.
 
 ```powershell
 gh run view 33424857336 --json headSha,conclusion
@@ -129,7 +139,17 @@ Expected: `"conclusion":"success"` at `57e941fa1d1f3098941322606234c08af68b2271`
 
 **Do not run `design/routing/mutants/replay.py` here.** It rewrites tracked source files and restores them; a replay belongs in a disposable clone.
 
-> **Question 3.** Two evidence items are qualified rather than ticked: platform coverage names the run that proves it rather than claiming it for every commit, and D-080 withdraws the unreconstructible claim that every historical commit satisfied the per-change checklist. Are those honest boundaries? **yes / no**
+Read the two qualifications you are being asked to accept, rather than taking this document's word for them:
+
+```powershell
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); print(re.search(r'## D-080.*?(?=
+## D-)', t, re.S).group(0))"
+python -c "import pathlib; t=pathlib.Path('design/routing/SLICE-001-route-shadow.md').read_text(encoding='utf-8'); s=t.split('## 9. Verification evidence required')[1].split('### K, L')[0]; print(s.strip())"
+```
+
+The first prints D-080, which withdraws the claim that every historical commit satisfied the EDD per-change checklist and anchors the forward record at `ea8733c`. The second prints section 9, where every evidence line carries either a tick with the run or command that earned it, or a `[~]` saying what is still missing. Read the `[~]` lines specifically: those are the boundaries this question is about.
+
+> **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes / no**
 
 ## 5. Read the four decisions that changed most recently (5 minutes)
 

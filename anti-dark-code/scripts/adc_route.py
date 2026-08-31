@@ -435,7 +435,20 @@ def _live_filter_programs(run, overrides: Sequence[str]) -> tuple[str, ...]:
             # here rather than part of a `-c` pair, so a name containing `=`
             # reaches it intact.
             value = run([*_GIT_ISOLATION, *overrides, "config", "--get", key])
-            if value is not None and value.decode("utf-8", "replace").strip():
+            if value is None:
+                # The runner reports any nonzero exit as None, which covers
+                # both "this key is not set" and "git refused the command".
+                # Those are opposite answers, and only one of them is safe.
+                # A driver name that makes the override itself malformed, such
+                # as one beginning with `=`, reaches here: git rejects the
+                # whole invocation, the key looks absent, and the check would
+                # report clean while the driver is still live. Today the same
+                # malformed override also aborts the diff before any
+                # conversion, so nothing executes, but that is the diff failing
+                # rather than this check working. Treat unreadable as live.
+                live.append(key)
+                continue
+            if value.decode("utf-8", "replace").strip():
                 live.append(key)
     return tuple(sorted(set(live)))
 

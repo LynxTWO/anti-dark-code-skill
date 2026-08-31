@@ -346,7 +346,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
 | R-051 | repository-wide object format plus real source-specific conflict grammar | named tests in `requirement-evidence.json`; M47 is caught and the plain raw conflict form is accepted |
 | R-052 | direct, replaced, built, copied, and hinted Route immutability table | named tests in `requirement-evidence.json`; mutable proxy backing is copied |
-| R-053 | data-driven replay of all 92 stored mutations | `mutants/`; 88 active and 4 superseded, with 85 caught on both recorded hosts and 3 caught on Linux where Windows skips; source restoration is hash-verified by D-068 |
+| R-053 | data-driven replay of all 95 stored mutations | `mutants/`; 91 active and 4 superseded. Full Windows replay at this head: 95 rows, 0 not caught. 83 active rows carry both hosts, 8 carry Windows only pending a T540P run, and 3 are caught on Linux where Windows skips the symlink test. Source restoration is hash-verified by D-068 |
 | R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
 

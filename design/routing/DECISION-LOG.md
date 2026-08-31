@@ -2301,6 +2301,8 @@ A repository whose filter driver cannot be neutralized does not get a worktree c
 
 An ordinary driver such as git-lfs is unaffected, and `test_an_ordinary_filter_still_allows_a_complete_snapshot` holds that counterexample. M93 and M94 hold the refusal and the `--get` semantics.
 
+The cost was measured, not estimated. Acquisition went from a fixed number of git subprocesses to `1 + 3N` extra in the number of configured filter drivers: one discovery call, then a `config --get` for each driver's `clean`, `smudge` and `process`. On this repository, which has one globally configured driver, that is 12 git calls to 16 and 0.400s to 0.472s, a median increase of 18 percent. A synthetic repository with 25 drivers went from 0.225s to 1.771s. The growth is linear and the constant is a subprocess, so a repository with many drivers pays visibly. One `config --list` would answer in a single call and is the obvious optimisation if that ever matters.
+
 Revisit when:
 Git gains a way to disable content filters wholesale, which would replace discovery and override with one flag.
 
@@ -2341,20 +2343,22 @@ Area: M2, S-014, S-050, R-053, D-068
 Context:
 `replay.py` applies a row with `original.replace(old, new, 1)`. One occurrence is rewritten. The matrix integrity guard added in round ten checks that a row's original text is *present* in its source, and presence is not the same question.
 
-Six active rows matched two places each. M02, M03, M04, M05 and M40 name lines that exist in `build_route` and again in `build_candidate_route` or `CandidateRoute.__post_init__`, which round twelve added. Each row mutated the `build_route` copy, left the candidate copy running, and reported `caught`. The matrix therefore recorded coverage of lines that nothing had tested.
+**Five** active rows matched two places each in a committed state. M02, M03, M04, M05 and M40 name lines that exist in `build_route` and again in `build_candidate_route` or `CandidateRoute.__post_init__`, which round twelve added. Each row mutated the `build_route` copy, left the candidate copy running, and reported `caught`. The matrix therefore recorded coverage of lines that nothing had tested.
 
-M91 was the same defect introduced one round earlier by this branch: `_live_filter_programs` copied the driver-discovery loop out of `_filter_overrides`, and the row that had been unique became ambiguous the moment the copy landed.
+A sixth, M91, was ambiguous only inside this round. It was made so by this round's own commit `30c577c`, where `_live_filter_programs` copied the driver-discovery loop out of `_filter_overrides`. The first version of this decision said "one round earlier by this branch", which read as round fourteen's doing. It was round fifteen's, an hour before the guard that caught it, and replaying the uniqueness rule over `afdc2b4` and `57e941f` shows five ambiguous rows at both, not six.
 
 Decision:
 `test_every_mutant_target_occurs_exactly_once` fails on any active row whose text matches more than once. Superseded rows are exempt, because they describe a tree that no longer exists.
 
-The six rows are repaired two different ways, according to why they were ambiguous:
+The rows are repaired two different ways, according to why they were ambiguous:
 
 - M91's duplication was removed. `_filter_driver_names` is now the one discovery, called by both the override builder and the verification.
 - M02 through M05 and M40 are anchored to the `build_route` copy they were always testing, with enough surrounding text to be unique, and each note says so.
 
 Because:
-A guard that checks presence answers "can this row be applied" and reads as if it answered "does this row hold its line". The distance between those two questions is exactly where six rows sat. Removing a duplicate is better than anchoring around it, so the one case where deduplication was available took it.
+A guard that checks presence answers "can this row be applied" and reads as if it answered "does this row hold its line". The distance between those two questions is exactly where five rows sat. Removing a duplicate is better than anchoring around it, so the one case where deduplication was available took it.
+
+Anchoring is a documentation change, not a behavioural one. Applying the pre-anchor and post-anchor text of all five rows to the same source produces byte-identical mutants, because `build_route` and `Route.__post_init__` already preceded their candidate twins and `replace(old, new, 1)` was always rewriting them. What the anchoring buys is that the row now says which copy it tests, and the uniqueness guard can hold it there.
 
 Consequences:
 The candidate-route copies of those five lines are not held by a mutation row. They are shadow-only: a `CandidateRoute` cannot reach receipt authority or executable gate selection, so a defect there is a measurement error rather than a skipped check. That is recorded as U-017 rather than closed.
