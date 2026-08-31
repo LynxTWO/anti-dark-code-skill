@@ -34,6 +34,7 @@
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
       ]
     },
@@ -167,11 +168,13 @@
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
       ]
     },
     "R-022": {
       "tests": [
+        "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_selection_cannot_remove_a_gate",
         "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs"
       ]
     },
