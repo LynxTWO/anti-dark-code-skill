@@ -1005,10 +1005,41 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
         self.assertFalse(
             sentinel.exists(),
             "a filter whose name contains '=' ran during acquisition")
-        # Refusing to route is not enough on its own, but it must also hold:
-        # an unneutralized driver means the worktree was never compared.
+        # D-088: the environment form expresses this name, so the comparison
+        # runs and the record is kept. Nothing is refused and nothing is lost.
+        self.assertNotIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
+        self.assertTrue(snap.complete, f"problems: {snap.problems}")
+        self.assertIn("unstaged", {row.source for row in snap.inputs})
+
+    def test_an_injected_runner_refuses_rather_than_guessing(self) -> None:
+        # D-088. The environment neutralization needs a runner this module
+        # built. A caller that injected one gets the D-085 refusal instead,
+        # because adding an environment to someone else's runner is not
+        # possible and assuming it worked is the thing D-085 removed.
+        sentinel = self._install_filter("x=y")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        sentinel.unlink(missing_ok=True)
+
+        injected = self.route._default_runner(self.repo)
+        snap = self.route.read_change_inputs(
+            self.repo, "base-ref", runner=injected)
+
+        self.assertFalse(sentinel.exists(),
+                         "the fallback let the driver run")
         self.assertIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
         self.assertFalse(snap.complete)
+
+    def test_the_environment_form_expresses_a_name_dash_c_cannot(self) -> None:
+        # The unit the fallback rests on, stated separately so a failure says
+        # which half broke.
+        env = self.route._filter_config_env(["a=b"])
+        self.assertEqual("4", env["GIT_CONFIG_COUNT"])
+        self.assertEqual("filter.a=b.clean", env["GIT_CONFIG_KEY_0"])
+        self.assertEqual("", env["GIT_CONFIG_VALUE_0"])
+        self.assertEqual({}, self.route._filter_config_env([]))
 
     def test_an_ordinary_filter_still_allows_a_complete_snapshot(self) -> None:
         # The counterexample. git-lfs installs filter.lfs.*, and a check that
@@ -3369,6 +3400,55 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             installer, guard,
             "the self-grading guard and the installer disagree about where a "
             "skill tree can live")
+
+    def test_every_calibration_root_is_probed(self) -> None:
+        # D-089. Calibration moves for a different reason than the skill tree:
+        # adc.calibration_dir() falls back to .anti-dark-code/calibration when
+        # no managed install exists, which is the common case. D-086 derived
+        # only skill-tree spellings, and the two calibration entries already
+        # carried one, so they gained nothing.
+        probed = {path for _, path in self.route._self_grading_guard_paths()}
+        for root in self.route.CALIBRATION_ROOTS:
+            for leaf in ("gates.json", "routing-policy.json"):
+                self.assertIn(f"{root}{leaf}", probed)
+        self.assertIn(".anti-dark-code/calibration/routing-policy.json", probed)
+
+    def test_a_policy_naming_only_one_calibration_spelling_is_refused(self) -> None:
+        # Measured before D-089: this loaded, and
+        # .anti-dark-code/calibration/routing-policy.json -- the router's own
+        # policy file -- then routed at Level 0 in every shape.
+        data = json.loads(json.dumps(self.policy_source))
+        surfaces = []
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "**/calibration/*.json":
+                narrowed = dict(entry)
+                narrowed["glob"] = ".agents/skills/anti-dark-code/calibration/*.json"
+                surfaces.append(narrowed)
+            else:
+                surfaces.append(entry)
+        # Narrowing alone leaves the other spellings unmapped, and an unmapped
+        # path forces full on its own. The attack has to also grade them
+        # cheaply, which is what the shipped `**/calibration/*.json` entry was
+        # preventing for one spelling out of five.
+        surfaces.append({"glob": ".anti-dark-code/calibration/*.json",
+                         "surface": "docs", "effect": "prose",
+                         "breadth": "leaf"})
+        data["classifier"]["surfaces"] = surfaces
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn(".anti-dark-code/calibration/", str(caught.exception))
+
+    def test_the_shipped_calibration_templates_are_self_grading(self) -> None:
+        # initialize_calibration copies these into every fresh install, so they
+        # decide what an installing repository will route. They were absent
+        # from the list entirely.
+        probed = {path for _, path in self.route._self_grading_guard_paths()}
+        for leaf in ("gates.json", "routing-policy.json"):
+            path = f"anti-dark-code/assets/templates/calibration/{leaf}"
+            self.assertIn(path, probed)
+            self.assertTrue((REPO_ROOT / path).is_file())
 
     def test_every_installed_spelling_of_skill_policy_is_probed(self) -> None:
         probed = {path for _, path in self.route._self_grading_guard_paths()}

@@ -571,11 +571,42 @@ class ChangeSnapshot:
         return self.base_resolved and not self.problems
 
 
-def _default_runner(repo: Path):
+def _filter_config_env(names: Sequence[str]) -> dict[str, str]:
+    """Neutralize every named driver through the environment.
+
+    `-c key=value` splits on the first `=`, so a driver whose name contains one
+    cannot be written that way at all. `GIT_CONFIG_COUNT` with numbered
+    `GIT_CONFIG_KEY_n` and `GIT_CONFIG_VALUE_n` pairs carries the key and the
+    value separately, so every name is expressible. Measured against a driver
+    named `a=b`: the effective `filter.a=b.clean` becomes empty and the program
+    does not run.
+
+    Git before 2.31 ignores these variables entirely. No version check is made,
+    because the caller verifies the result either way and falls back to
+    refusing the comparison when a driver is still live. A check that could
+    disagree with the measurement would be a second opinion about the thing
+    already being measured. See D-088.
+    """
+    environment: dict[str, str] = {}
+    index = 0
+    for name in names:
+        for suffix, value in (("clean", ""), ("smudge", ""),
+                              ("process", ""), ("required", "false")):
+            environment[f"GIT_CONFIG_KEY_{index}"] = f"filter.{name}.{suffix}"
+            environment[f"GIT_CONFIG_VALUE_{index}"] = value
+            index += 1
+    if index:
+        environment["GIT_CONFIG_COUNT"] = str(index)
+    return environment
+
+
+def _default_runner(repo: Path, extra_env: Mapping[str, str] | None = None):
     def run(args: list[str]) -> bytes | None:
         try:
             environment = dict(os.environ)
             environment["GIT_OPTIONAL_LOCKS"] = "0"
+            if extra_env:
+                environment.update(extra_env)
             # A partial clone fetches a missing object on demand, so a read can
             # reach the network and write an object. fetch.negotiationAlgorithm
             # only chooses a negotiation strategy and prevents nothing; this is
@@ -617,6 +648,22 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     # program starts, not merely that no shortcut is granted. The worktree
     # comparison is therefore skipped entirely rather than run defensively.
     unneutralized = _live_filter_programs(run, worktree_isolation)
+    worktree_run = run
+    if unneutralized and runner is None:
+        # The `-c` form cannot express these names. Environment config can, so
+        # try it and measure the result rather than assuming it worked: an old
+        # git ignores the variables, and the same verification catches that.
+        #
+        # Only when this function owns the runner. A caller that injected one
+        # gets the refusal instead, because there is no way to add an
+        # environment to a runner this code did not build, and guessing would
+        # be the assumption D-085 exists to remove. See D-088.
+        environment_run = _default_runner(
+            repo, _filter_config_env(_filter_driver_names(run)))
+        if not _live_filter_programs(environment_run, ()):
+            worktree_run = environment_run
+            worktree_isolation = ()
+            unneutralized = ()
 
     # A zero exit is not proof of a usable base. Whitespace, an empty result,
     # or several ids all reached here as "resolved" with an empty or ambiguous
@@ -637,8 +684,8 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     snapshot_width: list[int | None] = [len(merge_base) if merge_base else None]
 
     def collect(args: list[str], source: str, unreadable_code: str,
-                extra: Sequence[str] = ()) -> None:
-        payload = run(_isolated(args, extra))
+                extra: Sequence[str] = (), using=None) -> None:
+        payload = (using or run)(_isolated(args, extra))
         if payload is None:
             problems.append(unreadable_code)
             return
@@ -670,7 +717,7 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     else:
         collect(["diff", *_DIFF_FLAGS, "--no-textconv"],
                 "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE",
-                extra=worktree_isolation)
+                extra=worktree_isolation, using=worktree_run)
 
     untracked = run(_isolated(["ls-files", "--others", "--exclude-standard", "-z"]))
     if untracked is None:
@@ -806,6 +853,10 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
      ".agents/skills/anti-dark-code/calibration/gates.json"),
     ("routing policy",
      ".agents/skills/anti-dark-code/calibration/routing-policy.json"),
+    ("shipped gate template",
+     "anti-dark-code/assets/templates/calibration/gates.json"),
+    ("shipped policy template",
+     "anti-dark-code/assets/templates/calibration/routing-policy.json"),
     ("routing-owning pass reference",
      "anti-dark-code/references/00-preflight.md"),
     ("continuous integration", ".github/workflows/tests.yml"),
@@ -833,17 +884,51 @@ INSTALLED_SKILL_PREFIXES = (
 )
 
 
+# Where calibration can live. Not the same question as where a skill tree can
+# live, and getting that wrong is what D-089 records: `adc.calibration_dir()`
+# returns `.anti-dark-code/calibration` for any repository with no managed
+# install, so the router's own policy and gate files sit outside every skill
+# tree in exactly the common case.
+CALIBRATION_MARKER = "/calibration/"
+CALIBRATION_ROOTS = (
+    ".anti-dark-code/calibration/",
+    *(f"{prefix}anti-dark-code/calibration/"
+      for prefix in INSTALLED_SKILL_PREFIXES),
+)
+
+
 def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
-    """Source-tree paths plus the paths produced by the managed installer."""
+    """Every spelling of every self-grading path, in any supported layout.
+
+    Two derivations, because a path can move for two different reasons. A file
+    inside the skill tree moves when the tree is installed under a host prefix.
+    A calibration file moves independently of that: `calibration_dir()` falls
+    back to `.anti-dark-code/calibration` when no managed install exists.
+
+    D-086 derived only the first, and the two calibration entries already
+    carried a `.agents/skills/` spelling, so the loop never touched them.
+    Measured: a policy narrowing the calibration glob to that one probed
+    spelling loaded clean, and `.anti-dark-code/calibration/routing-policy.json`
+    then routed at Level 0 in every shape. That is the router's own policy file,
+    in the location most repositories will actually use. See D-089.
+    """
+    seen: set[str] = set()
     paths: list[tuple[str, str]] = []
+
+    def add(label: str, path: str) -> None:
+        if path not in seen:
+            seen.add(path)
+            paths.append((label, path))
+
     for label, path in SELF_GRADING_PATHS:
-        paths.append((label, path))
+        add(label, path)
         if path.startswith("anti-dark-code/"):
             for prefix in INSTALLED_SKILL_PREFIXES:
-                paths.append((
-                    f"{label}, installed under {prefix}",
-                    f"{prefix}{path}",
-                ))
+                add(f"{label}, installed under {prefix}", f"{prefix}{path}")
+        if CALIBRATION_MARKER in path:
+            leaf = path.rsplit(CALIBRATION_MARKER, 1)[1]
+            for root in CALIBRATION_ROOTS:
+                add(f"{label}, calibration under {root}", f"{root}{leaf}")
     return tuple(paths)
 
 # What counts as grading a path as authority. `verification-authority` is the
