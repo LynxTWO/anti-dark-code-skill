@@ -57,7 +57,7 @@ The current Windows suite reported `425 passed, 14 skipped, 48 subtests passed`.
 
 ## 5. Commits
 
-From the current PR base:
+The six implementation commits before this handoff are:
 
 1. `d5a1aaf` `routing: replay round-thirteen matrix on Linux`
 2. `1a53206` `routing: complete the round-thirteen two-host record`

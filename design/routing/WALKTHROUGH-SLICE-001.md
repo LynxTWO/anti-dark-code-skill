@@ -74,12 +74,15 @@ Look at the selected rules field. It should be `rules=-` because every shipped r
 ```powershell
 python -m pytest anti-dark-code/tests -q
 python -m pytest anti-dark-code/tests/test_route.py -q -k MutationMatrixIntegrity
-python design/routing/mutants/replay.py M92
+python -m pytest -q anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router
+python -c "import json,pathlib; rows=json.loads(pathlib.Path('design/routing/mutants/matrix.json').read_text()); row=next(r for r in rows if r['id']=='M92'); print([(x['platform'],x['verdict'],x['pytest']) for x in row['results']])"
 python anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal
 gh run view 33402328694 --json headSha,conclusion
 ```
 
-Expected on the recorded Windows host: `425 passed, 14 skipped, 48 subtests passed`; six matrix-integrity tests pass; M92 is caught; universal validation reports 0 errors and one generated-artifact warning; and run `33402328694` reports `SUCCESS` at `157f10a1b2f0bc1c65e3e1ea92ed49d37316c987`.
+Expected on the recorded Windows host: `425 passed, 14 skipped, 48 subtests passed`; six matrix-integrity tests and the installed-layout regression pass; the M92 record prints caught Linux and Windows results; universal validation reports 0 errors and one generated-artifact warning; and run `33402328694` reports `"conclusion":"success"` at `157f10a1b2f0bc1c65e3e1ea92ed49d37316c987`.
+
+Do not run the mutation harness in this worktree. It temporarily rewrites a tracked source before restoring it, which conflicts with D-084. A later replay belongs in a disposable clone or worktree with explicit cleanup.
 
 The required run predates the round-fourteen portability delta. That delta has Windows suite evidence and Linux and Windows M92 evidence, not a new macOS run. D-080 also withdraws the claim that every historical branch commit satisfied the per-change checklist. Read those qualifications in section 9 rather than treating the checkboxes as broader claims.
 
