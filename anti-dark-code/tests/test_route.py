@@ -3813,6 +3813,44 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                     "row is stale, or that file is holding the mutant.")
         self.assertEqual([], missing, "; ".join(missing))
 
+    def test_every_referenced_decision_exists(self) -> None:
+        """D-090. A comment citing a decision asserts one was recorded.
+
+        D-088 and D-089 were cited by four comments in `adc_route.py`, four in
+        `test_route.py`, and three places in a handoff while neither existed.
+        The suite passed at 436, validation was clean, 95 mutation rows were
+        caught, and a five-agent audit ran, all with eight dangling references
+        in the tree. Nothing resolved a decision id, so nothing could notice.
+        """
+        log = (REPO_ROOT / "design" / "routing"
+               / "DECISION-LOG.md").read_text(encoding="utf-8")
+        recorded = set(re.findall(r"^## (D-\d{3})", log, re.M))
+        self.assertTrue(recorded, "the decision log has no decision headings")
+
+        sources = [
+            SKILL_ROOT / "scripts" / "adc_route.py",
+            SKILL_ROOT / "scripts" / "adc_receipt.py",
+            SKILL_ROOT / "scripts" / "adc.py",
+            SKILL_ROOT / "tests" / "test_route.py",
+            SKILL_ROOT / "tests" / "test_receipt.py",
+            SKILL_ROOT / "tests" / "test_route_cli.py",
+        ]
+        sources.extend(sorted((REPO_ROOT / "design" / "routing").glob("*.md")))
+
+        dangling: list[str] = []
+        for path in sources:
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            if path.name == "DECISION-LOG.md":
+                # Its own headings are the definitions, and a superseded entry
+                # may legitimately discuss an id it does not define.
+                continue
+            for cited in sorted(set(re.findall(r"\bD-\d{3}\b", text))):
+                if cited not in recorded:
+                    dangling.append(f"{path.name} cites {cited}")
+        self.assertEqual([], sorted(set(dangling)), "; ".join(sorted(set(dangling))))
+
     def test_every_mutant_target_occurs_exactly_once(self) -> None:
         """Presence is not enough: `replay.py` mutates the first site only.
 

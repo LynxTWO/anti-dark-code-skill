@@ -2367,3 +2367,106 @@ This is the second guard on this branch that checked an adjacent property rather
 
 Revisit when:
 The candidate builder's union logic is unified with `build_route`, which would remove the duplication and let the original rows cover both paths again.
+## D-088: Neutralize through the environment, and refuse only what that cannot reach
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, R-034, R-054, D-085
+
+Context:
+D-085 stopped repository code executing during acquisition by verifying the neutralization and skipping the worktree comparison when any driver survived it. That is safe and it has a cost: a repository whose driver name the `-c` form cannot express never gets a worktree comparison, so unstaged paths never reach its receipt's `changed_files`.
+
+Measured, before this decision:
+
+    ordinary repository: complete=True   sources=['unstaged']
+    refused repository : complete=False  sources=[]
+
+Routing was unaffected, because an incomplete snapshot forces the full recipe either way. The record was poorer, and the only remedy available to that repository was renaming its driver.
+
+Three alternatives were measured rather than argued.
+
+No command can enumerate changed paths without converting content. `diff --raw`, `ls-files -m`, `status --porcelain` and `diff --name-only` all ran the filter; only `check-attr` did not. So there is no cheap stat-only fallback.
+
+A scoped pathspec exclusion does work: `check-attr` identifies which paths select the driver, and excluding them keeps records for everything else without executing anything. It was rejected. With a repository-wide `* filter=X` attribute it excludes everything and collapses back to refusing, and it trades an absolute guarantee, that the converting command is never run, for a conditional one, that the command was run but told to skip those paths.
+
+`GIT_CONFIG_COUNT` with numbered `GIT_CONFIG_KEY_n` and `GIT_CONFIG_VALUE_n` pairs carries the key and the value separately, so no name is inexpressible. Measured against a driver named `a=b`: the effective `filter.a=b.clean` becomes empty, the diff exits 0, and the program does not run.
+
+Decision:
+Neutralize through the environment when this module owns the runner. Verify the result with the same `--get` check D-085 introduced, and fall back to D-085's refusal when a driver is still live.
+
+A caller that injected its own runner gets the refusal instead. There is no way to add an environment to a runner this code did not build, and assuming it worked is exactly the assumption D-085 exists to remove.
+
+No git version check is made. Git before 2.31 ignores these variables, and the verification catches that with no help. A version test could disagree with the measurement about the thing the measurement already settled.
+
+Because:
+The refusal was a correct answer to a question that had a better one. Keeping it as the fallback means the guarantee never depends on the environment form being right, so this adds precision without moving the safety floor.
+
+Consequences:
+A repository whose driver name contains `=` now keeps its worktree comparison, and the record loss described above is gone.
+
+Acquisition costs `1 + 3N` extra git subprocesses in the number of configured drivers: one discovery call, then a `config --get` per driver for `clean`, `smudge` and `process`. Measured here, with one globally configured driver, 12 git calls became 16 and 0.400s became 0.472s. A synthetic repository with 25 drivers went from 0.225s to 1.771s. Growth is linear and the constant is a subprocess; one `config --list` would answer in a single call if that ever matters.
+
+`_live_filter_programs` treats an unreadable key as live. The runner reports any nonzero exit as `None`, which covers both "not set" and "git refused the command", and those are opposite answers.
+
+Revisit when:
+Git gains a way to disable content filters wholesale, or the per-driver cost shows up in a real repository.
+
+## D-089: Calibration is authority, and it lives outside the skill tree
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071, D-078, D-082, D-086
+
+Context:
+D-086 extended the self-grading guard to the layouts the installer writes by deriving a spelling under each host prefix for every path starting `anti-dark-code/`. Two entries did not start that way. The gate configuration and the routing policy were already spelled `.agents/skills/anti-dark-code/calibration/...`, so the derivation never touched them, and calibration was probed in exactly one spelling of the five `adc.py` enumerates.
+
+`adc.calibration_dir()` returns `.anti-dark-code/calibration` whenever a managed install is absent, which is the ordinary case for a repository that has not installed the skill into a host tree.
+
+Measured: narrow the shipped `**/calibration/*.json` classifier entry to the one probed spelling, grade the others cheaply, and the policy loads. `.anti-dark-code/calibration/routing-policy.json` — the router's own policy file — then routes at Level 0 in all 36 measured shapes.
+
+Separately, the shipped calibration templates under `anti-dark-code/assets/templates/calibration/` were absent from the list entirely. `initialize_calibration` copies them into every fresh install, so they decide what an installing repository routes, and the same technique put them below the full recipe.
+
+D-086's own Consequences section named this residual and dismissed it: "TOOLING_PATH_PREFIXES also names `.anti-dark-code/`, which holds calibration rather than a skill tree". That distinction was the error. Calibration is the authority; where it lives is incidental.
+
+Decision:
+Derive spellings two ways, because a path can move for two independent reasons. A file inside the skill tree moves when the tree is installed under a host prefix. A calibration file moves when there is no managed install at all, independently of any host prefix. `CALIBRATION_ROOTS` covers `.anti-dark-code/calibration/` plus the four skill-tree calibration directories, and any probe path containing `/calibration/` is derived under each.
+
+The shipped calibration templates join `SELF_GRADING_PATHS`.
+
+Because:
+This is the fifth correction to this guard, and the first four each added coverage for the shape of the attack in front of them: classification instead of outcome, one sampled fact shape, one hardcoded prefix, then one prefix list. A rule that says how a path can move outlives the next attack in a way that a longer list does not.
+
+Consequences:
+Forty-three probe paths become more, and the load-time cost stays far below the fingerprint the same command runs.
+
+The residual, stated rather than dismissed this time: the derivation is keyed on the literal segment `/calibration/`. A future authority directory with a different name would need its own rule, and `test_the_guard_covers_every_installer_prefix` holds only the skill-tree half against `adc.HOST_SKILL_TREE_PREFIXES`.
+
+Revisit when:
+`calibration_dir()` gains another fallback, or authority moves into a directory this rule does not name.
+
+## D-090: A decision id cited in code must exist
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, M3, D-088, D-089
+
+Context:
+D-088 and D-089 were referenced by four comments in `adc_route.py`, four in `test_route.py`, and three places in the round-sixteen handoff, while neither existed in the decision log. Codex found it as the first act of round sixteen, before any of the verification that round was handed.
+
+The round-sixteen handoff also told its reader to begin with `HANDOFF-BACK-ROUND-FIFTEEN.md`, which had never been written.
+
+A comment reading "See D-088" where there is no D-088 is worse than no comment. It asserts that a rationale was recorded and reviewed, and a reader who goes looking finds nothing and cannot tell whether the decision was lost, renamed, or never made.
+
+Nothing caught this. `RequirementTraceabilityTests` resolves R-ids and test node ids against real sources; no check resolved D-ids, and the suite passed at 436 with eight dangling references in it.
+
+Decision:
+`test_every_referenced_decision_exists` collects every `D-0\d\d` mentioned in the router sources, the tests, and the design documents, and fails on any that has no `## D-0xx` heading in `DECISION-LOG.md`.
+
+Because:
+The project's own rule is that a claim names its evidence. A decision id is a claim that evidence exists at a known address, and it is the cheapest kind to check.
+
+Consequences:
+A decision must be written before, or in the same change as, the first code that cites it. Writing the code first and the decision later is what happened here, and the gap survived a full suite, a validation run, a 95-row mutation replay, and a five-agent adversarial audit.
+
+Revisit when:
+Decision ids gain a second home, or a document deliberately references a decision from another repository.
