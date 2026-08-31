@@ -156,13 +156,15 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 
 The old failing verdicts remain in their original handoffs. A successor row closes the substance without rewriting that historical verdict.
 
+One row does not close. K-01 asked for a guarantee wider than any requirement now states, and the ledger says so rather than citing the unqualified wording of R-054. Reading a row as "closed" when its successor narrowed the claim is the failure this ledger exists to prevent.
+
 | Finding | Failing-before record | Passing-after or successor closure |
 |---|---|---|
-| K-01 | `HANDOFF-BACK-PURE-LAYER.md` | L-01, then R-043 and R-054; D-060 supplies the real missing-promisor transport. |
+| K-01 | `HANDOFF-BACK-PURE-LAYER.md` | Narrowed, not closed as asked. K-01 expected that no repository-configured program starts; the requirement that carries it is **R-034**, which claims every *known* configured program. The lazy-fetch half went to L-01 and R-043, with D-060 supplying the real missing-promisor transport. D-085 closed one such unknown: a driver whose name contains `=` escaped the override and executed. U-009 stays open. |
 | K-02 | `HANDOFF-BACK-PURE-LAYER.md` | Round five reproduced it as closed. |
 | K-03 | `HANDOFF-BACK-PURE-LAYER.md` | L-04, then N-02 and R-049. |
-| K-04 | `HANDOFF-BACK-PURE-LAYER.md` | L-03, then N-01 and R-049. |
-| K-05 | `HANDOFF-BACK-PURE-LAYER.md` | L-06, then N-04 and R-051. |
+| K-04 | `HANDOFF-BACK-PURE-LAYER.md` | L-04, then N-02 and R-049; the Level 0 recipe case is held under R-036. |
+| K-05 | `HANDOFF-BACK-PURE-LAYER.md` | L-06, then N-04 and R-051; the score, mode and null-side cases are held under R-037 and R-046. |
 | K-06 | `HANDOFF-BACK-PURE-LAYER.md` | Round five reproduced it as closed. |
 | K-07 | `HANDOFF-BACK-PURE-LAYER.md` | Round five reproduced it as closed. |
 | K-08 | `HANDOFF-BACK-PURE-LAYER.md` | L-05, then R-047. |
