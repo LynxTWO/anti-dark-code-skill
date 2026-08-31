@@ -2789,6 +2789,46 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                 self.gates_source["canonical_full_set"])
         self.assertIn("adc_route.py", str(caught.exception))
 
+    def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
+        # The classifier is untouched here, so a guard that checked only the
+        # classification passed this policy. Measured against it: ten of the
+        # eleven classes stopped forcing full, because build_route sets `fired`
+        # on any match and the unrouted fallback never ran. See D-071.
+        data = json.loads(json.dumps(self.policy_source))
+        data["rules"] = [rule for rule in data["rules"]
+                         if rule["id"] != "verification-authority"]
+        data["rules"].append({
+            "id": "authority-is-cheap-actually",
+            "review_status": "approved",
+            "match": {"effects": ["verification-authority"]},
+            "requires": {"passes": ["06"], "minimum_level": 0},
+            "obligations": {"V09": ["validate-core"]},
+        })
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn("adc_route.py", str(caught.exception))
+
+    def test_a_proposed_cheap_authority_rule_is_refused_too(self) -> None:
+        # A proposed rule never matches today, so nothing is unsafe yet. It is
+        # still refused: approval is one review away, and load is the last
+        # moment where saying no is cheap.
+        data = json.loads(json.dumps(self.policy_source))
+        data["rules"] = [rule for rule in data["rules"]
+                         if rule["id"] != "verification-authority"]
+        data["rules"].append({
+            "id": "authority-is-cheap-later",
+            "review_status": "proposed",
+            "match": {"effects": ["verification-authority"]},
+            "requires": {"passes": ["06"], "minimum_level": 0},
+            "obligations": {"V09": ["validate-core"]},
+        })
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+
     def test_an_unmapped_self_grading_path_is_not_a_load_failure(self) -> None:
         # Unmapped carries confidence unknown, which forces full already. The
         # guard exists for the path that is classified and classified cheaply,

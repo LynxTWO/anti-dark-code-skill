@@ -1877,9 +1877,13 @@ D-070 recorded three of the five. The two it missed were the installer and the p
 Decision:
 Authority is stated in the classifier and enforced at load.
 
-The shipped policy template classifies the router, the receipt writer, the installer, the capability catalog, every `calibration/*.json`, and every `references/*.md` with the effect `verification-authority`, which the template's existing force-full rule already matches. `load_policy` refuses a policy that matches one of the paths in `SELF_GRADING_PATHS` with only non-authority entries.
+The shipped policy template classifies the router, the receipt writer, the installer, the capability catalog, every `calibration/*.json`, and every `references/*.md` with the effect `verification-authority`, which the template's existing force-full rule already matches. `load_policy` then refuses any policy under which a self-grading path could take a route below the full recipe.
 
-The guard checks classification, not rules, and it does not treat an unmapped path as a failure. Both follow from where the guarantee can actually be lost. An unmapped path forces full already. A path classified as authority whose force-full rule was deleted matches no approved rule, which is an unrouted fact, which forces full too. The single reachable hole is a self-grading path matched by an ordinary entry, and that is the one the guard closes.
+The guard checks that property directly. It classifies each path in `SELF_GRADING_PATHS` and asks whether every rule that could fire on the resulting facts still leaves `force_full` true. An unmapped path is not a failure: confidence `unknown` forces the full recipe on its own.
+
+The first version of this guard checked only the classification, on the reasoning that a path classified as authority whose force-full rule was deleted would match no rule, become an unrouted fact, and force full anyway. **That reasoning was wrong, and this decision records it rather than quietly correcting it.** `build_route` sets `fired` on any match, so the unrouted fallback never runs when some other rule matches. Measured: deleting the `verification-authority` rule and approving one rule matching `effects: ["verification-authority"]` at `minimum_level: 0`, with the classifier untouched, took **ten of the eleven classes below the full recipe** and the first guard accepted that policy. Row M68 holds the corrected guard against exactly that reversion.
+
+Every rule is considered, approved or not. A proposed rule is one review away from approval, and load is the last moment where refusing is cheap.
 
 Because:
 The alternative was a hard escalator inside `build_route`: a path list in code that forces full whatever the policy says. It was rejected. Routing authority already lives in one reviewable place, and a second copy in code would be invisible to the reader approving the policy, which is the same drift the project refuses elsewhere. A classifier entry is data a reviewer reads; a guard that refuses to load an under-classifying policy is not a second routing rule, because it computes no route.
@@ -1887,7 +1891,7 @@ The alternative was a hard escalator inside `build_route`: a path list in code t
 Narrowing R-005 and R-021 to what the classifier happened to cover was also rejected. The requirement was not wrong. The classifier was.
 
 Consequences:
-An installed policy predating this change is refused at load with the demoted paths named, and updating from the template resolves it. Six classifier entries are added, so a self-grading path now emits two facts, one ordinary and one authority; the monotonic union takes the higher, which is what makes the addition safe.
+An installed policy predating this change is refused at load with the offending paths named, and updating from the template resolves it. A repository that wants a cheaper route for its own authority paths cannot have one, which is the point. Six classifier entries are added, so a self-grading path now emits two facts, one ordinary and one authority; the monotonic union takes the higher, which is what makes the addition safe.
 
 The guard cannot prevent a future round from deleting a `SELF_GRADING_PATHS` entry. `test_each_named_self_grading_path_exists` holds the list against the tree so a stale entry fails rather than passing silently, but the list itself is a review record, like `REVIEWED_UNTRACED`. See U-015.
 

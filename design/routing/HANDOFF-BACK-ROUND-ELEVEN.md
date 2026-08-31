@@ -8,7 +8,7 @@ Date: 2026-08-30. Agent: Claude. Starting commit: `3e4eda3`, the head of `codex/
 - **M4 is not started, and its plan is repaired.** Tasks 10 through 12 name real seams, real lifecycles, and exact test node ids. No M4 code was written, no policy rule was approved, and no selective execution was enabled.
 - **M4 is eligible for an implementation round**, subject to the adversarial review this handoff invites. The three untraced ids are R-013, R-018, and R-022, unchanged, and each now has planned test node ids rather than prose.
 - Round ten's headline claims reproduced. Two of them understated what they found, and this round measured the difference.
-- The full suite is `387 passed, 14 skipped, 45 subtests passed`, up from 371. The matrix is 67 rows, all caught.
+- The full suite is `389 passed, 14 skipped, 45 subtests passed`, up from 371. The matrix is 68 rows, all caught.
 
 ## 2. Round-ten claims, independently checked
 
@@ -57,9 +57,9 @@ The owner was given three written alternatives for each and chose the first in b
 
 ### D-071: a classifier is what makes a path authority, and it is checked at load
 
-The shipped template now classifies the router, the receipt writer, the installer, the capability catalog, every `calibration/*.json`, and every `references/*.md` with effect `verification-authority`, which the template's existing force-full rule already matches. `load_policy` refuses a policy that matches a path in `SELF_GRADING_PATHS` with only non-authority entries.
+The shipped template now classifies the router, the receipt writer, the installer, the capability catalog, every `calibration/*.json`, and every `references/*.md` with effect `verification-authority`, which the template's existing force-full rule already matches. `load_policy` refuses any policy under which a self-grading path could take a route below the full recipe: it classifies each path in `SELF_GRADING_PATHS` and asks whether every rule that could fire on it still leaves `force_full` true.
 
-The guard checks classification rather than rules, and does not treat an unmapped path as a failure. Both follow from where the guarantee can be lost: an unmapped path forces full already, and an authority-classified path whose rule was deleted becomes an unrouted fact, which also forces full. The single reachable hole is a self-grading path matched by an ordinary entry.
+The first version of this guard checked only the classification and was wrong. Attacking it before writing this handoff: deleting the `verification-authority` rule and approving one rule matching `effects: ["verification-authority"]` at `minimum_level: 0`, classifier untouched, took **ten of the eleven classes below the full recipe**, because `build_route` sets `fired` on any match and the unrouted fallback never ran. The guard now checks the property instead of a proxy for it, D-071 records the disproven reasoning rather than quietly correcting it, and row M68 holds the corrected form.
 
 A hard escalator in `build_route` was rejected: it would put routing authority in a second place, invisible to whoever reviews the policy.
 
@@ -176,9 +176,9 @@ Task 12's inline mutation code was stale — it called `load_policy` with two ar
 Windows 11, Python 3.14.2, Git 2.50.1, pytest 9.0.2. One host only.
 
 - Baseline before any change: `371 passed, 14 skipped, 45 subtests passed`.
-- Final full suite: `387 passed, 14 skipped, 45 subtests passed`.
-- New tests: 6 in `SelfGradingAuthorityTests`, 8 in `SubmoduleContractTests`, and three in `RawParserTests` replacing one, for a net of 16. 371 plus 16 is 387.
-- Mutation replay, all 67 rows: `67 mutants, 0 not caught`. M37, M46, and M48 report SURVIVED here and are recorded as caught elsewhere, because Windows skips the symlink test that holds them (D-054).
+- Final full suite: `389 passed, 14 skipped, 45 subtests passed`.
+- New tests: 8 in `SelfGradingAuthorityTests`, 8 in `SubmoduleContractTests`, and three in `RawParserTests` replacing one, for a net of 18. 371 plus 18 is 389.
+- Mutation replay, all 67 rows: `67 mutants, 0 not caught`, then M64 through M68 replayed again after the D-071 correction: `5 mutants, 0 not caught`. M37, M46, and M48 report SURVIVED here and are recorded as caught elsewhere, because Windows skips the symlink test that holds them (D-054).
 - M64 through M67 replayed individually first: 4 mutants, 0 not caught.
 - Matrix integrity, suite structure, and requirement traceability guards: pass.
 

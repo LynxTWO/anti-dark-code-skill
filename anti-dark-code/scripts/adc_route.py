@@ -755,36 +755,55 @@ _AUTHORITY_EFFECTS = frozenset({"verification-authority"})
 _AUTHORITY_SURFACES = frozenset({"skill-policy"})
 
 
-def _check_self_grading(classifier: Mapping[str, Any]) -> None:
-    """Refuse a policy that grades its own authority below authority.
+def _check_self_grading(
+    classifier: Mapping[str, Any], rules: Sequence["ValidatedRule"]
+) -> None:
+    """Refuse a policy under which a change to this skill's own authority
+    could take a route cheaper than the full recipe.
 
-    An unmapped self-grading path is not a failure here. It carries confidence
-    `unknown`, and `build_route` forces the full recipe on that already, so the
-    fail-closed path needs no help. The hole this closes is the other one: a
-    self-grading path matched by an ordinary entry, which is how the router came
-    to route a change to itself as Level 2 product code.
+    This checks the property R-021 states rather than a proxy for it: classify
+    each self-grading path, then ask whether every rule that could fire on it
+    still leaves `force_full` true.
 
-    Checking the classifier rather than the rules is deliberate. A policy that
-    classifies these as authority but ships no force-full rule leaves the fact
-    matching no approved rule, which is an unrouted fact, which forces full too.
-    Classification is therefore the only place the guarantee can be lost.
+    An earlier version checked only the classification, on the reasoning that an
+    authority fact matching no force-full rule becomes an unrouted fact, which
+    forces full anyway. That reasoning was wrong, and measuring it is what
+    showed it. `build_route` sets `fired` on *any* match, so one approved rule
+    matching `effects: ["verification-authority"]` with `minimum_level: 0`
+    suppressed the unrouted fallback and took ten of the eleven classes below
+    the full recipe with the classifier untouched. See D-071.
+
+    Every rule is considered, approved or not. A proposed rule is one review
+    away from approval, and refusing at load is the only moment where the answer
+    is still cheap. An unmapped path is still not a failure: confidence
+    `unknown` forces the full recipe on its own.
     """
     demoted: list[str] = []
     for label, path in SELF_GRADING_PATHS:
-        matched = _matching_classifications(path, classifier)
-        if not matched:
+        entries = _matching_classifications(path, classifier)
+        if not entries:
             continue
-        if any(entry["effect"] in _AUTHORITY_EFFECTS
-               or entry["surface"] in _AUTHORITY_SURFACES for entry in matched):
+        facts = [ChangeFact(path=path, change_kind="modify", source="unstaged",
+                            **entry) for entry in entries]
+        # Union semantics: one fact reaching one force-full rule is enough, and
+        # one fact reaching no rule at all is enough, because that is unrouted.
+        safe = any(
+            fact.confidence == "unknown"
+            or not [rule for rule in rules
+                    if _fact_matches(fact, dict(rule.match))]
+            or any(rule.force_full for rule in rules
+                   if _fact_matches(fact, dict(rule.match)))
+            for fact in facts)
+        if safe:
             continue
-        seen = sorted({f"{e['surface']}/{e['effect']}" for e in matched})
+        seen = sorted({f"{e['surface']}/{e['effect']}" for e in entries})
         demoted.append(f"{label} ({path}) classified as {' and '.join(seen)}")
     if demoted:
         raise PolicyError(
-            "the classifier grades this skill's own verification authority "
-            "below authority, so an approved rule could route a change to what "
-            "verifies the repository more cheaply than a change it verifies: "
-            + "; ".join(demoted))
+            "this policy would route a change to what verifies the repository "
+            "more cheaply than a change it verifies. Either the classifier "
+            "grades a self-grading path below authority, or a rule that fires "
+            "on one does not force the full recipe: " + "; ".join(demoted))
 
 
 def _fact_sort_key(fact: ChangeFact) -> tuple[Any, ...]:
@@ -1366,10 +1385,6 @@ def load_policy(
             raise PolicyError(str(exc)) from exc
         frozen_classifier.append(
             tuple(sorted({"glob": str(entry["glob"]), **attrs}.items())))
-    # After every entry validates, because a classifier with an invalid
-    # dimension has a worse problem than an under-classified path.
-    _check_self_grading(classifier)
-
     recipe_data = data.get("full_recipe")
     if not isinstance(recipe_data, Mapping):
         raise PolicyError("routing policy must define full_recipe")
@@ -1454,6 +1469,11 @@ def load_policy(
             independent_review=bool(requires.get("independent_review", False)),
             obligations=_freeze_obligations(rule.get("obligations", {})),
         ))
+
+    # Last, because it needs both halves: the classifier says what a path is,
+    # and the rules say what happens to it. Either alone answers the wrong
+    # question, which is the mistake the first version of this guard made.
+    _check_self_grading(classifier, rules)
 
     validated = ValidatedPolicy(
         schema_version=1,

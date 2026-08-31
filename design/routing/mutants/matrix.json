@@ -1834,22 +1834,10 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "        matched = _matching_classifications(path, classifier)\n        if not matched:\n            continue",
-    "new": "        matched = _matching_classifications(path, classifier)\n        if not matched:\n            pass",
-    "verdict": "caught",
-    "note": "D-071. Over-refusing is a real failure too: an unmapped path already forces full, and rejecting it would refuse a policy that is safe.",
-    "results": [
-      {
-        "platform": "Windows",
-        "release": "11",
-        "python": "3.14.2",
-        "git": "git version 2.50.1.windows.1",
-        "verdict": "caught",
-        "pytest": "46 failed, 172 passed, 1 skipped, 6 deselected in 35.73s",
-        "skipped": 1
-      }
-    ],
-    "pytest": "46 failed, 172 passed, 1 skipped, 6 deselected in 35.73s"
+    "old": "        entries = _matching_classifications(path, classifier)\n        if not entries:\n            continue",
+    "new": "        entries = _matching_classifications(path, classifier)\n        if not entries:\n            pass",
+    "verdict": "pending",
+    "note": "D-071. Over-refusing is a real failure too: an unmapped path already forces full, and rejecting it would refuse a policy that is safe."
   },
   {
     "id": "M66",
@@ -1898,5 +1886,17 @@
       }
     ],
     "pytest": "1 failed, 217 passed, 1 skipped, 6 deselected in 29.07s"
+  },
+  {
+    "id": "M68",
+    "name": "authority guard checks classification only",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        safe = any(\n            fact.confidence == \"unknown\"\n            or not [rule for rule in rules\n                    if _fact_matches(fact, dict(rule.match))]\n            or any(rule.force_full for rule in rules\n                   if _fact_matches(fact, dict(rule.match)))\n            for fact in facts)",
+    "new": "        safe = any(\n            fact.confidence == \"unknown\"\n            or fact.effect in _AUTHORITY_EFFECTS\n            or fact.surface in _AUTHORITY_SURFACES\n            for fact in facts)",
+    "verdict": "pending",
+    "note": "D-071. Checking the classification is a proxy: one approved rule matching effects:[verification-authority] with minimum_level 0 took ten of the eleven self-grading classes below the full recipe with the classifier untouched."
   }
 ]
