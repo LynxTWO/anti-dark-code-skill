@@ -2759,5 +2759,41 @@
       }
     ],
     "pytest": "1 failed, 243 passed, 6 deselected in 10.08s"
+  },
+  {
+    "id": "M93",
+    "name": "acquisition runs past an unneutralized filter",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if unneutralized:",
+    "new": "    if False:",
+    "verdict": "pending",
+    "note": "D-085. Without the refusal a driver whose name contains '=' escapes the -c override and executes during acquisition, while the snapshot still reports complete."
+  },
+  {
+    "id": "M94",
+    "name": "neutralization is assumed rather than verified",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "            value = run([*_GIT_ISOLATION, *overrides, \"config\", \"--get\", key])",
+    "new": "            value = run([*_GIT_ISOLATION, *overrides, \"config\", \"--get-regexp\", key])",
+    "verdict": "pending",
+    "note": "D-085. --get-regexp lists the file value beside the empty override, so every ordinary driver reads as live and an installing repository with git-lfs would never acquire."
+  },
+  {
+    "id": "M95",
+    "name": "the guard probes one installer prefix",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "INSTALLED_SKILL_PREFIXES = (\n    \".agents/skills/\",\n    \".claude/skills/\",\n    \".codex/skills/\",\n    \".gemini/skills/\",\n)",
+    "new": "INSTALLED_SKILL_PREFIXES = (\n    \".agents/skills/\",\n)",
+    "verdict": "pending",
+    "note": "D-086. The installer writes instruction authority to .claude/skills/anti-dark-code/SKILL.md on its default host selection; probing only .agents/skills/ left that spelling routable at Level 0."
   }
 ]

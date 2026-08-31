@@ -975,6 +975,57 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             sentinel.exists(),
             "a globally configured content filter ran during acquisition")
 
+    def test_a_filter_name_containing_an_equals_cannot_run(self) -> None:
+        """D-085. `-c key=value` splits on the FIRST `=`.
+
+        A driver named `a=b` made the override land on `filter.a`, leaving
+        `filter."a=b".clean` live. Measured before the fix: the program ran
+        during acquisition and the snapshot still reported complete with no
+        problems, so repository code executed and a selective route was still
+        authorised.
+        """
+        sentinel = self._install_filter("a=b")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        # Staging above legitimately ran the driver. Only acquisition is under
+        # test.
+        sentinel.unlink(missing_ok=True)
+
+        # Prove the fixture: git really does resolve this driver name.
+        resolved = subprocess.run(
+            ["git", "-C", str(self.repo), "check-attr", "filter", "payload.txt"],
+            capture_output=True, text=True, timeout=60).stdout
+        self.assertIn("filter: a=b", resolved,
+                      "the fixture did not configure the driver under test")
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(
+            sentinel.exists(),
+            "a filter whose name contains '=' ran during acquisition")
+        # Refusing to route is not enough on its own, but it must also hold:
+        # an unneutralized driver means the worktree was never compared.
+        self.assertIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
+        self.assertFalse(snap.complete)
+
+    def test_an_ordinary_filter_still_allows_a_complete_snapshot(self) -> None:
+        # The counterexample. git-lfs installs filter.lfs.*, and a check that
+        # refused every repository with a filter would be useless.
+        sentinel = self._install_filter("ordinary")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        sentinel.unlink(missing_ok=True)
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(sentinel.exists())
+        self.assertNotIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
+        self.assertTrue(snap.complete, f"problems: {snap.problems}")
+
     def test_a_boundary_violation_is_detected_and_reported(self) -> None:
         """The list of neutralized keys cannot be proven complete.
 
@@ -3303,6 +3354,48 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                     if not route.force_full:
                         escaped.append(f"{path} as {kind}/{source}")
         self.assertEqual([], escaped, "; ".join(escaped[:8]))
+
+    def test_the_guard_covers_every_installer_prefix(self) -> None:
+        # D-086. The guard's prefix list is a copy of the installer's, and a
+        # copy drifts. This is what makes the drift fail rather than quietly
+        # leave a layout unprobed: the installer wrote instruction authority to
+        # .claude/skills/anti-dark-code/SKILL.md while the guard probed only
+        # .agents/skills/.
+        adc = load_adc()
+        installer = {"/".join(prefix) + "/"
+                     for prefix in adc.HOST_SKILL_TREE_PREFIXES}
+        guard = set(self.route.INSTALLED_SKILL_PREFIXES)
+        self.assertEqual(
+            installer, guard,
+            "the self-grading guard and the installer disagree about where a "
+            "skill tree can live")
+
+    def test_every_installed_spelling_of_skill_policy_is_probed(self) -> None:
+        probed = {path for _, path in self.route._self_grading_guard_paths()}
+        for prefix in self.route.INSTALLED_SKILL_PREFIXES:
+            self.assertIn(f"{prefix}anti-dark-code/SKILL.md", probed)
+
+    def test_a_policy_naming_only_one_installed_spelling_is_refused(self) -> None:
+        # Before D-086 this policy loaded, and a change to
+        # .claude/skills/anti-dark-code/SKILL.md then routed at Level 0 in all
+        # 72 shapes -- a file this repository's own installer writes.
+        data = json.loads(json.dumps(self.policy_source))
+        surfaces = []
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "**/SKILL.md":
+                for spelling in ("anti-dark-code/SKILL.md",
+                                 ".agents/skills/anti-dark-code/SKILL.md"):
+                    narrowed = dict(entry)
+                    narrowed["glob"] = spelling
+                    surfaces.append(narrowed)
+            else:
+                surfaces.append(entry)
+        data["classifier"]["surfaces"] = surfaces
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn(".claude/skills/", str(caught.exception))
 
     def test_an_unmapped_self_grading_path_is_not_a_load_failure(self) -> None:
         # Unmapped carries confidence unknown, which forces full already. The

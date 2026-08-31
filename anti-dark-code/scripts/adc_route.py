@@ -387,6 +387,56 @@ def _filter_overrides(run) -> list[str]:
     return overrides
 
 
+# Filter keys that name a program. `required` is a flag, not a command.
+_FILTER_PROGRAM_SUFFIXES = ("clean", "smudge", "process")
+
+
+def _live_filter_programs(run, overrides: Sequence[str]) -> tuple[str, ...]:
+    """Which filter programs are still configured once the overrides apply.
+
+    The overrides are built by interpolating a driver name into `-c key=value`,
+    and git splits that argument on the FIRST `=`. A driver named `a=b`
+    therefore produces `-c filter.a=b.clean=`, which git reads as the key
+    `filter.a` with the value `b.clean=`, leaving `filter."a=b".clean` live. A
+    repository reaches such a driver from `.gitattributes` with
+    `*.txt filter=a=b`, and git-check-attr resolves it.
+
+    Measured before this check existed: a driver named `a=b` executed during
+    acquisition while the snapshot reported `complete=True` with no problems,
+    so repository code ran and a selective route was still authorised.
+
+    The neutralization is therefore verified rather than assumed. Re-reading
+    the effective configuration with the overrides applied is the only check
+    that cannot be fooled by however a name is spelled, and it closes the whole
+    class rather than the one character that opened it. See D-085.
+    """
+    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
+    if not payload:
+        return ()
+    names: set[str] = set()
+    for line in payload.decode("utf-8", "replace").splitlines():
+        key = line.split(" ", 1)[0]
+        parts = key.split(".")
+        if len(parts) >= 3 and parts[0] == "filter":
+            names.add(".".join(parts[1:-1]))
+
+    live: list[str] = []
+    for name in sorted(names):
+        for suffix in _FILTER_PROGRAM_SUFFIXES:
+            key = f"filter.{name}.{suffix}"
+            # `--get`, not `--get-regexp`. A `-c` override does not replace the
+            # file's value, it adds one, and `--get-regexp` lists both: the
+            # neutralized key came back carrying its original program beside
+            # the empty override. `--get` returns the value git would actually
+            # use, which is the question being asked. The key is an argument
+            # here rather than part of a `-c` pair, so a name containing `=`
+            # reaches it intact.
+            value = run([*_GIT_ISOLATION, *overrides, "config", "--get", key])
+            if value is not None and value.decode("utf-8", "replace").strip():
+                live.append(key)
+    return tuple(sorted(set(live)))
+
+
 def _isolated(args: Sequence[str], extra: Sequence[str] = ()) -> list[str]:
     """Prefix the isolation flags. Every git call goes through here."""
     return [*_GIT_ISOLATION, *extra, *args]
@@ -558,6 +608,12 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     # filter driver. The other three read objects or names and are safe by
     # construction; paying for discovery on them would be theatre.
     worktree_isolation = _filter_overrides(run)
+    # Checked here, before any command that converts content. A driver this
+    # cannot neutralize must never be run past, and refusing to route is not
+    # sufficient: the guarantee R-034 and R-054 state is that no repository
+    # program starts, not merely that no shortcut is granted. The worktree
+    # comparison is therefore skipped entirely rather than run defensively.
+    unneutralized = _live_filter_programs(run, worktree_isolation)
 
     # A zero exit is not proof of a usable base. Whitespace, an empty result,
     # or several ids all reached here as "resolved" with an empty or ambiguous
@@ -602,9 +658,16 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     # unstaged records together and count every staged change twice. This is
     # the one comparison that reads worktree bytes, so it carries the filter
     # overrides and refuses an external text converter.
-    collect(["diff", *_DIFF_FLAGS, "--no-textconv"],
-            "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE",
-            extra=worktree_isolation)
+    if unneutralized:
+        # Not run at all. Running it and reporting afterwards would already
+        # have started the program this exists to prevent, and the boundary
+        # fingerprint only notices a write inside the repository, so a payload
+        # writing anywhere else leaves no trace. See D-085.
+        problems.append("ADC-ROUTE-FILTER-UNNEUTRALIZED")
+    else:
+        collect(["diff", *_DIFF_FLAGS, "--no-textconv"],
+                "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE",
+                extra=worktree_isolation)
 
     untracked = run(_isolated(["ls-files", "--others", "--exclude-standard", "-z"]))
     if untracked is None:
@@ -749,16 +812,35 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
 )
 
 
+# Every repository-relative prefix the installer can write a skill tree to.
+# This must agree with HOST_SKILL_TREE_PREFIXES in adc.py, and
+# `test_the_guard_covers_every_installer_prefix` fails if it drifts. adc.py is
+# not imported here: the router is the thing the installer installs, and a
+# dependency in that direction is a cycle.
+#
+# One prefix was covered before D-086, `.agents/skills/`. The installer writes
+# instruction authority to `.claude/skills/anti-dark-code/SKILL.md` on its
+# default host selection, and that path was not probed, so a policy naming only
+# the two probed spellings loaded clean and routed a change to it at Level 0.
+INSTALLED_SKILL_PREFIXES = (
+    ".agents/skills/",
+    ".claude/skills/",
+    ".codex/skills/",
+    ".gemini/skills/",
+)
+
+
 def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
     """Source-tree paths plus the paths produced by the managed installer."""
     paths: list[tuple[str, str]] = []
     for label, path in SELF_GRADING_PATHS:
         paths.append((label, path))
         if path.startswith("anti-dark-code/"):
-            paths.append((
-                f"{label}, installed layout",
-                f".agents/skills/{path}",
-            ))
+            for prefix in INSTALLED_SKILL_PREFIXES:
+                paths.append((
+                    f"{label}, installed under {prefix}",
+                    f"{prefix}{path}",
+                ))
     return tuple(paths)
 
 # What counts as grading a path as authority. `verification-authority` is the

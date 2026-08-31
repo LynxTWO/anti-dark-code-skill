@@ -2264,3 +2264,71 @@ M88 continues to hold the stale condition. A proposed gate that needs repository
 
 Revisit when:
 A real reviewed gate cannot avoid writing into its verification target and the owner is prepared to change R-018 rather than weaken it silently.
+## D-085: Filter neutralization is verified, not assumed
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, R-034, R-054, K-01, N-08, D-079
+
+Context:
+`_filter_overrides` neutralizes every content filter the repository declares by emitting `-c filter.<name>.clean=` and the smudge, process, and required companions. Git splits a `-c` argument on the **first** `=`. A driver named `a=b` therefore produced `-c filter.a=b.clean=`, which git read as the key `filter.a` with the value `b.clean=`, leaving `filter."a=b".clean` untouched.
+
+A repository reaches such a driver from its own `.gitattributes` with `*.txt filter=a=b`, and `git check-attr` resolves it: `payload.txt: filter: a=b`.
+
+Measured against the real `read_change_inputs`, with the payload writing outside the worktree so the acquisition boundary could not notice it:
+
+    driver 'plain'   program executed: False   complete=True   problems=()
+    driver 'a=b'     program executed: True    complete=True   problems=()
+
+So repository-controlled code executed during acquisition, and the snapshot still called itself complete with no problems, which means a selective route would also have been authorised. Both halves of R-034 and R-054 failed at once, and the boundary fingerprint did not backstop it because a payload writing anywhere outside the repository leaves no trace inside it.
+
+D-079 had just repaired the *test* that was supposed to hold this clause. The test was inert; the code underneath it was also wrong. Fixing the test is what made the code reachable to review.
+
+Decision:
+Verify the neutralization rather than assume it. After building the overrides, re-read each discovered driver's `clean`, `smudge`, and `process` keys with the overrides applied. Any key that still resolves to a non-empty value is reported, acquisition records `ADC-ROUTE-FILTER-UNNEUTRALIZED`, and **the worktree comparison is not run at all**.
+
+Skipping the comparison is the point. Refusing to route afterwards would already have started the program: the guarantee these requirements state is that no repository program starts, not merely that no shortcut is granted.
+
+The check uses `config --get`, not `--get-regexp`. A `-c` override does not replace a file's value, it adds one, and `--get-regexp` lists both, so the neutralized key came back carrying its original program beside the empty override and every ordinary driver read as live. `--get` returns the value git would actually use. The key travels as an ordinary argument rather than half of a `-c` pair, so a name containing `=` reaches it intact.
+
+Because:
+The bug was in a string built from an attacker-influenced name, and the class of such bugs is not closed by escaping one character. Asking git what it will actually do closes the class: any future spelling that defeats the override is reported by the same check, without anyone having to anticipate it.
+
+This is the third time a fixed list or a constructed string was the wrong shape here. `core.fsmonitor` was closed, then `diff.external`, then filters were discovered rather than listed. Discovery was right and its execution was still wrong.
+
+Consequences:
+A repository whose filter driver cannot be neutralized does not get a worktree comparison, so its snapshot is incomplete and the full recipe is forced. That is a real loss of routing precision for such a repository, and it is the correct trade: the alternative is executing its code.
+
+An ordinary driver such as git-lfs is unaffected, and `test_an_ordinary_filter_still_allows_a_complete_snapshot` holds that counterexample. M93 and M94 hold the refusal and the `--get` semantics.
+
+Revisit when:
+Git gains a way to disable content filters wholesale, which would replace discovery and override with one flag.
+
+## D-086: The self-grading guard covers every prefix the installer writes
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071, D-078, D-082
+
+Context:
+D-082 extended the self-grading guard from source-layout paths to the managed installed layout by deriving a second spelling under `.agents/skills/`. `adc.py` defines four such prefixes in `HOST_SKILL_TREE_PREFIXES`: `.agents/skills`, `.claude/skills`, `.gemini/skills`, and `.codex/skills`. `install_skill` writes instruction authority to `.claude/skills/anti-dark-code/SKILL.md` whenever hosts is `all` or the default `auto` and a `.claude` directory or `CLAUDE.md` exists.
+
+Measured: a policy that splits the shipped `**/SKILL.md` classifier entry into exactly the two spellings the guard probed **loaded clean**, and `.claude/skills/anti-dark-code/SKILL.md` then routed at Level 0 with `force_full` false in all 72 change shapes, including a delete.
+
+This is the fourth correction to this guard and the second of its exact kind: D-078 replaced one sampled fact shape with the whole cross-product, and the path set stayed a literal enumeration that the product's own installer already outran.
+
+Decision:
+`INSTALLED_SKILL_PREFIXES` names all four prefixes, and every source path under `anti-dark-code/` is probed under each. `test_the_guard_covers_every_installer_prefix` compares that tuple against `adc.HOST_SKILL_TREE_PREFIXES` and fails if they drift.
+
+`adc.py` is not imported by `adc_route.py`. The router is the thing the installer installs, and a dependency in that direction is a cycle. The list is therefore a deliberate copy with a test that makes the copy honest.
+
+Because:
+A guard whose coverage is a literal list needs something that fails when the list falls behind. Every previous correction to this guard added coverage; none added a way to notice the next gap. The drift test is the part that generalizes.
+
+Consequences:
+Nineteen probe paths become forty-three. The load-time cost is unchanged in kind and remains far below the fingerprint the same command runs.
+
+The residual is a fifth prefix. `TOOLING_PATH_PREFIXES` also names `.anti-dark-code/`, which holds calibration rather than a skill tree; the drift test covers only the skill-tree set, and a future host prefix added to `adc.py` will fail that test rather than pass silently.
+
+Revisit when:
+The installer supports a prefix that is not a skill tree, or the drift test fails.
