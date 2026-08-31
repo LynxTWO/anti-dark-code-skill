@@ -3733,6 +3733,29 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                     "row is stale, or that file is holding the mutant.")
         self.assertEqual([], missing, "; ".join(missing))
 
+    def test_every_mutant_target_occurs_exactly_once(self) -> None:
+        """Presence is not enough: `replay.py` mutates the first site only.
+
+        `original.replace(old, new, 1)` rewrites one occurrence. A row whose
+        text appears twice therefore mutates one site, leaves the other
+        running, and still reports caught, so the matrix claims coverage of a
+        line nothing tested. Six active rows were in that state before D-087,
+        including one added the round before by a function that copied a loop.
+        """
+        ambiguous = []
+        for row in self.rows:
+            if row.get("superseded_by"):
+                continue
+            source = REPO_ROOT / row["source"]
+            if not source.is_file():
+                continue
+            found = source.read_text(encoding="utf-8").count(row["old"])
+            if found > 1:
+                ambiguous.append(
+                    f"{row['id']} ({row['name']}) matches {found} places in "
+                    f"{row['source']}; replay would mutate only the first")
+        self.assertEqual([], ambiguous, "; ".join(ambiguous))
+
     def test_no_row_records_a_mutant_as_the_current_source(self) -> None:
         """The narrower half, stated separately so a failure names the danger.
 

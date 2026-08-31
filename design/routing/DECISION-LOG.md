@@ -2332,3 +2332,34 @@ The residual is a fifth prefix. `TOOLING_PATH_PREFIXES` also names `.anti-dark-c
 
 Revisit when:
 The installer supports a prefix that is not a skill tree, or the drift test fails.
+## D-087: A mutation target must match exactly one place
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, S-014, S-050, R-053, D-068
+
+Context:
+`replay.py` applies a row with `original.replace(old, new, 1)`. One occurrence is rewritten. The matrix integrity guard added in round ten checks that a row's original text is *present* in its source, and presence is not the same question.
+
+Six active rows matched two places each. M02, M03, M04, M05 and M40 name lines that exist in `build_route` and again in `build_candidate_route` or `CandidateRoute.__post_init__`, which round twelve added. Each row mutated the `build_route` copy, left the candidate copy running, and reported `caught`. The matrix therefore recorded coverage of lines that nothing had tested.
+
+M91 was the same defect introduced one round earlier by this branch: `_live_filter_programs` copied the driver-discovery loop out of `_filter_overrides`, and the row that had been unique became ambiguous the moment the copy landed.
+
+Decision:
+`test_every_mutant_target_occurs_exactly_once` fails on any active row whose text matches more than once. Superseded rows are exempt, because they describe a tree that no longer exists.
+
+The six rows are repaired two different ways, according to why they were ambiguous:
+
+- M91's duplication was removed. `_filter_driver_names` is now the one discovery, called by both the override builder and the verification.
+- M02 through M05 and M40 are anchored to the `build_route` copy they were always testing, with enough surrounding text to be unique, and each note says so.
+
+Because:
+A guard that checks presence answers "can this row be applied" and reads as if it answered "does this row hold its line". The distance between those two questions is exactly where six rows sat. Removing a duplicate is better than anchoring around it, so the one case where deduplication was available took it.
+
+Consequences:
+The candidate-route copies of those five lines are not held by a mutation row. They are shadow-only: a `CandidateRoute` cannot reach receipt authority or executable gate selection, so a defect there is a measurement error rather than a skipped check. That is recorded as U-017 rather than closed.
+
+This is the second guard on this branch that checked an adjacent property rather than the property. D-078 records the first.
+
+Revisit when:
+The candidate builder's union logic is unified with `build_route`, which would remove the duplication and let the original rows cover both paths again.

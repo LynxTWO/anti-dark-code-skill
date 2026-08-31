@@ -354,6 +354,28 @@ _DIFF_FLAGS = (
 )
 
 
+def _filter_driver_names(run) -> tuple[str, ...]:
+    """Every filter driver name the repository can see, in one place.
+
+    Both the override builder and the verification read this. They read it from
+    one function rather than two copies because a copy is a second thing to
+    keep in step, and because two identical discovery loops made a mutation row
+    ambiguous: `replay.py` replaces the first occurrence only, so the row
+    mutated one copy, left the other running, and still reported caught. See
+    D-087.
+    """
+    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
+    if not payload:
+        return ()
+    names: set[str] = set()
+    for line in payload.decode("utf-8", "replace").splitlines():
+        key = line.split(" ", 1)[0]
+        parts = key.split(".")
+        if len(parts) >= 3 and parts[0] == "filter":
+            names.add(".".join(parts[1:-1]))
+    return tuple(sorted(names))
+
+
 def _filter_overrides(run) -> list[str]:
     """Neutralize every content filter this repository can see.
 
@@ -367,17 +389,8 @@ def _filter_overrides(run) -> list[str]:
     failed twice: core.fsmonitor was closed, then diff.external, and filters
     were still open. This enumerates what the repository actually declares.
     """
-    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
     overrides: list[str] = []
-    if not payload:
-        return overrides
-    names: set[str] = set()
-    for line in payload.decode("utf-8", "replace").splitlines():
-        key = line.split(" ", 1)[0]
-        parts = key.split(".")
-        if len(parts) >= 3 and parts[0] == "filter":
-            names.add(".".join(parts[1:-1]))
-    for name in sorted(names):
+    for name in _filter_driver_names(run):
         overrides.extend([
             "-c", f"filter.{name}.clean=",
             "-c", f"filter.{name}.smudge=",
@@ -410,18 +423,8 @@ def _live_filter_programs(run, overrides: Sequence[str]) -> tuple[str, ...]:
     that cannot be fooled by however a name is spelled, and it closes the whole
     class rather than the one character that opened it. See D-085.
     """
-    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
-    if not payload:
-        return ()
-    names: set[str] = set()
-    for line in payload.decode("utf-8", "replace").splitlines():
-        key = line.split(" ", 1)[0]
-        parts = key.split(".")
-        if len(parts) >= 3 and parts[0] == "filter":
-            names.add(".".join(parts[1:-1]))
-
     live: list[str] = []
-    for name in sorted(names):
+    for name in _filter_driver_names(run):
         for suffix in _FILTER_PROGRAM_SUFFIXES:
             key = f"filter.{name}.{suffix}"
             # `--get`, not `--get-regexp`. A `-c` override does not replace the

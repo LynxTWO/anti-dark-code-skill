@@ -416,6 +416,8 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-014 | Per-call width inference or one status-side table disagrees with repository Git output | valid conflicts block or mixed repository identity is accepted | R-051 and D-044 | Open |
 | U-015 | A future round removes an id from the `untraced` list and maps it to a test that collects but does not exercise the clause | the traceability gate reports progress that did not happen, which is exactly how D-070 arose | the guard cannot check this; `REVIEWED_UNTRACED` in `test_route.py` is a review record, and shrinking it needs a named reviewer (D-071) | Open |
 | U-016 | A gate restores both the bytes and the timestamp of a file it changed while running | a gate result is accepted against content that is not in the tree | out of scope for before-and-after sampling; recorded in D-077 rather than claimed as covered | Open |
+| U-017 | The candidate-route copies of the union lines M02 through M05 and M40 hold are not covered by a mutation row | a shadow measurement is wrong without anything noticing | shadow-only by construction: a CandidateRoute reaches neither receipt authority nor executable gate selection (D-087) | Open |
+| U-018 | A repository configures a filter driver whose name defeats the `-c` override in a way `--get` also misreports | repository code runs during acquisition | the neutralization is verified against effective configuration rather than assumed, and the worktree comparison is skipped when any driver survives it (D-085) | Watching |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done
