@@ -2443,6 +2443,15 @@
     "note": "D-076. Gate selection and commands consume the exact configuration snapshot validated with the receipt rather than a later file read.",
     "results": [
       {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.35s",
+        "skipped": 0
+      },
+      {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
@@ -2452,7 +2461,7 @@
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.64s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 11.35s"
   },
   {
     "id": "M84",
@@ -2467,6 +2476,15 @@
     "note": "D-076. Candidate shadow reconstruction consumes the exact validated policy object carried by the verified receipt context.",
     "results": [
       {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.51s",
+        "skipped": 0
+      },
+      {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
@@ -2476,7 +2494,7 @@
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 37.62s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 11.51s"
   },
   {
     "id": "M85",
@@ -2491,6 +2509,15 @@
     "note": "D-076. Stable run-store setup occurs before change acquisition so emitted facts and the repository binding describe one state on the first write.",
     "results": [
       {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.12s",
+        "skipped": 0
+      },
+      {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
@@ -2500,7 +2527,7 @@
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.58s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 11.12s"
   },
   {
     "id": "M86",
@@ -2515,6 +2542,15 @@
     "note": "D-076. A syntactically valid but non-object gate root refuses with exit 2 rather than escaping through attribute access.",
     "results": [
       {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.23s",
+        "skipped": 0
+      },
+      {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
@@ -2524,7 +2560,7 @@
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.49s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 11.23s"
   },
   {
     "id": "M87",
@@ -2539,6 +2575,15 @@
     "note": "D-076. A syntactically valid but non-object routing-policy root refuses with exit 2 rather than reaching schema validation with the wrong shape.",
     "results": [
       {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.38s",
+        "skipped": 0
+      },
+      {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
@@ -2548,6 +2593,6 @@
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.18s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 11.38s"
   }
 ]
