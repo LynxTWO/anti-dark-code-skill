@@ -2371,8 +2371,8 @@
     "suite": [
       "anti-dark-code/tests/test_route_cli.py"
     ],
-    "old": "            shadow_context = _candidate_shadow_context(\n                verified_receipt.authoritative, verify_args, route_module)",
-    "new": "            shadow_context = _candidate_shadow_context(\n                _read_route_receipt(receipt_path)[\"authoritative\"],\n                verify_args, route_module)",
+    "old": "            shadow_context = _candidate_shadow_context(\n                verified_receipt.authoritative,\n                verified_receipt.validated_policy, route_module)",
+    "new": "            shadow_context = _candidate_shadow_context(\n                _read_route_receipt(receipt_path)[\"authoritative\"],\n                verified_receipt.validated_policy, route_module)",
     "verdict": "caught",
     "note": "D-075. Shadow reconstruction consumes the same immutable authoritative payload that passed verification, never a second read from the receipt path.",
     "results": [
@@ -2429,5 +2429,125 @@
       }
     ],
     "pytest": "1 failed, 20 passed, 2 subtests passed in 29.21s"
+  },
+  {
+    "id": "M83",
+    "name": "gate execution rereads configuration after verification",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    config = (json.loads(verified_gate_configuration_json)\n              if verified_gate_configuration_json is not None\n              else read_json(config_path))",
+    "new": "    config = read_json(config_path)",
+    "verdict": "caught",
+    "note": "D-076. Gate selection and commands consume the exact configuration snapshot validated with the receipt rather than a later file read.",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.64s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.64s"
+  },
+  {
+    "id": "M84",
+    "name": "candidate reconstruction reloads routing policy",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            shadow_context = _candidate_shadow_context(\n                verified_receipt.authoritative,\n                verified_receipt.validated_policy, route_module)",
+    "new": "            reloaded_policy, _, _, _ = _load_route_inputs(verify_args)\n            shadow_context = _candidate_shadow_context(\n                verified_receipt.authoritative,\n                reloaded_policy, route_module)",
+    "verdict": "caught",
+    "note": "D-076. Candidate shadow reconstruction consumes the exact validated policy object carried by the verified receipt context.",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 37.62s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 37.62s"
+  },
+  {
+    "id": "M85",
+    "name": "first receipt write skips pre-acquisition run-store setup",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if args.write:\n        # This path is itself an acquired fact and part of the repository\n        # binding. Create it before acquisition so facts and identity describe\n        # one state even on the first receipt write.\n        ensure_run_gitignore(repo)\n\n",
+    "new": "",
+    "verdict": "caught",
+    "note": "D-076. Stable run-store setup occurs before change acquisition so emitted facts and the repository binding describe one state on the first write.",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.58s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.58s"
+  },
+  {
+    "id": "M86",
+    "name": "non-object gate configuration reaches attribute access",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if not isinstance(gates_source, dict):\n        print(\"REFUSED: gates.json must contain an object\")\n        raise SystemExit(2)\n",
+    "new": "",
+    "verdict": "caught",
+    "note": "D-076. A syntactically valid but non-object gate root refuses with exit 2 rather than escaping through attribute access.",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.49s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.49s"
+  },
+  {
+    "id": "M87",
+    "name": "non-object routing policy reaches validation",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if not isinstance(policy_source, dict):\n        print(\"REFUSED: routing-policy.json must contain an object\")\n        raise SystemExit(2)\n",
+    "new": "",
+    "verdict": "caught",
+    "note": "D-076. A syntactically valid but non-object routing-policy root refuses with exit 2 rather than reaching schema validation with the wrong shape.",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.18s",
+        "skipped": 0
+      }
+    ],
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.18s"
   }
 ]

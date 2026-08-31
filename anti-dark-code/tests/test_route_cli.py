@@ -138,6 +138,21 @@ class RouteCommandTests(unittest.TestCase):
         self.assertNotEqual(0, done.returncode)
         self.assertIn("canonical_full_set", done.stdout + done.stderr)
 
+    def test_a_non_object_gate_configuration_refuses_with_exit_two(self) -> None:
+        self._write_gates([])
+        done = self._route("--base", "HEAD~1")
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("REFUSED", done.stdout)
+        self.assertNotIn("Traceback", done.stdout + done.stderr)
+
+    def test_a_non_object_routing_policy_refuses_with_exit_two(self) -> None:
+        (self.calibration / "routing-policy.json").write_text(
+            "[]\n", encoding="utf-8")
+        done = self._route("--base", "HEAD~1")
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("REFUSED", done.stdout)
+        self.assertNotIn("Traceback", done.stdout + done.stderr)
+
     def test_an_unreachable_base_does_not_produce_a_cheap_route(self) -> None:
         done = self._route("--base", "does-not-exist")
         self.assertEqual(0, done.returncode, done.stderr)
@@ -156,6 +171,15 @@ class RouteCommandTests(unittest.TestCase):
         done = self._route("--verify", str(receipt))
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
         self.assertIn("FRESH", done.stdout)
+
+    def test_first_receipt_write_acquires_the_run_store_ignore(self) -> None:
+        receipt = self._written_receipt()
+        data = json.loads(receipt.read_text(encoding="utf-8"))
+        changed = {
+            row["path"] for row in data["authoritative"]["changed_files"]}
+        self.assertIn(".anti-dark-code/.gitignore", changed)
+        done = self._route("--verify", str(receipt))
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
 
     def test_a_changed_worktree_makes_the_receipt_stale_and_exits_two(self) -> None:
         receipt = self._written_receipt()
@@ -228,6 +252,8 @@ class _RoutedGateCliFixture(unittest.TestCase):
             json.dumps(policy, indent=2) + "\n", encoding="utf-8")
         (self.calibration / "gates.json").write_text(
             json.dumps(GATES, indent=2) + "\n", encoding="utf-8")
+        (self.repo / ".anti-dark-code" / ".gitignore").write_text(
+            "runs/\nefficiency/\nflowback/\n", encoding="utf-8")
         adc = load_adc()
         assessment = adc.assess_repository_binding(self.repo, self.calibration)
         adc.write_repository_binding(
@@ -313,6 +339,103 @@ raise SystemExit(module.main([
         done = subprocess.run(
             [sys.executable, "-B", "-c", code, str(ADC), str(self.repo),
              str(self.receipt), str(self.source)],
+            capture_output=True, text=True, timeout=300)
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("STALE", done.stdout)
+        self.assertIn("before launch", done.stdout)
+
+    def test_verified_gate_configuration_is_not_reread_before_execution(self) -> None:
+        sentinel = self.repo / "unverified-gate-ran.txt"
+        gates_path = self.calibration / "gates.json"
+        original_gates = gates_path.read_text(encoding="utf-8")
+        malicious = json.loads(json.dumps(GATES))
+        malicious["canonical_full_set"]["obligations"] = {
+            capability: ["unverified-gate"]
+            for capability in malicious["canonical_full_set"]["obligations"]
+        }
+        malicious["gates"] = [{
+            "id": "unverified-gate", "enabled": True,
+            "review_status": "approved", "level": 0,
+            "argv": [
+                sys.executable, "-c",
+                "from pathlib import Path; "
+                "Path('unverified-gate-ran.txt').write_text('ran')"],
+            "timeout_seconds": 30,
+        }]
+        code = """
+import importlib.util
+import sys
+from pathlib import Path
+
+adc_path, repo, receipt, gates_path, original_gates, malicious = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("adc_gate_config_swap", adc_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+original_candidate = module._candidate_shadow_context
+def swap_after_candidate(*args, **kwargs):
+    result = original_candidate(*args, **kwargs)
+    Path(gates_path).write_text(malicious, encoding="utf-8")
+    return result
+module._candidate_shadow_context = swap_after_candidate
+original_read_json = module.read_json
+def restore_after_read(path, *args, **kwargs):
+    result = original_read_json(path, *args, **kwargs)
+    if Path(path).resolve() == Path(gates_path).resolve():
+        Path(gates_path).write_text(original_gates, encoding="utf-8")
+    return result
+module.read_json = restore_after_read
+raise SystemExit(module.main([
+    "gates", "--repo", repo, "--route", receipt, "--allow-exec"
+]))
+"""
+        done = subprocess.run(
+            [sys.executable, "-B", "-c", code, str(ADC), str(self.repo),
+             str(self.receipt), str(gates_path), original_gates,
+             json.dumps(malicious)],
+            capture_output=True, text=True, timeout=300)
+        self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+        self.assertIn("STALE", done.stdout)
+        self.assertIn("before launch", done.stdout)
+        self.assertFalse(sentinel.exists(),
+                         "an unverified in-memory gate command executed")
+
+    def test_verified_policy_is_not_reloaded_for_candidate_reconstruction(self) -> None:
+        policy_path = self.calibration / "routing-policy.json"
+        original_policy = policy_path.read_text(encoding="utf-8")
+        code = """
+import importlib.util
+import sys
+from pathlib import Path
+
+adc_path, repo, receipt, policy_path, original_policy = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("adc_policy_swap", adc_path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+original_load = module._load_route_inputs
+post_verify = False
+def restore_after_candidate_reload(*args, **kwargs):
+    result = original_load(*args, **kwargs)
+    if post_verify:
+        Path(policy_path).write_text(original_policy, encoding="utf-8")
+    return result
+module._load_route_inputs = restore_after_candidate_reload
+original_verify = module._verify_loaded_route_receipt
+def mutate_after_verify(*args, **kwargs):
+    global post_verify
+    result = original_verify(*args, **kwargs)
+    Path(policy_path).write_text(original_policy + " ", encoding="utf-8")
+    post_verify = True
+    return result
+module._verify_loaded_route_receipt = mutate_after_verify
+raise SystemExit(module.main([
+    "gates", "--repo", repo, "--route", receipt, "--allow-exec"
+]))
+"""
+        done = subprocess.run(
+            [sys.executable, "-B", "-c", code, str(ADC), str(self.repo),
+             str(self.receipt), str(policy_path), original_policy],
             capture_output=True, text=True, timeout=300)
         self.assertEqual(2, done.returncode, done.stdout + done.stderr)
         self.assertIn("STALE", done.stdout)

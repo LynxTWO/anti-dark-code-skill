@@ -2010,3 +2010,26 @@ The process-level seam tests mutate the repository and replace the receipt immed
 
 Revisit when:
 The gate runner moves receipt verification into another process, or execution is redesigned around an operating-system snapshot that makes the preflight-to-launch boundary atomic.
+
+## D-076: Verified execution authority is a closed in-memory context
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M4, R-018, policy authority, gate configuration
+
+Context:
+A second independent review found two more path-replacement seams. Receipt preflight validated `gates.json`, but `run_gates` read that path again to choose commands. Candidate reconstruction likewise reloaded `routing-policy.json` after verification. An attacker able to swap and restore either path between those reads could supply unverified execution or shadow inputs while leaving the pre-launch repository identity unchanged. The review also found that the first `route --write` acquired change facts before creating the stable run-store ignore file, then bound the later state.
+
+Decision:
+The verified receipt context carries the frozen authoritative payload, validated policy object, canonical gate-configuration bytes, verified worktree identity, and verified run id. Routed gate selection and execution parse only those carried gate bytes. Candidate reconstruction consumes only the carried validated policy. Neither authority consumer reloads a calibration path after verification.
+
+Create the stable run-store ignore file before change acquisition on a write. This makes the added path part of both emitted facts and repository identity during a first write. A syntactically valid policy or gate document with a non-object root refuses with exit 2 before schema access.
+
+Because:
+Preflight protects a set of inputs, not just a receipt file. Every decision made after it must consume the same policy, gate configuration, route payload, and repository state that preflight accepted.
+
+Consequences:
+Process-level swap-and-restore tests prove that later policy or gate bytes cannot authorize execution. M83 through M87 hold the gate snapshot, policy snapshot, first-write acquisition order, and clean root-shape refusals. A first receipt written in a repository without the run-store ignore may route more conservatively because that setup path is now visible to acquisition.
+
+Revisit when:
+Execution authority moves to a separate process with an authenticated, serialized preflight context.

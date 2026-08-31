@@ -203,6 +203,7 @@ Existing GitHub Actions. Status Confirmed.
 - **Current slice:** SLICE-001, read-only shadow routing. M2, M3, and M4 are implemented; the human walkthrough still gates slice completion.
 - **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
 - **Modules built in M4:** routed level enforcement, canonical force-full gate selection, receipt preflight, per-gate freshness binding, the type-separated `CandidateRoute`, and the real-outcome shadow comparator.
+- **Execution authority:** one verified in-memory context carries the route payload, validated policy, gate configuration, run id, and repository identity from preflight through gate launch. See D-075 and D-076.
 - **Modules not built:** selective local or CI execution. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.
 
