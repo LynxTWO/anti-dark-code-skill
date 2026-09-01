@@ -2870,6 +2870,40 @@ class SuiteIntegrityTests(unittest.TestCase):
             self.assertEqual(0, harness.replay([row], write=False))
             self.assertEqual(original, source.read_bytes())
 
+    def test_replay_purges_target_bytecode_before_and_after_a_row(self) -> None:
+        """A previous mutant's cached module must not answer the next row."""
+        harness = load_module(
+            "adc_replay_bytecode_isolation",
+            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            source.write_text("before = True\n", encoding="utf-8")
+            cache = source.parent / "__pycache__"
+            cache.mkdir()
+            stale = cache / "source.cpython-test.pyc"
+            stale.write_bytes(b"stale mutant bytecode")
+            observed: list[bool] = []
+
+            def suite(paths, repo_root):
+                observed.append(stale.exists())
+                stale.write_bytes(b"current mutant bytecode")
+                return 1, "1 failed in 0.01s", 0
+
+            harness.REPO_ROOT = root
+            harness.host_identity = lambda: {
+                "platform": "Test", "release": "1", "python": "3",
+                "git": "git version test"}
+            harness.run_suite = suite
+            row = {
+                "id": "MX", "name": "fixture", "source": "source.py",
+                "old": "before = True", "new": "before = False",
+                "results": []}
+
+            self.assertEqual(0, harness.replay([row], write=False))
+            self.assertEqual([False], observed)
+            self.assertFalse(stale.exists())
+
     def test_replay_rejects_a_launcher_error_as_no_test_evidence(self) -> None:
         """Exit 1 is meaningful only when pytest actually ran tests."""
         harness = load_module(

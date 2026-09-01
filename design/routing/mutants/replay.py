@@ -97,6 +97,13 @@ def sha256_bytes(contents: bytes) -> str:
     return hashlib.sha256(contents).hexdigest()
 
 
+def purge_target_bytecode(source: Path) -> None:
+    """Prevent one mutant's cached module from answering another row."""
+    cache = source.parent / "__pycache__"
+    for bytecode in cache.glob(f"{source.stem}.*.pyc"):
+        bytecode.unlink()
+
+
 def commit_identity(repo_root: Path) -> str:
     """Record the committed source that a row exercised."""
     try:
@@ -203,6 +210,7 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
 
     try:
         source.write_bytes(original.replace(old, new, 1))
+        purge_target_bytecode(source)
         try:
             exit_code, summary, skipped = run_suite(
                 tuple(row.get("suite", DEFAULT_SUITE)), repo_root)
@@ -230,6 +238,10 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
             source.write_bytes(original)
         except OSError as caught:
             restore_error = caught
+        try:
+            purge_target_bytecode(source)
+        except OSError as caught:
+            restore_error = restore_error or caught
         try:
             after = sha256_bytes(source.read_bytes())
             result["source_hash_after"] = after
