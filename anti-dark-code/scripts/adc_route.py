@@ -954,14 +954,6 @@ def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
                 add(f"{label}, calibration under {root}", f"{root}{leaf}")
     return tuple(paths)
 
-# What counts as grading a path as authority. `verification-authority` is the
-# effect the shipped force-full rule matches. `skill-policy` is the surface its
-# own force-full rule matches, and SKILL.md carries instruction authority
-# rather than verification authority, so both are accepted.
-_AUTHORITY_EFFECTS = frozenset({"verification-authority"})
-_AUTHORITY_SURFACES = frozenset({"skill-policy"})
-
-
 # ENGINEERING names these classes as self-grading authority.  The path probe
 # below proves rule behaviour for concrete source and installed layouts; this
 # separate, exact classifier contract prevents replacing a class entry with a
@@ -1028,21 +1020,17 @@ AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
 )
 
 
-def _check_authority_classifier_contract(classifier: Mapping[str, Any]) -> None:
+def _check_authority_classifier_contract(
+    classifier: Mapping[str, Any], rules: Sequence["ValidatedRule"],
+) -> None:
     """Require every ENGINEERING authority class before any policy can route."""
     entries = classifier.get("surfaces", [])
-    # Generic, authority-free policies are used to exercise ordinary routing
-    # semantics.  They cannot use this incomplete-classifier bypass: if they
-    # classify the established self-grading paths cheaply, _check_self_grading
-    # rejects them.  Once a policy claims any authority effect or authority
-    # surface, it must carry the complete ENGINEERING authority-class contract
-    # rather than a sample an attacker can partition around.
-    if not any(
-        isinstance(entry, Mapping)
-        and (str(entry.get("effect")) in _AUTHORITY_EFFECTS
-             or str(entry.get("surface")) in _AUTHORITY_SURFACES)
-        for entry in entries
-    ):
+    # A classifier-free policy cannot classify a path cheaply.  A nonempty
+    # classifier becomes self-grading authority as soon as any current or
+    # proposed rule can route a matching fact below the full recipe; requiring
+    # a pre-existing authority label would let an attacker remove every label
+    # and retain only an exact cheap exception.
+    if not entries or not any(not rule.force_full for rule in rules):
         return
     actual = {
         (str(entry.get("glob")), str(entry.get("surface")),
@@ -1912,7 +1900,7 @@ def load_policy(
             obligations=_freeze_obligations(rule.get("obligations", {})),
         ))
 
-    _check_authority_classifier_contract(classifier)
+    _check_authority_classifier_contract(classifier, rules)
 
     # Last, because it needs both halves: the classifier says what a path is,
     # and the rules say what happens to it. Either alone answers the wrong

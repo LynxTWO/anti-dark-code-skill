@@ -4487,6 +4487,23 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                 self.gates_source["canonical_full_set"])
         self.assertIn("source scope marker", str(caught.exception))
 
+    def test_an_all_cheap_classifier_cannot_disable_class_enforcement(self) -> None:
+        # D-093 must not rely on the attacker retaining any authority-labelled
+        # entry.  Before this regression, removing them all and leaving this
+        # one exact classifier loaded and routed .gitattributes at Level 0.
+        data = json.loads(json.dumps(self.policy_source))
+        data["classifier"]["surfaces"] = [{
+            "glob": ".gitattributes", "surface": "docs", "effect": "prose",
+            "breadth": "leaf",
+        }]
+        for rule in data["rules"]:
+            rule["review_status"] = "approved"
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn("attributes (.gitattributes)", str(caught.exception))
+
     def test_shipped_policy_matches_the_canonical_authority_class_contract(self) -> None:
         expected = (
             ("router, receipt, and installer controls", "**/scripts/adc*.py",

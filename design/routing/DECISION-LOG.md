@@ -2596,15 +2596,15 @@ an exact cheap entry still coexists with an authority fact and therefore cannot
 lower the route.
 
 Consequences:
-Any policy that claims a verification-authority effect or a self-grading
-authority surface but omits a named authority class now fails closed at load.
-A classifier-free or ordinary-prose test policy remains compatible:
-classifying established self-grading paths cheaply still fails the existing
-per-path guard, while unknown paths force full.  All shipped rules remain
-proposed.  Adding a future authority class requires adding its canonical
-classifier entry, the drift test, and a review; it cannot silently inherit a
-cheap generic classification.  M96 holds the load-time enforcement, pending a
-future authoritative replay.
+Any nonempty classifier paired with a current or proposed non-force-full rule
+must carry every named authority class or fail closed at load.  This includes a
+policy that removed every authority-labelled entry and retained only an exact
+cheap exception.  A classifier-free policy, or a policy whose rules all force
+full, remains compatible because it cannot route a classified path cheaply.
+All shipped rules remain proposed.  Adding a future authority class requires
+adding its canonical classifier entry, the drift test, and a review; it cannot
+silently inherit a cheap generic classification.  M96 holds the load-time
+enforcement, pending a future authoritative replay.
 
 The machine-checkable Python authority set is root and nested
 `pyproject.toml`, `requirements*.txt`, `Pipfile`, `*.lock`, `setup.py`,
