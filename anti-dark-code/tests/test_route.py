@@ -3282,6 +3282,24 @@ class ReplayParallelCloneTests(unittest.TestCase):
         self.assertEqual(1, run_row.call_count)
         self.assertTrue(result[0]["clone_retired"])
 
+    def test_parallel_emits_a_superseded_row_without_creating_a_worker(self) -> None:
+        harness = self._harness("adc_replay_parallel_superseded")
+        row = self._row("M26")
+        row["superseded_by"] = "M27"
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            with mock.patch.object(harness, "commit_identity", return_value="a" * 40), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor") as pool:
+                result, cleanup = harness.run_parallel([row], 99, root)
+
+        pool.assert_not_called()
+        self.assertEqual([], cleanup)
+        self.assertEqual("superseded", result[0]["status"])
+        self.assertTrue(result[0]["restored"])
+
     def test_worker_suite_uses_owned_parent_cwd_with_absolute_suite_paths(self) -> None:
         """Detached helpers from a suite must not retain the clone as cwd."""
         harness = self._harness("adc_replay_parallel_worker_cwd")

@@ -646,20 +646,39 @@ def run_parallel(rows: list[dict], jobs: int, repo_root: Path) -> tuple[list[dic
     if not rows:
         return [], []
     commit = commit_identity(repo_root)
-    partitions = partition_rows(rows, jobs)
+    superseded: dict[int, dict] = {}
+    active_rows: list[tuple[int, dict]] = []
+    for index, row in enumerate(rows):
+        if row.get("superseded_by"):
+            source = repo_root / row["source"]
+            digest = sha256_bytes(source.read_bytes()) if source.is_file() else None
+            result = _row_evidence(row, host_identity(), "coordinator", commit,
+                                   time.perf_counter(), digest)
+            result.update({"status": "superseded", "verdict": "superseded",
+                           "source_hash_after": digest, "restored": True,
+                           "matrix_index": index, "clone_retired": False})
+            superseded[index] = result
+        else:
+            active_rows.append((index, row))
+    partitions: list[list[tuple[int, dict]]] = [[] for _ in range(jobs)]
+    for offset, item in enumerate(active_rows):
+        partitions[offset % jobs].append(item)
     active = [(index, partition) for index, partition in enumerate(partitions)
               if partition]
     owner = {row_index: f"worker-{worker_index}"
              for worker_index, partition in active for row_index, _ in partition}
     try:
         _verify_coordinator_sources(repo_root, commit)
-        source_digests = _frozen_row_source_hashes(repo_root, commit, rows)
+        source_digests = _frozen_row_source_hashes(
+            repo_root, commit, [row for _, row in active_rows])
     except BaseException as caught:
         return ([_parallel_inconclusive(
             row, index, owner[index], commit,
             _parallel_error("coordinator source verification failed", caught, repo_root))
                  for index, row in enumerate(rows)], [])
 
+    if not active:
+        return [superseded[index] for index in range(len(rows))], []
     owned_root = Path(tempfile.mkdtemp(prefix="adc-replay-")).resolve(strict=True)
     clones = [(f"worker-{index}", owned_root / f"worker-{index}", partition)
               for index, partition in active]
@@ -735,7 +754,8 @@ def run_parallel(rows: list[dict], jobs: int, repo_root: Path) -> tuple[list[dic
         if commit_identity(repo_root) != commit:
             for index in owner:
                 errors[index] = "coordinator HEAD changed during parallel replay"
-    results = [collected[index] if index in collected and index not in errors else
+    results = [superseded[index] if index in superseded else
+               collected[index] if index in collected and index not in errors else
                _parallel_inconclusive(row, index, owner[index], commit,
                                       errors.get(index, "missing worker result"))
                for index, row in enumerate(rows)]
