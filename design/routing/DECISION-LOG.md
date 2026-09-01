@@ -101,6 +101,16 @@ The documents state what is true. This log preserves why, what else was consider
 | D-082 | 2026-08-31 | Self-grading probes source and managed installed layouts | Confirmed | |
 | D-083 | 2026-08-31 | An unreadable fingerprint raises a typed receipt refusal | Confirmed | |
 | D-084 | 2026-08-31 | Worktree-writing gates remain stale for this slice | Confirmed | |
+| D-085 | 2026-08-31 | Filter neutralization is verified, not assumed | Confirmed | |
+| D-086 | 2026-08-31 | The self-grading guard covers every prefix the installer writes | Amended | D-091 |
+| D-087 | 2026-08-31 | A mutation target must match exactly one place | Confirmed | |
+| D-088 | 2026-08-31 | Neutralize through the environment, and refuse only what that cannot reach | Confirmed | |
+| D-089 | 2026-08-31 | Calibration is authority, and it lives outside the skill tree | Amended | D-091 |
+| D-090 | 2026-08-31 | A decision id cited in code must exist | Amended | |
+| D-091 | 2026-08-31 | Every routing-owning pass reference is a guard probe | Confirmed | |
+| D-092 | 2026-08-31 | Host-generated pytest cache is not install provenance | Confirmed | |
+| D-093 | 2026-09-01 | Self-grading authority is a classifier contract, not a path sample | Confirmed | |
+| D-094 | 2026-09-01 | A stronger guard supersedes a redundant mutation row | Confirmed | |
 
 ---
 
@@ -2617,3 +2627,46 @@ both harness code and `matrix.json`.
 Revisit when:
 ENGINEERING changes a self-grading class or the router gains classifier syntax
 whose coverage cannot be represented by the canonical entries.
+
+## D-094: A stronger guard supersedes a redundant mutation row
+
+Date: 2026-09-01
+Status: Confirmed
+Area: M3, R-021, D-082, D-093, M92, M96
+
+Context:
+The final frozen-head T540P replay at `0a26531` ran all 96 rows and found one
+local survivor: M92, which replaces `_self_grading_guard_paths()` with the
+literal `SELF_GRADING_PATHS`.  The earlier Linux record had caught M92 before
+D-093 added the canonical classifier contract.
+
+The changed outcome is expected.  With the exact M92 reversion in force, a
+nonempty classifier with a cheap current or proposed rule cannot narrow
+`**/scripts/adc*.py` to the source spelling: D-093 rejects the missing
+canonical class before `_check_self_grading()` runs.  The two compatibility
+branches are also safe.  An empty classifier grades the installed router as
+unknown and routes full; a policy whose rules all force full still routes the
+installed router at Level 3 with `force_full=true`.
+
+Decision:
+M92 is superseded by M96.  M92's historical attack no longer changes routing
+behaviour under any policy that can load, while M96 attacks the stronger
+load-time class-contract enforcement that now prevents it.  Keep the
+source/installed-layout derivation and its direct tests as defense in depth;
+do not make a redundant mutant fail merely to preserve an old count.
+
+Because:
+A mutation row is evidence only while its replacement can falsify the named
+guarantee.  Once a stronger independent guard makes the replacement inert, a
+surviving mutant is evidence of supersession rather than a reason to add a
+test that encodes obsolete implementation structure.
+
+Consequences:
+The matrix remains 96 rows and now has 91 active rows and 5 superseded rows.
+The T540P report retains the measured M92 survivor as the reason for the
+transition; the durable matrix clears obsolete host results from the
+superseded row.  M96 remains active and was caught on the same T540P run.
+
+Revisit when:
+The canonical classifier contract is removed, narrowed, or replaced by a
+mechanism that no longer covers managed installed script spellings.
