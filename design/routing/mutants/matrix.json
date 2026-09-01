@@ -2863,5 +2863,19 @@
       }
     ],
     "pytest": "2 failed, 290 passed, 9 deselected, 9 subtests passed in 12.61s"
+  },
+  {
+    "id": "M96",
+    "name": "self-grading class contract is not enforced",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if missing:\n        rendered = \"; \".join(f\"{label} ({glob})\" for label, glob in missing)\n        raise PolicyError(\n            \"policy omits canonical self-grading classifier(s): \" + rendered)",
+    "new": "    if False:\n        rendered = \"; \".join(f\"{label} ({glob})\" for label, glob in missing)\n        raise PolicyError(\n            \"policy omits canonical self-grading classifier(s): \" + rendered)",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-093. A policy must retain every canonical self-grading classifier; otherwise an exact representative may remain authoritative while another class member routes cheaply. Pending the next authoritative two-host replay."
   }
 ]

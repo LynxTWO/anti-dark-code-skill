@@ -962,6 +962,105 @@ _AUTHORITY_EFFECTS = frozenset({"verification-authority"})
 _AUTHORITY_SURFACES = frozenset({"skill-policy"})
 
 
+# ENGINEERING names these classes as self-grading authority.  The path probe
+# below proves rule behaviour for concrete source and installed layouts; this
+# separate, exact classifier contract prevents replacing a class entry with a
+# protected representative plus cheap exact exceptions.  See D-093.
+AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
+    ("router, receipt, and installer controls", "**/scripts/adc*.py",
+     "product", "verification-authority", "repository", "normal"),
+    ("tests and shared fixtures", "**/tests/*.py", "tests",
+     "verification-authority", "repository", "normal"),
+    ("capability catalog", "**/assets/verification-capabilities.json",
+     "schema", "verification-authority", "repository", "normal"),
+    ("source scope marker", "anti-dark-code/SOURCE-SCOPE.json", "schema",
+     "verification-authority", "repository", "normal"),
+    ("calibration", "**/calibration/*.json", "schema",
+     "verification-authority", "repository", "normal"),
+    ("skill instructions", "**/SKILL.md", "skill-policy", "public-contract",
+     "repository", "normal"),
+    ("routing pass references", "**/references/*.md", "docs",
+     "verification-authority", "repository", "normal"),
+    ("workflow class", ".github/workflows/**", "ci",
+     "verification-authority", "repository", "release"),
+    ("code owners", ".github/CODEOWNERS", "ci", "verification-authority",
+     "repository", "release"),
+    ("attributes", ".gitattributes", "schema", "verification-authority",
+     "repository", "normal"),
+    ("ignore policy", ".gitignore", "schema", "verification-authority",
+     "repository", "normal"),
+    ("submodule policy", ".gitmodules", "schema", "verification-authority",
+     "repository", "normal"),
+    ("mutation and validator harnesses", "design/routing/mutants/*", "tests",
+     "verification-authority", "repository", "normal"),
+    ("Python project manifest", "pyproject.toml", "schema",
+     "verification-authority", "repository", "normal"),
+    ("nested Python project manifest", "**/pyproject.toml", "schema",
+     "verification-authority", "repository", "normal"),
+    ("Python requirements family", "requirements*.txt", "schema",
+     "verification-authority", "repository", "normal"),
+    ("nested Python requirements family", "**/requirements*.txt", "schema",
+     "verification-authority", "repository", "normal"),
+    ("Pipfile", "Pipfile", "schema", "verification-authority", "repository",
+     "normal"),
+    ("nested Pipfile", "**/Pipfile", "schema", "verification-authority",
+     "repository", "normal"),
+    ("Python lock family", "*.lock", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested Python lock family", "**/*.lock", "schema",
+     "verification-authority", "repository", "normal"),
+    ("setup.py", "setup.py", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested setup.py", "**/setup.py", "schema",
+     "verification-authority", "repository", "normal"),
+    ("setup.cfg", "setup.cfg", "schema", "verification-authority", "repository",
+     "normal"),
+    ("nested setup.cfg", "**/setup.cfg", "schema", "verification-authority",
+     "repository", "normal"),
+    ("pytest.ini", "pytest.ini", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested pytest.ini", "**/pytest.ini", "schema", "verification-authority",
+     "repository", "normal"),
+    ("tox.ini", "tox.ini", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested tox.ini", "**/tox.ini", "schema", "verification-authority",
+     "repository", "normal"),
+)
+
+
+def _check_authority_classifier_contract(classifier: Mapping[str, Any]) -> None:
+    """Require every ENGINEERING authority class before any policy can route."""
+    entries = classifier.get("surfaces", [])
+    # Generic, authority-free policies are used to exercise ordinary routing
+    # semantics.  They cannot use this incomplete-classifier bypass: if they
+    # classify the established self-grading paths cheaply, _check_self_grading
+    # rejects them.  Once a policy claims any authority effect or authority
+    # surface, it must carry the complete ENGINEERING authority-class contract
+    # rather than a sample an attacker can partition around.
+    if not any(
+        isinstance(entry, Mapping)
+        and (str(entry.get("effect")) in _AUTHORITY_EFFECTS
+             or str(entry.get("surface")) in _AUTHORITY_SURFACES)
+        for entry in entries
+    ):
+        return
+    actual = {
+        (str(entry.get("glob")), str(entry.get("surface")),
+         str(entry.get("effect")), str(entry.get("breadth", "leaf")),
+         str(entry.get("sensitivity", "normal")))
+        for entry in entries if isinstance(entry, Mapping)
+    }
+    missing = [
+        (label, glob) for label, glob, surface, effect, breadth, sensitivity
+        in AUTHORITY_CLASSIFIERS
+        if (glob, surface, effect, breadth, sensitivity) not in actual
+    ]
+    if missing:
+        rendered = "; ".join(f"{label} ({glob})" for label, glob in missing)
+        raise PolicyError(
+            "policy omits canonical self-grading classifier(s): " + rendered)
+
+
 def _check_self_grading(
     classifier: Mapping[str, Any], rules: Sequence["ValidatedRule"]
 ) -> None:
@@ -1812,6 +1911,8 @@ def load_policy(
             independent_review=bool(requires.get("independent_review", False)),
             obligations=_freeze_obligations(rule.get("obligations", {})),
         ))
+
+    _check_authority_classifier_contract(classifier)
 
     # Last, because it needs both halves: the classifier says what a path is,
     # and the rules say what happens to it. Either alone answers the wrong

@@ -1682,7 +1682,6 @@ GATES = {
     ],
 }
 
-
 POLICY = {
     "schema_version": 1,
     "classifier": {"surfaces": []},
@@ -4423,6 +4422,149 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         facts = self.route.collect_change_facts(snapshot, policy.classifier_map())
         return self.route.build_route(facts, policy, snapshot_ok=True)
 
+    def test_authority_classes_cannot_be_demoted_by_exact_exceptions(self) -> None:
+        """D-093: a representative path cannot stand for an authority class."""
+        for path, authority_glob in (
+            ("design/routing/mutants/replay.py",
+             "design/routing/mutants/*"),
+            (".gitattributes", ".gitattributes"),
+            (".gitignore", ".gitignore"),
+            ("anti-dark-code/SOURCE-SCOPE.json",
+             "anti-dark-code/SOURCE-SCOPE.json"),
+            ("design/routing/mutants/matrix.json",
+             "design/routing/mutants/*"),
+        ):
+            with self.subTest(path=path):
+                data = json.loads(json.dumps(self.policy_source))
+                data["classifier"]["surfaces"] = [
+                    entry for entry in data["classifier"]["surfaces"]
+                    if entry.get("glob") != authority_glob]
+                data["classifier"]["surfaces"].append({
+                    "glob": path, "surface": "docs", "effect": "prose",
+                    "breadth": "leaf",
+                })
+                with self.assertRaises(self.route.PolicyError) as caught:
+                    self.route.load_policy(
+                        data, self.gates_source, sorted(CAPABILITY_IDS),
+                        self.gates_source["canonical_full_set"])
+                self.assertIn(authority_glob, str(caught.exception))
+
+    def test_workflow_authority_cannot_be_split_to_one_exact_path(self) -> None:
+        data = json.loads(json.dumps(self.policy_source))
+        surfaces = []
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == ".github/workflows/**":
+                exact = dict(entry)
+                exact["glob"] = ".github/workflows/tests.yml"
+                surfaces.append(exact)
+            else:
+                surfaces.append(entry)
+        surfaces.append({"glob": ".github/workflows/**", "surface": "docs",
+                         "effect": "prose", "breadth": "leaf"})
+        data["classifier"]["surfaces"] = surfaces
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn(".github/workflows/**", str(caught.exception))
+
+    def test_a_public_contract_surface_cannot_disable_class_enforcement(self) -> None:
+        # SKILL.md has instruction authority through its surface rather than
+        # the verification-authority effect.  Dropping all of the latter must
+        # not switch off D-093 and make another class cheaply exact.
+        data = json.loads(json.dumps(self.policy_source))
+        data["classifier"]["surfaces"] = [
+            entry for entry in data["classifier"]["surfaces"]
+            if entry.get("effect") != "verification-authority"
+        ]
+        data["classifier"]["surfaces"].append({
+            "glob": "anti-dark-code/SOURCE-SCOPE.json", "surface": "docs",
+            "effect": "prose", "breadth": "leaf",
+        })
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn("source scope marker", str(caught.exception))
+
+    def test_shipped_policy_matches_the_canonical_authority_class_contract(self) -> None:
+        expected = (
+            ("router, receipt, and installer controls", "**/scripts/adc*.py",
+             "product", "verification-authority", "repository", "normal"),
+            ("tests and shared fixtures", "**/tests/*.py", "tests",
+             "verification-authority", "repository", "normal"),
+            ("capability catalog", "**/assets/verification-capabilities.json",
+             "schema", "verification-authority", "repository", "normal"),
+            ("source scope marker", "anti-dark-code/SOURCE-SCOPE.json",
+             "schema", "verification-authority", "repository", "normal"),
+            ("calibration", "**/calibration/*.json", "schema",
+             "verification-authority", "repository", "normal"),
+            ("skill instructions", "**/SKILL.md", "skill-policy",
+             "public-contract", "repository", "normal"),
+            ("routing pass references", "**/references/*.md", "docs",
+             "verification-authority", "repository", "normal"),
+            ("workflow class", ".github/workflows/**", "ci",
+             "verification-authority", "repository", "release"),
+            ("code owners", ".github/CODEOWNERS", "ci",
+             "verification-authority", "repository", "release"),
+            ("attributes", ".gitattributes", "schema",
+             "verification-authority", "repository", "normal"),
+            ("ignore policy", ".gitignore", "schema",
+             "verification-authority", "repository", "normal"),
+            ("submodule policy", ".gitmodules", "schema",
+             "verification-authority", "repository", "normal"),
+            ("mutation and validator harnesses", "design/routing/mutants/*",
+             "tests", "verification-authority", "repository", "normal"),
+            ("Python project manifest", "pyproject.toml", "schema",
+             "verification-authority", "repository", "normal"),
+            ("nested Python project manifest", "**/pyproject.toml", "schema",
+             "verification-authority", "repository", "normal"),
+            ("Python requirements family", "requirements*.txt", "schema",
+             "verification-authority", "repository", "normal"),
+            ("nested Python requirements family", "**/requirements*.txt", "schema",
+             "verification-authority", "repository", "normal"),
+            ("Pipfile", "Pipfile", "schema", "verification-authority",
+             "repository", "normal"),
+            ("nested Pipfile", "**/Pipfile", "schema",
+             "verification-authority", "repository", "normal"),
+            ("Python lock family", "*.lock", "schema",
+             "verification-authority", "repository", "normal"),
+            ("nested Python lock family", "**/*.lock", "schema",
+             "verification-authority", "repository", "normal"),
+            ("setup.py", "setup.py", "schema",
+             "verification-authority", "repository", "normal"),
+            ("nested setup.py", "**/setup.py", "schema",
+             "verification-authority", "repository", "normal"),
+            ("setup.cfg", "setup.cfg", "schema", "verification-authority",
+             "repository", "normal"),
+            ("nested setup.cfg", "**/setup.cfg", "schema",
+             "verification-authority", "repository", "normal"),
+            ("pytest.ini", "pytest.ini", "schema", "verification-authority",
+             "repository", "normal"),
+            ("nested pytest.ini", "**/pytest.ini", "schema",
+             "verification-authority", "repository", "normal"),
+            ("tox.ini", "tox.ini", "schema", "verification-authority",
+             "repository", "normal"),
+            ("nested tox.ini", "**/tox.ini", "schema",
+             "verification-authority", "repository", "normal"),
+        )
+        self.assertEqual(expected,
+                         getattr(self.route, "AUTHORITY_CLASSIFIERS", ()))
+        expected_entries = {
+            (glob, surface, effect, breadth, sensitivity)
+            for _, glob, surface, effect, breadth, sensitivity in expected
+        }
+        for policy_source in (self.policy_source, json.loads(
+                (SKILL_ROOT / "assets/templates/calibration/routing-policy.json")
+                .read_text(encoding="utf-8"))):
+            actual = {
+                (entry.get("glob"), entry.get("surface"), entry.get("effect"),
+                 entry.get("breadth", "leaf"), entry.get("sensitivity", "normal"))
+                for entry in policy_source["classifier"]["surfaces"]
+            }
+            self.assertTrue(expected_entries <= actual,
+                            sorted(expected_entries - actual))
+
     def test_every_self_grading_path_class_forces_the_full_recipe(self) -> None:
         policy = self._approved_policy()
         demoted = []
@@ -4464,7 +4606,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("adc_route.py", str(caught.exception))
+        self.assertIn("**/scripts/adc*.py", str(caught.exception))
 
     def test_one_authority_reference_cannot_cover_two_cheap_ones(self) -> None:
         data = json.loads(json.dumps(self.policy_source))
@@ -4483,8 +4625,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertRegex(str(caught.exception),
-                         r"(?:10-maintenance-harness|14-deterministic-verification)\.md")
+        self.assertIn("**/references/*.md", str(caught.exception))
 
     def test_source_only_authority_cannot_hide_the_installed_router(self) -> None:
         # D-071 portability. The managed installer moves this module beneath
@@ -4493,15 +4634,13 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # the installed router as ordinary code.
         data = json.loads(json.dumps(self.policy_source))
         for entry in data["classifier"]["surfaces"]:
-            if entry.get("glob") == "**/scripts/adc_route.py":
+            if entry.get("glob") == "**/scripts/adc*.py":
                 entry["glob"] = "anti-dark-code/scripts/adc_route.py"
         with self.assertRaises(self.route.PolicyError) as caught:
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn(
-            ".agents/skills/anti-dark-code/scripts/adc_route.py",
-            str(caught.exception))
+        self.assertIn("**/scripts/adc*.py", str(caught.exception))
 
     def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
         # The classifier is untouched here, so a guard that checked only the
@@ -4666,7 +4805,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn(".anti-dark-code/calibration/", str(caught.exception))
+        self.assertIn("**/calibration/*.json", str(caught.exception))
 
     def test_the_shipped_calibration_templates_are_self_grading(self) -> None:
         # initialize_calibration copies these into every fresh install, so they
@@ -4703,12 +4842,12 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn(".claude/skills/", str(caught.exception))
+        self.assertIn("**/SKILL.md", str(caught.exception))
 
     def test_an_unmapped_self_grading_path_is_not_a_load_failure(self) -> None:
-        # Unmapped carries confidence unknown, which forces full already. The
-        # guard exists for the path that is classified and classified cheaply,
-        # not for the one no entry describes.
+        # A policy with no authority fact cannot use the incomplete-classifier
+        # bypass; unknown routing forces full.  D-093 applies once a policy
+        # claims any verification-authority classification.
         data = json.loads(json.dumps(self.policy_source))
         data["classifier"]["surfaces"] = []
         policy = self.route.load_policy(

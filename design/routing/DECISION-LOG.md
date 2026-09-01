@@ -2558,3 +2558,61 @@ Revisit when:
 The distributed core intentionally includes pytest runner artifacts, or a new
 host-generated directory is excluded by source-control and install policy but
 not by the provenance walk.
+
+## D-093: Self-grading authority is a classifier contract, not a path sample
+
+Date: 2026-09-01
+Status: Confirmed
+Area: M3, R-021, R-053, D-071, D-086, D-089, D-091
+
+Context:
+The self-grading guard derived source, installed, and calibration spellings
+from a short list of representative paths.  ENGINEERING names broader authority
+classes: mutation and validator harnesses, repository metadata, source-scope
+provenance, every workflow, project manifests and locks, as well as router,
+policy, pass, and test authority.
+
+Measured with every rule approved in memory: a policy that classified each of
+`design/routing/mutants/replay.py`, `.gitattributes`, `.gitignore`, or
+`anti-dark-code/SOURCE-SCOPE.json` as exact docs/prose loaded.  A policy that
+kept only `.github/workflows/tests.yml` as authority and classified the rest of
+`.github/workflows/**` as docs/prose also loaded.  Each affected target routed
+below the full recipe in all 72 change-kind, source, and mode shapes.
+
+Decision:
+`load_policy()` requires every exact entry in `AUTHORITY_CLASSIFIERS` before it
+can validate rules.  The entries are the canonical classifier forms for all
+ENGINEERING self-grading classes.  A policy may add another matching fact, but
+it cannot replace a required authority class with an exact representative or a
+cheap exception.  The existing per-path, per-layout, and per-shape guard stays
+in place; it proves rule behaviour after the class contract proves the
+classifier cannot omit a class.
+
+Because:
+One path can demonstrate a class only while the classifier cannot distinguish
+that path.  It can distinguish exact paths, so representative probing leaves an
+attacker-controlled partition.  Retaining the canonical authority glob means
+an exact cheap entry still coexists with an authority fact and therefore cannot
+lower the route.
+
+Consequences:
+Any policy that claims a verification-authority effect or a self-grading
+authority surface but omits a named authority class now fails closed at load.
+A classifier-free or ordinary-prose test policy remains compatible:
+classifying established self-grading paths cheaply still fails the existing
+per-path guard, while unknown paths force full.  All shipped rules remain
+proposed.  Adding a future authority class requires adding its canonical
+classifier entry, the drift test, and a review; it cannot silently inherit a
+cheap generic classification.  M96 holds the load-time enforcement, pending a
+future authoritative replay.
+
+The machine-checkable Python authority set is root and nested
+`pyproject.toml`, `requirements*.txt`, `Pipfile`, `*.lock`, `setup.py`,
+`setup.cfg`, `pytest.ini`, and `tox.ini`.  `**/scripts/adc*.py` deliberately
+covers every dynamically imported `adc` helper, including receipt, routing,
+and efficiency controls.  `design/routing/mutants/*` deliberately includes
+both harness code and `matrix.json`.
+
+Revisit when:
+ENGINEERING changes a self-grading class or the router gains classifier syntax
+whose coverage cannot be represented by the canonical entries.
