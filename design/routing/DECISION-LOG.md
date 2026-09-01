@@ -2447,7 +2447,7 @@ Revisit when:
 ## D-090: A decision id cited in code must exist
 
 Date: 2026-08-31
-Status: Confirmed
+Status: Amended
 Area: M2, M3, D-088, D-089
 
 Context:
@@ -2459,8 +2459,17 @@ A comment reading "See D-088" where there is no D-088 is worse than no comment. 
 
 Nothing caught this. `RequirementTraceabilityTests` resolves R-ids and test node ids against real sources; no check resolved D-ids, and the suite passed at 436 with eight dangling references in it.
 
+The original implementation was narrower than this decision: it named six
+top-level Python files and only top-level routing Markdown. A citation in a
+nested script, test, or routing document could therefore bypass the guard.
+
 Decision:
-`test_every_referenced_decision_exists` collects every `D-0\d\d` mentioned in the router sources, the tests, and the design documents, and fails on any that has no `## D-0xx` heading in `DECISION-LOG.md`.
+`test_every_referenced_decision_exists` derives its claimed scope from every
+`*.py` below `anti-dark-code/scripts/` and `anti-dark-code/tests/`, plus every
+`*.md` below `design/routing/`. It collects every `D-0\d\d` citation from those
+sources and fails on any that has no `## D-0xx` heading in
+`DECISION-LOG.md`. The log's headings are definitions, and its prose is not
+treated as citation failures.
 
 Because:
 The project's own rule is that a claim names its evidence. A decision id is a claim that evidence exists at a known address, and it is the cheapest kind to check.

@@ -26,6 +26,35 @@ REPO_ROOT = SKILL_ROOT.parent
 CAPABILITIES = SKILL_ROOT / "assets" / "verification-capabilities.json"
 
 
+def decision_reference_sources(repo_root: Path, skill_root: Path) -> list[Path]:
+    """Return every source class that D-090 claims to inspect."""
+    sources = [
+        *((skill_root / "scripts").rglob("*.py")),
+        *((skill_root / "tests").rglob("*.py")),
+        *((repo_root / "design" / "routing").rglob("*.md")),
+    ]
+    return sorted(path for path in sources if path.is_file())
+
+
+def unresolved_decision_references(repo_root: Path, skill_root: Path) -> list[str]:
+    """Return claimed-scope D-ids absent from the routing decision log."""
+    decision_log = repo_root / "design" / "routing" / "DECISION-LOG.md"
+    recorded = set(re.findall(
+        r"^## (D-\d{3})", decision_log.read_text(encoding="utf-8"), re.M
+    ))
+    unresolved: list[str] = []
+    for path in decision_reference_sources(repo_root, skill_root):
+        if path == decision_log:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for cited in sorted(set(re.findall(r"\bD-\d{3}\b", text))):
+            if cited not in recorded:
+                unresolved.append(
+                    f"{path.relative_to(repo_root).as_posix()} cites {cited}"
+                )
+    return sorted(unresolved)
+
+
 def load_module(name: str, path: Path):
     """Load a helper module by path.
 
@@ -3833,6 +3862,29 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                     "row is stale, or that file is holding the mutant.")
         self.assertEqual([], missing, "; ".join(missing))
 
+    def test_decision_guard_recurses_through_claimed_source_classes(self) -> None:
+        """The fixed source list must not skip nested D-id citations."""
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            skill = root / "anti-dark-code"
+            missing_decision = "D-" + "999"
+            probes = [
+                skill / "scripts/nested/probe.py",
+                skill / "tests/nested/test_probe.py",
+                root / "design/routing/plans/probe.md",
+            ]
+            for probe in probes:
+                probe.parent.mkdir(parents=True, exist_ok=True)
+                probe.write_text(f"See {missing_decision}.\n", encoding="utf-8")
+            log = root / "design/routing/DECISION-LOG.md"
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_text("## D-001: recorded\n", encoding="utf-8")
+            unresolved = unresolved_decision_references(root, skill)
+            self.assertEqual(
+                {path.relative_to(root).as_posix() for path in probes},
+                {entry.split(" cites ", 1)[0] for entry in unresolved},
+            )
+
     def test_every_referenced_decision_exists(self) -> None:
         """D-090. A comment citing a decision asserts one was recorded.
 
@@ -3842,34 +3894,13 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
         caught, and a five-agent audit ran, all with eight dangling references
         in the tree. Nothing resolved a decision id, so nothing could notice.
         """
-        log = (REPO_ROOT / "design" / "routing"
-               / "DECISION-LOG.md").read_text(encoding="utf-8")
-        recorded = set(re.findall(r"^## (D-\d{3})", log, re.M))
-        self.assertTrue(recorded, "the decision log has no decision headings")
-
-        sources = [
-            SKILL_ROOT / "scripts" / "adc_route.py",
-            SKILL_ROOT / "scripts" / "adc_receipt.py",
-            SKILL_ROOT / "scripts" / "adc.py",
-            SKILL_ROOT / "tests" / "test_route.py",
-            SKILL_ROOT / "tests" / "test_receipt.py",
-            SKILL_ROOT / "tests" / "test_route_cli.py",
-        ]
-        sources.extend(sorted((REPO_ROOT / "design" / "routing").glob("*.md")))
-
-        dangling: list[str] = []
-        for path in sources:
-            if not path.is_file():
-                continue
-            text = path.read_text(encoding="utf-8")
-            if path.name == "DECISION-LOG.md":
-                # Its own headings are the definitions, and a superseded entry
-                # may legitimately discuss an id it does not define.
-                continue
-            for cited in sorted(set(re.findall(r"\bD-\d{3}\b", text))):
-                if cited not in recorded:
-                    dangling.append(f"{path.name} cites {cited}")
-        self.assertEqual([], sorted(set(dangling)), "; ".join(sorted(set(dangling))))
+        log = REPO_ROOT / "design" / "routing" / "DECISION-LOG.md"
+        self.assertTrue(
+            re.search(r"^## D-\d{3}", log.read_text(encoding="utf-8"), re.M),
+            "the decision log has no decision headings",
+        )
+        unresolved = unresolved_decision_references(REPO_ROOT, SKILL_ROOT)
+        self.assertEqual([], unresolved, "; ".join(unresolved))
 
     def test_every_mutant_target_occurs_exactly_once(self) -> None:
         """Presence is not enough: `replay.py` mutates the first site only.
