@@ -142,8 +142,7 @@ Expected: `"conclusion":"success"` at `57e941fa1d1f3098941322606234c08af68b2271`
 Read the two qualifications you are being asked to accept, rather than taking this document's word for them:
 
 ```powershell
-python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); print(re.search(r'## D-080.*?(?=
-## D-)', t, re.S).group(0))"
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); print(re.search(r'## D-080.*?(?=\n## D-)', t, re.S).group(0))"
 python -c "import pathlib; t=pathlib.Path('design/routing/SLICE-001-route-shadow.md').read_text(encoding='utf-8'); s=t.split('## 9. Verification evidence required')[1].split('### K, L')[0]; print(s.strip())"
 ```
 
