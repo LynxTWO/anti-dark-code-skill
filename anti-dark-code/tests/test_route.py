@@ -1194,8 +1194,20 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
                 os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
             return result
 
+        # The indexed path has a new inode after the swap.  Git may otherwise
+        # refresh the index while acquisition runs, which is itself a boundary
+        # change and can make this test pass even when the topology term is
+        # absent.  Restrict its stat comparison to the unchanged bytes/size/
+        # mtime and prove the index bytes did not become a side channel.
+        self._git("config", "core.trustctime", "false")
+        self._git("config", "core.checkStat", "minimal")
+        index_before = (self.repo / ".git" / "index").read_bytes()
         snap = self.route.read_change_inputs(
             self.repo, "base-ref", runner=linking_runner)
+        self.assertEqual(
+            index_before, (self.repo / ".git" / "index").read_bytes(),
+            "the Git index changed during acquisition and reintroduced a "
+            "side channel for the topology assertion")
 
         # Nothing a content-and-metadata fingerprint can see has moved.
         self.assertEqual(target.read_bytes(), b"SAME\n")
