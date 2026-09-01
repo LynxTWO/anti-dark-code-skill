@@ -2309,7 +2309,7 @@ Git gains a way to disable content filters wholesale, which would replace discov
 ## D-086: The self-grading guard covers every prefix the installer writes
 
 Date: 2026-08-31
-Status: Confirmed
+Status: Amended by D-091
 Area: M3, R-005, R-021, D-071, D-078, D-082
 
 Context:
@@ -2414,7 +2414,7 @@ Git gains a way to disable content filters wholesale, or the per-driver cost sho
 ## D-089: Calibration is authority, and it lives outside the skill tree
 
 Date: 2026-08-31
-Status: Confirmed
+Status: Amended by D-091
 Area: M3, R-005, R-021, D-071, D-078, D-082, D-086
 
 Context:
@@ -2470,3 +2470,45 @@ A decision must be written before, or in the same change as, the first code that
 
 Revisit when:
 Decision ids gain a second home, or a document deliberately references a decision from another repository.
+
+## D-091: Every routing-owning pass reference is a guard probe
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071, D-086, D-089
+
+Context:
+The self-grading guard represented the three routing-owning pass references
+with only `00-preflight.md`. That was enough while the shipped classifier used
+one broad `**/references/*.md` authority entry, but the classifier accepts
+exact globs too. A policy could retain authority for `00-preflight.md` and
+grade `10-maintenance-harness.md` and
+`14-deterministic-verification.md` as cheap prose.
+
+Measurement replaced the broad authority entry with that exact
+`00-preflight.md` entry and appended a cheap broad reference entry. The
+existing installed-spelling probes rejected the installed `00-preflight.md`,
+but neither source reference that owns the other passes appeared in the
+diagnosis. They were outside the guard's authority set.
+
+Decision:
+`ROUTING_OWNING_PASS_REFERENCES` names all three pass-owning references, and
+`SELF_GRADING_PATHS` expands each one into a guard probe. The regression
+requires the load error to name `10-maintenance-harness.md` or
+`14-deterministic-verification.md`.
+
+Because:
+One representative path cannot stand for a classifier that may distinguish
+exact paths. Layout derivation answers where one authority file can move; it
+does not answer which distinct files own routing passes.
+
+Consequences:
+D-086 and D-089 are amended by measurement. Their installer-prefix and
+calibration-layout derivations remain necessary, but neither establishes that
+one source representative covers distinct authority files. The guard gains
+two source references and their managed-install spellings; a policy that
+cheaply classifies either now fails at load.
+
+Revisit when:
+A new reference owns a routing pass, or routing ownership moves out of the
+reference set.

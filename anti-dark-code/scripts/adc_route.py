@@ -856,7 +856,16 @@ _UNMAPPED = {
 # Measured, not assumed: with this repository's rules approved in memory, five
 # of these took ordinary routes. The router graded itself as Level 2 product
 # code, the capability catalog as a Level 2 schema, and a routing-owning pass
-# reference as Level 0 prose. See D-071.
+# reference as Level 0 prose. Routing-owning references are the exception to
+# the representative rule: a classifier can distinguish exact paths, so every
+# reference that owns a pass is probed. See D-071 and D-091.
+ROUTING_OWNING_PASS_REFERENCES = (
+    "anti-dark-code/references/00-preflight.md",
+    "anti-dark-code/references/10-maintenance-harness.md",
+    "anti-dark-code/references/14-deterministic-verification.md",
+)
+
+
 SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
     ("router code and Git interpretation", "anti-dark-code/scripts/adc_route.py"),
     ("receipt authority", "anti-dark-code/scripts/adc_receipt.py"),
@@ -870,8 +879,9 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
      "anti-dark-code/assets/templates/calibration/gates.json"),
     ("shipped policy template",
      "anti-dark-code/assets/templates/calibration/routing-policy.json"),
-    ("routing-owning pass reference",
-     "anti-dark-code/references/00-preflight.md"),
+    ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[0]),
+    ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[1]),
+    ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[2]),
     ("continuous integration", ".github/workflows/tests.yml"),
     ("router tests", "anti-dark-code/tests/test_route.py"),
     ("shared test support", "anti-dark-code/tests/test_adc.py"),

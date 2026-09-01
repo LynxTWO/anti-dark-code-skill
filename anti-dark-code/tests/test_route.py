@@ -3258,6 +3258,26 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                 self.gates_source["canonical_full_set"])
         self.assertIn("adc_route.py", str(caught.exception))
 
+    def test_one_authority_reference_cannot_cover_two_cheap_ones(self) -> None:
+        data = json.loads(json.dumps(self.policy_source))
+        surfaces = []
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "**/references/*.md":
+                exact = dict(entry)
+                exact["glob"] = "anti-dark-code/references/00-preflight.md"
+                surfaces.append(exact)
+            else:
+                surfaces.append(entry)
+        surfaces.append({"glob": "**/references/*.md", "surface": "docs",
+                         "effect": "prose", "breadth": "leaf"})
+        data["classifier"]["surfaces"] = surfaces
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertRegex(str(caught.exception),
+                         r"(?:10-maintenance-harness|14-deterministic-verification)\.md")
+
     def test_source_only_authority_cannot_hide_the_installed_router(self) -> None:
         # D-071 portability. The managed installer moves this module beneath
         # .agents/skills. A policy that recognizes only the source-tree
