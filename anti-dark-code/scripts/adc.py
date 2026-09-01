@@ -1818,7 +1818,7 @@ def managed_source_files(source: Path) -> dict[str, Path]:
     for current, dirs, names in os.walk(source, followlinks=False):
         current_path = Path(current)
         rel_dir = current_path.relative_to(source)
-        excluded_here = {"__pycache__", ".git"}
+        excluded_here = {"__pycache__", ".pytest_cache", ".git"}
         if not rel_dir.parts:
             excluded_here.update({"calibration", "incoming"})
         dirs[:] = sorted(

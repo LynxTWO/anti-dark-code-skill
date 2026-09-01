@@ -2521,3 +2521,40 @@ cheaply classifies either now fails at load.
 Revisit when:
 A new reference owns a routing pass, or routing ownership moves out of the
 reference set.
+
+## D-092: Host-generated pytest cache is not install provenance
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, source provenance, install integrity
+
+Context:
+`.pytest_cache` was already an ignored repository directory, but
+`managed_source_files()` independently excluded only `__pycache__` and `.git`
+at every depth. A real pytest cache carries its own `.gitignore` containing
+`*`, so Git did not report the host-generated state as dirt. The managed-file
+walk nevertheless included its bytes in the core digest. A tag could therefore
+remain clean while its recorded install digest changed for data no install
+would be meant to distribute.
+
+Decision:
+`managed_source_files()` excludes `.pytest_cache` at every depth, alongside
+`__pycache__` and `.git`. The provenance regression builds a tagged fixture
+core with the real cache `.gitignore` and a cache payload, then requires both
+the file set and the provenance digest to remain unchanged and the source to
+remain a clean `git-tag`.
+
+Because:
+Host-generated runner state is not distributed source authority and must not
+alter install provenance.
+
+Consequences:
+The provenance boundary now matches the ignored pytest runner state for both
+the shipped file set and the digest derived from it. A cache cannot cause
+spurious digest drift or make an otherwise immutable tagged source appear to
+have different install bytes.
+
+Revisit when:
+The distributed core intentionally includes pytest runner artifacts, or a new
+host-generated directory is excluded by source-control and install policy but
+not by the provenance walk.
