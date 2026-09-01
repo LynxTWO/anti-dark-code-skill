@@ -5000,7 +5000,7 @@
     }
   },
   "collection_proof": {
-    "collect_only": "round4/collect-only.txt",
+    "collect_only": "round5/collect-only.txt",
     "collect_only_sha256": "b472b64c61a53b33d8e10405489a64d40f45ace5b28fe56811c7dded70e48196",
     "collect_only_count": 494,
     "collect_only_exact_nodeids": [
@@ -6023,10 +6023,10 @@
         "exact_nodeid_plugin"
       ],
       "exit_code": 0,
-      "duration_seconds": 218.01,
-      "junit": "round4/serial-1.xml",
+      "duration_seconds": 246.8,
+      "junit": "round5/serial-1.xml",
       "junit_sha256": "0420c28628398891afcc87af769b325dcc9a41537167e7015e7435851be426fc",
-      "outcomes": "round4/serial-1-outcomes.json",
+      "outcomes": "round5/serial-1-outcomes.json",
       "outcomes_sha256": "aca22d3061f2359a491a37f577deca1526e463a35aa17ce890de865b38c5a98d",
       "outcome_set_sha256": "68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8",
       "node_count": 494,
@@ -6055,10 +6055,10 @@
         "exact_nodeid_plugin"
       ],
       "exit_code": 0,
-      "duration_seconds": 216.76,
-      "junit": "round4/serial-2.xml",
+      "duration_seconds": 243.62,
+      "junit": "round5/serial-2.xml",
       "junit_sha256": "c8279f0cfd19b29bef67512640392b01fa2eec61af241c51b10ed3252e468070",
-      "outcomes": "round4/serial-2-outcomes.json",
+      "outcomes": "round5/serial-2-outcomes.json",
       "outcomes_sha256": "aca22d3061f2359a491a37f577deca1526e463a35aa17ce890de865b38c5a98d",
       "outcome_set_sha256": "68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8",
       "node_count": 494,
@@ -6087,10 +6087,10 @@
         "exact_nodeid_plugin"
       ],
       "exit_code": 0,
-      "duration_seconds": 214.95,
-      "junit": "round4/serial-3.xml",
+      "duration_seconds": 248.23,
+      "junit": "round5/serial-3.xml",
       "junit_sha256": "673949c782fbe908f4c02e4426bf34e111ec2adb99fc6bc498b2a9486630f373",
-      "outcomes": "round4/serial-3-outcomes.json",
+      "outcomes": "round5/serial-3-outcomes.json",
       "outcomes_sha256": "aca22d3061f2359a491a37f577deca1526e463a35aa17ce890de865b38c5a98d",
       "outcome_set_sha256": "68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8",
       "node_count": 494,
@@ -6121,10 +6121,10 @@
         "auto"
       ],
       "exit_code": 0,
-      "duration_seconds": 30.3,
-      "junit": "round4/xdist-1.xml",
+      "duration_seconds": 39.0,
+      "junit": "round5/xdist-1.xml",
       "junit_sha256": "08723b3bc50f2a819a1b52628df354b80d0210ef6452208d9e87a4ec7f17f8b4",
-      "outcomes": "round4/xdist-1-outcomes.json",
+      "outcomes": "round5/xdist-1-outcomes.json",
       "outcomes_sha256": "3b6c5f4e6fde52364ab4f7aa73879e38c865be8d677e35691178f8301d008f75",
       "outcome_set_sha256": "68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8",
       "node_count": 494,
@@ -6155,10 +6155,10 @@
         "auto"
       ],
       "exit_code": 0,
-      "duration_seconds": 30.89,
-      "junit": "round4/xdist-2.xml",
+      "duration_seconds": 41.27,
+      "junit": "round5/xdist-2.xml",
       "junit_sha256": "cab986337516f7fcdb9230050df3ca286b15f771d9740c19af983edb484d8f93",
-      "outcomes": "round4/xdist-2-outcomes.json",
+      "outcomes": "round5/xdist-2-outcomes.json",
       "outcomes_sha256": "3b6c5f4e6fde52364ab4f7aa73879e38c865be8d677e35691178f8301d008f75",
       "outcome_set_sha256": "68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8",
       "node_count": 494,
@@ -6189,10 +6189,10 @@
         "auto"
       ],
       "exit_code": 0,
-      "duration_seconds": 29.22,
-      "junit": "round4/xdist-3.xml",
+      "duration_seconds": 43.62,
+      "junit": "round5/xdist-3.xml",
       "junit_sha256": "83c0953808945c5d59532779143e222d8d3206a5995298f78678c617d80c2c06",
-      "outcomes": "round4/xdist-3-outcomes.json",
+      "outcomes": "round5/xdist-3-outcomes.json",
       "outcomes_sha256": "3b6c5f4e6fde52364ab4f7aa73879e38c865be8d677e35691178f8301d008f75",
       "outcome_set_sha256": "68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8",
       "node_count": 494,
@@ -6222,5 +6222,16 @@
     "suite_mismatches": [],
     "restoration_failures": [],
     "cleanup_failures": []
+  },
+  "runtime_postmortem": {
+    "user_observed_wall_time_minutes_at_least": 1165,
+    "clean_path_forecast_hours": "2.5-3.5",
+    "discarded_work_separated": true,
+    "restarts": [
+      "wrong-worktree provenance",
+      "M79 deterministic-precondition diagnosis",
+      "M36 index-refresh side-channel diagnosis"
+    ],
+    "recommendation": "Require a runtime forecast and acknowledgement before any gate expected to exceed 60 minutes or per-mutant full-suite replay."
   }
 }
