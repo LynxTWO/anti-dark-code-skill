@@ -3300,6 +3300,49 @@ class ReplayParallelCloneTests(unittest.TestCase):
         self.assertEqual("superseded", result[0]["status"])
         self.assertTrue(result[0]["restored"])
 
+    def test_parallel_preflight_failure_preserves_mixed_superseded_order(self) -> None:
+        """A failed preflight must not look up a worker for a superseded row."""
+        harness = self._harness("adc_replay_parallel_mixed_preflight")
+        rows = [self._row("M1"), self._row("M2"), self._row("M3")]
+        rows[1]["superseded_by"] = "M4"
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            with mock.patch.object(harness, "commit_identity", return_value="a" * 40), \
+                 mock.patch.object(harness, "_verify_coordinator_sources",
+                                   side_effect=RuntimeError("preflight")), \
+                 mock.patch.object(harness, "ProcessPoolExecutor") as pool:
+                result, cleanup = harness.run_parallel(rows, 2, root)
+
+        pool.assert_not_called()
+        self.assertEqual([], cleanup)
+        self.assertEqual(["M1", "M2", "M3"], [item["id"] for item in result])
+        self.assertEqual(["inconclusive", "superseded", "inconclusive"],
+                         [item["status"] for item in result])
+        self.assertEqual(["worker-0", "serial", "worker-1"],
+                         [item["worker"] for item in result])
+        self.assertTrue(result[1]["restored"])
+        self.assertIn("coordinator source verification failed", result[0]["error"])
+
+    def test_parallel_superseded_only_skips_preflight_and_workers(self) -> None:
+        harness = self._harness("adc_replay_parallel_superseded_only")
+        rows = [self._row("M1"), self._row("M2")]
+        for row in rows:
+            row["superseded_by"] = "M3"
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            with mock.patch.object(harness, "commit_identity", return_value="a" * 40), \
+                 mock.patch.object(harness, "_verify_coordinator_sources") as verify, \
+                 mock.patch.object(harness, "ProcessPoolExecutor") as pool:
+                result, cleanup = harness.run_parallel(rows, 8, root)
+
+        verify.assert_not_called()
+        pool.assert_not_called()
+        self.assertEqual([], cleanup)
+        self.assertEqual(["superseded", "superseded"],
+                         [item["status"] for item in result])
+
     def test_worker_suite_uses_owned_parent_cwd_with_absolute_suite_paths(self) -> None:
         """Detached helpers from a suite must not retain the clone as cwd."""
         harness = self._harness("adc_replay_parallel_worker_cwd")

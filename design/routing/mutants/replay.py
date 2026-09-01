@@ -258,6 +258,18 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
     return result
 
 
+def _superseded_result(row: dict, repo_root: Path, host: dict,
+                       commit: str) -> dict:
+    """The one canonical record shape for a matrix-superseded mutation."""
+    source = repo_root / row["source"]
+    digest = sha256_bytes(source.read_bytes()) if source.is_file() else None
+    result = _row_evidence(row, host, "serial", commit,
+                           time.perf_counter(), digest)
+    result.update({"status": "superseded", "verdict": "superseded",
+                   "source_hash_after": digest, "restored": True})
+    return result
+
+
 def run_serial(rows: list[dict], repo_root: Path) -> list[dict]:
     """Execute rows in canonical matrix order on the one authoritative tree."""
     host = host_identity()
@@ -265,15 +277,7 @@ def run_serial(rows: list[dict], repo_root: Path) -> list[dict]:
     results: list[dict] = []
     for row in rows:
         if row.get("superseded_by"):
-            source = repo_root / row["source"]
-            digest = sha256_bytes(source.read_bytes()) if source.is_file() else None
-            result = _row_evidence(row, host, "serial", commit,
-                                   time.perf_counter(), digest)
-            result.update({
-                "status": "superseded", "verdict": "superseded",
-                "source_hash_after": digest, "restored": True,
-            })
-            results.append(result)
+            results.append(_superseded_result(row, repo_root, host, commit))
             continue
         results.append(run_row(repo_root, row, host, "serial"))
     return results
@@ -650,14 +654,8 @@ def run_parallel(rows: list[dict], jobs: int, repo_root: Path) -> tuple[list[dic
     active_rows: list[tuple[int, dict]] = []
     for index, row in enumerate(rows):
         if row.get("superseded_by"):
-            source = repo_root / row["source"]
-            digest = sha256_bytes(source.read_bytes()) if source.is_file() else None
-            result = _row_evidence(row, host_identity(), "coordinator", commit,
-                                   time.perf_counter(), digest)
-            result.update({"status": "superseded", "verdict": "superseded",
-                           "source_hash_after": digest, "restored": True,
-                           "matrix_index": index, "clone_retired": False})
-            superseded[index] = result
+            superseded[index] = _superseded_result(
+                row, repo_root, host_identity(), commit)
         else:
             active_rows.append((index, row))
     partitions: list[list[tuple[int, dict]]] = [[] for _ in range(jobs)]
@@ -667,18 +665,17 @@ def run_parallel(rows: list[dict], jobs: int, repo_root: Path) -> tuple[list[dic
               if partition]
     owner = {row_index: f"worker-{worker_index}"
              for worker_index, partition in active for row_index, _ in partition}
+    if not active:
+        return [superseded[index] for index in range(len(rows))], []
     try:
         _verify_coordinator_sources(repo_root, commit)
         source_digests = _frozen_row_source_hashes(
             repo_root, commit, [row for _, row in active_rows])
     except BaseException as caught:
-        return ([_parallel_inconclusive(
-            row, index, owner[index], commit,
-            _parallel_error("coordinator source verification failed", caught, repo_root))
+        error = _parallel_error("coordinator source verification failed", caught, repo_root)
+        return ([superseded[index] if index in superseded else
+                 _parallel_inconclusive(row, index, owner[index], commit, error)
                  for index, row in enumerate(rows)], [])
-
-    if not active:
-        return [superseded[index] for index in range(len(rows))], []
     owned_root = Path(tempfile.mkdtemp(prefix="adc-replay-")).resolve(strict=True)
     clones = [(f"worker-{index}", owned_root / f"worker-{index}", partition)
               for index, partition in active]
