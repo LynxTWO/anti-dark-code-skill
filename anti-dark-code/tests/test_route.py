@@ -4992,6 +4992,16 @@ class RequirementTraceabilityTests(unittest.TestCase):
         self.assertEqual([], problems, "; ".join(problems))
 
 
+class WorkflowParallelContractTests(unittest.TestCase):
+    def test_workflow_uses_proven_parallel_verification(self) -> None:
+        text = (REPO_ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        self.assertEqual("adopted", json.loads((REPO_ROOT / "design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json").read_text())["adoption"])
+        self.assertEqual(2, text.count("pip install --disable-pip-version-check --quiet pytest pytest-xdist"))
+        self.assertGreaterEqual(text.count("python -m pytest anti-dark-code/tests -q -n auto"), 2)
+        self.assertIn("python design/routing/mutants/replay.py --jobs 2", text)
+        self.assertNotIn("replay.py --write", text)
+
+
 @unittest.skipUnless(MATRIX.is_file(), "mutation matrix is not part of this tree")
 class MutationMatrixIntegrityTests(unittest.TestCase):
     """The matrix describes the source. This checks it still does.
