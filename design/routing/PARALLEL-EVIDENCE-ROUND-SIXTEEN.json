@@ -1,6 +1,6 @@
 {
   "schema": "round-sixteen-parallel-evidence-v2",
-  "adoption": "declined",
+  "adoption": "adopted",
   "execution_commit": "51bd525311dd98dc933655252120e4fe4a501550",
   "matrix_sha256": "e690d16e77107cc6a5581ab7f54a6d92b28a58be4a279208f27b6776c57f6564",
   "environment": {
@@ -63,7 +63,7 @@
     "matrix_sha256_before": "9146c962d446d1f6333774e87ef6f4fa650979e100bdb8d9426f892b3786b70b",
     "matrix_sha256_after": "e690d16e77107cc6a5581ab7f54a6d92b28a58be4a279208f27b6776c57f6564",
     "exit_code": 0,
-    "duration_seconds": null,
+    "duration_seconds": 1215.277,
     "summary": "95 mutants, 0 not caught: none",
     "source_bytes": [
       {
@@ -169,7 +169,14 @@
     },
     "remote_cleanup": true,
     "local_cleanup": true,
-    "duration_recording": "not recorded in preserved transferable evidence; no duration is asserted"
+    "duration_measurement": {
+      "source": "preserved command-execution metadata",
+      "command_execution_id": "exec-286c7fd0-cc60-4efe-b52c-e1c607b05393",
+      "exit_code": 0,
+      "duration_ms": 1215277,
+      "scope": "complete isolated T540P evidence command: clone, checkout, virtual-environment setup, serial replay --write, restoration/blob verification, and matrix/status facts; not replay-subprocess-only",
+      "replay_subprocess_polled_before_completion": true
+    }
   },
   "step1": {
     "universal_exit_code": 0,
@@ -7172,8 +7179,7 @@
     "row_mismatches": [],
     "suite_mismatches": [],
     "restoration_failures": [],
-    "cleanup_failures": [],
-    "t540p_duration_not_recorded": true
+    "cleanup_failures": []
   },
   "runtime_postmortem": {
     "user_observed_wall_time_minutes_at_least": 1165,
@@ -7185,6 +7191,5 @@
       "M36 index-refresh side-channel diagnosis"
     ],
     "recommendation": "Require a runtime forecast and acknowledgement before any gate expected to exceed 60 minutes or per-mutant full-suite replay."
-  },
-  "adoption_reason": "T540P duration sub-gate is not evidenced; execution identity is otherwise adopted only after a separately recorded duration."
+  }
 }
