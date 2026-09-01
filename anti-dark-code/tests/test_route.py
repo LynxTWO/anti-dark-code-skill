@@ -2988,6 +2988,14 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
             "2 failed, 258 passed, 1 skipped, 9 deselected, 2 subtests passed "
             "in 62.63s (0:01:02)"))
 
+    def test_replay_structured_summary_rejects_trailing_junk_and_invalid_clock(self) -> None:
+        """Anchored evidence cannot accept text after pytest or impossible clocks."""
+        harness = self._harness("adc_replay_invalid_minute_summary")
+        valid = "2 failed, 258 passed in 62.63s"
+
+        self.assertIsNone(harness.PYTEST_SUMMARY.fullmatch(valid + " trailing"))
+        self.assertIsNone(harness.PYTEST_SUMMARY.fullmatch(valid + " (0:99:99)"))
+
     def test_replay_restoration_hash_mismatch_is_inconclusive(self) -> None:
         """A failed restore must reject the row instead of claiming a verdict."""
         harness = self._harness("adc_replay_restoration_hash")
@@ -3012,6 +3020,61 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
             self.assertEqual("INCONCLUSIVE", result["verdict"])
             self.assertFalse(result["restored"])
             self.assertNotEqual(result["source_hash_before"], result["source_hash_after"])
+
+    def test_replay_restoration_write_failure_records_measured_mutant_state(self) -> None:
+        """A failed restore write must return inconclusive evidence, not raise."""
+        harness = self._harness("adc_replay_restoration_write_failure")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\n"
+            mutant = b"before = False\n"
+            source.write_bytes(original)
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
+            real_write_bytes = Path.write_bytes
+
+            def fail_restore(path: Path, data: bytes) -> int:
+                if path == source and data == original:
+                    raise OSError("restore write denied")
+                return real_write_bytes(path, data)
+
+            with mock.patch.object(Path, "write_bytes", new=fail_restore):
+                result = harness.run_row(root, self._row(), self._host(), "serial")
+
+            self.assertEqual("inconclusive", result["status"])
+            self.assertEqual("INCONCLUSIVE", result["verdict"])
+            self.assertIsNone(result["caught"])
+            self.assertFalse(result["restored"])
+            self.assertIn("restoration write failed", result["error"])
+            self.assertEqual(harness.sha256_bytes(mutant), result["source_hash_after"])
+            self.assertEqual("readable", result["source_after_state"])
+            self.assertEqual(mutant, source.read_bytes())
+
+    def test_replay_preserves_mutation_error_when_restoration_also_fails(self) -> None:
+        """A second failure in finally must not replace the mutation failure."""
+        harness = self._harness("adc_replay_preserves_original_error")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\n"
+            mutant = b"before = False\n"
+            source.write_bytes(original)
+            harness.commit_identity = lambda repo_root: "commit-test"
+            real_write_bytes = Path.write_bytes
+
+            def fail_mutation_and_restore(path: Path, data: bytes) -> int:
+                if path == source and data == mutant:
+                    raise OSError("mutation write denied")
+                if path == source and data == original:
+                    raise OSError("restore write denied")
+                return real_write_bytes(path, data)
+
+            with mock.patch.object(Path, "write_bytes", new=fail_mutation_and_restore):
+                with self.assertRaisesRegex(OSError, "mutation write denied"):
+                    harness.run_row(root, self._row(), self._host(), "serial")
+
+            self.assertEqual(original, source.read_bytes())
 
     def test_replay_structured_report_is_coordinator_output(self) -> None:
         """A read-only run must emit comparable matrix and row evidence once."""

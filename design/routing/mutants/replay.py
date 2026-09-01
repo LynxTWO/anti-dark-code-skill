@@ -72,7 +72,7 @@ PYTEST_OUTCOME = (
 )
 PYTEST_SUMMARY = re.compile(
     rf"^{PYTEST_OUTCOME}(?:, {PYTEST_OUTCOME})* in \d+(?:\.\d+)?s"
-    r"(?: \(\d+:\d{2}:\d{2}\))?$")
+    r"(?: \(\d+:(?:[0-5]\d):(?:[0-5]\d)\))?$")
 
 
 def suite_command(paths) -> list[str]:
@@ -145,6 +145,7 @@ def _row_evidence(row: dict, host: dict, worker: str, commit: str,
         "id": row["id"], "status": "inconclusive", "verdict": "INCONCLUSIVE",
         "caught": None, "pytest": None, "skipped": 0,
         "source_hash_before": before, "source_hash_after": before,
+        "source_after_state": "unknown",
         "restored": False, "commit": commit, "worker": worker,
         "host": host, "duration": 0.0,
     }
@@ -191,16 +192,36 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
         # finally block restores the source before this interruption escapes.
         raise
     finally:
-        source.write_bytes(original)
-        after = sha256_bytes(source.read_bytes())
-        result["source_hash_after"] = after
-        result["restored"] = after == before
+        restore_error: OSError | None = None
+        after_error: OSError | None = None
+        try:
+            source.write_bytes(original)
+        except OSError as caught:
+            restore_error = caught
+        try:
+            after = sha256_bytes(source.read_bytes())
+            result["source_hash_after"] = after
+            result["source_after_state"] = "readable"
+        except OSError as caught:
+            after = None
+            after_error = caught
+            result["source_hash_after"] = None
+            result["source_after_state"] = "unreadable"
+        result["restored"] = (
+            restore_error is None and after_error is None and after == before)
         result["duration"] = time.perf_counter() - started
         if not result["restored"]:
+            errors = [result["error"]] if "error" in result else []
+            if restore_error is not None:
+                errors.append(f"source restoration write failed: {restore_error}")
+            if after_error is not None:
+                errors.append(f"source unreadable after restoration: {after_error}")
+            if after is not None and after != before:
+                errors.append("source restoration hash mismatch")
             result.update({
                 "status": "inconclusive", "verdict": "INCONCLUSIVE",
                 "caught": None,
-                "error": "source restoration hash mismatch",
+                "error": "; ".join(errors),
             })
     return result
 
