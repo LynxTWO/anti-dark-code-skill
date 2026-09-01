@@ -203,10 +203,15 @@
           "pytest_return": 1,
           "pytest_summary": "6 failed, 288 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 288,
+            "failed": 6,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -227,10 +232,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -251,10 +261,15 @@
           "pytest_return": 1,
           "pytest_summary": "6 failed, 288 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 288,
+            "failed": 6,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -275,10 +290,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -299,10 +319,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -323,10 +348,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -347,10 +377,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -371,10 +406,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -395,10 +435,15 @@
           "pytest_return": 1,
           "pytest_summary": "5 failed, 289 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 289,
+            "failed": 5,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -419,10 +464,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -443,10 +493,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -467,10 +522,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -491,10 +551,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -515,10 +580,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -539,10 +609,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -563,10 +638,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -587,10 +667,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -611,10 +696,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -635,10 +725,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -659,10 +754,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -683,10 +783,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -707,10 +812,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -731,10 +841,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -755,10 +870,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -779,10 +899,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -806,7 +931,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -827,10 +957,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -851,10 +986,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -875,10 +1015,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -899,10 +1044,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -923,10 +1073,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -950,7 +1105,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -971,10 +1131,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -998,7 +1163,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1022,7 +1192,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1043,10 +1218,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1067,10 +1247,15 @@
           "pytest_return": 0,
           "pytest_summary": "294 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
+            "passed": 294,
             "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1091,10 +1276,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1115,10 +1305,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1139,10 +1334,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1163,10 +1363,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1187,10 +1392,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1211,10 +1421,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1235,10 +1450,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1259,10 +1479,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1283,10 +1508,15 @@
           "pytest_return": 0,
           "pytest_summary": "294 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
+            "passed": 294,
             "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1307,10 +1537,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1331,10 +1566,15 @@
           "pytest_return": 0,
           "pytest_summary": "294 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
+            "passed": 294,
             "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1355,10 +1595,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1379,10 +1624,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1403,10 +1653,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1427,10 +1682,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1451,10 +1711,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/tests/test_route.py",
@@ -1475,10 +1740,15 @@
           "pytest_return": 1,
           "pytest_summary": "13 failed, 7 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 7,
+            "failed": 13,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1499,10 +1769,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 18 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 18,
+            "failed": 2,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1523,10 +1798,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 18 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 18,
+            "failed": 2,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1547,10 +1827,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 19 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 19,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1571,10 +1856,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 19 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 19,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1595,10 +1885,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 23 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 23,
+            "failed": 2,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1619,10 +1914,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 22 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 22,
+            "failed": 3,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1643,10 +1943,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "design/routing/mutants/replay.py",
@@ -1667,10 +1972,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "design/routing/mutants/replay.py",
@@ -1691,10 +2001,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "design/routing/mutants/replay.py",
@@ -1715,10 +2030,15 @@
           "pytest_return": 1,
           "pytest_summary": "9 failed, 285 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 285,
+            "failed": 9,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1739,10 +2059,15 @@
           "pytest_return": 1,
           "pytest_summary": "53 failed, 241 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 241,
+            "failed": 53,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1763,10 +2088,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1787,10 +2117,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1811,10 +2146,15 @@
           "pytest_return": 1,
           "pytest_summary": "4 failed, 290 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 290,
+            "failed": 4,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1835,10 +2175,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -1859,10 +2204,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -1883,10 +2233,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -1907,10 +2262,15 @@
           "pytest_return": 1,
           "pytest_summary": "5 failed, 289 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 289,
+            "failed": 5,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -1931,10 +2291,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 19 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 19,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1955,10 +2320,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -1979,10 +2349,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 22 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 22,
+            "failed": 3,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2003,10 +2378,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2027,10 +2407,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2051,10 +2436,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 25 passed, 2 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 25,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 2
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2075,10 +2465,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2099,10 +2494,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -2123,10 +2523,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2147,10 +2552,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 25 passed, 2 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 25,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 2
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2171,10 +2581,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2195,10 +2610,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2219,10 +2639,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2243,10 +2668,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2267,10 +2697,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2291,10 +2726,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -2315,10 +2755,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -2339,10 +2784,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2363,10 +2813,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2387,10 +2842,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2411,10 +2871,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2435,10 +2900,15 @@
           "pytest_return": 1,
           "pytest_summary": "6 failed, 288 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 288,
+            "failed": 6,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2459,10 +2929,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2494,10 +2969,15 @@
           "pytest_return": 1,
           "pytest_summary": "6 failed, 288 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 288,
+            "failed": 6,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2518,10 +2998,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2542,10 +3027,15 @@
           "pytest_return": 1,
           "pytest_summary": "6 failed, 288 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 288,
+            "failed": 6,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2566,10 +3056,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2590,10 +3085,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2614,10 +3114,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2638,10 +3143,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2662,10 +3172,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2686,10 +3201,15 @@
           "pytest_return": 1,
           "pytest_summary": "5 failed, 289 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 289,
+            "failed": 5,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2710,10 +3230,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2734,10 +3259,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2758,10 +3288,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2782,10 +3317,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2806,10 +3346,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2830,10 +3375,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2854,10 +3404,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2878,10 +3433,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2902,10 +3462,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2926,10 +3491,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2950,10 +3520,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2974,10 +3549,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -2998,10 +3578,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3022,10 +3607,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3046,10 +3636,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3070,10 +3665,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3097,7 +3697,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3118,10 +3723,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3142,10 +3752,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3166,10 +3781,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3190,10 +3810,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3214,10 +3839,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3241,7 +3871,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3262,10 +3897,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3289,7 +3929,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3313,7 +3958,12 @@
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3334,10 +3984,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3358,10 +4013,15 @@
           "pytest_return": 0,
           "pytest_summary": "294 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
+            "passed": 294,
             "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3382,10 +4042,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3406,10 +4071,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3430,10 +4100,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3454,10 +4129,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3478,10 +4158,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3502,10 +4187,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3526,10 +4216,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3550,10 +4245,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3574,10 +4274,15 @@
           "pytest_return": 0,
           "pytest_summary": "294 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
+            "passed": 294,
             "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3598,10 +4303,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3622,10 +4332,15 @@
           "pytest_return": 0,
           "pytest_summary": "294 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
+            "passed": 294,
             "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3646,10 +4361,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3670,10 +4390,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3694,10 +4419,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3718,10 +4448,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -3742,10 +4477,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/tests/test_route.py",
@@ -3766,10 +4506,15 @@
           "pytest_return": 1,
           "pytest_summary": "13 failed, 7 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 7,
+            "failed": 13,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3790,10 +4535,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 18 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 18,
+            "failed": 2,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3814,10 +4564,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 18 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 18,
+            "failed": 2,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3838,10 +4593,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 19 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 19,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3862,10 +4622,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 19 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 19,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3886,10 +4651,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 23 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 23,
+            "failed": 2,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3910,10 +4680,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 22 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 22,
+            "failed": 3,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -3934,10 +4709,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "design/routing/mutants/replay.py",
@@ -3958,10 +4738,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "design/routing/mutants/replay.py",
@@ -3982,10 +4767,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "design/routing/mutants/replay.py",
@@ -4006,10 +4796,15 @@
           "pytest_return": 1,
           "pytest_summary": "9 failed, 285 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 285,
+            "failed": 9,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4030,10 +4825,15 @@
           "pytest_return": 1,
           "pytest_summary": "53 failed, 241 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 241,
+            "failed": 53,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4054,10 +4854,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4078,10 +4883,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -4102,10 +4912,15 @@
           "pytest_return": 1,
           "pytest_summary": "4 failed, 290 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 290,
+            "failed": 4,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4126,10 +4941,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4150,10 +4970,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4174,10 +4999,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4198,10 +5028,15 @@
           "pytest_return": 1,
           "pytest_summary": "5 failed, 289 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 289,
+            "failed": 5,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4222,10 +5057,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 19 passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 19,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 0
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -4246,10 +5086,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -4270,10 +5115,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 22 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 22,
+            "failed": 3,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4294,10 +5144,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4318,10 +5173,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4342,10 +5202,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 25 passed, 2 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 25,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 2
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4366,10 +5231,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4390,10 +5260,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -4414,10 +5289,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4438,10 +5318,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 25 passed, 2 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 25,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 2
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4462,10 +5347,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4486,10 +5376,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4510,10 +5405,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4534,10 +5434,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4558,10 +5463,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 24 passed, 3 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
+            "passed": 24,
+            "failed": 1,
             "skipped": 0,
-            "error": 0
+            "error": 0,
+            "deselected": 0,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 3
           },
           "matrix_skipped": 0,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4582,10 +5492,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc.py",
@@ -4606,10 +5521,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_receipt.py",
@@ -4630,10 +5550,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4654,10 +5579,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4678,10 +5608,15 @@
           "pytest_return": 1,
           "pytest_summary": "3 failed, 291 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 291,
+            "failed": 3,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4702,10 +5637,15 @@
           "pytest_return": 1,
           "pytest_summary": "1 failed, 293 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 293,
+            "failed": 1,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4726,10 +5666,15 @@
           "pytest_return": 1,
           "pytest_summary": "6 failed, 288 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 288,
+            "failed": 6,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4750,10 +5695,15 @@
           "pytest_return": 1,
           "pytest_summary": "2 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed",
           "pytest_counts": {
-            "passed": 0,
-            "failed": 0,
-            "skipped": 0,
-            "error": 0
+            "passed": 292,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "deselected": 9,
+            "xfailed": 0,
+            "xpassed": 0,
+            "warnings": 0,
+            "subtests_passed": 9
           },
           "matrix_skipped": 1,
           "source": "anti-dark-code/scripts/adc_route.py",
@@ -4973,8 +5923,8 @@
         "M94",
         "M95"
       ],
-      "serial_identity_sha256": "8bb06566ae9fa7cd4454129b3dc8e75c72d75efc8cd2e5ed430d7ab23eedbea9",
-      "parallel_identity_sha256": "8bb06566ae9fa7cd4454129b3dc8e75c72d75efc8cd2e5ed430d7ab23eedbea9",
+      "serial_identity_sha256": "c291ae2ea09a2025cdf8bf9ab200ef66472e9fc39b8f08da883a240aa66d94dd",
+      "parallel_identity_sha256": "c291ae2ea09a2025cdf8bf9ab200ef66472e9fc39b8f08da883a240aa66d94dd",
       "mismatches": [],
       "local_survived_skip_one": [
         "M37",
