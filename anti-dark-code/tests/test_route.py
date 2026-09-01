@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import json
 import os
@@ -78,6 +79,19 @@ def load_module(name: str, path: Path):
 
 def load_adc():
     return load_module("adc", SKILL_ROOT / "scripts" / "adc.py")
+
+
+def terminate_daemon_process_tree(process) -> None:
+    """Stop a Git-for-Windows daemon wrapper and its listener child together."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                       capture_output=True, text=True, timeout=10, check=False)
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
 
 
 class CapabilityCatalogTests(unittest.TestCase):
@@ -2628,11 +2642,7 @@ class PartialCloneAgainstRealGitDaemonTests(unittest.TestCase):
     @classmethod
     def _teardown_all(cls) -> None:
         if cls.daemon is not None:
-            cls.daemon.terminate()
-            try:
-                cls.daemon.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                cls.daemon.kill()
+            terminate_daemon_process_tree(cls.daemon)
             cls.daemon = None
         cls._teardown_root()
 
@@ -2980,6 +2990,16 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
             self.assertIn("pytest exit 2", result["error"])
             self.assertEqual(original, source.read_bytes())
 
+    def test_replay_retains_pytest_failure_output_for_an_invalid_exit(self) -> None:
+        """An inconclusive worker result must retain its diagnosis."""
+        harness = self._harness("adc_replay_invalid_exit_output")
+        completed = subprocess.CompletedProcess(
+            args=[sys.executable, "-m", "pytest"], returncode=2,
+            stdout="1 error in 0.01s\n", stderr="fixture setup exploded\n")
+        with mock.patch.object(harness.subprocess, "run", return_value=completed):
+            with self.assertRaisesRegex(harness.SuiteBroken, "fixture setup exploded"):
+                harness.run_suite(("suite.py",))
+
     def test_replay_structured_summary_accepts_pytest_minute_duration(self) -> None:
         """A slow valid suite must not lose its mutation verdict at one minute."""
         harness = self._harness("adc_replay_minute_summary")
@@ -3096,10 +3116,868 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
 
             evidence = json.loads(report.read_text(encoding="utf-8"))
             self.assertEqual("commit-test", evidence["commit"])
+            self.assertEqual(0, evidence["exit_code"])
             self.assertEqual(evidence["matrix_sha256_before"],
                              evidence["matrix_sha256_after"])
             self.assertEqual(["MX"], [row["id"] for row in evidence["rows"]])
             self.assertEqual("serial", evidence["rows"][0]["worker"])
+
+
+@unittest.skipUnless(shutil.which("git"), "git is required")
+class ReplayParallelCloneTests(unittest.TestCase):
+    """D-084/D-068. Parallel replay owns clones, evidence, and cleanup."""
+
+    SOURCE_DIGEST = "5c12e841742b193ea92f98a11951284c45117d17c5d07d794714ae85bb27ef07"
+
+    def _harness(self, name: str):
+        return load_module(
+            name, REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+
+    @staticmethod
+    def _row(identifier: str) -> dict:
+        return {
+            "id": identifier, "name": "fixture", "source": "source.py",
+            "old": "before = True", "new": "before = False", "results": [],
+        }
+
+    @staticmethod
+    def _worker_result(row: dict, index: int, worker: str,
+                       source_digest: str, commit: str = "commit-test") -> dict:
+        """A complete, hand-written worker payload accepted by the coordinator."""
+        return {
+            "id": row["id"], "status": "completed", "verdict": "caught",
+            "caught": True, "exit_code": 1,
+            "pytest": "1 failed, 2 passed in 0.01s", "skipped": 0,
+            "source_hash_before": source_digest, "source_hash_after": source_digest,
+            "source_after_state": "readable", "restored": True,
+            "commit": commit, "worker": worker,
+            "host": {"platform": "Windows", "release": "11",
+                     "python": "3.14.2", "git": "git version fixture"},
+            "duration": 0.01, "matrix_index": index,
+            "clone_retired": False,
+        }
+
+    @staticmethod
+    def _git(repo: Path, *args: str) -> str:
+        done = subprocess.run(["git", *args], cwd=repo, check=True,
+                              capture_output=True, text=True)
+        return done.stdout.strip()
+
+    def _repository(self, root: Path) -> tuple[Path, str]:
+        source = root / "source"
+        source.mkdir()
+        self._git(source, "init", "-q", "-b", "main")
+        self._git(source, "config", "user.email", "parallel@test.invalid")
+        self._git(source, "config", "user.name", "Parallel Test")
+        (source / "source.py").write_text("before = True\n", encoding="utf-8")
+        self._git(source, "add", "source.py")
+        self._git(source, "commit", "-qm", "fixture")
+        return source, self._git(source, "rev-parse", "HEAD")
+
+    def test_windows_daemon_teardown_terminates_the_wrapper_process_tree(self) -> None:
+        daemon = mock.Mock(pid=45123)
+        with mock.patch.object(os, "name", "nt"), \
+             mock.patch.object(subprocess, "run") as run:
+            terminate_daemon_process_tree(daemon)
+
+        run.assert_called_once_with(
+            ["taskkill", "/PID", "45123", "/T", "/F"],
+            capture_output=True, text=True, timeout=10, check=False)
+        daemon.terminate.assert_not_called()
+
+    def test_partition_rows_is_deterministic_round_robin_with_original_indices(self) -> None:
+        harness = self._harness("adc_replay_parallel_partition")
+        rows = [self._row(f"M{index}") for index in range(5)]
+
+        self.assertEqual(
+            [[(0, rows[0]), (3, rows[3])], [(1, rows[1]), (4, rows[4])],
+             [(2, rows[2])]],
+            harness.partition_rows(rows, 3),
+        )
+        with self.assertRaises(ValueError):
+            harness.partition_rows(rows, 0)
+
+    def test_prepare_clone_is_detached_at_the_exact_commit_without_hardlinks(self) -> None:
+        harness = self._harness("adc_replay_parallel_clone")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source, commit = self._repository(root)
+            matrix = source / "matrix.json"
+            matrix.write_text(json.dumps([{
+                "id": "M1", "source": "source.py",
+                "old": "before = True", "new": "before = False",
+            }]), encoding="utf-8")
+            self._git(source, "add", "matrix.json")
+            self._git(source, "commit", "-qm", "matrix fixture")
+            commit = self._git(source, "rev-parse", "HEAD")
+            harness.REPO_ROOT = source
+            harness.MATRIX = matrix
+            clone = root / "owned" / "worker-0"
+            global_config = root / "global.gitconfig"
+            global_config.write_text("[core]\n\tautocrlf = true\n", encoding="utf-8")
+            blob = subprocess.run(
+                ["git", "cat-file", "blob", f"{commit}:source.py"],
+                cwd=source, capture_output=True, check=True).stdout
+
+            with mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(global_config)}):
+                harness.prepare_clone(source, clone, commit)
+
+            self.assertEqual(commit, self._git(clone, "rev-parse", "HEAD"))
+            self.assertEqual(blob, (clone / "source.py").read_bytes())
+            detached = subprocess.run(["git", "symbolic-ref", "-q", "HEAD"],
+                                      cwd=clone, capture_output=True)
+            self.assertEqual(1, detached.returncode)
+            source_tree = self._git(source, "rev-parse", "HEAD^{tree}")
+            source_object = source / ".git" / "objects" / source_tree[:2] / source_tree[2:]
+            clone_object = clone / ".git" / "objects" / source_tree[:2] / source_tree[2:]
+            self.assertTrue(clone_object.is_file())
+            self.assertFalse(os.path.samefile(source_object, clone_object))
+
+    def test_parallel_refuses_a_dirty_coordinator_before_creating_workers(self) -> None:
+        """A dirty replay authority cannot be mislabeled as its committed HEAD."""
+        harness = self._harness("adc_replay_parallel_dirty_coordinator")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            replay = root / "design" / "routing" / "mutants" / "replay.py"
+            replay.parent.mkdir(parents=True)
+            shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+            matrix = replay.with_name("matrix.json")
+            matrix.write_text(json.dumps([self._row("M1")]), encoding="utf-8")
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            self._git(root, "init", "-q", "-b", "main")
+            self._git(root, "config", "user.email", "parallel@test.invalid")
+            self._git(root, "config", "user.name", "Parallel Test")
+            self._git(root, "config", "core.autocrlf", "false")
+            self._git(root, "add", ".")
+            self._git(root, "commit", "-qm", "fixture")
+            commit = self._git(root, "rev-parse", "HEAD")
+            (root / "source.py").write_text("before = dirty\n", encoding="utf-8")
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.__file__ = str(replay)
+
+            with mock.patch.object(harness, "ProcessPoolExecutor") as pool:
+                result, cleanup = harness.run_parallel([self._row("M1")], 1, root)
+
+        pool.assert_not_called()
+        self.assertEqual([], cleanup)
+        self.assertEqual("inconclusive", result[0]["status"])
+        self.assertEqual(commit, result[0]["commit"])
+        self.assertIn("source verification failed", result[0]["error"])
+
+    def test_clone_partition_retires_a_clone_after_an_unrestored_row(self) -> None:
+        harness = self._harness("adc_replay_parallel_retirement")
+        rows = [(0, self._row("M1")), (1, self._row("M2"))]
+        broken = {
+            "id": "M1", "status": "inconclusive", "verdict": "INCONCLUSIVE",
+            "restored": False, "worker": "worker-0",
+        }
+        with tempfile.TemporaryDirectory() as raw_root:
+            clone = Path(raw_root) / "clone"
+            clone.mkdir()
+            with mock.patch.object(harness, "run_row", return_value=broken) as run_row:
+                result = harness.run_clone_partition(clone, rows, "worker-0")
+
+        self.assertEqual(["M1"], [row["id"] for row in result])
+        self.assertEqual(1, run_row.call_count)
+        self.assertTrue(result[0]["clone_retired"])
+
+    def test_worker_suite_uses_owned_parent_cwd_with_absolute_suite_paths(self) -> None:
+        """Detached helpers from a suite must not retain the clone as cwd."""
+        harness = self._harness("adc_replay_parallel_worker_cwd")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            clone = root / "worker-0"
+            clone.mkdir()
+            suite = clone / "anti-dark-code" / "tests" / "test_route.py"
+            suite.parent.mkdir(parents=True)
+            suite.write_text("# fixture\n", encoding="utf-8")
+            captured: dict[str, object] = {}
+            completed = subprocess.CompletedProcess([], 1, "1 failed in 0.01s\n", "")
+
+            def capture(command, **kwargs):
+                captured["command"] = command
+                captured["cwd"] = kwargs["cwd"]
+                return completed
+
+            harness._WORKER_SUITE_CWD = root
+            with mock.patch.object(harness.subprocess, "run", side_effect=capture):
+                self.assertEqual((1, "1 failed in 0.01s", 0),
+                                 harness.run_suite(("anti-dark-code/tests/test_route.py",), clone))
+
+        self.assertEqual(root, captured["cwd"])
+        self.assertIn(str(suite), captured["command"])
+
+    def test_clone_partition_uses_the_stable_coordinator_cwd_for_its_suite(self) -> None:
+        harness = self._harness("adc_replay_parallel_stable_cwd")
+        row = self._row("M1")
+        observed: list[Path | None] = []
+        with tempfile.TemporaryDirectory() as raw_root:
+            stable = Path(raw_root) / "stable-coordinator"
+            stable.mkdir()
+            clone = Path(raw_root) / "owned" / "worker-0"
+            clone.parent.mkdir()
+            clone.mkdir()
+            harness.REPO_ROOT = stable
+
+            def run_row(clone_path, row_data, host, worker):
+                observed.append(harness._WORKER_SUITE_CWD)
+                return {"id": row_data["id"], "status": "completed",
+                        "verdict": "caught", "restored": True, "worker": worker}
+
+            with mock.patch.object(harness, "run_row", side_effect=run_row):
+                harness.run_clone_partition(clone, [(0, row)], "worker-0")
+
+            self.assertEqual([stable], observed)
+
+    def test_clone_partition_owns_a_unique_auxiliary_pytest_root(self) -> None:
+        harness = self._harness("adc_replay_parallel_auxiliary_root")
+        observed: list[Path | None] = []
+
+        def run_row(clone_path, row_data, host, worker):
+            observed.append(harness._WORKER_TEMP_ROOT)
+            return {"id": row_data["id"], "status": "completed",
+                    "verdict": "caught", "restored": True, "worker": worker}
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            clone = Path(raw_root) / "owned" / "worker-2"
+            clone.parent.mkdir()
+            clone.mkdir()
+            with mock.patch.object(harness, "run_row", side_effect=run_row):
+                harness.run_clone_partition(clone, [(0, self._row("M1"))], "worker-2")
+
+            self.assertEqual([clone.parent / "worker-2-pytest"], observed)
+
+    def test_worker_suite_uses_private_temp_environment_and_pytest_basetemp(self) -> None:
+        harness = self._harness("adc_replay_parallel_private_temp")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            clone = root / "worker-0"
+            suite = clone / "suite.py"
+            clone.mkdir()
+            suite.write_text("# fixture\n", encoding="utf-8")
+            private = root / "worker-0-pytest"
+            private.mkdir()
+            captured: dict[str, object] = {}
+            completed = subprocess.CompletedProcess([], 1, "1 failed in 0.01s\n", "")
+
+            def capture(command, **kwargs):
+                captured["command"] = command
+                captured["env"] = kwargs["env"]
+                return completed
+
+            harness._WORKER_TEMP_ROOT = private
+            with mock.patch.object(harness.subprocess, "run", side_effect=capture):
+                harness.run_suite(("suite.py",), clone)
+
+        self.assertEqual(str(private), captured["env"]["TMP"])
+        self.assertEqual(str(private), captured["env"]["TEMP"])
+        self.assertEqual(str(private), captured["env"]["TMPDIR"])
+        self.assertIn(f"--basetemp={private / 'pytest'}", captured["command"])
+
+    def test_parallel_aggregates_out_of_order_futures_into_canonical_order_and_cleans(self) -> None:
+        harness = self._harness("adc_replay_parallel_order")
+        rows = [self._row("M1"), self._row("M2"), self._row("M3")]
+
+        class Future:
+            def __init__(self, value):
+                self.value = value
+
+            def result(self):
+                return self.value
+
+        futures = [
+            Future([self._worker_result(rows[0], 0, "worker-0", self.SOURCE_DIGEST),
+                    self._worker_result(rows[2], 2, "worker-0", self.SOURCE_DIGEST)]),
+            Future([self._worker_result(rows[1], 1, "worker-1", self.SOURCE_DIGEST)]),
+        ]
+
+        class Pool:
+            def __init__(self, max_workers):
+                self.max_workers = max_workers
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, *unused):
+                return futures.pop(0)
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+
+            def make_clone(source: Path, destination: Path, commit: str) -> None:
+                destination.mkdir(parents=True)
+
+            with mock.patch.object(harness, "prepare_clone", side_effect=make_clone), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(reversed(items))), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, cleanup = harness.run_parallel(rows, 2, root)
+
+        self.assertEqual(["M1", "M2", "M3"], [row["id"] for row in result])
+        self.assertEqual([0, 1, 2], [row["matrix_index"] for row in result])
+        self.assertEqual(["worker-0", "worker-1"], [item["worker"] for item in cleanup])
+        self.assertTrue(all(item["removed"] for item in cleanup))
+        self.assertTrue(all(item["owned_root_removed"] for item in cleanup))
+        self.assertTrue(all(not Path(item["clone"]).is_absolute() for item in cleanup))
+
+    def test_parallel_removes_its_owned_root_when_pool_construction_fails(self) -> None:
+        """A Windows worker-limit failure cannot strand the root made before it."""
+        harness = self._harness("adc_replay_parallel_constructor_cleanup")
+        rows = [self._row("M1")]
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            owned = root / "adc-replay-constructor"
+
+            class FailingPool:
+                def __init__(self, max_workers):
+                    raise RuntimeError("Windows ProcessPoolExecutor worker limit")
+
+            def make_root(**unused):
+                owned.mkdir()
+                return str(owned)
+
+            with mock.patch.object(harness.tempfile, "mkdtemp", side_effect=make_root), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", FailingPool), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                try:
+                    harness.run_parallel(rows, 62, root)
+                except RuntimeError:
+                    pass
+
+            self.assertFalse(owned.exists(), "constructor failure stranded owned root")
+
+    def test_parallel_cleans_every_prepared_clone_when_waiting_for_futures_fails(self) -> None:
+        """Failure while waiting still reaches contained clone and root cleanup."""
+        harness = self._harness("adc_replay_parallel_wait_cleanup")
+        rows = [self._row("M1"), self._row("M2")]
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            owned = root / "adc-replay-wait"
+
+            class Pool:
+                def __init__(self, max_workers):
+                    pass
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *unused):
+                    return False
+
+                def submit(self, *unused):
+                    return object()
+
+            def make_root(**unused):
+                owned.mkdir()
+                return str(owned)
+
+            def make_clone(source, destination, commit):
+                destination.mkdir(parents=True)
+                (destination.parent / f"{destination.name}-pytest").mkdir()
+
+            with mock.patch.object(harness.tempfile, "mkdtemp", side_effect=make_root), \
+                 mock.patch.object(harness, "prepare_clone", side_effect=make_clone), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=RuntimeError("wait failed")), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                try:
+                    harness.run_parallel(rows, 2, root)
+                except RuntimeError:
+                    pass
+
+            self.assertFalse(owned.exists(), "wait failure stranded prepared clone/root")
+
+    def test_parallel_preserves_keyboard_interrupt_after_contained_cleanup(self) -> None:
+        harness = self._harness("adc_replay_parallel_interrupt_cleanup")
+        rows = [self._row("M1")]
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            owned = root / "adc-replay-interrupt"
+
+            class Pool:
+                def __init__(self, max_workers):
+                    pass
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *unused):
+                    return False
+
+                def submit(self, *unused):
+                    return object()
+
+            def make_root(**unused):
+                owned.mkdir()
+                return str(owned)
+
+            with mock.patch.object(harness.tempfile, "mkdtemp", side_effect=make_root), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=KeyboardInterrupt), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                with self.assertRaises(KeyboardInterrupt):
+                    harness.run_parallel(rows, 1, root)
+
+            self.assertFalse(owned.exists(), "interrupt bypassed owned-root cleanup")
+
+    def test_parallel_skips_empty_partitions_when_jobs_exceed_rows(self) -> None:
+        harness = self._harness("adc_replay_parallel_nonempty_partitions")
+        rows = [self._row("M1")]
+        submitted: list[str] = []
+
+        class Future:
+            def result(self):
+                return [ReplayParallelCloneTests._worker_result(
+                    rows[0], 0, "worker-0", ReplayParallelCloneTests.SOURCE_DIGEST)]
+
+        class Pool:
+            def __init__(self, max_workers):
+                self.max_workers = max_workers
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, function, clone, partition, worker):
+                submitted.append(worker)
+                return Future()
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            with mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, cleanup = harness.run_parallel(rows, 3, root)
+
+        self.assertEqual(["worker-0"], submitted)
+        self.assertEqual(["worker-0"], [item["worker"] for item in cleanup])
+        self.assertEqual("worker-0", result[0]["worker"])
+
+    def test_parallel_rejects_worker_output_with_wrong_commit_or_restoration_hash(self) -> None:
+        harness = self._harness("adc_replay_parallel_untrusted_worker")
+        rows = [self._row("M1")]
+
+        class Future:
+            def result(self):
+                malformed = ReplayParallelCloneTests._worker_result(
+                    rows[0], 0, "worker-0", ReplayParallelCloneTests.SOURCE_DIGEST,
+                    commit="forged-commit")
+                malformed["source_hash_after"] = "b" * 64
+                return [malformed]
+
+        class Pool:
+            def __init__(self, max_workers):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, *unused):
+                return Future()
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            with mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, _ = harness.run_parallel(rows, 1, root)
+
+        self.assertEqual("inconclusive", result[0]["status"])
+        self.assertIn("commit", result[0]["error"])
+
+    def test_parallel_rejects_equal_forged_hashes_not_from_the_frozen_blob(self) -> None:
+        """Equal worker hashes must still be the frozen source blob's digest."""
+        harness = self._harness("adc_replay_parallel_forged_blob_hash")
+        row = self._row("M1")
+        commit: str | None = None
+
+        class Future:
+            def result(self):
+                return [ReplayParallelCloneTests._worker_result(
+                    row, 0, "worker-0", "a" * 64, commit=commit)]
+
+        class Pool:
+            def __init__(self, max_workers):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, *unused):
+                return Future()
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            replay = root / "design" / "routing" / "mutants" / "replay.py"
+            replay.parent.mkdir(parents=True)
+            shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+            matrix = replay.with_name("matrix.json")
+            matrix.write_text(json.dumps([row]), encoding="utf-8")
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            self._git(root, "init", "-q", "-b", "main")
+            self._git(root, "config", "user.email", "parallel@test.invalid")
+            self._git(root, "config", "user.name", "Parallel Test")
+            self._git(root, "config", "core.autocrlf", "false")
+            self._git(root, "add", ".")
+            self._git(root, "commit", "-qm", "fixture")
+            commit = self._git(root, "rev-parse", "HEAD")
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.__file__ = str(replay)
+
+            with mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)):
+                result, _ = harness.run_parallel([row], 1, root)
+
+        self.assertEqual("inconclusive", result[0]["status"])
+        self.assertIn("frozen source digest", result[0]["error"])
+
+    def test_frozen_row_source_hashes_cache_shared_frozen_blob_not_dirty_bytes(self) -> None:
+        """Shared targets derive once from the commit, independent of working bytes."""
+        harness = self._harness("adc_replay_parallel_frozen_source_hashes")
+        with tempfile.TemporaryDirectory() as raw_root:
+            source, commit = self._repository(Path(raw_root))
+            expected = hashlib.sha256(subprocess.run(
+                ["git", "cat-file", "blob", f"{commit}:source.py"], cwd=source,
+                capture_output=True, check=True).stdout).hexdigest()
+            (source / "source.py").write_text("before = dirty\n", encoding="utf-8")
+            rows = [self._row("M1"), self._row("M2")]
+
+            self.assertEqual(
+                {Path("source.py"): expected},
+                harness._frozen_row_source_hashes(source, commit, rows),
+            )
+            with self.assertRaisesRegex(RuntimeError, "committed blob could not be read"):
+                harness._frozen_row_source_hashes(
+                    source, commit, [{**self._row("MX"), "source": "missing.py"}])
+
+    def test_parallel_refuses_missing_selected_source_before_starting_workers(self) -> None:
+        """A selected row absent from frozen HEAD cannot reach a worker."""
+        harness = self._harness("adc_replay_parallel_missing_selected_source")
+        valid = self._row("M1")
+        missing = {**self._row("MX"), "source": "missing.py"}
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            replay = root / "design" / "routing" / "mutants" / "replay.py"
+            replay.parent.mkdir(parents=True)
+            shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+            matrix = replay.with_name("matrix.json")
+            matrix.write_text(json.dumps([valid]), encoding="utf-8")
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            self._git(root, "init", "-q", "-b", "main")
+            self._git(root, "config", "user.email", "parallel@test.invalid")
+            self._git(root, "config", "user.name", "Parallel Test")
+            self._git(root, "config", "core.autocrlf", "false")
+            self._git(root, "add", ".")
+            self._git(root, "commit", "-qm", "fixture")
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.__file__ = str(replay)
+
+            with mock.patch.object(harness, "ProcessPoolExecutor") as pool:
+                result, cleanup = harness.run_parallel([missing], 1, root)
+
+        pool.assert_not_called()
+        self.assertEqual([], cleanup)
+        self.assertEqual("inconclusive", result[0]["status"])
+        self.assertIn("committed blob could not be read", result[0]["error"])
+
+    def test_worker_validator_rejects_each_required_evidence_contract_break(self) -> None:
+        """A worker payload is untrusted until every coordinator invariant holds."""
+        harness = self._harness("adc_replay_parallel_validator")
+        row = self._row("M1")
+        cases = {
+            "missing field": lambda item: item.pop("pytest"),
+            "wrong worker": lambda item: item.update(worker="worker-9"),
+            "wrong hash": lambda item: item.update(source_hash_after="b" * 64),
+            "restoration false": lambda item: item.update(restored=False),
+            "incompatible verdict": lambda item: item.update(verdict="SURVIVED"),
+            "incompatible skips": lambda item: item.update(skipped=1),
+            "invalid exit": lambda item: item.update(exit_code=2),
+        }
+
+        for label, mutate in cases.items():
+            with self.subTest(label=label):
+                item = self._worker_result(row, 0, "worker-0", self.SOURCE_DIGEST)
+                mutate(item)
+                self.assertIsNotNone(harness._validate_worker_result(
+                    item, 0, row, "worker-0", "commit-test", self.SOURCE_DIGEST))
+
+    def test_parallel_cleans_after_executor_shutdown_raises(self) -> None:
+        """A shutdown exception cannot bypass clone, auxiliary, or root cleanup."""
+        harness = self._harness("adc_replay_parallel_shutdown_cleanup")
+        rows = [self._row("M1")]
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            owned = root / "adc-replay-shutdown"
+
+            class Pool:
+                def __init__(self, max_workers):
+                    pass
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *unused):
+                    raise RuntimeError("shutdown failed")
+
+                def submit(self, *unused):
+                    return object()
+
+            def make_root(**unused):
+                owned.mkdir()
+                return str(owned)
+
+            def make_clone(source, destination, commit):
+                destination.mkdir(parents=True)
+                (destination.parent / f"{destination.name}-pytest").mkdir()
+
+            with mock.patch.object(harness.tempfile, "mkdtemp", side_effect=make_root), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "prepare_clone", side_effect=make_clone), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, cleanup = harness.run_parallel(rows, 1, root)
+
+            self.assertFalse(owned.exists())
+        self.assertEqual("inconclusive", result[0]["status"])
+        self.assertIn("shutdown failed", result[0]["error"])
+        self.assertTrue(cleanup[0]["removed"])
+        self.assertTrue(cleanup[0]["auxiliary_removed"])
+        self.assertTrue(cleanup[0]["owned_root_removed"])
+
+    def test_parallel_marks_all_rows_inconclusive_when_head_changes_after_workers(self) -> None:
+        harness = self._harness("adc_replay_parallel_head_drift")
+        rows = [self._row("M1")]
+
+        class Future:
+            def result(self):
+                return [ReplayParallelCloneTests._worker_result(
+                    rows[0], 0, "worker-0", ReplayParallelCloneTests.SOURCE_DIGEST)]
+
+        class Pool:
+            def __init__(self, max_workers):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, *unused):
+                return Future()
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            identities = iter(("commit-test", "changed-head"))
+            with mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "commit_identity", side_effect=lambda repo: next(identities)):
+                result, cleanup = harness.run_parallel(rows, 1, root)
+
+        self.assertEqual("inconclusive", result[0]["status"])
+        self.assertIn("HEAD changed", result[0]["error"])
+        self.assertTrue(cleanup[0]["owned_root_removed"])
+
+    def test_cleanup_rejects_root_home_workspace_and_unresolved_targets(self) -> None:
+        harness = self._harness("adc_replay_parallel_cleanup_boundaries")
+        with tempfile.TemporaryDirectory() as raw_root, \
+             tempfile.TemporaryDirectory() as workspace_root:
+            owned = Path(raw_root).resolve()
+            clone = owned / "worker-0"
+            clone.mkdir()
+            workspace = Path(workspace_root).resolve()
+            home = Path.home().resolve()
+
+            records = [
+                harness._cleanup_clone(owned, owned, "worker-root", workspace),
+                harness._cleanup_clone(owned, home, "worker-home", workspace),
+                harness._cleanup_clone(owned, workspace, "worker-workspace", workspace),
+                harness._cleanup_clone(owned, owned / "missing", "worker-missing", workspace),
+            ]
+            safe = harness._cleanup_clone(owned, clone, "worker-0", workspace)
+
+        self.assertTrue(all(not record["removed"] for record in records))
+        self.assertTrue(all(record["error"] for record in records))
+        self.assertTrue(safe["removed"])
+        self.assertEqual("worker-0", safe["worker"])
+        self.assertFalse(Path(safe["clone"]).is_absolute())
+
+    def test_parallel_marks_worker_exception_and_duplicate_or_missing_rows_inconclusive(self) -> None:
+        harness = self._harness("adc_replay_parallel_invalid_results")
+        rows = [self._row("M1"), self._row("M2")]
+
+        class Future:
+            def result(self):
+                raise RuntimeError("worker exploded")
+
+        class Pool:
+            def __init__(self, max_workers):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, *unused):
+                return Future()
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            with mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, cleanup = harness.run_parallel(rows, 1, root)
+
+        self.assertEqual(["M1", "M2"], [row["id"] for row in result])
+        self.assertTrue(all(row["status"] == "inconclusive" for row in result))
+        self.assertTrue(all("worker exception" in row["error"] for row in result))
+        self.assertTrue(cleanup[0]["removed"])
+
+    def test_parallel_waits_for_executor_shutdown_before_each_clone_cleanup(self) -> None:
+        """Windows keeps a worker's clone cwd open after ``future.result()``."""
+        harness = self._harness("adc_replay_parallel_cleanup_after_shutdown")
+        rows = [self._row("M1"), self._row("M2")]
+        pool_state = {"closed": False}
+
+        class Future:
+            def __init__(self, index: int, identifier: str):
+                self.index = index
+                self.identifier = identifier
+
+            def result(self):
+                return [ReplayParallelCloneTests._worker_result(
+                    rows[self.index], self.index, f"worker-{self.index}",
+                    ReplayParallelCloneTests.SOURCE_DIGEST)]
+
+        class Pool:
+            submitted = 0
+
+            def __init__(self, max_workers):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                pool_state["closed"] = True
+                return False
+
+            def submit(self, *unused):
+                index = Pool.submitted
+                Pool.submitted += 1
+                return Future(index, rows[index]["id"])
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+
+            def cleanup_after_shutdown(owned: Path, clone: Path, worker: str,
+                                       workspace: Path) -> dict:
+                self.assertTrue(pool_state["closed"],
+                                "cleanup ran before the executor joined workers")
+                shutil.rmtree(clone)
+                return {"worker": worker, "clone": clone.name,
+                        "removed": True, "error": None}
+
+            with mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "_cleanup_clone", side_effect=cleanup_after_shutdown), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, cleanup = harness.run_parallel(rows, 2, root)
+
+        self.assertEqual(["M1", "M2"], [row["id"] for row in result])
+        self.assertTrue(pool_state["closed"])
+        self.assertTrue(all(record["removed"] for record in cleanup))
+
+    def test_parallel_rejects_duplicate_and_missing_worker_indices(self) -> None:
+        harness = self._harness("adc_replay_parallel_duplicate_results")
+        rows = [self._row("M1"), self._row("M2")]
+
+        class Future:
+            def result(self):
+                return [
+                    {"id": "M1", "status": "completed", "verdict": "caught",
+                     "restored": True, "worker": "worker-0", "matrix_index": 0},
+                    {"id": "M1", "status": "completed", "verdict": "caught",
+                     "restored": True, "worker": "worker-0", "matrix_index": 0},
+                ]
+
+        class Pool:
+            def __init__(self, max_workers):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *unused):
+                return False
+
+            def submit(self, *unused):
+                return Future()
+
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            with mock.patch.object(harness, "prepare_clone", side_effect=lambda s, d, c: d.mkdir(parents=True)), \
+                 mock.patch.object(harness, "_verify_coordinator_sources"), \
+                 mock.patch.object(harness, "_frozen_row_source_hashes", return_value={Path("source.py"): self.SOURCE_DIGEST}), \
+                 mock.patch.object(harness, "ProcessPoolExecutor", Pool), \
+                 mock.patch.object(harness, "as_completed", side_effect=lambda items: list(items)), \
+                 mock.patch.object(harness, "commit_identity", return_value="commit-test"):
+                result, cleanup = harness.run_parallel(rows, 1, root)
+
+        self.assertTrue(all(row["status"] == "inconclusive" for row in result))
+        self.assertIn("duplicate", result[0]["error"])
+        self.assertIn("duplicate", result[1]["error"])
+        self.assertTrue(cleanup[0]["removed"])
+
+    def test_parallel_write_fails_closed_before_workers_or_matrix_rewrite(self) -> None:
+        harness = self._harness("adc_replay_parallel_write_closed")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            matrix = root / "matrix.json"
+            matrix.write_text(json.dumps([self._row("M1")]), encoding="utf-8")
+            harness.MATRIX = matrix
+            with mock.patch.object(harness, "run_parallel") as run_parallel:
+                self.assertEqual(2, harness.main(["M1", "--jobs", "2", "--write"]))
+
+        run_parallel.assert_not_called()
 
 INSTALLED_CALIBRATION = (REPO_ROOT / ".agents" / "skills" / "anti-dark-code"
                          / "calibration")
