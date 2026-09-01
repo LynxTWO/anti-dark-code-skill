@@ -1749,8 +1749,8 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "        original = source.read_bytes()",
-    "new": "        original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
+    "old": "    original = source.read_bytes()",
+    "new": "    original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
     "verdict": "caught",
     "pytest": "1 failed, 254 passed, 9 deselected in 11.20s",
     "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
@@ -1782,8 +1782,8 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "    if not PYTEST_SUMMARY.fullmatch(summary):",
-    "new": "    if False:",
+    "old": "            if not PYTEST_SUMMARY.fullmatch(summary):",
+    "new": "            if False:",
     "verdict": "caught",
     "pytest": "1 failed, 254 passed, 9 deselected in 11.36s",
     "note": "A Python or pytest startup error may exit 1 without executing a test; only a real pytest outcome summary can turn exit 1 into mutation evidence.",

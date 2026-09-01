@@ -2851,7 +2851,7 @@ class SuiteIntegrityTests(unittest.TestCase):
             harness.host_identity = lambda: {
                 "platform": "Test", "release": "1", "python": "3",
                 "git": "git version test"}
-            harness.run_suite = lambda paths: (True, "1 failed", 0)
+            harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
             row = {
                 "id": "MX", "name": "fixture", "source": "source.py",
                 "old": "before = True", "new": "before = False",
@@ -2872,6 +2872,171 @@ class SuiteIntegrityTests(unittest.TestCase):
                                return_value=launcher_error):
             with self.assertRaises(harness.SuiteBroken):
                 harness.run_suite(("suite.py",))
+
+
+class ReplayStructuredEvidenceTests(unittest.TestCase):
+    """D-068. A serial replay row is evidence only when it is complete."""
+
+    def _harness(self, name: str):
+        return load_module(
+            name, REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
+
+    @staticmethod
+    def _row() -> dict:
+        return {
+            "id": "MX", "name": "fixture", "source": "source.py",
+            "old": "before = True", "new": "before = False", "results": [],
+        }
+
+    @staticmethod
+    def _host() -> dict:
+        return {"platform": "Test", "release": "1", "python": "3",
+                "git": "git version test"}
+
+    def test_replay_structured_row_records_hashes_and_exact_pytest_evidence(self) -> None:
+        """Dropping a row field would make replay evidence non-comparable."""
+        harness = self._harness("adc_replay_structured_row")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\r\nafter = False\r\n"
+            source.write_bytes(original)
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (
+                1, "1 failed, 2 passed, 3 skipped in 0.01s", 3)
+
+            result = harness.run_row(root, self._row(), self._host(), "serial")
+
+            self.assertEqual("MX", result["id"])
+            self.assertEqual("completed", result["status"])
+            self.assertEqual("caught", result["verdict"])
+            self.assertTrue(result["caught"])
+            self.assertEqual("1 failed, 2 passed, 3 skipped in 0.01s",
+                             result["pytest"])
+            self.assertEqual(3, result["skipped"])
+            self.assertEqual(harness.sha256_bytes(original),
+                             result["source_hash_before"])
+            self.assertEqual(harness.sha256_bytes(original),
+                             result["source_hash_after"])
+            self.assertEqual("commit-test", result["commit"])
+            self.assertEqual("serial", result["worker"])
+            self.assertIsInstance(result["duration"], float)
+            self.assertGreaterEqual(result["duration"], 0.0)
+            self.assertEqual(original, source.read_bytes())
+
+    def test_replay_target_failures_leave_source_unchanged(self) -> None:
+        """Changing zero or two targets must not test an arbitrary occurrence."""
+        harness = self._harness("adc_replay_target_failures")
+        for contents, status in ((b"after = False\n", "target-missing"),
+                                 (b"before = True\nbefore = True\n",
+                                  "target-ambiguous")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as raw_root:
+                root = Path(raw_root)
+                source = root / "source.py"
+                source.write_bytes(contents)
+                harness.commit_identity = lambda repo_root: "commit-test"
+
+                result = harness.run_row(root, self._row(), self._host(), "serial")
+
+                self.assertEqual(status, result["status"])
+                self.assertEqual("INCONCLUSIVE", result["verdict"])
+                self.assertIsNone(result["caught"])
+                self.assertEqual(contents, source.read_bytes())
+
+    def test_replay_rejects_an_unanchored_pytest_summary(self) -> None:
+        """A launcher error must not become a caught mutation on exit one."""
+        harness = self._harness("adc_replay_unanchored_summary")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\n"
+            source.write_bytes(original)
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (
+                1, "python: No module named pytest", 0)
+
+            result = harness.run_row(root, self._row(), self._host(), "serial")
+
+            self.assertEqual("inconclusive", result["status"])
+            self.assertEqual("INCONCLUSIVE", result["verdict"])
+            self.assertIn("no test summary", result["error"])
+            self.assertEqual(original, source.read_bytes())
+
+    def test_replay_rejects_an_invalid_pytest_exit(self) -> None:
+        """Exit two is an invocation failure even with a pytest-shaped line."""
+        harness = self._harness("adc_replay_invalid_exit")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\n"
+            source.write_bytes(original)
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (2, "2 passed in 0.01s", 0)
+
+            result = harness.run_row(root, self._row(), self._host(), "serial")
+
+            self.assertEqual("inconclusive", result["status"])
+            self.assertEqual("INCONCLUSIVE", result["verdict"])
+            self.assertIn("pytest exit 2", result["error"])
+            self.assertEqual(original, source.read_bytes())
+
+    def test_replay_structured_summary_accepts_pytest_minute_duration(self) -> None:
+        """A slow valid suite must not lose its mutation verdict at one minute."""
+        harness = self._harness("adc_replay_minute_summary")
+
+        self.assertIsNotNone(harness.PYTEST_SUMMARY.fullmatch(
+            "2 failed, 258 passed, 1 skipped, 9 deselected, 2 subtests passed "
+            "in 62.63s (0:01:02)"))
+
+    def test_replay_restoration_hash_mismatch_is_inconclusive(self) -> None:
+        """A failed restore must reject the row instead of claiming a verdict."""
+        harness = self._harness("adc_replay_restoration_hash")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            original = b"before = True\n"
+            source.write_bytes(original)
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
+            real_write_bytes = Path.write_bytes
+
+            def corrupt_restore(path: Path, data: bytes) -> int:
+                if path == source and data == original:
+                    return real_write_bytes(path, data + b"# restore failed\n")
+                return real_write_bytes(path, data)
+
+            with mock.patch.object(Path, "write_bytes", new=corrupt_restore):
+                result = harness.run_row(root, self._row(), self._host(), "serial")
+
+            self.assertEqual("inconclusive", result["status"])
+            self.assertEqual("INCONCLUSIVE", result["verdict"])
+            self.assertFalse(result["restored"])
+            self.assertNotEqual(result["source_hash_before"], result["source_hash_after"])
+
+    def test_replay_structured_report_is_coordinator_output(self) -> None:
+        """A read-only run must emit comparable matrix and row evidence once."""
+        harness = self._harness("adc_replay_structured_report")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            source.write_text("before = True\n", encoding="utf-8")
+            matrix = root / "matrix.json"
+            matrix.write_text(json.dumps([self._row()]), encoding="utf-8")
+            report = root / "report.json"
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.host_identity = self._host
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
+
+            self.assertEqual(0, harness.main(["MX", "--jobs", "1", "--report", str(report)]))
+
+            evidence = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual("commit-test", evidence["commit"])
+            self.assertEqual(evidence["matrix_sha256_before"],
+                             evidence["matrix_sha256_after"])
+            self.assertEqual(["MX"], [row["id"] for row in evidence["rows"]])
+            self.assertEqual("serial", evidence["rows"][0]["worker"])
 
 INSTALLED_CALIBRATION = (REPO_ROOT / ".agents" / "skills" / "anti-dark-code"
                          / "calibration")
