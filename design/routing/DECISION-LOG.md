@@ -2580,12 +2580,13 @@ kept only `.github/workflows/tests.yml` as authority and classified the rest of
 below the full recipe in all 72 change-kind, source, and mode shapes.
 
 Decision:
-`load_policy()` requires every exact entry in `AUTHORITY_CLASSIFIERS` before it
-can validate rules.  The entries are the canonical classifier forms for all
-ENGINEERING self-grading classes.  A policy may add another matching fact, but
-it cannot replace a required authority class with an exact representative or a
-cheap exception.  The existing per-path, per-layout, and per-shape guard stays
-in place; it proves rule behaviour after the class contract proves the
+When a nonempty classifier is paired with any current or proposed rule that
+does not force full, `load_policy()` requires every exact entry in
+`AUTHORITY_CLASSIFIERS`.  The entries are the canonical classifier forms for
+all ENGINEERING self-grading classes.  A policy may add another matching fact,
+but it cannot replace a required authority class with an exact representative
+or a cheap exception.  The existing per-path, per-layout, and per-shape guard
+stays in place; it proves rule behaviour after the class contract proves the
 classifier cannot omit a class.
 
 Because:
