@@ -7190,6 +7190,7 @@
       "M79 deterministic-precondition diagnosis",
       "M36 index-refresh side-channel diagnosis"
     ],
-    "recommendation": "Require a runtime forecast and acknowledgement before any gate expected to exceed 60 minutes or per-mutant full-suite replay."
+    "recommendation": "Require a runtime forecast and acknowledgement before any gate expected to exceed 60 minutes or per-mutant full-suite replay.",
+    "wall_time_scope": "total elapsed wall-clock from goal start, including discarded/restart investigation; not an individual replay or gate duration"
   }
 }
