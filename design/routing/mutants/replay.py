@@ -97,13 +97,6 @@ def sha256_bytes(contents: bytes) -> str:
     return hashlib.sha256(contents).hexdigest()
 
 
-def purge_target_bytecode(source: Path) -> None:
-    """Prevent one mutant's cached module from answering another row."""
-    cache = source.parent / "__pycache__"
-    for bytecode in cache.glob(f"{source.stem}.*.pyc"):
-        bytecode.unlink()
-
-
 def commit_identity(repo_root: Path) -> str:
     """Record the committed source that a row exercised."""
     try:
@@ -140,7 +133,12 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
     """
     execution_cwd = _WORKER_SUITE_CWD or repo_root
     command_paths = paths
-    environment = None
+    cache_root = Path(tempfile.mkdtemp(prefix="adc-replay-pycache-"))
+    environment = dict(os.environ)
+    environment.pop("PYTHONPYCACHEPREFIX", None)
+    environment.pop("PYTHONDONTWRITEBYTECODE", None)
+    environment.update({"PYTHONPYCACHEPREFIX": str(cache_root),
+                        "PYTHONDONTWRITEBYTECODE": "1"})
     if _WORKER_SUITE_CWD is not None:
         command_paths = tuple(
             str(path if Path(path).is_absolute() else repo_root / path)
@@ -149,12 +147,27 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
     if _WORKER_TEMP_ROOT is not None:
         pytest_root = _WORKER_TEMP_ROOT / "pytest"
         command.append(f"--basetemp={pytest_root}")
-        environment = dict(os.environ)
         environment.update({"TMP": str(_WORKER_TEMP_ROOT),
                             "TEMP": str(_WORKER_TEMP_ROOT),
                             "TMPDIR": str(_WORKER_TEMP_ROOT)})
-    done = subprocess.run(command, cwd=execution_cwd, env=environment,
-                          capture_output=True, text=True)
+    launch_error: OSError | None = None
+    cleanup_error: OSError | None = None
+    try:
+        done = subprocess.run(command, cwd=execution_cwd, env=environment,
+                              capture_output=True, text=True)
+    except OSError as caught:
+        launch_error = caught
+        done = None
+    finally:
+        try:
+            shutil.rmtree(cache_root)
+        except OSError as caught:
+            cleanup_error = caught
+    if cleanup_error is not None:
+        raise SuiteBroken(f"owned bytecode cache cleanup failed: {cleanup_error}")
+    if launch_error is not None:
+        raise SuiteBroken(f"pytest launch failed: {launch_error}")
+    assert done is not None
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
     diagnostic = ((done.stdout or "") + (done.stderr or "")).strip()
@@ -210,7 +223,6 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
 
     try:
         source.write_bytes(original.replace(old, new, 1))
-        purge_target_bytecode(source)
         try:
             exit_code, summary, skipped = run_suite(
                 tuple(row.get("suite", DEFAULT_SUITE)), repo_root)
@@ -238,10 +250,6 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
             source.write_bytes(original)
         except OSError as caught:
             restore_error = caught
-        try:
-            purge_target_bytecode(source)
-        except OSError as caught:
-            restore_error = restore_error or caught
         try:
             after = sha256_bytes(source.read_bytes())
             result["source_hash_after"] = after
