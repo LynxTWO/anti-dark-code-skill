@@ -4998,8 +4998,12 @@ class WorkflowParallelContractTests(unittest.TestCase):
         self.assertEqual("adopted", json.loads((REPO_ROOT / "design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json").read_text())["adoption"])
         self.assertEqual(2, text.count("pip install --disable-pip-version-check --quiet pytest pytest-xdist"))
         self.assertGreaterEqual(text.count("python -m pytest anti-dark-code/tests -q -n auto"), 2)
-        self.assertIn("python design/routing/mutants/replay.py --jobs 2", text)
-        self.assertNotIn("replay.py --write", text)
+        replay = re.findall(r"^\s*(python design/routing/mutants/replay\.py[^\n]*)$", text, re.M)
+        self.assertEqual(["python design/routing/mutants/replay.py --jobs 2"], replay)
+        self.assertNotIn("--id", replay[0])
+        self.assertNotIn("--write", replay[0])
+        # A selector is not an equivalent parallel replay command.
+        self.assertNotEqual(replay[0], "python design/routing/mutants/replay.py --jobs 2 --id M01")
 
 
 @unittest.skipUnless(MATRIX.is_file(), "mutation matrix is not part of this tree")
