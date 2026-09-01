@@ -133,12 +133,7 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
     """
     execution_cwd = _WORKER_SUITE_CWD or repo_root
     command_paths = paths
-    cache_root = Path(tempfile.mkdtemp(prefix="adc-replay-pycache-"))
-    environment = dict(os.environ)
-    environment.pop("PYTHONPYCACHEPREFIX", None)
-    environment.pop("PYTHONDONTWRITEBYTECODE", None)
-    environment.update({"PYTHONPYCACHEPREFIX": str(cache_root),
-                        "PYTHONDONTWRITEBYTECODE": "1"})
+    environment = None
     if _WORKER_SUITE_CWD is not None:
         command_paths = tuple(
             str(path if Path(path).is_absolute() else repo_root / path)
@@ -147,27 +142,12 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
     if _WORKER_TEMP_ROOT is not None:
         pytest_root = _WORKER_TEMP_ROOT / "pytest"
         command.append(f"--basetemp={pytest_root}")
+        environment = dict(os.environ)
         environment.update({"TMP": str(_WORKER_TEMP_ROOT),
                             "TEMP": str(_WORKER_TEMP_ROOT),
                             "TMPDIR": str(_WORKER_TEMP_ROOT)})
-    launch_error: OSError | None = None
-    cleanup_error: OSError | None = None
-    try:
-        done = subprocess.run(command, cwd=execution_cwd, env=environment,
-                              capture_output=True, text=True)
-    except OSError as caught:
-        launch_error = caught
-        done = None
-    finally:
-        try:
-            shutil.rmtree(cache_root)
-        except OSError as caught:
-            cleanup_error = caught
-    if cleanup_error is not None:
-        raise SuiteBroken(f"owned bytecode cache cleanup failed: {cleanup_error}")
-    if launch_error is not None:
-        raise SuiteBroken(f"pytest launch failed: {launch_error}")
-    assert done is not None
+    done = subprocess.run(command, cwd=execution_cwd, env=environment,
+                          capture_output=True, text=True)
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
     diagnostic = ((done.stdout or "") + (done.stderr or "")).strip()

@@ -2870,66 +2870,6 @@ class SuiteIntegrityTests(unittest.TestCase):
             self.assertEqual(0, harness.replay([row], write=False))
             self.assertEqual(original, source.read_bytes())
 
-    def test_replay_suite_owns_a_sanitized_bytecode_cache(self) -> None:
-        """A row must never read or write the caller's bytecode cache."""
-        harness = load_module(
-            "adc_replay_bytecode_isolation",
-            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
-        with tempfile.TemporaryDirectory() as raw_root:
-            root = Path(raw_root)
-            cache = root / "owned-cache"
-            cache.mkdir()
-            captured: dict[str, object] = {}
-
-            def runner(command, **kwargs):
-                captured.update(kwargs)
-                return subprocess.CompletedProcess(
-                    command, 0, "1 passed in 0.01s\n", "")
-
-            with mock.patch.object(harness.tempfile, "mkdtemp",
-                                   return_value=str(cache)), \
-                 mock.patch.object(harness.subprocess, "run", side_effect=runner), \
-                 mock.patch.dict(os.environ, {
-                     "PYTHONPYCACHEPREFIX": "inherited-cache",
-                     "PYTHONDONTWRITEBYTECODE": "0"}):
-                self.assertEqual(
-                    (0, "1 passed in 0.01s", 0),
-                    harness.run_suite(("suite.py",), root))
-
-            environment = captured["env"]
-            self.assertEqual(str(cache), environment["PYTHONPYCACHEPREFIX"])
-            self.assertEqual("1", environment["PYTHONDONTWRITEBYTECODE"])
-            self.assertFalse(cache.exists())
-
-    def test_replay_cache_cleanup_failure_is_structured_inconclusive(self) -> None:
-        harness = load_module(
-            "adc_replay_cache_cleanup_failure",
-            REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
-        with tempfile.TemporaryDirectory() as raw_root:
-            root = Path(raw_root)
-            source = root / "source.py"
-            source.write_text("before = True\n", encoding="utf-8")
-            cache = root / "owned-cache"
-            row = {
-                "id": "MX", "name": "fixture", "source": "source.py",
-                "old": "before = True", "new": "before = False",
-                "results": []}
-            done = subprocess.CompletedProcess(
-                [], 0, "1 passed in 0.01s\n", "")
-
-            with mock.patch.object(harness.tempfile, "mkdtemp",
-                                   return_value=str(cache)), \
-                 mock.patch.object(harness.subprocess, "run", return_value=done), \
-                 mock.patch.object(harness.shutil, "rmtree",
-                                   side_effect=OSError("cache locked")):
-                result = harness.run_row(
-                    root, row, {"platform": "Test"}, "serial")
-
-            self.assertEqual("inconclusive", result["status"])
-            self.assertEqual("INCONCLUSIVE", result["verdict"])
-            self.assertIn("cache locked", result["error"])
-            self.assertTrue(result["restored"])
-
     def test_replay_rejects_a_launcher_error_as_no_test_evidence(self) -> None:
         """Exit 1 is meaningful only when pytest actually ran tests."""
         harness = load_module(
