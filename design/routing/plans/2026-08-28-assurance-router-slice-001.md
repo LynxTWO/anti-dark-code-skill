@@ -1695,10 +1695,10 @@ R-018 is the requirement this task exists for, and the round-ten Self-Review was
 
 ### The lifecycle, in order
 
-1. **Before the run.** Load the receipt, build a current `Binding`, call `verify_receipt`. Not fresh prints `STALE <run_id>` with every reason and returns 2. This also carries D-072: a tree holding an unbindable path reports `ADC-STALE-009` and never runs a routed gate.
+1. **Before the run.** Complete stable run-artifact setup, read the receipt once, build a current `Binding`, and call `verify_receipt` on that exact object. Freeze its authoritative payload and carry the verified worktree identity forward; not fresh prints `STALE <run_id>` with every reason and returns 2. This also carries D-072: a tree holding an unbindable path reports `ADC-STALE-009` and never runs a routed gate.
 2. **Level.** `check_route_level(route_minimum, requested)` returns `(False, minimum)` when the request would lower the route. The caller prints the minimum by name and returns 2. `--level` above the minimum is accepted and used.
 3. **Selection.** When `route.force_full` is true, the gate list comes from `canonical_full_set` in `gates.json` and the changed-file filter at `adc.py:2600` is not applied. `include_globs` may not remove a gate from a forced-full run, and no candidate selection reaches this code at all.
-4. **Before each gate.** `identity_before = worktree_identity(repo, route_module)`, taken immediately before `subprocess.Popen`.
+4. **Before each gate.** `identity_before = worktree_identity(repo, route_module)`, taken immediately before `subprocess.Popen`, must equal the worktree identity verified in step 1. A mismatch is `stale` before launch; it never becomes the baseline for a post-gate comparison.
 5. **After each gate.** `identity_after = worktree_identity(repo, route_module)`, taken where `duration` is computed at `adc.py:2771`, after the log is redacted and before the `exit_code == 0` branch.
 6. **When they differ.** The gate outcome is `stale`, whatever its exit code. It is appended to a new `stale` list carrying `gate_id`, `identity_before`, `identity_after`, and the exit code, and it is not counted in `passed`.
 7. **Then stop.** A tree that moved under one gate makes every later gate result equally unexplained, so the run ends and returns 2 even when `--keep-going` was passed. `keep_going` is a decision about failing gates, not about the repository moving underneath the run. This is an explicit choice, not an accident of control flow: `--keep-going` continuing here would produce a summary that reads like evidence.
@@ -1967,7 +1967,7 @@ whole point of the slice."
 
 **Spec coverage.** Incomplete, and re-reviewed in round eleven for the four requirements D-070 reopened. The round-two execution verified meaningful checks for S-003, S-004, S-006, and part of S-010. S-001, S-002, S-005, S-007 through S-009, and S-011 through S-023 still need stronger or executable checks. A task mention is not coverage. `design/routing/HANDOFF-BACK-PLAN.md` records the criterion-by-criterion gaps.
 
-**Known gaps.** Task 9 calls `current_route_identity` but does not implement it. Concurrent-mutation identity remains unimplemented: Task 10 now names the seams, the lifecycle, and the exact tests, but no code has been written for it, so R-018 stays untraced. Symlink, index, policy, gates, calibration, and repository-binding identity are implemented and held by collected tests; that clause of this paragraph was stale from round four and is corrected here. Submodule state is not bound and deliberately never will be by this slice: D-072 refuses such a tree instead.
+**Known gaps.** Task 9's historical `current_route_identity` placeholder is superseded by the receipt binding implemented in Tasks 8 and 10. Concurrent-mutation identity is implemented: the runner consumes one immutable verified context containing the receipt payload, validated policy, and gate configuration; compares every pre-gate identity with its verified identity; and compares again after the gate. Symlink, index, policy, gates, calibration, and repository-binding identity are held by collected tests. Submodule state is not bound and deliberately never will be by this slice: D-072 refuses such a tree instead.
 
 **Type consistency.** `read_change_inputs` returns `ChangeSnapshot` everywhere. `collect_change_facts(snapshot, classifier)` takes the snapshot, never a repo. `build_route(facts, policy, hints, snapshot_ok)` keeps that order in every call. `receipt_payload` and `verify_receipt` agree on the `identity` mapping shape.
 
@@ -1977,7 +1977,7 @@ Resolved in round eleven. Task 10 no longer describes runner integration in the 
 
 Still blocking. Task 9 describes `current_route_identity` without code.
 
-Not a placeholder, but not built either: R-013, R-018, and R-022 have planned test node ids in Tasks 10 and 11 and no implementation. They stay in the `untraced` list until their tests exist and collect. A plan naming a test is not a test.
+Implemented in round twelve: R-013, R-018, and R-022 have exact collected node ids in `requirement-evidence.json`, and `untraced` is empty. Independent review found and closed the preflight-to-launch identity gap, receipt reread race, calibration reread races, and first-write acquisition split. M75 through M87 hold those repaired authority seams. See D-075 and D-076.
 
 **Round-four execution.** The baseline reproduced at `245 passed, 13 skipped, 45 subtests passed`; the router suite reported `114 passed`; validation reported zero errors and one warning. The expanded monotonic check passed 2,304 extensions. Four new mutations survived. A real clean filter ran and wrote a worktree file while acquisition returned complete. The pure layer is not ready for Task 8.
 

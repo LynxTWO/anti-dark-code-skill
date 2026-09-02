@@ -27,9 +27,11 @@ import tempfile
 import textwrap
 import time
 import unicodedata
+from collections.abc import Mapping
 from pathlib import Path
 from pathlib import PurePosixPath
-from typing import Any, Sequence
+from types import MappingProxyType
+from typing import Any, NamedTuple, Sequence
 from urllib.parse import urlsplit
 
 SCHEMA_VERSION = 1
@@ -1090,10 +1092,17 @@ def git_paths(repo: Path, args: Sequence[str]) -> list[str] | None:
 
 
 def current_source_identity(repo: Path) -> dict[str, Any]:
-    commit = git_output(repo, ["rev-parse", "HEAD"])
-    branch = git_output(repo, ["rev-parse", "--abbrev-ref", "HEAD"])
+    # A routed run compares the fingerprint verified at preflight with the
+    # identity immediately before launch. `git status` normally refreshes the
+    # index stat cache, which changes that fingerprint even though repository
+    # bytes did not. Keep this diagnostic read from writing the index.
+    read_only = ["--no-optional-locks"]
+    commit = git_output(repo, [*read_only, "rev-parse", "HEAD"])
+    branch = git_output(
+        repo, [*read_only, "rev-parse", "--abbrev-ref", "HEAD"])
     status_raw = git_bytes(repo, [
-        "status", "--porcelain=v1", "--untracked-files=all", "-z", "--", ".",
+        *read_only, "status", "--porcelain=v1", "--untracked-files=all",
+        "-z", "--", ".",
         ":(exclude).agents/skills/**",
         ":(exclude).claude/skills/**",
         ":(exclude).gemini/skills/**",
@@ -2570,12 +2579,238 @@ def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: floa
     return result
 
 
-def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None, keep_going: bool) -> int:
+def check_route_level(route_minimum: int,
+                      requested: int | None) -> tuple[bool, int]:
+    """Return whether a requested level preserves the receipt's minimum."""
+    if requested is None:
+        return True, route_minimum
+    if requested < route_minimum:
+        return False, route_minimum
+    return True, requested
+
+
+def obligations_are_covered(
+    obligations: dict[str, Sequence[str]] | Any,
+    approved_gate_ids: set[str],
+    outcomes: dict[str, str],
+) -> bool:
+    """Whether every required capability has an approved passing gate.
+
+    An empty mapping is not evidence of coverage, and only the closed `pass`
+    outcome can satisfy an obligation. In particular, a zero exit code whose
+    repository identity moved is `stale` and satisfies nothing.
+    """
+    return bool(obligations) and all(
+        bool(gate_ids) and any(
+            gate_id in approved_gate_ids and outcomes.get(gate_id) == "pass"
+            for gate_id in gate_ids)
+        for gate_ids in obligations.values())
+
+
+KNOWN_GATE_OUTCOMES = frozenset({
+    "pass", "fail", "config-error", "stale", "not-run", "skipped",
+})
+
+
+def _is_candidate_route(value: Any) -> bool:
+    provenance = (value.get("provenance")
+                  if isinstance(value, Mapping)
+                  else getattr(value, "provenance", None))
+    return provenance == "candidate-shadow"
+
+
+def shadow_result(
+    authoritative_payload: Mapping[str, Any],
+    candidate: Any | None,
+    gate_results: dict[str, str],
+) -> dict[str, Any]:
+    """Compare candidate omissions with outcomes from the authoritative run."""
+    route_payload = authoritative_payload.get("route", {})
+    authoritative_ids = route_payload.get("selected_gate_ids", [])
+    if (not isinstance(authoritative_ids, Sequence)
+            or isinstance(authoritative_ids, (str, bytes))
+            or not all(isinstance(gate, str) for gate in authoritative_ids)):
+        raise ValueError("authoritative route has invalid selected_gate_ids")
+
+    unknown = sorted(set(gate_results.values()) - KNOWN_GATE_OUTCOMES)
+    if unknown:
+        raise ValueError(f"unrecognised gate outcomes: {unknown}")
+
+    if candidate is None:
+        return {
+            "schema_version": 2,
+            "measurable": False,
+            "reason": "snapshot incomplete",
+            "authoritative": {
+                "selected_gate_ids": sorted(authoritative_ids)},
+            "candidate": None,
+            "gate_results": dict(sorted(gate_results.items())),
+        }
+    if not _is_candidate_route(candidate):
+        raise TypeError("shadow_result requires a CandidateRoute or None")
+
+    selected = set(candidate.selected_gate_ids())
+    omitted = {gate_id: outcome for gate_id, outcome in gate_results.items()
+               if gate_id not in selected}
+    missed = sorted(gate_id for gate_id, outcome in omitted.items()
+                    if outcome != "pass")
+    selected_all_passed = bool(selected) and all(
+        gate_results.get(gate_id) == "pass" for gate_id in selected)
+    return {
+        "schema_version": 2,
+        "measurable": True,
+        "route_class": {
+            "matched_rule_ids": sorted(candidate.matched_rule_ids),
+            "force_full": candidate.force_full,
+        },
+        "authoritative": {
+            "selected_gate_ids": sorted(authoritative_ids)},
+        "candidate": candidate.as_payload(),
+        "gate_results": dict(sorted(gate_results.items())),
+        "omitted_gate_results": dict(sorted(omitted.items())),
+        "missed_gate_ids": missed,
+        "selected_all_passed": selected_all_passed,
+        "routing_miss": bool(missed) and selected_all_passed,
+    }
+
+
+def write_shadow(repo: Path, run_id: str,
+                 record: dict[str, Any]) -> Path:
+    target = repo / ".anti-dark-code" / "runs" / run_id / "shadow.json"
+    if not target.parent.is_dir():
+        raise RuntimeError(
+            f"gate run directory does not exist for shadow record: {run_id}")
+    write_json_atomic(target, record)
+    return target
+
+
+def _read_route_receipt(path: Path) -> dict[str, Any]:
+    """Read one receipt object once; all later consumers use these bytes."""
+    if not path.is_file():
+        raise ValueError(f"REFUSED: no routing receipt at {path}")
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"REFUSED: invalid routing receipt: {exc}") from exc
+    if not isinstance(receipt, dict):
+        raise ValueError("REFUSED: routing receipt must be an object")
+    payload = receipt.get("authoritative")
+    if not isinstance(payload, dict):
+        raise ValueError(
+            "REFUSED: routing receipt has no authoritative payload")
+    if not isinstance(payload.get("binding"), dict):
+        raise ValueError("REFUSED: routing receipt binding is not an object")
+    if not isinstance(payload.get("route"), dict):
+        raise ValueError("REFUSED: routing receipt has no authoritative route")
+    if not isinstance(receipt.get("run_id"), str):
+        raise ValueError("REFUSED: routing receipt has no string run_id")
+    return receipt
+
+
+def _receipt_route(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    route = payload.get("route")
+    if not isinstance(route, Mapping):
+        raise ValueError("REFUSED: routing receipt has no authoritative route")
+    if _is_candidate_route(route):
+        raise ValueError(
+            "REFUSED: candidate shadow data cannot become an authoritative route")
+    minimum = route.get("minimum_level")
+    if type(minimum) is not int or minimum not in (0, 1, 2, 3):
+        raise ValueError(
+            "REFUSED: routing receipt has no valid authoritative minimum_level")
+    if type(route.get("force_full")) is not bool:
+        raise ValueError(
+            "REFUSED: routing receipt has no valid authoritative force_full flag")
+    return route
+
+
+def select_route_gates(
+    config: dict[str, Any],
+    configured_gates: list[dict[str, Any]],
+    route: Any | None,
+    *,
+    level: int,
+    force_full: bool,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Select only from authoritative route data; reject candidates by type."""
+    if _is_candidate_route(route):
+        raise TypeError("CandidateRoute cannot select executable gates")
+    if route is not None:
+        if not isinstance(route, Mapping):
+            raise TypeError("gate selection requires authoritative route data")
+        routed_force_full = route.get("force_full")
+        if type(routed_force_full) is not bool:
+            raise TypeError("authoritative route has no boolean force_full")
+        force_full = force_full or routed_force_full
+
+    if force_full:
+        # R-022: the canonical set is named directly. Applicability globs and
+        # unrelated enabled gates cannot shrink or enlarge the full recipe.
+        full_set = config.get("canonical_full_set")
+        obligations = (full_set.get("obligations")
+                       if isinstance(full_set, dict) else None)
+        if not isinstance(obligations, dict) or not obligations:
+            raise ValueError("force-full routing requires canonical obligations")
+        canonical_ids = {
+            gate_id for gate_ids in obligations.values()
+            if isinstance(gate_ids, list)
+            for gate_id in gate_ids if isinstance(gate_id, str)}
+        present = {str(gate.get("id")) for gate in configured_gates}
+        missing = sorted(canonical_ids - present)
+        if not canonical_ids or missing:
+            detail = ", ".join(missing) if missing else "no canonical gate ids"
+            raise ValueError(f"canonical full set is incomplete: {detail}")
+        return ([gate for gate in configured_gates
+                 if str(gate.get("id")) in canonical_ids], True)
+    return ([gate for gate in configured_gates
+             if gate.get("enabled") and gate_level(gate) <= level], False)
+
+
+class GateRunResult(int):
+    """An exit code that keeps the executed run summary available to callers."""
+
+    summary: dict[str, Any]
+
+    def __new__(cls, code: int, summary: dict[str, Any]):
+        result = int.__new__(cls, code)
+        result.summary = summary
+        return result
+
+
+def _freeze_json(value: Any) -> Any:
+    """Own an immutable copy of receipt data after verification."""
+    if isinstance(value, dict):
+        return MappingProxyType({
+            key: _freeze_json(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze_json(item) for item in value)
+    return value
+
+
+class VerifiedRouteReceipt(NamedTuple):
+    """The exact authoritative receipt object that passed freshness checks."""
+
+    run_id: str
+    authoritative: Mapping[str, Any]
+    route: Mapping[str, Any]
+    expected_worktree_identity: str
+    validated_policy: Any
+    gate_configuration_json: bytes
+
+
+def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None,
+              keep_going: bool, force_full: bool = False,
+              route: Any | None = None,
+              expected_worktree_identity: str | None = None,
+              verified_receipt_run_id: str | None = None,
+              verified_gate_configuration_json: bytes | None = None) -> int:
     repo = repo.resolve()
     config_path = safe_calibration_dir(repo, "gate configuration read") / "gates.json"
     if not config_path.exists():
         raise SystemExit(f"Gate config not found: {config_path}")
-    config = read_json(config_path)
+    config = (json.loads(verified_gate_configuration_json)
+              if verified_gate_configuration_json is not None
+              else read_json(config_path))
     if not isinstance(config, dict) or not isinstance(config.get("gates", []), list):
         raise SystemExit(f"Invalid gate config structure: {config_path}")
     duplicate_ids = duplicate_gate_ids(config.get("gates", []))
@@ -2593,12 +2828,18 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         print("REFUSED: gate planning and execution cannot use unbound, invalid, or foreign calibration.")
         return 2
 
-    candidates = [
-        g for g in config.get("gates", [])
-        if isinstance(g, dict) and g.get("enabled") and gate_level(g) <= level
-    ]
+    configured_gates = [
+        gate for gate in config.get("gates", []) if isinstance(gate, dict)]
+    try:
+        candidates, force_full = select_route_gates(
+            config, configured_gates, route,
+            level=level, force_full=force_full)
+    except ValueError as exc:
+        print(f"REFUSED: {exc}")
+        return 2
     changed = changed_files(repo, changed_from) if changed_from else None
-    candidates = [g for g in candidates if gate_applies(g, changed)]
+    if not force_full:
+        candidates = [g for g in candidates if gate_applies(g, changed)]
     blocked: list[tuple[dict[str, Any], str]] = []
     gates: list[dict[str, Any]] = []
     runtime_environments: dict[int, tuple[dict[str, str], dict[str, Any], list[str]]] = {}
@@ -2649,6 +2890,12 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
 
     ensure_run_gitignore(repo)
     require_no_symlink_components(repo / ".anti-dark-code" / "runs", repo, "gate run creation")
+    route_module, receipt_module = load_router_helpers()
+    # Routed verification requires Git. Preserve the pre-existing unversioned
+    # gate-runner mode, but once a run starts inside a repository every capture
+    # must succeed; a later Git failure is a refusal, never a disabled check.
+    monitor_identity = (
+        git_output(repo, ["rev-parse", "--is-inside-work-tree"]) == "true")
     source_identity = current_source_identity(repo)
     gate_material = [
         {
@@ -2663,6 +2910,9 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     run_dir = repo / ".anti-dark-code" / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
     failures: list[dict[str, Any]] = []
+    stale: list[dict[str, Any]] = []
+    outcomes: dict[str, str] = {}
+    identity_refusal: str | None = None
     passed = 0
     started_all = time.monotonic()
 
@@ -2688,6 +2938,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         packet_path = run_dir / f"{failure_id}.json"
         write_json_atomic(packet_path, packet)
         failures.append({"gate_id": gate_id, "failure_id": failure_id, "packet": rel(packet_path, repo), "config_error": message})
+        outcomes[gate_id] = "config-error"
         print(f"FAIL {gate_id} config={message} packet={rel(packet_path, repo)}")
 
     for gate in gates:
@@ -2728,31 +2979,63 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         launch_error: str | None = None
         timeout_termination: dict[str, Any] | None = None
         proc: subprocess.Popen[Any] | None = None
+        identity_before: str | None = None
+        lifecycle_before: str | None = None
+        stale_before_launch = False
         try:
             raw_path.touch(mode=0o600, exist_ok=False)
             with raw_path.open("w", encoding="utf-8", newline="\n") as raw_log:
-                proc = subprocess.Popen(
-                    argv,
-                    cwd=cwd,
-                    env=process_env,
-                    stdout=raw_log,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    **gate_popen_kwargs(),
-                )
-                try:
-                    exit_code = proc.wait(timeout=timeout_seconds)
-                except subprocess.TimeoutExpired:
-                    timed_out = True
-                    timeout_termination = terminate_gate_process_tree(proc)
-                    exit_code = 124
+                if monitor_identity:
+                    # Immediately before Popen: bounded-log setup is complete,
+                    # and no executable repository code has run.
+                    #
+                    # Two identities, because two different questions are being
+                    # asked. The first is receipt-comparable and answers "is
+                    # this the tree the receipt bound". The second includes
+                    # timestamps and answers "did anything touch the tree while
+                    # this gate ran", which the first cannot see through a
+                    # write-and-restore. See D-077.
+                    identity_before = receipt_module.worktree_identity(
+                        repo, route_module)
+                    lifecycle_before = receipt_module.lifecycle_identity(
+                        repo, route_module)
+                stale_before_launch = (
+                    expected_worktree_identity is not None
+                    and identity_before != expected_worktree_identity)
+                if stale_before_launch:
                     raw_log.write(
-                        f"\n[anti-dark-code] TIMEOUT after {timeout_seconds}s; "
-                        f"termination={timeout_termination['strategy']}\n"
+                        "[anti-dark-code] STALE before launch: repository "
+                        "identity differs from the verified receipt\n")
+                else:
+                    proc = subprocess.Popen(
+                        argv,
+                        cwd=cwd,
+                        env=process_env,
+                        stdout=raw_log,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        **gate_popen_kwargs(),
                     )
-                except KeyboardInterrupt:
-                    terminate_gate_process_tree(proc)
-                    raise
+                    try:
+                        exit_code = proc.wait(timeout=timeout_seconds)
+                    except subprocess.TimeoutExpired:
+                        timed_out = True
+                        timeout_termination = terminate_gate_process_tree(proc)
+                        exit_code = 124
+                        raw_log.write(
+                            f"\n[anti-dark-code] TIMEOUT after {timeout_seconds}s; "
+                            f"termination={timeout_termination['strategy']}\n"
+                        )
+                    except KeyboardInterrupt:
+                        terminate_gate_process_tree(proc)
+                        raise
+        except receipt_module.ReceiptError as exc:
+            identity_refusal = str(exc)
+            exit_code = 125
+            if raw_path.exists():
+                write_text_atomic(
+                    raw_path,
+                    f"[anti-dark-code] REFUSED before gate launch: {exc}\n")
         except FileNotFoundError as exc:
             exit_code = 127
             launch_error = str(exc)
@@ -2769,8 +3052,64 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
                     raw_path.unlink(missing_ok=True)
 
         duration = round(time.monotonic() - started, 3)
+        if identity_refusal is not None:
+            print(f"REFUSED: {identity_refusal}")
+            break
+
+        if stale_before_launch:
+            stale.append({
+                "gate_id": gate_id,
+                "phase": "before-launch",
+                "expected_identity": expected_worktree_identity,
+                "identity_before": identity_before,
+                "identity_after": None,
+                "exit_code": None,
+            })
+            outcomes[gate_id] = "stale"
+            print(f"STALE {gate_id} before launch ({duration:.3f}s)")
+            break
+
+        identity_after: str | None = None
+        lifecycle_after: str | None = None
+        if monitor_identity:
+            try:
+                # After redaction and before pass/fail classification. The run
+                # store is excluded, so retaining the log cannot stale itself.
+                identity_after = receipt_module.worktree_identity(
+                    repo, route_module)
+                lifecycle_after = receipt_module.lifecycle_identity(
+                    repo, route_module)
+            except receipt_module.ReceiptError as exc:
+                identity_refusal = str(exc)
+                identity_after = "<unreadable>"
+                lifecycle_after = "<unreadable>"
+
+        # Either signal is enough. The bound identity catches a change that
+        # survives the gate; the lifecycle identity catches one the gate undid
+        # before exiting, which R-018 names and the bound identity cannot see.
+        if identity_before != identity_after or lifecycle_before != lifecycle_after:
+            stale.append({
+                "gate_id": gate_id,
+                "phase": "during-gate",
+                "expected_identity": expected_worktree_identity,
+                "identity_before": identity_before,
+                "identity_after": identity_after,
+                # Recorded separately so a reader can tell a change that
+                # survived the gate from one the gate put back.
+                "lifecycle_before": lifecycle_before,
+                "lifecycle_after": lifecycle_after,
+                "restored_during_gate": (identity_before == identity_after),
+                "exit_code": exit_code,
+            })
+            outcomes[gate_id] = "stale"
+            print(f"STALE {gate_id} exit={exit_code} ({duration:.3f}s)")
+            # --keep-going governs failing gates, not a repository that moved
+            # underneath the evidence boundary.
+            break
+
         if exit_code == 0:
             passed += 1
+            outcomes[gate_id] = "pass"
             print(f"PASS {gate_id} ({duration:.3f}s)")
             continue
 
@@ -2813,6 +3152,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         packet_path = run_dir / f"{failure_id}.json"
         write_json_atomic(packet_path, packet)
         failures.append({"gate_id": gate_id, "failure_id": failure_id, "packet": rel(packet_path, repo), "exit_code": exit_code})
+        outcomes[gate_id] = "fail"
         print(f"FAIL {gate_id} exit={exit_code} packet={rel(packet_path, repo)}")
         if not keep_going:
             break
@@ -2821,6 +3161,8 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
     summary = {
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
+        "verified_receipt_run_id": verified_receipt_run_id,
+        "expected_worktree_identity": expected_worktree_identity,
         "level": level,
         "source_identity": source_identity,
         "environment_identities": [
@@ -2829,17 +3171,30 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         ],
         "changed_from": changed_from,
         "changed_files": changed or [],
+        "planned": len(gates),
+        "planned_gate_ids": [
+            str(g.get("id") or "unnamed") for g in gates],
         "passed": passed,
         "failed": len(failures),
+        "outcomes": outcomes,
+        "stale": stale,
         "duration_seconds": duration_all,
         "failures": failures,
     }
     write_json_atomic(run_dir / "summary.json", summary)
+    if stale or identity_refusal is not None:
+        detail = (f", refusal={identity_refusal}"
+                  if identity_refusal is not None else "")
+        print(
+            f"RESULT: {passed} passed, {len(failures)} failed, "
+            f"{len(stale)} stale{detail}, {duration_all:.3f}s. "
+            f"Redacted artifacts: {rel(run_dir, repo)}")
+        return GateRunResult(2, summary)
     if failures:
         print(f"RESULT: {passed} passed, {len(failures)} failed, {duration_all:.3f}s. Redacted artifacts: {rel(run_dir, repo)}")
-        return 1
+        return GateRunResult(1, summary)
     print(f"RESULT: {passed} passed, 0 failed, {duration_all:.3f}s. Redacted artifacts: {rel(run_dir, repo)}")
-    return 0
+    return GateRunResult(0, summary)
 
 
 def parse_candidates(path: Path) -> list[dict[str, str]]:
@@ -3804,8 +4159,106 @@ def command_bootstrap(args: argparse.Namespace) -> int:
     return 0
 
 
+def _candidate_shadow_context(
+    payload: Mapping[str, Any],
+    validated_policy: Any,
+    route_module: Any,
+) -> tuple[Mapping[str, Any], Any | None]:
+    fact_rows = payload.get("emitted_facts")
+    if (not isinstance(fact_rows, Sequence)
+            or isinstance(fact_rows, (str, bytes))):
+        raise ValueError("routing receipt has no emitted_facts array")
+    snapshot_complete = payload.get("snapshot_complete")
+    if type(snapshot_complete) is not bool:
+        raise ValueError("routing receipt has no boolean snapshot_complete")
+
+    try:
+        facts = tuple(route_module.ChangeFact(**row) for row in fact_rows
+                      if isinstance(row, Mapping))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"routing receipt has invalid emitted facts: {exc}") from exc
+    if len(facts) != len(fact_rows):
+        raise ValueError("routing receipt has a non-object emitted fact")
+    candidate = route_module.build_candidate_route(
+        facts, validated_policy, snapshot_ok=snapshot_complete)
+    return payload, candidate
+
+
 def command_gates(args: argparse.Namespace) -> int:
-    return run_gates(Path(args.repo), level=args.level, allow_exec=args.allow_exec, changed_from=args.changed_from, keep_going=args.keep_going)
+    repo = Path(args.repo).resolve()
+    requested = args.level
+    force_full = False
+    route_data: Mapping[str, Any] | None = None
+    shadow_context: tuple[Mapping[str, Any], Any | None] | None = None
+    verified_receipt: VerifiedRouteReceipt | None = None
+    if args.route:
+        receipt_path = Path(args.route)
+        route_module, receipt_module = load_router_helpers()
+        if args.allow_exec:
+            # This file is itself fingerprinted. Complete run-store setup
+            # before freshness preflight so the runner cannot stale its own
+            # receipt between verification and the first gate.
+            ensure_run_gitignore(repo)
+            require_no_symlink_components(
+                repo / ".anti-dark-code" / "runs", repo,
+                "gate run creation")
+        calibration = safe_calibration_dir(
+            repo, "routing receipt verification")
+        verify_args = argparse.Namespace(
+            repo=str(repo), calibration=str(calibration),
+            verify=str(receipt_path))
+        try:
+            receipt = _read_route_receipt(receipt_path)
+        except ValueError as exc:
+            print(exc)
+            return 2
+        verdict, verified_receipt = _verify_loaded_route_receipt(
+            verify_args, repo, route_module, receipt_module, receipt)
+        if verdict != 0:
+            return 2
+        if verified_receipt is None:
+            print("REFUSED: fresh receipt verification returned no authority")
+            return 2
+        route_data = verified_receipt.route
+        try:
+            shadow_context = _candidate_shadow_context(
+                verified_receipt.authoritative,
+                verified_receipt.validated_policy, route_module)
+        except (TypeError, ValueError) as exc:
+            print(f"REFUSED: {exc}")
+            return 2
+        minimum = route_data["minimum_level"]
+        force_full = route_data["force_full"]
+        accepted, level = check_route_level(minimum, requested)
+        if not accepted:
+            print(
+                f"REFUSED: requested Level {requested} would lower the routed "
+                f"verification; route minimum is {minimum}.")
+            return 2
+    else:
+        level = 0 if requested is None else requested
+    result = run_gates(
+        repo, level=level, allow_exec=args.allow_exec,
+        changed_from=args.changed_from, keep_going=args.keep_going,
+        force_full=force_full, route=route_data,
+        expected_worktree_identity=(
+            verified_receipt.expected_worktree_identity
+            if verified_receipt is not None else None),
+        verified_receipt_run_id=(
+            verified_receipt.run_id if verified_receipt is not None else None),
+        verified_gate_configuration_json=(
+            verified_receipt.gate_configuration_json
+            if verified_receipt is not None else None))
+    if shadow_context is not None and isinstance(result, GateRunResult):
+        payload, candidate = shadow_context
+        gate_results = {
+            gate_id: result.summary["outcomes"].get(gate_id, "not-run")
+            for gate_id in result.summary["planned_gate_ids"]
+        }
+        record = shadow_result(payload, candidate, gate_results)
+        written = write_shadow(repo, result.summary["run_id"], record)
+        print(f"SHADOW: {written}")
+    return int(result)
 
 
 def command_flowback(args: argparse.Namespace) -> int:
@@ -3994,8 +4447,16 @@ def _load_route_inputs(args: argparse.Namespace) -> tuple[Any, dict, dict, list[
     try:
         policy_source = json.loads(policy_path.read_text(encoding="utf-8"))
         gates_source = json.loads(gates_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise SystemExit(f"REFUSED: {error}") from error
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        print(f"REFUSED: {error}")
+        raise SystemExit(2) from error
+
+    if not isinstance(policy_source, dict):
+        print("REFUSED: routing-policy.json must contain an object")
+        raise SystemExit(2)
+    if not isinstance(gates_source, dict):
+        print("REFUSED: gates.json must contain an object")
+        raise SystemExit(2)
 
     full_set = gates_source.get("canonical_full_set")
     if not isinstance(full_set, dict) or not full_set.get("passes"):
@@ -4024,6 +4485,12 @@ def command_route(args: argparse.Namespace) -> int:
     if args.verify:
         return _route_verify(args, repo, route_module, receipt_module)
 
+    if args.write:
+        # This path is itself an acquired fact and part of the repository
+        # binding. Create it before acquisition so facts and identity describe
+        # one state even on the first receipt write.
+        ensure_run_gitignore(repo)
+
     validated, policy_source, gates_source, calibration_paths = _load_route_inputs(args)
 
     snapshot = route_module.read_change_inputs(repo, args.base)
@@ -4035,12 +4502,17 @@ def command_route(args: argparse.Namespace) -> int:
                               capture_output=True, text=True, timeout=30)
         return done.stdout.strip() if done.returncode == 0 else None
 
-    binding = receipt_module.collect_binding(
-        repo, route_module,
-        base_identity=identity(args.base), head_identity=identity("HEAD"),
-        policy_source=policy_source, gates_source=gates_source,
-        calibration_paths=calibration_paths,
-        repo_binding_identity=_route_binding_identity(_route_calibration_dir(args)))
+    try:
+        binding = receipt_module.collect_binding(
+            repo, route_module,
+            base_identity=identity(args.base), head_identity=identity("HEAD"),
+            policy_source=policy_source, gates_source=gates_source,
+            calibration_paths=calibration_paths,
+            repo_binding_identity=_route_binding_identity(
+                _route_calibration_dir(args)))
+    except receipt_module.ReceiptError as error:
+        print(f"REFUSED: {error}")
+        return 2
 
     payload = receipt_module.authoritative_payload(
         route, facts, snapshot, binding, gates_source)
@@ -4105,40 +4577,90 @@ def _route_binding_identity(calibration: Path) -> str | None:
 def _route_verify(args: argparse.Namespace, repo: Path,
                   route_module: Any, receipt_module: Any) -> int:
     receipt_path = Path(args.verify)
-    if not receipt_path.is_file():
-        raise SystemExit(f"REFUSED: no receipt at {receipt_path}")
     try:
-        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise SystemExit(f"REFUSED: {error}") from error
+        receipt = _read_route_receipt(receipt_path)
+    except ValueError as exc:
+        print(exc)
+        return 2
+    verdict, _ = _verify_loaded_route_receipt(
+        args, repo, route_module, receipt_module, receipt)
+    return verdict
 
-    _, policy_source, gates_source, calibration_paths = _load_route_inputs(args)
-    recorded = receipt.get("authoritative", {}).get("binding", {})
+
+def _verify_loaded_route_receipt(
+    args: argparse.Namespace,
+    repo: Path,
+    route_module: Any,
+    receipt_module: Any,
+    receipt: Mapping[str, Any],
+) -> tuple[int, VerifiedRouteReceipt | None]:
+    """Verify one already-read receipt and return immutable authority."""
+    payload = receipt.get("authoritative")
+    if not isinstance(payload, Mapping):
+        print("REFUSED: routing receipt has no authoritative payload")
+        return 2, None
+    recorded = payload.get("binding")
+    if not isinstance(recorded, Mapping):
+        print("REFUSED: routing receipt binding is not an object")
+        return 2, None
+
+    validated, policy_source, gates_source, calibration_paths = (
+        _load_route_inputs(args))
 
     def identity(ref: str) -> str | None:
         done = subprocess.run(["git", "-C", str(repo), "rev-parse", ref],
                               capture_output=True, text=True, timeout=30)
         return done.stdout.strip() if done.returncode == 0 else None
 
-    current = receipt_module.collect_binding(
-        repo, route_module,
-        # The base the receipt was written against, not a fresh guess. Verifying
-        # against a different base would report the receipt stale for a reason
-        # that has nothing to do with the repository moving.
-        base_identity=recorded.get("base_identity"),
-        head_identity=identity("HEAD"),
-        policy_source=policy_source, gates_source=gates_source,
-        calibration_paths=calibration_paths,
-        repo_binding_identity=_route_binding_identity(_route_calibration_dir(args)))
+    try:
+        current = receipt_module.collect_binding(
+            repo, route_module,
+            # The base the receipt was written against, not a fresh guess.
+            # Verifying against a different base would report the receipt stale
+            # for a reason unrelated to repository movement.
+            base_identity=recorded.get("base_identity"),
+            head_identity=identity("HEAD"),
+            policy_source=policy_source, gates_source=gates_source,
+            calibration_paths=calibration_paths,
+            repo_binding_identity=_route_binding_identity(
+                _route_calibration_dir(args)))
+    except receipt_module.ReceiptError as error:
+        print(f"REFUSED: {error}")
+        return 2, None
 
-    verdict = receipt_module.verify_receipt(receipt, current)
+    try:
+        verdict = receipt_module.verify_receipt(receipt, current)
+    except receipt_module.ReceiptError as error:
+        print(f"REFUSED: {error}")
+        return 2, None
     if verdict.fresh:
-        print(f"FRESH {receipt.get('run_id', '')[:12]}")
-        return 0
+        run_id = receipt.get("run_id")
+        if not isinstance(run_id, str):
+            print("REFUSED: routing receipt has no string run_id")
+            return 2, None
+        if not isinstance(current.worktree_identity, str):
+            print("REFUSED: fresh receipt has no repository identity")
+            return 2, None
+        frozen_payload = _freeze_json(dict(payload))
+        try:
+            route = _receipt_route(frozen_payload)
+        except ValueError as exc:
+            print(exc)
+            return 2, None
+        print(f"FRESH {run_id[:12]}", flush=True)
+        return 0, VerifiedRouteReceipt(
+            run_id=run_id,
+            authoritative=frozen_payload,
+            route=route,
+            expected_worktree_identity=current.worktree_identity,
+            validated_policy=validated,
+            gate_configuration_json=json.dumps(
+                gates_source, sort_keys=True, separators=(",", ":"),
+                ensure_ascii=False, allow_nan=False).encode("utf-8"))
     print(f"STALE {receipt.get('run_id', '')[:12]}")
     for code, detail in verdict.reasons:
         print(f"  {code} {detail}")
-    return verdict.exit_code
+    return verdict.exit_code, None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -4190,7 +4712,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("gates", help="Dry-run or execute reviewed deterministic gates")
     p.add_argument("--repo", default=".")
-    p.add_argument("--level", type=int, choices=(0, 1, 2, 3), default=0)
+    p.add_argument("--level", type=int, choices=(0, 1, 2, 3))
+    p.add_argument("--route", help="Routing receipt whose minimum level may only be raised")
     p.add_argument("--allow-exec", action="store_true")
     p.add_argument("--changed-from")
     p.add_argument("--keep-going", action="store_true")

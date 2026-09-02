@@ -13,7 +13,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
 - **Current build boundary:** SLICE-001, per ADD section 15.
-- **Current gate:** Q-05 is proven against a real blobless clone (D-060), Linux mutation replay is required in CI (D-058), and M3 is implemented. D-070 reopens its review because four M3 requirements have only partial evidence. M4 is not started and remains plan-blocked by D-069.
+- **Current gate:** M4 is implemented in round twelve. Candidate routes are shadow-only, real gate outcomes feed their comparator, and the human walkthrough remains before slice completion.
 
 ## 2. Engineering Principles
 
@@ -226,7 +226,7 @@ Deletion rule: receipts are local run artifacts under `.anti-dark-code/runs/`, s
 - Every authoritative array is sorted by a documented canonical key before hashing. `normalized_json_hash` stabilizes object-key order but does not sort arrays.
 - `run_id` is derived from the authoritative receipt hash. Timestamps and display-only environment details live outside that hash and cannot change routing authority.
 - Receipt freshness uses object ids where git already has them and hashes current bytes, executable modes, and symlink targets where it does not. A porcelain-status digest is not sufficient because different dirty bytes can produce identical status text.
-- The gate runner checks the authoritative identity immediately before and after each gate. An after-check mismatch preserves the output for diagnosis but cannot satisfy a capability.
+- The gate runner reads the receipt once, verifies that exact object, and carries its immutable authoritative route and verified worktree identity to execution. Every pre-gate identity must equal the verified identity, and every post-gate identity must equal its pre-gate identity; either mismatch preserves diagnostic output but cannot satisfy a capability.
 - Enum values are closed sets. An unrecognized value is an error, not a passthrough.
 - Canonical `ChangeFact` order includes `related_path` and every other serialized field after exact duplicate facts are removed.
 - Git directory boundaries use forward slashes and classifier matching is case-sensitive on every host. The collector does not rewrite literal backslash characters.
@@ -306,16 +306,16 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-010 | two-rule union test | `test_route.py` |
 | R-011 | hint monotonicity test | `test_route.py` |
 | R-012 | obligation coverage test | `test_route.py` |
-| R-013 | Not built: `--level` downgrade refusal | untraced in `requirement-evidence.json`; D-069 |
+| R-013 | A routed gate command rejects a lower level and accepts an equal or higher level | `RouteLevelCliTests` and `CanonicalFullTests::test_level_may_raise_the_route_minimum`; exact nodes in `requirement-evidence.json` |
 | R-014 | `calibration/gates.json` produces a fact | `test_route.py` |
 | R-015 | generated positive-match monotonicity test | `test_route.py` |
 | R-016 | policy schema and missing, duplicate, unknown, disabled, or unapproved gate tests | `test_route.py` |
 | R-017 | Bytes, index, and symlink checks, plus a real submodule fixture proving the receipt is refused and an ordinary tree still verifies fresh | `SubmoduleContractTests` in `test_route.py`; D-072 |
-| R-018 | Not built: mutation before launch and during a gate invalidates its evidence | untraced in `requirement-evidence.json`; D-069 |
+| R-018 | One receipt read is verified before selection; its identity, validated policy, and gate configuration remain one in-memory authority context; two identities are compared before and after each real gate, the receipt-comparable one and a timestamp-keeping lifecycle one, so a change the gate itself restored is still caught; movement records `stale`, stops even under `--keep-going`, and satisfies no obligation | `GateLifecycleTests`, `StaleReceiptCliTests`, and `ReceiptIntegrityCliTests`; exact nodes in `requirement-evidence.json`; D-075, D-076 and D-077 |
 | R-019 | Rename, copy, mode, type, conflict, and source-union checks, plus a gitlink record that parses and withdraws snapshot completeness | `RawParserTests` and `SubmoduleContractTests` in `test_route.py`; D-072 |
 | R-020 | generated hint monotonicity over every route field | `test_route.py` |
 | R-021 | The eleven self-grading path classes each measured against the installed policy with every rule approved | `SelfGradingAuthorityTests` in `test_route.py`; D-071 |
-| R-022 | Not built: force-full bypasses changed-file gate globs | untraced in `requirement-evidence.json`; D-069 |
+| R-022 | Force-full execution takes exactly the canonical set and bypasses changed-file applicability globs | `CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs`; exact node in `requirement-evidence.json` |
 | R-023 | canonical order and timestamp-independence tests | `test_route.py` |
 | R-024 | garbage, truncated header, orphan rename, unknown status letter | `test_route.py` |
 | R-025 | real-repository staged change is not also unstaged | `test_route.py` |
@@ -405,7 +405,7 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-003 | A rule is added that is broader than intended | requirements quietly loosen for a whole path class | rules carry `review_status`, and policy changes force the full route | Watching |
 | U-004 | Q-001 resolves to fewer than five new capabilities | the catalog extension is smaller than planned | D-016 limits the extension to affected-unit testing and input fuzz testing | Resolved |
 | U-005 | Provisional routing encourages an agent to under-plan before implementing | work starts too narrow | the final route supersedes, and slice 1 builds no provisional path | Watching |
-| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 content identity, and a tree holding state the binding cannot follow is refused (D-072). R-018 before-and-after verification is still unbuilt, so this stays open | Open |
+| U-006 | A content change retains the same porcelain status and passes a status-only freshness check | stale evidence executes against different bytes | R-017 binds content and refuses unbindable state (D-072); R-018 consumes one verified receipt and holds every routed gate to its verified, pre-gate, and post-gate identities (D-075) | Resolved |
 | U-007 | A capability and a gate appear in parallel arrays with no provable relationship | an unrelated gate is treated as evidence | R-016 policy-local capability-to-gate binding | Open |
 | U-008 | A Git status or old rename path disappears before routing | a verification-authority change receives a lower route | R-019 status table and R-021 self-grading path table, both measured against the classifier with the rules approved (D-071) | Watching |
 | U-009 | A Git configuration path starts a program or network request before routing | repository code runs at the trust boundary | R-034 hostile execution-family table | Open |
@@ -415,6 +415,7 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-013 | Index bytes or path topology change while content metadata stays equal | acquisition reports a changed repository as complete | R-050 and D-043 | Open |
 | U-014 | Per-call width inference or one status-side table disagrees with repository Git output | valid conflicts block or mixed repository identity is accepted | R-051 and D-044 | Open |
 | U-015 | A future round removes an id from the `untraced` list and maps it to a test that collects but does not exercise the clause | the traceability gate reports progress that did not happen, which is exactly how D-070 arose | the guard cannot check this; `REVIEWED_UNTRACED` in `test_route.py` is a review record, and shrinking it needs a named reviewer (D-071) | Open |
+| U-016 | A gate restores both the bytes and the timestamp of a file it changed while running | a gate result is accepted against content that is not in the tree | out of scope for before-and-after sampling; recorded in D-077 rather than claimed as covered | Open |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done

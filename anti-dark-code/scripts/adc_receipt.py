@@ -170,7 +170,17 @@ def _identity_and_unsupported(
     D-072.
     """
     run = runner or route_module._default_runner(repo)
-    index_state, entries = route_module._repo_fingerprint(repo, run)
+    fingerprint = route_module._repo_fingerprint(repo, run)
+    if fingerprint == ("unreadable",):
+        # Provisional D-073. An acquisition failure is not an identity. Giving
+        # it a digest would let unrelated failures compare equal; unpacking it
+        # used to leak a ValueError traceback instead of refusing cleanly.
+        raise ReceiptError(
+            "repository fingerprint is unreadable; binding is refused")
+    if len(fingerprint) != 2:
+        raise ReceiptError(
+            "repository fingerprint has an unsupported result shape")
+    index_state, entries = fingerprint
     mark = getattr(route_module, "GITLINK_MARK", "gitlink-unsupported") + ":"
     unsupported = tuple(sorted(
         str(entry[0]) for entry in entries
@@ -199,6 +209,46 @@ def _identity_and_unsupported(
         # does not silently depend on that.
         "entries": sorted(kept),
     }), unsupported
+
+
+def lifecycle_identity(repo: Path, route_module: Any, runner: Any = None) -> str:
+    """One digest over whether anything touched the tree, timestamps included.
+
+    Deliberately not `worktree_identity`, and the difference is the point.
+
+    A receipt binds what a route depended on, and a route does not depend on a
+    timestamp, so `worktree_identity` drops size and mtime: restoring the bytes
+    must not leave a receipt stale. See D-063.
+
+    A gate lifecycle asks a different question. R-018 is about whether anything
+    changed *while a gate ran*, and a gate that rewrites a tracked file and puts
+    it back has changed an input during its own run whatever the final bytes
+    say. Measured against the real runner: a gate that wrote a tracked file,
+    read the changed value, and restored the original passed cleanly with exit
+    0 and no stale row, and its own log recorded that it had observed the
+    changed content. The full fingerprint moves there because mtime does. See
+    D-077.
+
+    The run store is excluded for the same reason as in the binding: the runner
+    writes its own logs, and a check that stales on its own output is noise
+    rather than evidence.
+
+    The residual is a caller that restores the timestamp as well as the bytes.
+    That is a deliberate act rather than an ordinary gate, and it is recorded in
+    D-077 rather than claimed as covered.
+    """
+    run = runner or route_module._default_runner(repo)
+    fingerprint = route_module._repo_fingerprint(repo, run)
+    if fingerprint == ("unreadable",):
+        raise ReceiptError(
+            "repository fingerprint is unreadable; lifecycle identity is refused")
+    if len(fingerprint) != 2:
+        raise ReceiptError(
+            "repository fingerprint has an unsupported result shape")
+    index_state, entries = fingerprint
+    kept = [list(entry) for entry in entries
+            if not str(entry[0]).replace("\\", "/").startswith(RUN_STORE + "/")]
+    return digest({"index": index_state, "entries": sorted(kept)})
 
 
 def collect_binding(
@@ -240,6 +290,14 @@ def _fact_payload(fact: Any) -> dict[str, Any]:
     """A fact reduced to its serialized fields, in canonical key order."""
     from dataclasses import fields as dataclass_fields
     return {f.name: getattr(fact, f.name) for f in dataclass_fields(fact)}
+
+
+def _is_candidate_route(value: Any) -> bool:
+    """Recognize the non-authoritative type without importing the router."""
+    provenance = (value.get("provenance")
+                  if isinstance(value, Mapping)
+                  else getattr(value, "provenance", None))
+    return provenance == "candidate-shadow"
 
 
 def _omissions(
@@ -287,6 +345,9 @@ def authoritative_payload(
     change in a different order produce the same bytes, which is what makes the
     hash an identity rather than a timestamp. See R-002 and S-001.
     """
+    if _is_candidate_route(route):
+        raise ReceiptError(
+            "CandidateRoute is shadow evidence and cannot become authority")
     if operator_escalation is not None:
         if not isinstance(operator_escalation, Mapping):
             raise ReceiptError("operator_escalation must be an object")
@@ -343,6 +404,9 @@ def build_receipt(
     nothing in it can change `run_id`, and a reader can tell at a glance which
     half of the file carries authority.
     """
+    if _is_candidate_route(payload):
+        raise ReceiptError(
+            "CandidateRoute is shadow evidence and cannot become a receipt")
     return {
         "run_id": digest(payload),
         "authoritative": dict(payload),
@@ -375,6 +439,9 @@ def verify_receipt(
                                   f"receipt schema_version is "
                                   f"{payload.get('schema_version')!r}, "
                                   f"expected {SCHEMA_VERSION}"),))
+    if receipt.get("run_id") != digest(payload):
+        raise ReceiptError(
+            "receipt run_id does not match its authoritative payload")
 
     recorded = payload.get("binding")
     if not isinstance(recorded, Mapping):

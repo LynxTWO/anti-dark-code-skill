@@ -777,27 +777,62 @@ def _check_self_grading(
     away from approval, and refusing at load is the only moment where the answer
     is still cheap. An unmapped path is still not a failure: confidence
     `unknown` forces the full recipe on its own.
+
+    Every *shape* is considered too, and that is the third correction this guard
+    has needed. It used to build one fact per classification with change_kind
+    "modify" and source "unstaged". `_MATCH_KEYS` lets a rule key on
+    change_kinds, sources and mode_changed as well, so a rule narrowed to the
+    one shape the probe happened to use satisfied the guard while leaving every
+    other shape to a cheaper rule. Measured: narrowing the authority rule to
+    `change_kinds: ["modify"]` and adding an approved rule for
+    `["delete", "add", "rename"]` loaded clean, and deleting
+    `anti-dark-code/tests/test_route.py` then routed at Level 0. Deleting a
+    router test is the plainest self-grading act there is. See D-078.
+
+    The cross-product is small and the check is cheap next to the fingerprint
+    the same command runs, so the guard enumerates it rather than sampling it.
+    A guard that samples is a guard an adversary aims around.
     """
     demoted: list[str] = []
     for label, path in SELF_GRADING_PATHS:
         entries = _matching_classifications(path, classifier)
         if not entries:
             continue
-        facts = [ChangeFact(path=path, change_kind="modify", source="unstaged",
-                            **entry) for entry in entries]
-        # Union semantics: one fact reaching one force-full rule is enough, and
-        # one fact reaching no rule at all is enough, because that is unrouted.
-        safe = any(
-            fact.confidence == "unknown"
-            or not [rule for rule in rules
-                    if _fact_matches(fact, dict(rule.match))]
-            or any(rule.force_full for rule in rules
-                   if _fact_matches(fact, dict(rule.match)))
-            for fact in facts)
-        if safe:
+        unsafe_shapes: list[tuple[str, str, bool]] = []
+        for change_kind in sorted(CHANGE_KINDS):
+            for source in sorted(CHANGE_SOURCES):
+                for mode_changed in (False, True):
+                    facts = [
+                        ChangeFact(path=path, change_kind=change_kind,
+                                   source=source, mode_changed=mode_changed,
+                                   **entry)
+                        for entry in entries]
+                    # Union semantics: one fact reaching one force-full rule is
+                    # enough, and one fact reaching no rule at all is enough,
+                    # because that is an unrouted fact.
+                    safe = any(
+                        fact.confidence == "unknown"
+                        or not [rule for rule in rules
+                                if _fact_matches(fact, dict(rule.match))]
+                        or any(rule.force_full for rule in rules
+                               if _fact_matches(fact, dict(rule.match)))
+                        for fact in facts)
+                    if not safe:
+                        unsafe_shapes.append(
+                            (change_kind, source, mode_changed))
+        if not unsafe_shapes:
             continue
         seen = sorted({f"{e['surface']}/{e['effect']}" for e in entries})
-        demoted.append(f"{label} ({path}) classified as {' and '.join(seen)}")
+        # Name one failing shape. All of them would bury the answer, and one
+        # concrete "a delete of this path routes cheaply" is what a reader acts
+        # on.
+        kind, source, mode_changed = unsafe_shapes[0]
+        demoted.append(
+            f"{label} ({path}) classified as {' and '.join(seen)}: a "
+            f"{kind} from {source} with mode_changed={str(mode_changed).lower()} "
+            f"takes a route below the full recipe"
+            + (f", and {len(unsafe_shapes) - 1} other shapes do too"
+               if len(unsafe_shapes) > 1 else ""))
     if demoted:
         raise PolicyError(
             "this policy would route a change to what verifies the repository "
@@ -881,6 +916,48 @@ class Route:
             self, "obligations",
             MappingProxyType({k: frozenset(v)
                               for k, v in sorted(self.obligations.items())}))
+
+
+@dataclass(frozen=True)
+class CandidateRoute:
+    """What proposed rules would select, with no execution authority.
+
+    This is deliberately not a Route. A boolean on Route would be one missed
+    condition away from allowing proposed rules to narrow a real gate run.
+    """
+
+    minimum_level: int = 0
+    passes: frozenset[str] = frozenset()
+    obligations: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    matched_rule_ids: frozenset[str] = frozenset()
+    force_full: bool = False
+    considered_rule_ids: frozenset[str] = frozenset()
+    provenance: str = field(init=False, default="candidate-shadow")
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "obligations",
+            MappingProxyType({k: frozenset(v)
+                              for k, v in sorted(self.obligations.items())}))
+
+    def selected_gate_ids(self) -> tuple[str, ...]:
+        return tuple(sorted({gate for gates in self.obligations.values()
+                             for gate in gates}))
+
+    def as_payload(self) -> dict[str, Any]:
+        return {
+            "provenance": self.provenance,
+            "minimum_level": self.minimum_level,
+            "selected_passes": sorted(self.passes),
+            "capability_to_gate_ids": {
+                capability: sorted(gates)
+                for capability, gates in sorted(self.obligations.items())
+            },
+            "selected_gate_ids": list(self.selected_gate_ids()),
+            "matched_rule_ids": sorted(self.matched_rule_ids),
+            "force_full": self.force_full,
+            "considered_rule_ids": sorted(self.considered_rule_ids),
+        }
 
 
 # Rule match keys. Positive predicates only: a rule may not depend on the
@@ -1020,6 +1097,61 @@ def build_route(
         unknowns=frozenset(unknowns),
     )
     return apply_hints(route, hints, policy) if hints else route
+
+
+def build_candidate_route(
+    facts: Sequence[ChangeFact],
+    policy: ValidatedPolicy,
+    snapshot_ok: bool = True,
+) -> CandidateRoute | None:
+    """Evaluate approved and proposed rules for shadow comparison only."""
+    if not isinstance(policy, ValidatedPolicy) or not _is_validated(policy):
+        raise TypeError(
+            "build_candidate_route requires the exact ValidatedPolicy returned "
+            "by load_policy")
+    if not snapshot_ok:
+        # What a candidate would skip is not measurable when the change set is
+        # incomplete. Returning a forced-full Candidate would turn "unknown"
+        # into a comparable route class and overstate the evidence.
+        return None
+
+    level = 0
+    passes: set[str] = set()
+    obligations: dict[str, set[str]] = {}
+    matched: set[str] = set()
+    force_full = False
+    considered = {rule.id for rule in policy.rules if not rule.approved}
+
+    for fact in facts:
+        if fact.confidence == "unknown":
+            force_full = True
+        fired = False
+        for rule in policy.rules:
+            if not _fact_matches(fact, rule.match_map()):
+                continue
+            fired = True
+            matched.add(rule.id)
+            level = max(level, rule.minimum_level)
+            passes.update(rule.passes)
+            force_full = force_full or rule.force_full
+            _union_obligations(obligations, rule.obligation_map())
+        if not fired:
+            force_full = True
+
+    if force_full:
+        recipe = policy.full_recipe
+        level = max(level, recipe.minimum_level)
+        passes.update(recipe.passes)
+        _union_obligations(obligations, recipe.obligation_map())
+
+    return CandidateRoute(
+        minimum_level=level,
+        passes=frozenset(passes),
+        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},
+        matched_rule_ids=frozenset(matched),
+        force_full=force_full,
+        considered_rule_ids=frozenset(considered),
+    )
 
 
 # Fields a hint may write. The rest record what the router observed, and a

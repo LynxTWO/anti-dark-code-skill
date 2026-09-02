@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** Q-05 is proven against a real blobless clone served by a loopback Git daemon (D-060), and Linux mutation replay is required in CI (D-058). M3 is implemented and its four partial requirements are closed: D-071 makes the classifier state this skill's own verification authority and refuses a policy that grades it lower, and D-072 refuses a tree containing a submodule rather than binding state it cannot follow. M4 has not started; its plan is repaired but its implementation is a separate round.
+**Current gate:** M4 is implemented in round twelve. The slice remains shadow-only: no candidate route or receipt can skip a gate, and the human walkthrough remains.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
@@ -84,7 +84,7 @@ DECISION: Interface style. Status Confirmed. See D-002.
 3. The pure collector validates every closed enum, uses case-sensitive Git-path globs on every platform, and preserves literal path characters. It emits facts across six dimensions: surface, effect, breadth, sensitivity, change kind, confidence. Rename and copy records classify both the old and new path. An unmerged, unsupported, or undecodable record forces the full route and names the record.
 4. Each rule matches one fact using positive predicates only. Matching requirements combine monotonically. A rule may not depend on the absence, count, or ordering of other facts.
 5. A receipt is written, bound to identity hashes.
-6. The gate runner verifies receipt freshness immediately before each gate starts and again after it exits. A concurrent change makes that execution stale and unusable as evidence.
+6. The gate runner reads and verifies one receipt object, carries that exact binding identity forward, compares it with the repository immediately before every gate starts, and checks again after the gate exits. A replacement receipt or concurrent repository change cannot become the accepted baseline; it makes the execution stale and unusable as evidence.
 7. The shadow comparator runs the full set anyway and records any gate that failed while the route said it was unnecessary.
 
 - **Trigger points:** the agent before implementation for a provisional route, the agent after implementation for the final route, and CI on a pull request.
@@ -200,9 +200,11 @@ Existing GitHub Actions. Status Confirmed.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 is complete. M3 is implemented, with D-070's four partial requirements closed by D-071 and D-072. M4 is not started; Tasks 10 through 12 are repaired and R-013, R-018, and R-022 remain unbuilt.
+- **Current slice:** SLICE-001, read-only shadow routing. M2, M3, and M4 are implemented; the human walkthrough still gates slice completion.
 - **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
-- **Modules not built:** the M4 shadow comparator and gate runner binding. Nothing can skip a gate.
+- **Modules built in M4:** routed level enforcement, canonical force-full gate selection, receipt preflight, per-gate freshness binding, the type-separated `CandidateRoute`, and the real-outcome shadow comparator.
+- **Execution authority:** one verified in-memory context carries the route payload, validated policy, gate configuration, run id, and repository identity from preflight through gate launch. See D-075 and D-076.
+- **Modules not built:** selective local or CI execution. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.
 
 ---

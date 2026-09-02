@@ -1,10 +1,6 @@
 {
   "schema_version": 2,
-  "untraced": [
-    "R-013",
-    "R-018",
-    "R-022"
-  ],
+  "untraced": [],
   "requirements": {
     "R-001": {
       "tests": [
@@ -31,10 +27,13 @@
       "tests": [
         "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_one_source_is_refused",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_the_probe_shape_is_refused",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_unmapped_self_grading_path_is_not_a_load_failure",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
       ]
     },
@@ -82,7 +81,13 @@
         "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_obligation_naming_a_disabled_gate_is_rejected"
       ]
     },
-    "R-013": {},
+    "R-013": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_level_may_raise_the_route_minimum",
+        "anti-dark-code/tests/test_route_cli.py::RouteLevelCliTests::test_a_level_above_the_route_minimum_is_accepted",
+        "anti-dark-code/tests/test_route_cli.py::RouteLevelCliTests::test_a_level_below_the_route_minimum_exits_two_and_names_it"
+      ]
+    },
     "R-014": {
       "tests": [
         "anti-dark-code/tests/test_route.py::AcquisitionTests::test_skill_tree_paths_are_not_filtered_out"
@@ -115,7 +120,21 @@
         "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_the_identity_alone_still_cannot_see_the_submodule_move"
       ]
     },
-    "R-018": {},
+    "R-018": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_change_after_preflight_refuses_before_gate_launch",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_changes_nothing_is_not_marked_stale",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_restores_what_it_changed_is_still_stale",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_mutation_during_a_gate_marks_that_gate_stale",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_stale_gate_result_cannot_satisfy_an_obligation",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_an_empty_obligation_map_is_not_covered",
+        "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_the_run_stops_when_the_tree_moves_even_with_keep_going",
+        "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_a_process_change_after_preflight_refuses_before_launch",
+        "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_a_stale_receipt_refuses_the_run_with_exit_two",
+        "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_verified_gate_configuration_is_not_reread_before_execution",
+        "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_verified_policy_is_not_reloaded_for_candidate_reconstruction"
+      ]
+    },
     "R-019": {
       "tests": [
         "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_repository_mid_merge_still_acquires",
@@ -141,14 +160,21 @@
       "tests": [
         "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_one_source_is_refused",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_the_probe_shape_is_refused",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_unmapped_self_grading_path_is_not_a_load_failure",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
       ]
     },
-    "R-022": {},
+    "R-022": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs"
+      ]
+    },
     "R-023": {
       "tests": [
         "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id",

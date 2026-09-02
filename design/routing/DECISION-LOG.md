@@ -1813,7 +1813,7 @@ Pytest changes its terminal-summary grammar, another suite runner is supported, 
 ## D-069: M4 is blocked by its plan, not by D-061
 
 Date: 2026-08-30
-Status: Open
+Status: Resolved
 Area: M4, R-013, R-018, R-022, D-064
 
 Context:
@@ -1830,8 +1830,11 @@ Implementing the snippets as written would produce a comparator that records no 
 Consequences:
 M4 remains not started. No selective execution is enabled, no policy rule is approved, and no gate-runner behavior changes in round ten.
 
+Resolution in round twelve:
+The reviewed Tasks 10 through 12 named the missing seams, and M4 implemented them in order. R-013, R-022, and R-018 now have exact collected runner evidence; a separate `CandidateRoute` evaluates proposed rules but is refused by both receipt authority and executable gate selection; real gate outcomes feed `shadow.json`. No policy rule was approved and no selective execution was enabled.
+
 Revisit when:
-`design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md` contains a reviewed replacement for the M4 interfaces and tests, with the D-069 contradictions resolved.
+Reopen if a future M4 consumer reconnects candidate data to receipt authority or executable selection, or stops binding comparison to real gate outcomes.
 
 ## D-070: Node-id reachability is necessary and not sufficient evidence
 
@@ -1934,3 +1937,195 @@ A repository containing a submodule cannot use routing receipts and always takes
 
 Revisit when:
 Submodule state is bound for real, with a fixture per Git behavior the claim depends on, or a repository that installs this skill needs receipts over a tree containing one.
+
+## D-073: An unreadable repository fingerprint refuses the binding provisionally
+
+Date: 2026-08-30
+Status: Provisional
+Area: M4, R-017, R-018, `_repo_fingerprint`
+
+Context:
+`_repo_fingerprint` returns `("unreadable",)` when either `git ls-files` call fails. `worktree_identity` and `_identity_and_unsupported` previously unpacked that one-item sentinel into two names, leaking a `ValueError` traceback at exactly the boundary where a clean refusal matters.
+
+Three narrow alternatives remain owner-reviewable: (1) raise a typed `ReceiptError` and refuse to construct or verify a binding; (2) return an identity that can never match, making every receipt over the failed read stale; or (3) treat the read as an incomplete snapshot, force the full recipe, and refuse a receipt in the same shape as D-072.
+
+Decision:
+Implement alternative 1 provisionally. `_identity_and_unsupported` recognizes the sentinel and raises `ReceiptError`; the route writer, route verifier, and routed gate preflight catch that type, print `REFUSED`, and return 2. No digest is minted for a failed read.
+
+Because:
+Two unrelated acquisition failures must not compare as one identity, and the receipt layer cannot honestly turn a mid-read Git failure into a complete snapshot. The typed refusal is the narrowest change that closes the crash without inventing authority or weakening M4.
+
+Consequences:
+Binding construction and verification fail closed with a named error instead of a traceback. This is provisional implementation evidence, not owner approval of the long-term unreadable-state model; round thirteen may replace it with alternative 2 or 3 while preserving clean refusal.
+
+Revisit when:
+The owner selects the durable unreadable-fingerprint semantics in round thirteen, or another fingerprint sentinel is introduced.
+
+## D-074: Candidate routes are a separate shadow-only type
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M4, D-064, D-069, receipt authority, gate selection
+
+Context:
+D-064 keeps shipped rules proposed, so the authoritative route runs the canonical set and cannot reveal what those rules would have omitted. Measuring proposed rules therefore needs a second representation, but letting that representation share the authoritative `Route` type would make one forgotten condition sufficient to narrow execution. While connecting the comparator, a second authority gap became visible: receipt freshness compared the binding without recomputing the authoritative `run_id`, so edited route fields could still be reported fresh.
+
+Decision:
+`CandidateRoute` is a distinct immutable type with constant `candidate-shadow` provenance. It evaluates approved and proposed rules, returns no candidate for an incomplete snapshot, and serializes only into `shadow.json`. The receipt writer and executable selector reject it by type. The comparator consumes the actual gate summary, uses the closed outcome vocabulary `pass`, `fail`, `config-error`, `stale`, `not-run`, and `skipped`, and treats every non-pass omission as a miss only when every candidate-selected gate passed.
+
+`verify_receipt` also recomputes `run_id` after the foreign-schema guard and refuses a same-schema authoritative payload whose digest does not match. Candidate reconstruction therefore starts from a fresh, internally consistent receipt.
+
+Because:
+Shadow evidence must be able to describe a cheaper hypothetical route without ever becoming permission to run one. A separate type makes that boundary structural, and comparing against real gate outcomes makes the record evidence rather than a disconnected forecast.
+
+Consequences:
+Every routed executable run remains authoritative and, under the shipped proposed-only policy, canonical-full. Its run directory may also contain `shadow.json`, which records both authoritative and candidate gate ids, every real outcome, missed omissions, and the candidate route class. M4 is implemented without approving a rule or enabling selective execution.
+
+Revisit when:
+The owner reviews accumulated shadow records for a rule, or any consumer proposes accepting candidate data at an authority boundary.
+
+## D-075: Gate execution consumes one verified receipt and its exact identity
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M4, R-018, receipt authority, gate execution
+
+Context:
+The round-twelve independent review found two races after the first M4 implementation. Receipt preflight verified the repository, but `run_gates` treated the identity immediately before `Popen` as a new baseline and compared only the post-gate identity with it. A repository change after preflight but before launch could therefore be accepted. The command also read and verified the receipt, then read the path twice more for route selection and candidate reconstruction, so replacement between reads could feed unverified bytes to execution and shadow evidence.
+
+The runner itself exposed the first boundary while it was repaired. `current_source_identity` used ordinary `git status`, which refreshed index metadata after receipt verification and changed the repository fingerprint even though no source byte moved.
+
+Decision:
+Complete stable run-artifact setup before receipt creation and before executable preflight. Read receipt JSON once, validate every required object layer, verify that exact object, and freeze its authoritative payload. Route selection and candidate reconstruction consume only that immutable verified object; replacement of the receipt path afterward has no authority.
+
+Carry the verified receipt's worktree identity and `run_id` into `run_gates` and its summary. Immediately before every `Popen`, compare a fresh identity with the verified identity; a mismatch records `stale` in phase `before-launch`, starts no subprocess, and returns 2. The existing post-gate comparison remains and records phase `during-gate`. Gate-planning Git diagnostics use `--no-optional-locks` so the runner does not refresh the index after preflight.
+
+Candidate provenance is refused in both live-object and serialized-mapping form. Malformed receipt JSON, including a non-object root or binding, refuses with exit 2 rather than reaching mapping access and a traceback.
+
+Because:
+Freshness is authority over exact bytes, not permission to choose a later baseline. Verification is meaningful only when every authority consumer uses the same object that was checked and every gate starts against the same repository identity that object bound.
+
+Consequences:
+The process-level seam tests mutate the repository and replace the receipt immediately after verification; neither reaches execution authority. M75 through M82 hold the preflight identity comparison, single-read receipt consumption for both route and candidate data, serialized candidate refusals, receipt shape and exit-code refusals, and the read-only Git diagnostic.
+
+Revisit when:
+The gate runner moves receipt verification into another process, or execution is redesigned around an operating-system snapshot that makes the preflight-to-launch boundary atomic.
+
+## D-076: Verified execution authority is a closed in-memory context
+
+Date: 2026-08-30
+Status: Confirmed
+Area: M4, R-018, policy authority, gate configuration
+
+Context:
+A second independent review found two more path-replacement seams. Receipt preflight validated `gates.json`, but `run_gates` read that path again to choose commands. Candidate reconstruction likewise reloaded `routing-policy.json` after verification. An attacker able to swap and restore either path between those reads could supply unverified execution or shadow inputs while leaving the pre-launch repository identity unchanged. The review also found that the first `route --write` acquired change facts before creating the stable run-store ignore file, then bound the later state.
+
+Decision:
+The verified receipt context carries the frozen authoritative payload, validated policy object, canonical gate-configuration bytes, verified worktree identity, and verified run id. Routed gate selection and execution parse only those carried gate bytes. Candidate reconstruction consumes only the carried validated policy. Neither authority consumer reloads a calibration path after verification.
+
+Create the stable run-store ignore file before change acquisition on a write. This makes the added path part of both emitted facts and repository identity during a first write. A syntactically valid policy or gate document with a non-object root refuses with exit 2 before schema access.
+
+Because:
+Preflight protects a set of inputs, not just a receipt file. Every decision made after it must consume the same policy, gate configuration, route payload, and repository state that preflight accepted.
+
+Consequences:
+Process-level swap-and-restore tests prove that later policy or gate bytes cannot authorize execution. M83 through M87 hold the gate snapshot, policy snapshot, first-write acquisition order, and clean root-shape refusals. A first receipt written in a repository without the run-store ignore may route more conservatively because that setup path is now visible to acquisition.
+
+Revisit when:
+Execution authority moves to a separate process with an authenticated, serialized preflight context.
+## D-077: A gate lifecycle and a receipt binding ask different questions
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M4, R-018, D-063, D-075
+
+Context:
+Round twelve implemented R-018 by capturing repository identity immediately before and immediately after each real gate subprocess, and closed the requirement with ten collected nodes and an empty `untraced` list.
+
+Both captures used `worktree_identity`, which keeps each entry's path and its content-and-topology field and deliberately drops size and mtime. D-063 is right about why: a receipt binds what a route depended on, a route does not depend on a timestamp, and a receipt that goes stale after its bytes are restored trains a reader to ignore staleness.
+
+R-018 asks a different question. Its clause is "when an input changes after preflight **or during a gate**, then that gate result is marked stale". A gate that rewrites a tracked file, uses the changed value, and restores the original bytes satisfies that antecedent exactly, and leaves the bound identity equal at both ends.
+
+Measured against the real runner, not argued: a gate whose command wrote `during` to a tracked file, read it back, and then restored the original passed cleanly with exit 0, no stale row, and `outcomes` recording `pass`. Its own redacted log recorded `gate observed during`. The gate's result depended on content that was not in the tree when the run ended, which is the evidence R-018 exists to reject.
+
+Decision:
+The gate lifecycle gets its own identity. `lifecycle_identity` digests the same entries as the binding, with the same run-store exclusion, and keeps size and mtime. `run_gates` captures both before and after each gate and marks the gate `stale` when **either** moves.
+
+The stale row records both pairs plus `restored_during_gate`, so a reader can tell a change that survived the gate from one the gate put back. What a receipt binds is unchanged: `worktree_identity`, `collect_binding`, and `verify_receipt` keep D-063 semantics exactly.
+
+Because:
+The two questions are genuinely different and had been answered with one value. "Is this the tree the receipt bound" must ignore timestamps. "Did anything touch the tree while this gate ran" must not.
+
+Deriving both from the one fingerprint pass the runner already performs keeps the cost where it was and avoids a second implementation of the rule.
+
+Consequences:
+A gate that rewrites a tracked file with identical bytes, or otherwise moves an mtime inside the repository, is now `stale` rather than `pass`. That is stricter, and it is intended: a gate that writes into the tree it is verifying is exactly the case R-018 names. Ignored paths and the run store are out of scope, so a gate's own logs and generated artifacts do not stale it, and the counterexample test holds that.
+
+If that strictness proves wrong for a real gate, the fix is to make that gate not write into the worktree, not to widen what counts as unchanged.
+
+The residual is a caller that restores the timestamp along with the bytes. That is a deliberate act rather than an ordinary gate. It is recorded here rather than claimed as covered, and U-016 carries it.
+
+R-018's registered clause is unchanged, because the requirement always said this. It was the implementation that was narrower than the clause, and round twelve's empty `untraced` list asserted a coverage that one measurement disproved.
+
+Revisit when:
+A real gate needs to write into the worktree it verifies, or the residual timestamp-restoring case stops being theoretical.
+## D-078: The self-grading guard enumerates shapes instead of sampling one
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071
+
+Context:
+This is the third correction to the same guard, and the pattern is worth naming: each version checked something adjacent to the property rather than the property, and each survived its own tests until someone attacked it.
+
+1. The first version checked whether the classifier graded a path as authority. Wrong, because `build_route` sets `fired` on any match, so a cheap approved rule matching `effects: ["verification-authority"]` suppressed the unrouted fallback. Ten of eleven classes fell below the full recipe with the classifier untouched.
+2. The second version checked the routing outcome, but built one fact per classification with `change_kind` "modify" and `source` "unstaged".
+
+`_MATCH_KEYS` lets a rule key on `change_kinds`, `sources`, and `mode_changed`. A rule narrowed to the one shape the probe used therefore satisfied the guard while leaving every other shape to a cheaper rule.
+
+Measured: narrowing the shipped `verification-authority` rule to `change_kinds: ["modify"]` and adding an approved rule matching `["delete", "add", "rename"]` at `minimum_level: 0` loaded clean, and **deleting `anti-dark-code/tests/test_route.py` then routed at Level 0**. Ten of the eleven classes were reachable that way. Deleting a router test is the plainest self-grading act there is.
+
+Decision:
+The guard enumerates the cross-product of every dimension a rule can key on: all nine change kinds, all four sources, and both mode-changed values, for each classification of each self-grading path. A policy is refused unless every shape leaves `force_full` true.
+
+The refusal names one concrete failing shape and counts the rest, because "a delete of this path routes cheaply" is what a reader acts on and a list of sixty-four is not.
+
+Because:
+A guard that samples is a guard an adversary aims around, and twice now the aim did not even need to be deliberate: a plausible narrowing of a rule was enough. The cross-product is 72 shapes per classification, against a load cost previously measured at 0.000205 seconds and a fingerprint at 0.148 seconds in the same command. Enumerating is affordable; sampling was never the cheaper option, only the shorter one.
+
+Consequences:
+A policy that narrows an authority rule by change kind, source, or mode flag is refused at load unless another rule still forces full for the shapes it gave up. The shipped template is unaffected: its `verification-authority` rule keys on effect alone and therefore matches every shape.
+
+M90 holds the enumeration against reversion to sampling.
+
+The lesson generalizes beyond this guard. Three times the check was written against the shape of the current attack rather than the shape of the guarantee. `test_every_shape_of_a_self_grading_change_forces_full` now asserts the guarantee directly, over the real policy, so a future narrowing has to move that test rather than slip past a probe.
+
+Revisit when:
+`_MATCH_KEYS` gains a dimension. The enumeration must gain it in the same change, and a test should fail if it does not.
+
+## D-079: N-08 was a test that proved nothing, cited as evidence
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, R-054, N-08
+
+Context:
+N-08 was raised in the round-six adversarial review and never addressed. No fix commit, no decision, no verdict in eight subsequent rounds, and it reproduced verbatim at `b9b1e71`.
+
+`test_a_globally_configured_filter_is_also_neutralized` called `_install_filter`, which runs `git config` with no `--global`, writing the local repository config. The "global" test was therefore mechanically identical to the local one directly above it. Nothing in the file set `GIT_CONFIG_GLOBAL`.
+
+`requirement-evidence.json` cited that test as evidence for R-054, whose clause is "given global filters ... no program starts". The evidence resolved, collected, and passed, and did not exercise the clause.
+
+Decision:
+The test declares the driver in an isolated global config file, sets `GIT_CONFIG_GLOBAL` for the acquisition call so the router's own git subprocesses inherit it, and asserts its own fixture before trusting its result: the driver must be visible through effective config and absent from local config.
+
+Because:
+Without the fixture assertion the test passes whether or not the global config is in effect, which is exactly how it survived eight rounds. A test that cannot fail for the reason it exists is not evidence, and one cited in a traceability map is worse than none, because it consumes the attention that would have found the gap.
+
+Consequences:
+`_filter_overrides` is unchanged: it already discovers drivers through effective configuration, so the guarantee held all along. What was missing was any proof of it. M91 mutates discovery to `--local` and is caught, which is the evidence R-054 always claimed.
+
+This is the second time a test in this repository was found to be present, collected, and inert. `a4949a8` records the first. The suite-reachability guards added in round ten catch a test that never runs; neither they nor the traceability map can catch a test that runs and asserts the wrong thing.
+
+Revisit when:
+Another cited test is suspected of the same. The check is cheap: mutate the production behaviour it claims to hold and see whether it fails.
