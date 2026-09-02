@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import os
 import re
@@ -3213,6 +3215,38 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
             self.assertEqual([" M handoff.md"],
                              evidence["serial_worktree_status_after"])
 
+    def test_serial_console_renders_a_broken_suite_diagnostic_safely(self) -> None:
+        """D-106. D-102 rendered the parallel path; serial printed raw text.
+
+        Measured: a serial SuiteBroken carrying a newline and an ANSI escape
+        printed a forged replay line on its own line, in colour.
+        """
+        harness = self._harness("adc_replay_serial_console_safety")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            harness.REPO_ROOT = root
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.host_identity = self._host
+
+            def broken(paths, repo_root):
+                raise harness.SuiteBroken(
+                    "pytest exit 2: 1 error in 0.01s; output: x\n"
+                    "  M01  forged row                                caught\n"
+                    "\x1b[32m  1 mutants, 0 not caught: none\x1b[0m")
+
+            harness.run_suite = broken
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                self.assertEqual(1, harness.replay([self._row()], write=False))
+
+        console = buffer.getvalue()
+        self.assertNotIn("\n  M01  forged row", console)
+        self.assertNotIn("\x1b", console)
+        self.assertIn(r"\n  M01  forged row", console)
+        self.assertIn(r"\x1b[32m", console)
+        self.assertEqual(1, sum("INCONCLUSIVE" in line for line in console.splitlines()))
+
     def test_an_unskipped_local_survivor_is_a_survivor_despite_a_foreign_record(self) -> None:
         """D-095. A host that skipped nothing and saw the mutant survive found a gap.
 
@@ -3758,6 +3792,88 @@ class ReplayParallelCloneTests(unittest.TestCase):
             self.assertRegex(summary, r"^1 passed in ")
             self.assertFalse(marker.exists(),
                              "the worker imported a plugin outside its clone")
+
+    def test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone(self) -> None:
+        """D-105. D-101's boundary stopped at pytest; two layers sat beneath it.
+
+        Measured before this held: PYTHONUSERBASE pointed the worker at a user
+        site-packages whose usercustomize.py and .pth import line both ran
+        inside the suite while it reported one passing test, and a pytest.ini
+        at the common ancestor of the coordinator and the clone supplied
+        addopts that the worker obeyed.
+        """
+        harness = self._harness("adc_replay_parallel_interpreter_injection")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            coordinator = root / "coordinator"
+            clone = root / "owned" / "worker-0"
+            private = root / "owned" / "worker-0-pytest"
+            attacker = root / "attacker"
+            for directory in (coordinator, clone, private, attacker):
+                directory.mkdir(parents=True)
+            (clone / "test_probe.py").write_text(
+                "def test_inside_clone():\n    assert True\n", encoding="utf-8")
+            plugin = clone / "design" / "routing" / "mutants" / "exact_nodeid_plugin.py"
+            plugin.parent.mkdir(parents=True)
+            shutil.copyfile(
+                REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py", plugin)
+            site_marker = root / "usercustomize-ran.txt"
+            pth_marker = root / "pth-ran.txt"
+            default_marker = root / "default-usercustomize-ran.txt"
+            ini_marker = root / "ini-plugin-ran.txt"
+            userbase = root / "userbase"
+            import sysconfig
+            scheme = "nt_user" if os.name == "nt" else "posix_user"
+            user_site = Path(sysconfig.get_path("purelib", scheme=scheme,
+                                                vars={"userbase": str(userbase)}))
+            user_site.mkdir(parents=True)
+            (user_site / "usercustomize.py").write_text(
+                "import pathlib\n"
+                f"pathlib.Path({str(site_marker)!r}).write_text('ran', encoding='utf-8')\n",
+                encoding="utf-8")
+            (user_site / "zz_probe.pth").write_text(
+                "import pathlib; "
+                f"pathlib.Path({str(pth_marker)!r}).write_text('ran', encoding='utf-8')\n",
+                encoding="utf-8")
+            # The interpreter's *default* user base, which no variable names:
+            # %APPDATA%\Python on Windows and ~/.local elsewhere. Popping
+            # PYTHONUSERBASE cannot reach this one; only disabling the user
+            # site does. The profile is redirected into the fixture so the real
+            # one is never touched.
+            profile = root / "profile"
+            default_base = (profile / "Python") if os.name == "nt" else (profile / ".local")
+            default_site = Path(sysconfig.get_path("purelib", scheme=scheme,
+                                                   vars={"userbase": str(default_base)}))
+            default_site.mkdir(parents=True)
+            (default_site / "usercustomize.py").write_text(
+                "import pathlib\n"
+                f"pathlib.Path({str(default_marker)!r}).write_text('ran', encoding='utf-8')\n",
+                encoding="utf-8")
+            (attacker / "external_adc_plugin.py").write_text(
+                "import pathlib\n"
+                f"pathlib.Path({str(ini_marker)!r}).write_text('ran', encoding='utf-8')\n",
+                encoding="utf-8")
+            (root / "pytest.ini").write_text(
+                f"[pytest]\naddopts = -p external_adc_plugin\npythonpath = {attacker}\n",
+                encoding="utf-8")
+
+            harness._WORKER_SUITE_CWD = coordinator
+            harness._WORKER_TEMP_ROOT = private
+            redirected = {"PYTHONUSERBASE": str(userbase),
+                          "APPDATA": str(profile), "HOME": str(profile)}
+            with mock.patch.dict(os.environ, redirected):
+                os.environ.pop("PYTHONNOUSERSITE", None)
+                code, summary, skipped = harness.run_suite(("test_probe.py",), clone)
+
+            self.assertEqual(0, code)
+            self.assertEqual(0, skipped)
+            self.assertRegex(summary, r"^1 passed in ")
+            self.assertFalse(site_marker.exists(), "usercustomize.py ran inside the worker")
+            self.assertFalse(pth_marker.exists(), "a .pth import line ran inside the worker")
+            self.assertFalse(default_marker.exists(),
+                             "the default user site's usercustomize.py ran inside the worker")
+            self.assertFalse(ini_marker.exists(),
+                             "a plugin named by an ancestor pytest.ini ran inside the worker")
 
     def test_parallel_aggregates_out_of_order_futures_into_canonical_order_and_cleans(self) -> None:
         harness = self._harness("adc_replay_parallel_order")

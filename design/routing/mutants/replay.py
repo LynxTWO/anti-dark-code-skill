@@ -217,7 +217,17 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> SuiteOutcome:
     for name in ("PYTEST_ADDOPTS", "PYTEST_PLUGINS", "PYTEST_DEBUG",
                  "PYTHONPATH"):
         environment.pop(name, None)
+    for name in ("PYTHONUSERBASE", "PYTHONSTARTUP", "PYTHONHOME",
+                 "PYTHONEXECUTABLE", "PYTHONINSPECT"):
+        environment.pop(name, None)
+    # The interpreter runs site initialization before pytest reads one option.
+    # Measured after D-101: a caller's PYTHONUSERBASE pointed the worker at a
+    # user site-packages whose usercustomize.py and .pth import line both ran
+    # inside the suite while it reported "1 passed". No user site at all is
+    # the only boundary that does not depend on which files exist there.
+    # See D-105.
     environment.update({"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+                        "PYTHONNOUSERSITE": "1",
                         "PYTHONSAFEPATH": "1",
                         "PYTHONPATH": str(repo_root)})
     if _WORKER_TEMP_ROOT is not None:
@@ -226,8 +236,25 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> SuiteOutcome:
         environment.update({"TMP": str(_WORKER_TEMP_ROOT),
                             "TEMP": str(_WORKER_TEMP_ROOT),
                             "TMPDIR": str(_WORKER_TEMP_ROOT)})
+    if _WORKER_SUITE_CWD is None:
+        # Serial replay runs from the repository root with relative paths, so
+        # its rootdir was already the root by inference. It is pinned here so
+        # the configuration pin below cannot move it, and node ids keep the
+        # same rootdir-relative spelling on every host and in both modes.
+        command.append("--rootdir=" + str(repo_root))
     with tempfile.TemporaryDirectory(
             prefix="adc-pytest-outcomes-", dir=_WORKER_TEMP_ROOT) as raw_outcomes:
+        # pytest searches for pytest.ini, tox.ini, setup.cfg and pyproject.toml
+        # from the common ancestor of the invocation directory and the
+        # arguments upward, and a rootdir does not stop that search. For a
+        # worker that ancestor is the host temp directory; for serial replay
+        # it is every parent of the repository. Measured after D-101: an
+        # ancestor pytest.ini's addopts reached the worker and turned its row
+        # inconclusive. An empty configuration file owned by this run ends the
+        # search. See D-105.
+        pinned_config = Path(raw_outcomes) / "pytest.ini"
+        pinned_config.write_text("[pytest]\n", encoding="utf-8")
+        command.extend(["-c", str(pinned_config)])
         outcome_target = Path(raw_outcomes) / "outcomes.json"
         environment["ADC_EVIDENCE_OUTCOMES"] = str(outcome_target)
         done = subprocess.run(command, cwd=execution_cwd, env=environment,
@@ -995,8 +1022,13 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
                   f"{row['superseded_by']}")
             continue
         if result["status"] != "completed":
+            # D-102 rendered worker diagnostics on the parallel path only.
+            # Measured: a serial SuiteBroken carrying a newline and an ANSI
+            # escape printed a forged replay line on the console. The JSON
+            # report keeps the raw text; the console gets one bounded,
+            # terminal-safe line in both modes. See D-106.
             print(f"  {row['id']}  {row['name']:42} {result['verdict']}: "
-                  f"{result.get('error', 'no row evidence')}")
+                  f"{_terminal_safe_diagnostic(result.get('error', 'no row evidence'))}")
             survivors.append(row["id"])
             continue
         verdict = result["verdict"]

@@ -55,3 +55,52 @@ order, or the empty `untraced` list.
 No risk moved up or down. This review did not touch an approval-gated area and
 does not authorize a routing-policy rule. SLICE-001 remains open for owner
 acceptance.
+
+# Adversarial review: round nineteen
+
+Date: 2026-09-02
+
+## Area reviewed
+
+This pass challenged R-011, that agent hints may raise but never lower
+requirements. R-021, R-032, and R-053 were excluded because rounds seventeen
+and eighteen touched their evidence.
+
+The review followed `apply_hints` and its mapped tests in `HintTests`, and
+checked that `assert_route_not_lower` derives its field list from the `Route`
+dataclass rather than naming fields.
+
+## Direct challenge
+
+Twenty-eight hostile hint documents ran through the real `apply_hints` against
+eight real routes: four paths (a README, the router module, a site page, and an
+unmapped binary) under the shipped policy and under the same policy with every
+rule approved in memory. The hints included lowered and out-of-range levels,
+boolean and string level values, false and non-boolean flags, empty and
+string-typed pass lists, unknown passes, empty obligations, obligations pairing
+a capability with a gate no reviewed rule binds, unknown capabilities, and
+attempts to write `matched_rule_ids`, `unknowns`, `unmapped_paths`, and
+`considered_rule_ids`.
+
+For every route: 19 hints were refused with `HintError`, 9 were accepted, and
+no accepted hint lowered any `Route` field or changed `matched_rule_ids`. The
+accepted hints were additive or no-ops: a pass already present, an obligation
+already bound by the full recipe, `force_full` already true.
+
+A non-object hint document (a list, an integer, or `None`) raises `TypeError`
+rather than `HintError`. No command-line path constructs hints, so the call is
+reachable only from code; it is recorded here as a robustness note, not a
+routing defect.
+
+## Coverage verdict
+
+R-011 is upheld. The live code refuses every lowering hint by type and value,
+the field comparison is derived from the dataclass, and the two-policy probe
+found no accepted hint that narrowed a route. This pass did not change
+requirement confidence, slice order, or the empty `untraced` list.
+
+## Risks and protected areas
+
+No risk moved up or down. This review did not touch an approval-gated area and
+does not authorize a routing-policy rule. SLICE-001 remains open for owner
+acceptance.
