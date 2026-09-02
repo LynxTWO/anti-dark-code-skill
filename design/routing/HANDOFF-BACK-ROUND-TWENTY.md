@@ -109,6 +109,28 @@ Windows 11, Python 3.14.2, Git 2.50.1 for the Windows runs, each in a fresh `cor
 - CI on PR #30 at `0ace58f`: run `33671714111`, all nine jobs on the first attempt, mutation replay 11m33s, macOS 45 s.
 - The owner walkthrough at the documentation head, and that head's exact CI run, are recorded in section 4a by the receipt commit that follows it.
 
+## 4a. Receipt at the documentation head
+
+The documentation head is `3943b08`. Required run [`33682651235`](https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/33682651235) at exactly that commit passed every job on its first attempt; the mutation job ran 11m13s and ended `114 mutants, 0 not caught: none`.
+
+| Job | Result | Duration |
+| --- | --- | ---: |
+| Ubuntu / Python 3.12 | success | 34s |
+| Ubuntu / Python 3.13 | success | 38s |
+| Windows / Python 3.12 | success | 1m35s |
+| macOS / Python 3.12 | success | 37s |
+| Hostile environment (C locale) | success | 34s |
+| Hostile environment (international paths) | success | 36s |
+| Clean distribution archive | success | 6s |
+| Mutation replay (Linux) | success | 11m13s |
+| Aggregate `Tests` | success | 2s |
+
+The owner walkthrough was run as written, in PowerShell, on a fresh default clone, `core.autocrlf=true`, detached at `3943b08`. Every stated expectation held: the six proposed rules; `False` and `[]`; `3 passed`; the `ROUTE` line with `level=3`, `passes=07,10,11,14`, the five gates, `force_full=true`, `complete=true`, and `rules=-`; `FRESH`, then `STALE` with `ADC-STALE-004 worktree_identity`, then `FRESH`; `503 passed, 14 skipped, 67 subtests passed`; `VALID (universal): 0 errors, 1 warning(s)`; `rows 114 | active 108 | recorded on both hosts 108` with nothing awaiting; the Round Sixteen, Seventeen, Eighteen, Nineteen, and Twenty artifact checks, `True` for every blob comparison; every required PR check `pass`, the mutation job having been pending during the run and re-checked once it passed; D-080 and section 9 printed; thirty-three decision sections in step 5. The run store was the only untracked path afterwards.
+
+The first run of this walkthrough, on a fresh default clone at `5843737`, matched everything except the Round Nineteen artifact check, which printed `False` because it hashed `HEAD`; section 5 records the correction, and `3943b08` is the head that carries it. Run `33681946215` at `5843737` also passed every job.
+
+This receipt commit follows `3943b08` and therefore triggers one more exact-head run. Embedding that run here would move the head again; its receipt belongs on PR #30.
+
 ## 5. Round twenty's own defects
 
 - The renderer widening was first cited as "D-106 as amended" in a test docstring, a code comment, and the M113 row before D-115 existed; the log's convention is a new decision that amends the old one, so it became D-115 and the three citations were retargeted before the commit.
@@ -123,7 +145,7 @@ Nothing opens automatically. The owner runs `WALKTHROUGH-SLICE-001.md` on a fres
 
 ## 7. Runtime
 
-About 2h50m from this round's first command after round nineteen's receipt to its own receipt commit. The authoritative replays sum to about 2h42m, partly overlapped:
+About 2h45m from this round's first command after round nineteen's receipt to its own receipt commit. The authoritative replays sum to about 2h42m, partly overlapped:
 
 | Command | Wall time |
 | --- | ---: |
@@ -133,7 +155,7 @@ About 2h50m from this round's first command after round nineteen's receipt to it
 | parallel replay at `0ace58f` | 16m11s |
 | WSL2 Linux full serial write at `0ace58f`, alongside it | 20m37s |
 | Windows full serial write at `0ace58f` | 1h21m42s |
-| owner walkthrough at the documentation head | recorded in section 4a by the receipt commit |
+| owner walkthroughs at `5843737` and `3943b08` | about 6m each |
 | WSL2 Linux full serial write at `39d745d` and the fresh-context challenger | counted in round nineteen |
 
 The gap between the replays and the elapsed time was the decisions, the rows, the D-117 repair after the first Linux write disagreed, and the documents.
@@ -146,7 +168,7 @@ So the endpoint is not a quiet round, because a round finds what it goes looking
 
 1. Both hosts' full serial writes report zero not caught, with exact-identity records for every active row at that commit. At `2f86f14` this did not hold: Linux saw M107 survive and Windows caught it, and the round repaired the test rather than the record. At `0ace58f`: it holds. Both writes report `114 mutants, 0 not caught: none`, all 108 active rows carry exact identities from both hosts, and the parallel replay agrees row for row.
 2. A fresh-context challenger at that commit finds only channels the harness cannot own, or reproductions of closed decisions. At `0ace58f`: it holds as far as this round can say. Every finding of the fresh-context challenger at `39d745d` is repaired and re-measured here, the one finding this round's own evidence added, D-117, is repaired and re-measured, and the channels left open are `PATH`, the interpreter's system site-packages, and the operating system.
-3. The owner walkthrough passes literally on a fresh default clone of that commit. At the documentation head: to be run on a fresh default clone after this document is committed; the receipt commit records the result in section 4a.
+3. The owner walkthrough passes literally on a fresh default clone of that commit. At `3943b08`: it holds, as measured by the agent, not yet by the owner. Every stated expectation matched on a fresh default clone, after the first run at `5843737` found the round-nineteen check hashing `HEAD` and the check was corrected to name the commit its artifact came from. Section 4a.
 
 The owner walkthrough has been the last box since round fourteen, and agents have passed it on fresh clones in rounds sixteen, eighteen, nineteen, and twenty. Passing it a fifth time is not evidence the owner has seen it.
 
