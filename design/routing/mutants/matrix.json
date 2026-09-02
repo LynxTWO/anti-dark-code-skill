@@ -6,15 +6,15 @@
     "old": "into.setdefault(capability, set()).update(gate_ids)",
     "new": "into[capability] = set(gate_ids)",
     "verdict": "caught",
-    "pytest": "6 failed, 308 passed, 1 skipped, 9 deselected, 16 subtests passed in 121.48s (0:02:01)",
+    "pytest": "6 failed, 311 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.16s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "6 failed, 307 passed, 9 deselected, 16 subtests passed in 16.26s",
+        "pytest": "6 failed, 312 passed, 9 deselected, 19 subtests passed in 10.94s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_one_capability_unions_gates_from_several_rules",
@@ -32,7 +32,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "6 failed, 308 passed, 1 skipped, 9 deselected, 16 subtests passed in 121.48s (0:02:01)",
+        "pytest": "6 failed, 311 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.16s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_one_capability_unions_gates_from_several_rules",
@@ -59,11 +59,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 310 passed, 9 deselected, 16 subtests passed in 15.36s",
+        "pytest": "3 failed, 315 passed, 9 deselected, 19 subtests passed in 10.12s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_order_does_not_change_the_route",
@@ -78,7 +78,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 123.89s (0:02:03)",
+        "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.86s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_order_does_not_change_the_route",
@@ -90,7 +90,7 @@
         ]
       }
     ],
-    "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 123.89s (0:02:03)"
+    "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.86s"
   },
   {
     "id": "M03",
@@ -103,11 +103,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "6 failed, 307 passed, 9 deselected, 16 subtests passed in 15.70s",
+        "pytest": "6 failed, 312 passed, 9 deselected, 19 subtests passed in 12.18s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_an_incomplete_snapshot_forces_full",
@@ -125,7 +125,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "6 failed, 308 passed, 1 skipped, 9 deselected, 16 subtests passed in 112.71s (0:01:52)",
+        "pytest": "6 failed, 311 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.72s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_an_incomplete_snapshot_forces_full",
@@ -140,7 +140,7 @@
         ]
       }
     ],
-    "pytest": "6 failed, 308 passed, 1 skipped, 9 deselected, 16 subtests passed in 112.71s (0:01:52)"
+    "pytest": "6 failed, 311 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.72s"
   },
   {
     "id": "M04",
@@ -153,11 +153,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.09s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.32s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe",
@@ -171,7 +171,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 87.01s (0:01:27)",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.80s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe",
@@ -182,7 +182,7 @@
         ]
       }
     ],
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 87.01s (0:01:27)"
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.80s"
   },
   {
     "id": "M05",
@@ -195,11 +195,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 14.98s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 14.82s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe",
@@ -213,7 +213,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.98s (0:01:23)",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.19s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe",
@@ -224,7 +224,7 @@
         ]
       }
     ],
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.98s (0:01:23)"
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.19s"
   },
   {
     "id": "M06",
@@ -233,15 +233,15 @@
     "old": "        independent_review = independent_review or recipe.independent_review",
     "new": "        pass",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 82.19s (0:01:22)",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.32s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.32s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 13.05s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe"
@@ -254,7 +254,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 82.19s (0:01:22)",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.32s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe"
@@ -272,15 +272,15 @@
     "old": "unknowns.add(\"ADC-ROUTE-UNROUTED-FACT\")",
     "new": "pass",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 86.07s (0:01:26)",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.67s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.88s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.48s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_fact_matching_no_rule_forces_full"
@@ -293,7 +293,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 86.07s (0:01:26)",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.67s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_fact_matching_no_rule_forces_full"
@@ -323,15 +323,15 @@
     "old": "    if _repo_fingerprint(repo, run) != before:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "5 failed, 309 passed, 1 skipped, 9 deselected, 16 subtests passed in 86.65s (0:01:26)",
+    "pytest": "5 failed, 312 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.65s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "5 failed, 308 passed, 9 deselected, 16 subtests passed in 15.28s",
+        "pytest": "5 failed, 313 passed, 9 deselected, 19 subtests passed in 13.36s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_boundary_violation_is_detected_and_reported",
@@ -348,7 +348,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "5 failed, 309 passed, 1 skipped, 9 deselected, 16 subtests passed in 86.65s (0:01:26)",
+        "pytest": "5 failed, 312 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.65s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_boundary_violation_is_detected_and_reported",
@@ -370,15 +370,15 @@
     "old": "environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
     "new": "pass",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 87.47s (0:01:27)",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.26s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.29s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.67s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_the_runner_environment_blocks_lazy_fetch",
@@ -392,7 +392,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 87.47s (0:01:27)",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.26s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_the_runner_environment_blocks_lazy_fetch",
@@ -411,15 +411,15 @@
     "old": "\"-c\", \"core.fsmonitor=false\",",
     "new": "",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 85.15s (0:01:25)",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.24s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 14.90s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 15.99s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionTests::test_every_git_call_disables_repository_configured_programs",
@@ -433,7 +433,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 85.15s (0:01:25)",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.24s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionTests::test_every_git_call_disables_repository_configured_programs",
@@ -452,15 +452,15 @@
     "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
     "new": "entries.append((relative, size, mtime, f\":{topology}\"))",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 78.30s (0:01:18)",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.59s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.07s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.10s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_rewrite_is_detected",
@@ -474,7 +474,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 78.30s (0:01:18)",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.59s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_rewrite_is_detected",
@@ -493,15 +493,15 @@
     "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
     "new": "entries.append((relative, 0, 0, f\"{digest.hexdigest()}:{topology}\"))",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 59.32s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.13s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 14.87s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.93s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_boundary_violation_is_detected_and_reported",
@@ -515,7 +515,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 59.32s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.13s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_boundary_violation_is_detected_and_reported",
@@ -534,15 +534,15 @@
     "old": "\"--find-copies-harder\",",
     "new": "",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.91s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.11s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.02s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.92s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_copy_from_an_unchanged_source_keeps_its_source_path"
@@ -555,7 +555,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.91s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.11s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_copy_from_an_unchanged_source_keeps_its_source_path"
@@ -573,15 +573,15 @@
     "old": "    if old_mode not in _GIT_MODES or new_mode not in _GIT_MODES:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.68s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.39s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.00s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.38s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_bad_mode_is_reported",
@@ -595,7 +595,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.68s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.39s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_bad_mode_is_reported",
@@ -614,15 +614,15 @@
     "old": "    if len(old_object) != len(new_object):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.61s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.20s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.81s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.07s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_mixed_object_widths_in_one_record_are_rejected"
@@ -635,7 +635,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.61s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.20s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_mixed_object_widths_in_one_record_are_rejected"
@@ -653,15 +653,15 @@
     "old": "    if width is not None and len(old_object) != width:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.24s",
+    "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.60s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 310 passed, 9 deselected, 16 subtests passed in 15.29s",
+        "pytest": "3 failed, 315 passed, 9 deselected, 19 subtests passed in 15.24s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_one_payload_cannot_mix_object_widths_across_records",
@@ -676,7 +676,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.24s",
+        "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.60s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_one_payload_cannot_mix_object_widths_across_records",
@@ -696,15 +696,15 @@
     "old": "    if (has_old, has_new) != sides:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.20s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.56s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.05s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.49s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_delete_with_two_existing_sides_is_rejected",
@@ -718,7 +718,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.20s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.56s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_delete_with_two_existing_sides_is_rejected",
@@ -737,15 +737,15 @@
     "old": "        return score is not None and 0 <= int(score) <= 100",
     "new": "        return score is None or 0 <= int(score) <= 100",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.91s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.21s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.11s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 13.10s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_copy_or_rename_without_a_score_is_rejected"
@@ -758,7 +758,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.91s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.21s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_copy_or_rename_without_a_score_is_rejected"
@@ -776,15 +776,15 @@
     "old": "    known_capabilities = set(capability_ids)",
     "new": "    known_capabilities = {f'V{n:02d}' for n in range(1,23)}",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.04s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.48s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.04s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.15s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_the_supplied_capability_set_is_the_one_used"
@@ -797,7 +797,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.04s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.48s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_the_supplied_capability_set_is_the_one_used"
@@ -815,15 +815,15 @@
     "old": "        missing_passes = sorted(set(full_set.get(\"passes\", [])) - recipe_passes)",
     "new": "        missing_passes = []",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.80s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.24s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.91s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.30s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_pass_is_rejected"
@@ -836,7 +836,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.80s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.24s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_pass_is_rejected"
@@ -854,15 +854,15 @@
     "old": "            if capability not in recipe_obligations:",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.58s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.14s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.97s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 14.80s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_capability_is_rejected"
@@ -875,7 +875,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.58s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.14s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_capability_is_rejected"
@@ -893,15 +893,15 @@
     "old": "    if not _is_validated(policy):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.83s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.75s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 14.97s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.51s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_directly_constructed_policy_is_refused",
@@ -915,7 +915,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.83s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.75s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_directly_constructed_policy_is_refused",
@@ -934,15 +934,15 @@
     "old": "    if not isinstance(policy, ValidatedPolicy):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.51s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.29s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.01s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.57s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_raw_mapping_is_refused_by_the_type_check"
@@ -955,7 +955,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.51s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.29s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_raw_mapping_is_refused_by_the_type_check"
@@ -973,15 +973,15 @@
     "old": "    if not isinstance(value, list) or not value:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.57s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.69s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.14s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 13.10s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_string_path_pattern_is_rejected",
@@ -995,7 +995,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.57s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.69s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_string_path_pattern_is_rejected",
@@ -1026,15 +1026,15 @@
     "old": "    unsupported = set(hints) - _HINT_FIELDS",
     "new": "    unsupported = set()",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.20s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.12s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.33s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.63s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_invent_a_rule_match",
@@ -1048,7 +1048,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.20s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.12s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_invent_a_rule_match",
@@ -1067,15 +1067,15 @@
     "old": "        if isinstance(level, bool) or not isinstance(level, int) or level not in _LEVELS:",
     "new": "        if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.00s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.70s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.13s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.38s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_level_must_be_a_real_level"
@@ -1088,7 +1088,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.00s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.70s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_level_must_be_a_real_level"
@@ -1106,15 +1106,15 @@
     "old": "            if (capability, gate_id) not in reviewed_pairs:",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.70s",
+    "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.79s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 310 passed, 9 deselected, 16 subtests passed in 15.23s",
+        "pytest": "3 failed, 315 passed, 9 deselected, 19 subtests passed in 14.17s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_borrow_a_pairing_from_a_proposed_rule",
@@ -1129,7 +1129,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.70s",
+        "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.79s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_borrow_a_pairing_from_a_proposed_rule",
@@ -1149,15 +1149,15 @@
     "old": "if not fnmatch.fnmatchcase(path, glob):",
     "new": "if not fnmatch.fnmatchcase(path.replace(chr(92),\"/\"), glob):",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.98s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.51s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.82s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.94s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_literal_backslash_is_a_filename_character_not_a_separator"
@@ -1170,7 +1170,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.98s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.51s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_literal_backslash_is_a_filename_character_not_a_separator"
@@ -1188,15 +1188,15 @@
     "old": "sorted(set(facts), key=_fact_sort_key)",
     "new": "sorted(facts, key=_fact_sort_key)",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.28s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.77s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.77s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.36s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ClassificationTests::test_duplicate_inputs_collapse_to_one_fact"
@@ -1209,7 +1209,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.28s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.77s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ClassificationTests::test_duplicate_inputs_collapse_to_one_fact"
@@ -1238,15 +1238,15 @@
     "old": "    return (index_state, tuple(sorted(entries)))",
     "new": "    return (None, tuple(sorted(entries)))",
     "verdict": "caught",
-    "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.85s",
+    "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.66s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 310 passed, 9 deselected, 16 subtests passed in 15.29s",
+        "pytest": "3 failed, 315 passed, 9 deselected, 19 subtests passed in 13.11s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_change_to_the_index_alone_is_detected",
@@ -1261,7 +1261,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.85s",
+        "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.66s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_change_to_the_index_alone_is_detected",
@@ -1303,16 +1303,16 @@
     "old": "topology = (getattr(stat, \"st_nlink\", 0), getattr(stat, \"st_ino\", 0),\n                        stat.st_mode)",
     "new": "topology = 0",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.07s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.77s",
     "challenge_evidence": "A Windows hard-link probe held bytes, size, and mtime equal. The current fingerprint changed and M36 did not. Keep the topology fields, but add this discriminating case to the suite.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.09s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.34s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_path_topology_alone_moves_the_fingerprint",
@@ -1326,7 +1326,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.07s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.77s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_path_topology_alone_moves_the_fingerprint",
@@ -1345,16 +1345,16 @@
     "old": "stat = path.lstat()",
     "new": "stat = path.stat()",
     "verdict": "caught elsewhere",
-    "pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.59s",
+    "pytest": "317 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.85s",
     "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.87s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.08s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
@@ -1367,7 +1367,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.59s",
+        "pytest": "317 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.85s",
         "skipped": 1,
         "failed_nodeids": [],
         "skipped_nodeids": [
@@ -1383,15 +1383,15 @@
     "old": "_VALIDATED_POLICIES: \"weakref.WeakValueDictionary[int, ValidatedPolicy]\" = (\n    weakref.WeakValueDictionary()\n)",
     "new": "_VALIDATED_POLICIES: dict[int, ValidatedPolicy] = {}",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.35s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.50s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.91s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 14.38s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_the_registry_does_not_pin_policies"
@@ -1404,7 +1404,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.35s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.50s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_the_registry_does_not_pin_policies"
@@ -1422,15 +1422,15 @@
     "old": "    if not canonical_passes or not canonical_obligations:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.96s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.36s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.89s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 11.86s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_empty_canonical_full_set_is_rejected"
@@ -1443,7 +1443,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.96s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.36s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_empty_canonical_full_set_is_rejected"
@@ -1465,11 +1465,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 310 passed, 9 deselected, 16 subtests passed in 15.23s",
+        "pytest": "3 failed, 315 passed, 9 deselected, 19 subtests passed in 12.64s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_every_route_construction_path_freezes_obligations",
@@ -1484,7 +1484,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.26s",
+        "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.21s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_every_route_construction_path_freezes_obligations",
@@ -1496,7 +1496,7 @@
         ]
       }
     ],
-    "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.26s"
+    "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.21s"
   },
   {
     "id": "M41",
@@ -1505,15 +1505,15 @@
     "old": "        if score is not None:\n            return False\n        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
     "new": "        if False:\n            return False\n        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 68.77s (0:01:08)",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.25s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.89s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.69s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_scored_unmerged_record_is_rejected"
@@ -1526,7 +1526,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 68.77s (0:01:08)",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.25s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_scored_unmerged_record_is_rejected"
@@ -1544,15 +1544,15 @@
     "old": "        return source is None or source in _UNMERGED_SOURCES",
     "new": "        return True",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.22s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.13s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.05s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.48s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_committed_unmerged_record_is_rejected"
@@ -1565,7 +1565,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.22s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.13s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_committed_unmerged_record_is_rejected"
@@ -1583,15 +1583,15 @@
     "old": "        parsed = parse_raw_z(payload, source, snapshot_width[0])",
     "new": "        parsed = parse_raw_z(payload, source, None)",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.61s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.40s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 14.97s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.38s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionTests::test_object_width_is_consistent_across_the_whole_snapshot",
@@ -1605,7 +1605,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.61s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.40s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionTests::test_object_width_is_consistent_across_the_whole_snapshot",
@@ -1624,15 +1624,15 @@
     "old": "        index_digest = hashlib.sha256(index.read_bytes()).hexdigest()\n        index_state: Any = (stat.st_size, stat.st_mtime_ns, index_digest)",
     "new": "        index_state: Any = (stat.st_size, stat.st_mtime_ns)",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.60s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.97s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.21s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 16.04s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_index_rewrite_is_detected"
@@ -1645,7 +1645,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.60s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.97s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_index_rewrite_is_detected"
@@ -1663,15 +1663,15 @@
     "old": "    located = run(_isolated([\"rev-parse\", \"--git-path\", \"index\"]))",
     "new": "    located = None",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.03s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.54s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.59s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 11.82s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_linked_worktree_index_is_found"
@@ -1684,7 +1684,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.03s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.54s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_linked_worktree_index_is_found"
@@ -1702,16 +1702,16 @@
     "old": "        if stat_module.S_ISLNK(stat.st_mode):",
     "new": "        if False:",
     "verdict": "caught elsewhere",
-    "pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.78s",
+    "pytest": "317 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.02s",
     "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.98s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.49s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
@@ -1724,7 +1724,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.78s",
+        "pytest": "317 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.02s",
         "skipped": 1,
         "failed_nodeids": [],
         "skipped_nodeids": [
@@ -1740,16 +1740,16 @@
     "old": "    snapshot_width: list[int | None] = [len(merge_base) if merge_base else None]",
     "new": "    snapshot_width: list[int | None] = [None]",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.17s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.52s",
     "challenge_evidence": "With a 40-character resolved merge base and one 64-character raw row, current code reports malformed and incomplete. M47 accepts the row and reports the snapshot complete.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.94s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.22s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionTests::test_one_source_cannot_disagree_with_the_merge_base_width"
@@ -1762,7 +1762,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.17s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.52s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionTests::test_one_source_cannot_disagree_with_the_merge_base_width"
@@ -1780,17 +1780,17 @@
     "old": "            entries.append((relative, size, mtime, f\"symlink:{target}:{topology}\"))",
     "new": "            entries.append((relative, size, mtime, f\"symlink:{topology}\"))",
     "verdict": "caught elsewhere",
-    "pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.86s",
+    "pytest": "317 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.44s",
     "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text.",
     "note": "Codex reported this surviving under Ubuntu against the earlier symlink test, which asserted only the marker. That test now asserts the recorded target and retargets the link, so the Ubuntu result is stale. Unverified on a symlink-capable host.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.87s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 13.43s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
@@ -1803,7 +1803,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.86s",
+        "pytest": "317 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.44s",
         "skipped": 1,
         "failed_nodeids": [],
         "skipped_nodeids": [
@@ -1819,15 +1819,15 @@
     "old": "        # Always rebuild, never trust an existing proxy.",
     "new": "        if isinstance(self.obligations, MappingProxyType): return\n        # Always rebuild, never trust an existing proxy.",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.66s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.93s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.89s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.49s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_proxy_over_mutable_backing_does_not_survive_construction"
@@ -1840,7 +1840,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.66s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.93s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_proxy_over_mutable_backing_does_not_survive_construction"
@@ -1858,15 +1858,15 @@
     "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
     "new": "        if old_object == \"0\" * len(old_object) and new_object == \"0\" * len(new_object):",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.40s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.88s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.03s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 14.88s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_plain_raw_conflict_record_is_accepted"
@@ -1879,7 +1879,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.40s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.88s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_plain_raw_conflict_record_is_accepted"
@@ -1897,15 +1897,15 @@
     "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:\n            return False",
     "new": "        if False:\n            return False",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.51s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.72s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.82s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.34s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_an_unmerged_record_with_both_modes_null_is_rejected"
@@ -1918,7 +1918,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.51s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.72s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_an_unmerged_record_with_both_modes_null_is_rejected"
@@ -1936,16 +1936,16 @@
     "old": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
     "new": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"0\"",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.74s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.19s",
     "note": "Q-05. Held against a real blobless clone served over git:// by a daemon on loopback, where a genuinely missing promisor object is reachable through inexact rename detection.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.17s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.79s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_the_runner_environment_blocks_lazy_fetch",
@@ -1959,7 +1959,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.74s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.19s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_the_runner_environment_blocks_lazy_fetch",
@@ -1978,16 +1978,16 @@
     "old": "    def test_clean_snapshot_is_complete(self) -> None:",
     "new": "    def test_ordering_is_canonical(self) -> None:",
     "verdict": "caught",
-    "pytest": "1 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.31s",
+    "pytest": "1 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.00s",
     "note": "The failure this branch hit twice: a test that is defined but never runs. Python keeps the later definition, the suite stays green, and the lost coverage is invisible. Mutates the test file rather than the router, because the guarantee is about the suite.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 311 passed, 9 deselected, 16 subtests passed in 15.18s",
+        "pytest": "1 failed, 316 passed, 9 deselected, 19 subtests passed in 12.06s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SuiteIntegrityTests::test_no_test_name_is_defined_twice"
@@ -2000,7 +2000,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.31s",
+        "pytest": "1 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.00s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SuiteIntegrityTests::test_no_test_name_is_defined_twice"
@@ -2021,16 +2021,16 @@
     "old": "        \"run_id\": digest(payload),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
     "new": "        \"run_id\": digest({\"p\": dict(payload), \"o\": dict(observed or {})}),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
     "verdict": "caught",
-    "pytest": "13 failed, 7 passed in 6.21s",
+    "pytest": "13 failed, 7 passed in 5.62s",
     "note": "R-023. A clock must not be able to change routing authority.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "13 failed, 7 passed in 1.58s",
+        "pytest": "13 failed, 7 passed in 1.20s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_observed_metadata_cannot_change_the_run_id",
@@ -2055,7 +2055,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "13 failed, 7 passed in 6.21s",
+        "pytest": "13 failed, 7 passed in 5.62s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_observed_metadata_cannot_change_the_run_id",
@@ -2086,16 +2086,16 @@
     "old": "        if recorded.get(key) != now.get(key):\n            reasons.append((code, key))",
     "new": "        if recorded.get(key) != now.get(key):\n            return Staleness(False, ((code, key),))",
     "verdict": "caught",
-    "pytest": "2 failed, 18 passed in 6.00s",
+    "pytest": "2 failed, 18 passed in 5.55s",
     "note": "A reader who fixes one stale field and reruns should not discover the next one only then.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 18 passed in 1.41s",
+        "pytest": "2 failed, 18 passed in 1.03s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_changed_calibration_is_stale_and_names_the_file",
@@ -2109,7 +2109,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 18 passed in 6.00s",
+        "pytest": "2 failed, 18 passed in 5.55s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_changed_calibration_is_stale_and_names_the_file",
@@ -2129,16 +2129,16 @@
     "old": "        \"entries\": sorted(kept),",
     "new": "        \"entries\": len(kept),",
     "verdict": "caught",
-    "pytest": "2 failed, 18 passed in 6.06s",
+    "pytest": "2 failed, 18 passed in 5.51s",
     "note": "R-017. Binding to a count is the status-text mistake in another form: different bytes, same identity.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 18 passed in 1.43s",
+        "pytest": "2 failed, 18 passed in 1.04s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_a_changed_worktree_is_stale",
@@ -2152,7 +2152,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 18 passed in 6.06s",
+        "pytest": "2 failed, 18 passed in 5.51s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_a_changed_worktree_is_stale",
@@ -2172,16 +2172,16 @@
     "old": "RUN_STORE = \".anti-dark-code/runs\"",
     "new": "RUN_STORE = \".anti-dark-code\"",
     "verdict": "caught",
-    "pytest": "1 failed, 19 passed in 6.01s",
+    "pytest": "1 failed, 19 passed in 5.49s",
     "note": "An exclusion wide enough to cover the whole tree would let a policy or gate file change without making any receipt stale. See D-010.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 1.45s",
+        "pytest": "1 failed, 19 passed in 1.05s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_only_the_run_store_is_excluded_from_the_binding"
@@ -2194,7 +2194,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 6.01s",
+        "pytest": "1 failed, 19 passed in 5.49s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_only_the_run_store_is_excluded_from_the_binding"
@@ -2213,16 +2213,16 @@
     "old": "         for row in getattr(snapshot, \"inputs\", ())),",
     "new": "         for row in ()),",
     "verdict": "caught",
-    "pytest": "1 failed, 19 passed in 6.05s",
+    "pytest": "1 failed, 19 passed in 5.49s",
     "note": "A receipt that does not quote the change it routed cannot be audited against it.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 1.41s",
+        "pytest": "1 failed, 19 passed in 1.04s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_changed_files_carry_the_acquired_records"
@@ -2235,7 +2235,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 6.05s",
+        "pytest": "1 failed, 19 passed in 5.49s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_changed_files_carry_the_acquired_records"
@@ -2254,16 +2254,16 @@
     "old": "    kept = [[entry[0], entry[3]] for entry in entries",
     "new": "    kept = [list(entry) for entry in entries",
     "verdict": "caught",
-    "pytest": "2 failed, 23 passed, 3 subtests passed in 32.58s",
+    "pytest": "2 failed, 23 passed, 3 subtests passed in 30.39s",
     "note": "A receipt that stays stale after the bytes are restored is binding to the fact that something happened rather than to the state, and it trains a reader to ignore staleness.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 23 passed, 3 subtests passed in 14.03s",
+        "pytest": "2 failed, 23 passed, 3 subtests passed in 9.91s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_reverting_the_change_makes_the_receipt_fresh_again",
@@ -2277,7 +2277,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 23 passed, 3 subtests passed in 32.58s",
+        "pytest": "2 failed, 23 passed, 3 subtests passed in 30.39s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_reverting_the_change_makes_the_receipt_fresh_again",
@@ -2297,16 +2297,16 @@
     "old": "        return 0 if self.fresh else 2",
     "new": "        return 0",
     "verdict": "caught",
-    "pytest": "3 failed, 22 passed, 3 subtests passed in 33.71s",
+    "pytest": "3 failed, 22 passed, 3 subtests passed in 31.38s",
     "note": "The exit code is the half a gate runner reads. Text saying STALE beside a success status is worse than no receipt.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 22 passed, 3 subtests passed in 14.00s",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 11.59s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_changed_gate_configuration_makes_the_receipt_stale",
@@ -2321,7 +2321,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 22 passed, 3 subtests passed in 33.71s",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 31.38s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_changed_gate_configuration_makes_the_receipt_stale",
@@ -2342,20 +2342,22 @@
     "old": "sys.executable",
     "new": "\"python\"",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.85s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.98s",
     "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 310 passed, 9 deselected, 16 subtests passed in 13.21s",
+        "pytest": "7 failed, 314 passed, 9 deselected, 16 subtests passed in 12.32s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SuiteIntegrityTests::test_replay_launches_pytest_with_the_current_interpreter",
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_replay_collects_exact_failed_and_skipped_nodeids",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
         ],
         "skipped_nodeids": []
@@ -2366,7 +2368,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.85s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.98s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SuiteIntegrityTests::test_replay_launches_pytest_with_the_current_interpreter"
@@ -2387,16 +2389,16 @@
     "old": "    original = source.read_bytes()",
     "new": "    original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.02s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.24s",
     "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 13.33s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 11.21s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SuiteIntegrityTests::test_replay_restores_the_exact_source_bytes",
@@ -2410,7 +2412,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.02s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.24s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SuiteIntegrityTests::test_replay_restores_the_exact_source_bytes",
@@ -2432,16 +2434,16 @@
     "old": "            if not PYTEST_SUMMARY.fullmatch(summary):",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.68s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.37s",
     "note": "A Python or pytest startup error may exit 1 without executing a test; only a real pytest outcome summary can turn exit 1 into mutation evidence.",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.44s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 11.21s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_replay_rejects_an_unanchored_pytest_summary"
@@ -2454,7 +2456,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.68s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.37s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_replay_rejects_an_unanchored_pytest_summary"
@@ -2479,11 +2481,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "4 failed, 309 passed, 9 deselected, 16 subtests passed in 15.60s",
+        "pytest": "4 failed, 314 passed, 9 deselected, 19 subtests passed in 12.65s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_cheap_rule_that_fires_on_authority_is_refused",
@@ -2499,7 +2501,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "4 failed, 310 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.27s",
+        "pytest": "4 failed, 313 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.25s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_cheap_rule_that_fires_on_authority_is_refused",
@@ -2512,7 +2514,7 @@
         ]
       }
     ],
-    "pytest": "4 failed, 310 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.27s"
+    "pytest": "4 failed, 313 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.25s"
   },
   {
     "id": "M65",
@@ -2528,11 +2530,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "53 failed, 260 passed, 9 deselected, 16 subtests passed in 28.28s",
+        "pytest": "53 failed, 265 passed, 9 deselected, 19 subtests passed in 24.08s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe",
@@ -2597,7 +2599,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "53 failed, 261 passed, 1 skipped, 9 deselected, 16 subtests passed in 65.91s (0:01:05)",
+        "pytest": "53 failed, 264 passed, 1 skipped, 9 deselected, 19 subtests passed in 62.95s (0:01:02)",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_bare_force_full_rule_still_gets_the_whole_recipe",
@@ -2659,7 +2661,7 @@
         ]
       }
     ],
-    "pytest": "53 failed, 261 passed, 1 skipped, 9 deselected, 16 subtests passed in 65.91s (0:01:05)"
+    "pytest": "53 failed, 264 passed, 1 skipped, 9 deselected, 19 subtests passed in 62.95s (0:01:02)"
   },
   {
     "id": "M66",
@@ -2675,11 +2677,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.80s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.76s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_submodule_added_or_deleted_is_also_unsupported"
@@ -2692,7 +2694,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.78s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.49s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::RawParserTests::test_a_submodule_added_or_deleted_is_also_unsupported"
@@ -2702,7 +2704,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.78s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.49s"
   },
   {
     "id": "M67",
@@ -2718,11 +2720,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 14.95s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 12.16s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_receipt_over_a_submodule_tree_never_verifies_fresh",
@@ -2736,7 +2738,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.87s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.41s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_receipt_over_a_submodule_tree_never_verifies_fresh",
@@ -2747,7 +2749,7 @@
         ]
       }
     ],
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.87s"
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.41s"
   },
   {
     "id": "M68",
@@ -2763,11 +2765,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "11 failed, 302 passed, 9 deselected, 16 subtests passed in 15.41s",
+        "pytest": "11 failed, 307 passed, 9 deselected, 19 subtests passed in 13.30s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
@@ -2790,7 +2792,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "11 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.18s",
+        "pytest": "11 failed, 306 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.83s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
@@ -2810,7 +2812,7 @@
         ]
       }
     ],
-    "pytest": "11 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.18s"
+    "pytest": "11 failed, 306 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.83s"
   },
   {
     "id": "M69",
@@ -2826,11 +2828,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.09s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.17s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_mutation_during_a_gate_marks_that_gate_stale"
@@ -2843,7 +2845,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.65s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.70s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_mutation_during_a_gate_marks_that_gate_stale"
@@ -2853,7 +2855,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.65s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.70s"
   },
   {
     "id": "M70",
@@ -2869,11 +2871,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.33s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 11.34s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_the_run_stops_when_the_tree_moves_even_with_keep_going"
@@ -2886,7 +2888,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.53s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.85s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_the_run_stops_when_the_tree_moves_even_with_keep_going"
@@ -2896,7 +2898,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.53s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.85s"
   },
   {
     "id": "M71",
@@ -2912,11 +2914,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.40s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 11.24s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_an_empty_obligation_map_is_not_covered"
@@ -2929,7 +2931,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.45s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.87s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_an_empty_obligation_map_is_not_covered"
@@ -2939,7 +2941,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.45s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.87s"
   },
   {
     "id": "M72",
@@ -2955,11 +2957,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "5 failed, 308 passed, 9 deselected, 16 subtests passed in 15.85s",
+        "pytest": "5 failed, 313 passed, 9 deselected, 19 subtests passed in 14.81s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_omitting_a_failing_gate_is_a_routing_miss",
@@ -2976,7 +2978,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "5 failed, 309 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.46s",
+        "pytest": "5 failed, 312 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.02s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_omitting_a_failing_gate_is_a_routing_miss",
@@ -2990,7 +2992,7 @@
         ]
       }
     ],
-    "pytest": "5 failed, 309 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.46s"
+    "pytest": "5 failed, 312 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.02s"
   },
   {
     "id": "M73",
@@ -3006,11 +3008,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 1.43s",
+        "pytest": "1 failed, 19 passed in 1.07s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_an_unreadable_fingerprint_refuses_binding_construction"
@@ -3023,7 +3025,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 6.18s",
+        "pytest": "1 failed, 19 passed in 5.61s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_an_unreadable_fingerprint_refuses_binding_construction"
@@ -3031,7 +3033,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 19 passed in 6.18s"
+    "pytest": "1 failed, 19 passed in 5.61s"
   },
   {
     "id": "M74",
@@ -3047,11 +3049,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.20s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 10.43s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_an_edited_authoritative_route_is_refused"
@@ -3064,7 +3066,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 35.60s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 32.17s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_an_edited_authoritative_route_is_refused"
@@ -3072,7 +3074,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 35.60s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 32.17s"
   },
   {
     "id": "M75",
@@ -3088,11 +3090,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "3 failed, 22 passed, 3 subtests passed in 16.70s",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 11.95s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_a_process_change_after_preflight_refuses_before_launch",
@@ -3107,7 +3109,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 22 passed, 3 subtests passed in 39.94s",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 36.66s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_a_process_change_after_preflight_refuses_before_launch",
@@ -3117,7 +3119,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "3 failed, 22 passed, 3 subtests passed in 39.94s"
+    "pytest": "3 failed, 22 passed, 3 subtests passed in 36.66s"
   },
   {
     "id": "M76",
@@ -3133,11 +3135,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.95s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 10.97s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_verified_receipt_is_not_reread_for_route_selection"
@@ -3150,7 +3152,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.37s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 33.58s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_verified_receipt_is_not_reread_for_route_selection"
@@ -3158,7 +3160,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.37s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 33.58s"
   },
   {
     "id": "M77",
@@ -3174,11 +3176,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.04s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.74s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_serialized_candidate_cannot_select_executable_gates"
@@ -3191,7 +3193,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.97s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.47s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_serialized_candidate_cannot_select_executable_gates"
@@ -3201,7 +3203,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.97s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.47s"
   },
   {
     "id": "M78",
@@ -3217,11 +3219,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 25 passed, 2 subtests passed in 15.27s",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 12.79s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_non_object_receipt_refuses_without_a_traceback"
@@ -3234,7 +3236,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 25 passed, 2 subtests passed in 35.58s",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 32.93s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_non_object_receipt_refuses_without_a_traceback"
@@ -3242,7 +3244,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 25 passed, 2 subtests passed in 35.58s"
+    "pytest": "1 failed, 25 passed, 2 subtests passed in 32.93s"
   },
   {
     "id": "M79",
@@ -3258,11 +3260,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.21s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.31s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ShadowComparatorCliTests::test_real_gate_outcomes_feed_the_candidate_shadow_record"
@@ -3275,7 +3277,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 34.45s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 31.45s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ShadowComparatorCliTests::test_real_gate_outcomes_feed_the_candidate_shadow_record"
@@ -3283,7 +3285,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 34.45s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 31.45s"
   },
   {
     "id": "M80",
@@ -3299,11 +3301,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.29s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 10.93s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_route_is_refused_by_the_receipt_writer"
@@ -3316,7 +3318,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.21s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.40s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CandidateRouteTests::test_a_candidate_route_is_refused_by_the_receipt_writer"
@@ -3326,7 +3328,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.21s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 46.40s"
   },
   {
     "id": "M81",
@@ -3342,11 +3344,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.38s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 10.34s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_verified_receipt_is_not_reread_for_candidate_reconstruction"
@@ -3359,7 +3361,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 37.49s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 32.60s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_verified_receipt_is_not_reread_for_candidate_reconstruction"
@@ -3367,7 +3369,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 37.49s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 32.60s"
   },
   {
     "id": "M82",
@@ -3383,11 +3385,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 25 passed, 2 subtests passed in 15.42s",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 10.59s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_non_object_receipt_refuses_without_a_traceback"
@@ -3400,7 +3402,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 25 passed, 2 subtests passed in 37.85s",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 32.84s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::ReceiptIntegrityCliTests::test_a_non_object_receipt_refuses_without_a_traceback"
@@ -3408,7 +3410,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 25 passed, 2 subtests passed in 37.85s"
+    "pytest": "1 failed, 25 passed, 2 subtests passed in 32.84s"
   },
   {
     "id": "M83",
@@ -3424,11 +3426,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.47s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 10.64s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_verified_gate_configuration_is_not_reread_before_execution"
@@ -3441,7 +3443,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 38.52s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 33.52s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_verified_gate_configuration_is_not_reread_before_execution"
@@ -3449,7 +3451,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 38.52s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 33.52s"
   },
   {
     "id": "M84",
@@ -3465,11 +3467,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 16.58s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.28s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_verified_policy_is_not_reloaded_for_candidate_reconstruction"
@@ -3482,7 +3484,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 39.93s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 34.96s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::StaleReceiptCliTests::test_verified_policy_is_not_reloaded_for_candidate_reconstruction"
@@ -3490,7 +3492,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 39.93s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 34.96s"
   },
   {
     "id": "M85",
@@ -3506,11 +3508,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.05s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 9.82s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_first_receipt_write_acquires_the_run_store_ignore"
@@ -3523,7 +3525,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 37.08s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 33.39s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_first_receipt_write_acquires_the_run_store_ignore"
@@ -3531,7 +3533,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 37.08s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 33.39s"
   },
   {
     "id": "M86",
@@ -3547,11 +3549,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.61s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 11.92s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_non_object_gate_configuration_refuses_with_exit_two"
@@ -3564,7 +3566,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.50s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 33.33s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_non_object_gate_configuration_refuses_with_exit_two"
@@ -3572,7 +3574,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.50s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 33.33s"
   },
   {
     "id": "M87",
@@ -3588,11 +3590,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 15.35s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 9.07s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_non_object_routing_policy_refuses_with_exit_two"
@@ -3605,7 +3607,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.29s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 34.50s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_non_object_routing_policy_refuses_with_exit_two"
@@ -3613,7 +3615,7 @@
         "skipped_nodeids": []
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 36.29s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 34.50s"
   },
   {
     "id": "M88",
@@ -3629,11 +3631,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.54s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.54s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_restores_what_it_changed_is_still_stale"
@@ -3646,7 +3648,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.88s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.11s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_restores_what_it_changed_is_still_stale"
@@ -3656,7 +3658,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.88s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.11s"
   },
   {
     "id": "M89",
@@ -3672,11 +3674,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.43s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.30s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_restores_what_it_changed_is_still_stale"
@@ -3689,7 +3691,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.30s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.79s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::GateLifecycleTests::test_a_gate_that_restores_what_it_changed_is_still_stale"
@@ -3699,7 +3701,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.30s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.79s"
   },
   {
     "id": "M90",
@@ -3715,11 +3717,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 13.74s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 9.03s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_one_source_is_refused",
@@ -3733,7 +3735,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.68s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.23s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_one_source_is_refused",
@@ -3744,7 +3746,7 @@
         ]
       }
     ],
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.68s"
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.23s"
   },
   {
     "id": "M91",
@@ -3760,11 +3762,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.77s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.74s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_globally_configured_filter_is_also_neutralized"
@@ -3777,7 +3779,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.16s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.95s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_globally_configured_filter_is_also_neutralized"
@@ -3787,7 +3789,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.16s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.95s"
   },
   {
     "id": "M92",
@@ -3818,11 +3820,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.93s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.88s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_an_injected_runner_refuses_rather_than_guessing"
@@ -3835,7 +3837,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.33s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.07s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_an_injected_runner_refuses_rather_than_guessing"
@@ -3845,7 +3847,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 51.33s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.07s"
   },
   {
     "id": "M94",
@@ -3861,19 +3863,15 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "6 failed, 307 passed, 9 deselected, 16 subtests passed in 15.67s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 10.75s",
         "skipped": 0,
         "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_clean_acquisition_reports_no_boundary_violation",
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_filter_name_containing_an_equals_cannot_run",
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_hostile_repository_cannot_run_its_own_program",
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_an_ordinary_filter_still_allows_a_complete_snapshot",
-          "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_without_the_guard_acquisition_reaches_the_network",
-          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_dirty_submodule_makes_the_snapshot_incomplete"
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_an_ordinary_filter_still_allows_a_complete_snapshot"
         ],
         "skipped_nodeids": []
       },
@@ -3883,22 +3881,18 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "6 failed, 308 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.75s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.52s",
         "skipped": 1,
         "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_clean_acquisition_reports_no_boundary_violation",
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_filter_name_containing_an_equals_cannot_run",
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_hostile_repository_cannot_run_its_own_program",
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_an_ordinary_filter_still_allows_a_complete_snapshot",
-          "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_without_the_guard_acquisition_reaches_the_network",
-          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_dirty_submodule_makes_the_snapshot_incomplete"
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_an_ordinary_filter_still_allows_a_complete_snapshot"
         ],
         "skipped_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
         ]
       }
     ],
-    "pytest": "6 failed, 308 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.75s"
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.52s"
   },
   {
     "id": "M95",
@@ -3914,11 +3908,11 @@
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.05s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.52s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_guard_covers_every_installer_prefix"
@@ -3931,7 +3925,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.84s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.18s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_guard_covers_every_installer_prefix"
@@ -3941,7 +3935,7 @@
         ]
       }
     ],
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.84s"
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.18s"
   },
   {
     "id": "M96",
@@ -3953,15 +3947,15 @@
     "old": "    if missing:\n        rendered = \"; \".join(f\"{label} ({glob})\" for label, glob in missing)\n        raise PolicyError(\n            \"policy omits canonical self-grading classifier(s): \" + rendered)",
     "new": "    if False:\n        rendered = \"; \".join(f\"{label} ({glob})\" for label, glob in missing)\n        raise PolicyError(\n            \"policy omits canonical self-grading classifier(s): \" + rendered)",
     "verdict": "caught",
-    "pytest": "13 failed, 306 passed, 1 skipped, 9 deselected, 11 subtests passed in 55.12s",
+    "pytest": "13 failed, 309 passed, 1 skipped, 9 deselected, 14 subtests passed in 52.53s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "13 failed, 305 passed, 9 deselected, 11 subtests passed in 18.12s",
+        "pytest": "13 failed, 310 passed, 9 deselected, 14 subtests passed in 12.18s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
@@ -3982,7 +3976,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "13 failed, 306 passed, 1 skipped, 9 deselected, 11 subtests passed in 55.12s",
+        "pytest": "13 failed, 309 passed, 1 skipped, 9 deselected, 14 subtests passed in 52.53s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
@@ -4012,15 +4006,15 @@
     "old": "        if result[\"verdict\"] != \"SURVIVED\":\n            continue",
     "new": "        if result[\"verdict\"] != \"SURVIVED\" or not result.get(\"skipped\"):\n            continue",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.36s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.15s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 15.22s",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 10.10s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_an_unskipped_local_survivor_is_a_survivor_despite_a_foreign_record",
@@ -4034,7 +4028,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.36s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.15s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_an_unskipped_local_survivor_is_a_survivor_despite_a_foreign_record",
@@ -4057,15 +4051,15 @@
     "old": "    if dirty:\n        raise RuntimeError(",
     "new": "    if False:\n        raise RuntimeError(",
     "verdict": "caught",
-    "pytest": "2 failed, 314 passed, 1 skipped, 9 deselected, 14 subtests passed in 51.10s",
+    "pytest": "2 failed, 317 passed, 1 skipped, 9 deselected, 17 subtests passed in 47.97s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 313 passed, 9 deselected, 14 subtests passed in 13.37s",
+        "pytest": "2 failed, 318 passed, 9 deselected, 17 subtests passed in 9.25s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_parallel_refuses_an_unclean_tree_even_when_every_source_matches_head"
@@ -4078,7 +4072,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 314 passed, 1 skipped, 9 deselected, 14 subtests passed in 51.10s",
+        "pytest": "2 failed, 317 passed, 1 skipped, 9 deselected, 17 subtests passed in 47.97s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_parallel_refuses_an_unclean_tree_even_when_every_source_matches_head"
@@ -4100,15 +4094,15 @@
     "old": "        command.append(f\"--rootdir={repo_root}\")",
     "new": "        command.append(f\"--rootdir={_WORKER_SUITE_CWD}\")",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.48s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.35s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.35s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.09s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_owned_parent_cwd_with_absolute_suite_paths"
@@ -4121,7 +4115,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.48s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.35s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_owned_parent_cwd_with_absolute_suite_paths"
@@ -4143,15 +4137,15 @@
     "old": "    (\"shipped script controls\", \"**/scripts/*.py\",",
     "new": "    (\"shipped script controls\", \"**/scripts/adc*.py\",",
     "verdict": "caught",
-    "pytest": "12 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.40s",
+    "pytest": "12 failed, 305 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.21s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "12 failed, 301 passed, 9 deselected, 16 subtests passed in 15.32s",
+        "pytest": "12 failed, 306 passed, 9 deselected, 19 subtests passed in 10.14s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
@@ -4175,7 +4169,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "12 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 53.40s",
+        "pytest": "12 failed, 305 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.21s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
@@ -4208,15 +4202,15 @@
     "old": "    for name in (\"PYTEST_ADDOPTS\", \"PYTEST_PLUGINS\", \"PYTEST_DEBUG\",\n                 \"PYTHONPATH\"):",
     "new": "    for name in (\"PYTEST_PLUGINS\", \"PYTEST_DEBUG\",\n                 \"PYTHONPATH\"):",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.12s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.10s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 14.85s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 12.33s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
@@ -4229,7 +4223,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.12s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.10s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
@@ -4251,17 +4245,19 @@
     "old": "        token = (character.encode(\"unicode_escape\").decode(\"ascii\")\n                 if category in {\"Cc\", \"Cf\", \"Zl\", \"Zp\"} else character)",
     "new": "        token = character",
     "verdict": "caught",
-    "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.25s",
+    "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.87s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.23s",
+        "pytest": "3 failed, 315 passed, 9 deselected, 19 subtests passed in 9.46s",
         "skipped": 0,
         "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_console_renders_every_matrix_field",
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_console_renders_a_broken_suite_diagnostic_safely",
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_validator_renders_control_characters_before_truncating"
         ],
         "skipped_nodeids": []
@@ -4272,9 +4268,10 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 312 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.25s",
+        "pytest": "3 failed, 314 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.87s",
         "skipped": 1,
         "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_console_renders_every_matrix_field",
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_console_renders_a_broken_suite_diagnostic_safely",
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_validator_renders_control_characters_before_truncating"
         ],
@@ -4295,15 +4292,15 @@
     "old": "    if jobs == 1 and write and serial_status_before:\n        # Read-only serial replay deliberately remains useful on a labelled\n        # dirty tree. Only matrix publication requires a clean endpoint.\n        print(f\"--write refused before serial replay: working tree differs from \"\n              f\"HEAD in {len(serial_status_before)} path(s)\")\n        outcome = 2",
     "new": "    if False:\n        # Read-only serial replay deliberately remains useful on a labelled\n        # dirty tree. Only matrix publication requires a clean endpoint.\n        print(f\"--write refused before serial replay: working tree differs from \"\n              f\"HEAD in {len(serial_status_before)} path(s)\")\n        outcome = 2",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.57s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.98s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.44s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.07s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_write_refuses_an_initially_dirty_tree_before_any_row"
@@ -4316,7 +4313,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.57s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 47.98s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_write_refuses_an_initially_dirty_tree_before_any_row"
@@ -4338,15 +4335,15 @@
     "old": "        dirty = worktree_status(repo_root)\n        if dirty:\n            # D-103: a clean start is not enough. Handoff edits can land while\n            # a serial run is mutating and restoring sources. Recheck after\n            # every row and before the matrix becomes the authoritative record.",
     "new": "        dirty = worktree_status(repo_root)\n        if False:\n            # D-103: a clean start is not enough. Handoff edits can land while\n            # a serial run is mutating and restoring sources. Recheck after\n            # every row and before the matrix becomes the authoritative record.",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.16s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 51.14s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.31s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.13s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_write_refuses_new_dirt_before_matrix_publication"
@@ -4359,7 +4356,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.16s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 51.14s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_write_refuses_new_dirt_before_matrix_publication"
@@ -4381,15 +4378,15 @@
     "old": "        if not result.get(\"skipped\") or not isinstance(skipped_nodeids, list) or \\\n                not skipped_nodeids or failed_elsewhere.isdisjoint(skipped_nodeids):\n            return \"SURVIVED\"",
     "new": "        if not result.get(\"skipped\"):\n            return \"SURVIVED\"",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.47s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 54.93s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 13.26s",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.07s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_a_skipped_survivor_needs_exact_catching_test_attribution"
@@ -4402,7 +4399,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.47s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 54.93s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_a_skipped_survivor_needs_exact_catching_test_attribution"
@@ -4424,18 +4421,20 @@
     "old": "    return [sys.executable, \"-m\", \"pytest\", \"-p\", OUTCOME_PLUGIN_MODULE,\n            *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
     "new": "    return [sys.executable, \"-m\", \"pytest\",\n            *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
     "verdict": "caught",
-    "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.03s",
+    "pytest": "6 failed, 314 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.86s",
     "results": [
       {
         "platform": "Linux",
-        "release": "7.0.0-30-generic",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
         "python": "3.12.3",
         "git": "git version 2.43.0",
         "verdict": "caught",
-        "pytest": "2 failed, 311 passed, 9 deselected, 16 subtests passed in 13.23s",
+        "pytest": "6 failed, 315 passed, 9 deselected, 16 subtests passed in 9.77s",
         "skipped": 0,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_replay_collects_exact_failed_and_skipped_nodeids",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
         ],
         "skipped_nodeids": []
@@ -4446,11 +4445,12 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 50.03s",
+        "pytest": "6 failed, 314 passed, 1 skipped, 9 deselected, 16 subtests passed in 52.86s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_replay_collects_exact_failed_and_skipped_nodeids",
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
         ],
         "skipped_nodeids": [
@@ -4470,18 +4470,32 @@
     "old": "                        \"PYTHONNOUSERSITE\": \"1\",\n                        \"PYTHONSAFEPATH\": \"1\",",
     "new": "                        \"PYTHONSAFEPATH\": \"1\",",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.95s",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.80s",
     "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.09s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_private_temp_environment_and_pytest_basetemp"
+        ],
+        "skipped_nodeids": []
+      },
       {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.95s",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.80s",
         "skipped": 1,
         "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone"
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_private_temp_environment_and_pytest_basetemp"
         ],
         "skipped_nodeids": [
           "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
@@ -4500,15 +4514,28 @@
     "old": "        command.extend([\"-c\", str(pinned_config)])",
     "new": "        command.extend([\"-p\", \"no:cacheprovider\"])",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.35s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.66s",
     "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.16s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone"
+        ],
+        "skipped_nodeids": []
+      },
       {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.35s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 52.66s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_and_config_injection_from_outside_its_clone"
@@ -4530,15 +4557,28 @@
     "old": "                  f\"{_terminal_safe_diagnostic(result.get('error', 'no row evidence'))}\")",
     "new": "                  f\"{result.get('error', 'no row evidence')}\")",
     "verdict": "caught",
-    "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.23s",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 51.34s",
     "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 10.63s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_console_renders_a_broken_suite_diagnostic_safely"
+        ],
+        "skipped_nodeids": []
+      },
       {
         "platform": "Windows",
         "release": "11",
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 49.23s",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 51.34s",
         "skipped": 1,
         "failed_nodeids": [
           "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_console_renders_a_broken_suite_diagnostic_safely"
@@ -4559,9 +4599,38 @@
     ],
     "old": "    caught = [r for r in results if r[\"verdict\"] == \"caught\"]\n    failed_elsewhere = {",
     "new": "    caught = [r for r in results if r[\"verdict\"] == \"caught\"]\n    if not caught and results and all(r.get(\"skipped\") for r in results):\n        return \"unverified: every host skipped\"\n    failed_elsewhere = {",
-    "verdict": "pending",
-    "pytest": "",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 54.14s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.09s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_a_row_no_host_caught_is_survived_even_under_skips"
+        ],
+        "skipped_nodeids": []
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 54.14s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_a_row_no_host_caught_is_survived_even_under_skips"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-110. With no catching host, a survivor under skips must be SURVIVED; the retired label kept M107 out of a Windows replay's not-caught list at 49fed51. Pending the next authoritative two-host replay."
   },
   {
@@ -4573,9 +4642,40 @@
     ],
     "old": "    for name in (\"PYTHONWARNINGS\", \"PYTHONOPTIMIZE\", \"PYTHONBREAKPOINT\",",
     "new": "    for name in (\"PYTHONBREAKPOINT\",",
-    "verdict": "pending",
-    "pytest": "",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "3 failed, 316 passed, 1 skipped, 9 deselected, 17 subtests passed in 60.31s (0:01:00)",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 317 passed, 9 deselected, 17 subtests passed in 9.82s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_private_temp_environment_and_pytest_basetemp"
+        ],
+        "skipped_nodeids": []
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 316 passed, 1 skipped, 9 deselected, 17 subtests passed in 60.31s (0:01:00)",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_private_temp_environment_and_pytest_basetemp"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-111. PYTHONWARNINGS=error failed a passing probe and PYTHONOPTIMIZE=2 stripped an assertion through the real worker path. Pending the next authoritative two-host replay."
   },
   {
@@ -4587,9 +4687,40 @@
     ],
     "old": "        environment.update({\"GIT_CONFIG_GLOBAL\": str(git_config),",
     "new": "        environment.update({\"GIT_CONFIG_GLOBAL_UNUSED\": str(git_config),",
-    "verdict": "pending",
-    "pytest": "",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "2 failed, 316 passed, 1 skipped, 9 deselected, 18 subtests passed in 53.98s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 317 passed, 9 deselected, 18 subtests passed in 9.17s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_private_temp_environment_and_pytest_basetemp"
+        ],
+        "skipped_nodeids": []
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 316 passed, 1 skipped, 9 deselected, 18 subtests passed in 53.98s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_uses_private_temp_environment_and_pytest_basetemp"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-112. A GIT_CONFIG_GLOBAL file naming core.hooksPath ran a hook from outside the clone during a fixture-shaped commit; a host's git-lfs driver decided M08's verdict. Pending the next authoritative two-host replay."
   },
   {
@@ -4601,9 +4732,38 @@
     ],
     "old": "        name = _terminal_safe_diagnostic(str(row[\"name\"]))",
     "new": "        name = str(row[\"name\"])",
-    "verdict": "pending",
-    "pytest": "",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.91s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 317 passed, 9 deselected, 19 subtests passed in 9.05s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_console_renders_every_matrix_field"
+        ],
+        "skipped_nodeids": []
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 316 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.91s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_console_renders_every_matrix_field"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-115. Ids, names, replacement ids, verdicts, and summary ids from matrix.json printed raw and could forge a summary line. Pending the next authoritative two-host replay."
   },
   {
@@ -4615,9 +4775,40 @@
     ],
     "old": "    if index:\n        environment[\"GIT_CONFIG_COUNT\"] = str(index)",
     "new": "    if False:\n        environment[\"GIT_CONFIG_COUNT\"] = str(index)",
-    "verdict": "pending",
-    "pytest": "",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 59.63s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 316 passed, 9 deselected, 19 subtests passed in 10.00s",
+        "skipped": 0,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_filter_name_containing_an_equals_cannot_run",
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_the_environment_form_expresses_a_name_dash_c_cannot"
+        ],
+        "skipped_nodeids": []
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 315 passed, 1 skipped, 9 deselected, 19 subtests passed in 59.63s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_filter_name_containing_an_equals_cannot_run",
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_the_environment_form_expresses_a_name_dash_c_cannot"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-113. Supersedes M08: the -c overrides failing is recoverable through this path, so the environment neutralization is the guarantee. Caught by two fixture-local filter tests on any host. Pending the next authoritative two-host replay."
   }
 ]
