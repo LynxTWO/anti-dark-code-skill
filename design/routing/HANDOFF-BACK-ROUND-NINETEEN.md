@@ -90,6 +90,26 @@ Twenty-eight hostile hints against eight real routes under the shipped and an al
 - CI on PR #29: run `33654922514` at `49fed51` failed on purpose, `109 mutants, 1 not caught: ['M107']`, which is section 5's first entry. Run `33656382905` at `39d745d` failed its first attempt on the macOS cleanup race in section 5 and passed every job on its second attempt, with the Linux mutation replay ending `109 mutants, 0 not caught: none` and M107, M108, and M109 caught. The Linux side has caught all three new rows on every run since the test correction.
 - The owner walkthrough at the documentation head, and that head's exact CI run, are recorded in section 4a by the receipt commit that follows it. The receipt commit's own run belongs on PR #29.
 
+## 4a. Receipt at the documentation head
+
+The documentation head is `c0b1497`. Required run [`33665998028`](https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/33665998028) at exactly that commit passed every job; the mutation job ran 10m52s and ended `109 mutants, 0 not caught: none`.
+
+| Job | Result | Duration |
+| --- | --- | ---: |
+| Ubuntu / Python 3.12 | success | 44s |
+| Ubuntu / Python 3.13 | success | 38s |
+| Windows / Python 3.12 | success | 1m38s |
+| macOS / Python 3.12 | success | 53s |
+| Hostile environment (C locale) | success | 32s |
+| Hostile environment (international paths) | success | 38s |
+| Clean distribution archive | success | 8s |
+| Mutation replay (Linux) | success | 10m52s |
+| Aggregate `Tests` | success | 3s |
+
+The owner walkthrough was run as written, in PowerShell, on a fresh default clone, `core.autocrlf=true`, detached at `c0b1497`. Every stated expectation held: the six proposed rules; `False` and `[]`; `3 passed`; the `ROUTE` line with `rules=-`; `FRESH`, `STALE` with `ADC-STALE-004 worktree_identity`, `FRESH`; `500 passed, 14 skipped, 64 subtests passed` and no failure; `VALID (universal): 0 errors, 1 warning(s)`; `rows 109 | active 104 | recorded on both hosts 101` with `awaiting host records: ['M107', 'M108', 'M109']`; the four artifacts' expected values, including `True` for both blob comparisons on the CRLF checkout that failed round eighteen's version; D-080, section 9, and twenty-six decision headings printed; and the end state `?? .anti-dark-code/`. One difference the document anticipates: at the moment its `gh pr checks` step ran, eight checks had passed and the mutation job was pending, so the walkthrough says to wait; the completed run above is the receipt. The boxes in section 6 remain unchecked. This round does not approve on the owner's behalf.
+
+This receipt commit follows `c0b1497` and therefore triggers one more exact-head run. Embedding that run here would move the head again; its receipt belongs on PR #29.
+
 ## 5. Round nineteen's own defects
 
 - **M107 survived on Linux in the first CI run of this branch**, run `33654922514` at `49fed51`: `109 mutants, 1 not caught: ['M107']`. The D-105 test attacked through `PYTHONUSERBASE`, and the same change pops that variable, so deleting the `PYTHONNOUSERSITE` line changed nothing the test could observe. The guard that line holds is the interpreter's *default* user site, which no variable names. The test now redirects `HOME` and `APPDATA` into the fixture, plants a `usercustomize.py` in the default user site there, and asserts it does not run; under M107 it runs and the test fails. This is the round's own test grading itself and being wrong about what it graded, caught by the Linux replay job, which is the job D-095 made able to fail.
@@ -100,5 +120,28 @@ Twenty-eight hostile hints against eight real routes under the shipped and an al
 ## 6. What round twenty should do
 
 `design/routing/HANDOFF-CODEX-ROUND-TWENTY.md` has the detail. Codex is out of credits until 2026-09-06, so Claude executes round twenty with a fresh-context challenger agent as the independent attacker. That challenger has already run the attack list against `39d745d`, before this round's documents were committed, and its report is preserved for the round-twenty branch. It broke D-105 again, through `PYTHONWARNINGS`, `PYTHONOPTIMIZE`, and the git-configuration surface the suite's own fixtures inherit; it showed D-106's renderer covers only the error field; it reproduced D-108 and found a second root cause, no `eol=lf` attribute on the matrix; and it upheld R-040 by measurement. Round twenty starts from those results, repairs D-110, refreshes the Linux records from WSL2 Ubuntu, and measures the D-107 options for the owner without deciding them.
+
+## 7. Runtime
+
+About 3h20m from this round's first command to this receipt commit. The authoritative replays alone sum to about 2h49m, most of it overlapped:
+
+| Command | Wall time |
+| --- | ---: |
+| parallel replay at `08d0576`, the currency measurement | 19m29s |
+| parallel replay at `49fed51`, under the first D-105 test | 21m20s |
+| parallel replay at `39d745d` | 19m35s |
+| full serial write at `39d745d` | 1h31m14s |
+| WSL2 Linux full serial write at `39d745d`, for round twenty | 17m20s |
+| a serial write at `49fed51`, stopped after 12 minutes when its head went stale | discarded |
+| owner walkthroughs at `08d0576` and `c0b1497` | about 6m each |
+| fresh-context challenger agent | about 20m, concurrent |
+
+The gap between the replays and the elapsed time was reading round eighteen's record, attacking it, five decisions with tests and rows, one test correction after CI caught the round's own test grading itself wrongly, and the documents.
+
+## 8. Whether this converges
+
+Findings per round have been flat at five or six since round fifteen. What changed is their kind. Rounds fifteen and sixteen found defects in the router: repository code executing during acquisition, a classifier that could be partitioned. Rounds seventeen through nineteen found defects mostly in the replay harness's isolation boundary and its record keeping, and each layer of that boundary reveals the next: plugins, then the user site, then configuration files, then interpreter flags, then git configuration. That series has no floor short of an allowlisted environment or a declared trust boundary, and `PATH` itself is the last layer, which no denylist can close. Round twenty should end that line by decision rather than by exhaustion.
+
+The router's own question, whether the omissions a proposed rule would allow have ever hidden a real failure, has not been measured once, because it is SLICE-002's shadow evidence, and SLICE-001 has waited on the owner's thirty-minute walkthrough since round fourteen. Agents have now passed that walkthrough literally four times. The endpoint is the owner's, and it is one sitting away.
 
 Do not treat this handoff as acceptance of its own contracts. Round eighteen broke three of round seventeen's five within a day, and this round found two more layers beneath round eighteen's.
