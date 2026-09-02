@@ -1,0 +1,210 @@
+{
+  "schema": "round-nineteen-serial-evidence-v1",
+  "purpose": "Windows records refreshed at the round-nineteen implementation head from a full serial --write, with the two read-only parallel replays that measured record currency and the new rows",
+  "implementation_commit": "39d745d5720ef629231a4c17563be818399141f5",
+  "host": {
+    "platform": "Windows",
+    "release": "11",
+    "python": "3.14.2",
+    "git": "git version 2.50.1.windows.1"
+  },
+  "record_currency_before": {
+    "active_rows": 104,
+    "windows_records_without_exact_ids": 91,
+    "measured_by": "full parallel replay at 08d0576, read-only",
+    "parallel_a_commit": "08d0576f1bd50a0d302bb6ac3d953733bed65899",
+    "parallel_a_summary": "106 mutants, 0 not caught: none",
+    "parallel_a_report_sha256": "ff389cb5974a96b0247d4ba8f9946d11fec7790606de2caee4da7e9cb5a4636a",
+    "parallel_a_wall_duration_seconds": 1169,
+    "stale_records_re_measured": 91,
+    "stale_record_disagreements": [
+      "M68 failed count differs: 10 failed, 290 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.56s (0:01:14) vs 11 failed, 301 passed, 1 skipped, 9 deselected, 16 subtests passed in 79.17s (0:01:19)"
+    ]
+  },
+  "first_test_record": {
+    "commit": "49fed5182013d11a6049a07ce527ebc5b414d700",
+    "exit_code": 0,
+    "summary": "109 mutants, 0 not caught: none",
+    "report_sha256": "7e449016ed4d73eab6055721abebe23b7ccbb97a1022a0db5eb9000df04ded1c",
+    "m107": "SURVIVED",
+    "m107_pytest": "314 passed, 1 skipped, 9 deselected, 16 subtests passed in 117.06s (0:01:57)",
+    "wall_duration_seconds": 1280
+  },
+  "parallel_c": {
+    "command": [
+      "python",
+      "design/routing/mutants/replay.py",
+      "--jobs",
+      "8",
+      "--report",
+      "<external>/r19-parallel-c.json"
+    ],
+    "commit": "39d745d5720ef629231a4c17563be818399141f5",
+    "exit_code": 0,
+    "summary": "109 mutants, 0 not caught: none",
+    "disclosure": "3 survived here under skipped tests and rest on another host's record: ['M37', 'M46', 'M48']",
+    "report_sha256": "4041c1367799f0c9ac8b0f46a9aeb9e48249eba9c0f9a1acffbebcc35fc3dc1f",
+    "wall_duration_seconds": 1175,
+    "verdicts": {
+      "caught": 101,
+      "SURVIVED": 3
+    },
+    "cleanup": [
+      {
+        "worker": "worker-0",
+        "clone": "worker-0",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-0-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-1",
+        "clone": "worker-1",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-1-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-2",
+        "clone": "worker-2",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-2-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-3",
+        "clone": "worker-3",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-3-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-4",
+        "clone": "worker-4",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-4-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-5",
+        "clone": "worker-5",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-5-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-6",
+        "clone": "worker-6",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-6-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-7",
+        "clone": "worker-7",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-7-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      }
+    ]
+  },
+  "serial_write": {
+    "command": [
+      "python",
+      "design/routing/mutants/replay.py",
+      "--write",
+      "--report",
+      "<external>/r19-serial-w.json"
+    ],
+    "commit": "39d745d5720ef629231a4c17563be818399141f5",
+    "exit_code": 0,
+    "summary": "109 mutants, 0 not caught: none",
+    "serial_worktree_status_before": [],
+    "serial_worktree_status_after": [
+      " M design/routing/mutants/matrix.json"
+    ],
+    "report_sha256": "18073613eb138403a78d29153f73ec27eb0543e85a547b76c2393862ee4f3adf",
+    "wall_duration_seconds": 5474,
+    "matrix_sha256_before": "da8bd49b79b03d42c7ef90889f64a10cd8e6d27ba0273001abf45cc3b4c34115",
+    "matrix_sha256_after": "7660b7533a22dc745b675a0a480bef0d4e87a985c61851faa45d32f8731d2f6f",
+    "verdicts": {
+      "caught": 101,
+      "SURVIVED": 3
+    },
+    "rows": 109,
+    "linux_records_changed": [],
+    "windows_records_without_exact_ids": [],
+    "new_rows": [
+      {
+        "id": "M107",
+        "verdict": "caught",
+        "results": [
+          [
+            "Windows",
+            "caught"
+          ]
+        ]
+      },
+      {
+        "id": "M108",
+        "verdict": "caught",
+        "results": [
+          [
+            "Windows",
+            "caught"
+          ]
+        ]
+      },
+      {
+        "id": "M109",
+        "verdict": "caught",
+        "results": [
+          [
+            "Windows",
+            "caught"
+          ]
+        ]
+      }
+    ],
+    "agrees_with_parallel_b": true
+  },
+  "boundaries": {
+    "routing_rule_approved": false,
+    "selective_execution_enabled": false,
+    "slice_001_marked_done": false,
+    "matrix_written_by": "the full serial --write at the implementation head; both parallel reports are read-only evidence",
+    "linux_records_refreshed_this_round": false
+  }
+}
