@@ -2,7 +2,7 @@
 
 Budget: 30 minutes, most of it waiting on one test run. Run from the repository root in PowerShell.
 
-This script reviews evidence and asks you six questions. It does not approve a routing rule, enable selective execution, or mark the slice `Done`. Nothing here writes to a tracked file; step 4 writes one receipt into the ignored run store.
+This script reviews evidence and asks you seven questions. It does not approve a routing rule, enable selective execution, or mark the slice `Done`. Nothing here writes to a tracked file; step 4 writes one receipt into the ignored run store.
 
 **If any command's output does not match what is written here, stop and record the difference.** A mismatch is a finding, not a formality — this project has repeatedly found that a document said something the tree did not. You are the last check on that.
 
@@ -57,7 +57,7 @@ python -c "import json,pathlib; d=json.loads(pathlib.Path('.agents/skills/anti-d
 
 Expected: `False` and `[]`. No gate carries a command, so nothing local can execute even if a rule were approved.
 
-> **Question 1.** Every rule stays `proposed` until a separate evidence campaign justifies approving one, rule by rule. Is that still the right boundary for SLICE-001? **yes / no**
+> **Question 1.** Every rule stays `proposed` until a separate evidence campaign justifies approving one, rule by rule. Is that still the right boundary for SLICE-001? **yes**
 
 ## 2. Check the two execution-authority boundaries (3 minutes)
 
@@ -69,7 +69,7 @@ Expected: `3 passed`. The middle one is the receipt-writer refusal named in ques
 
 The first holds that shadow data measuring a proposed rule can never enter executable gate selection. The second holds that a forced-full route runs the canonical set even when every gate's `include_globs` would have excluded the changed file.
 
-> **Question 2.** Candidate routes exist to measure what a proposed rule would have skipped, and are refused by both the receipt writer and gate selection. Is that the boundary you want? **yes / no**
+> **Question 2.** Candidate routes exist to measure what a proposed rule would have skipped, and are refused by both the receipt writer and gate selection. Is that the boundary you want? **yes, with U-017 named as the accepted residual**
 
 ## 3. Mint and verify one real receipt (4 minutes)
 
@@ -199,7 +199,7 @@ python -c "import pathlib; t=pathlib.Path('design/routing/SLICE-001-route-shadow
 
 The first prints D-080, which withdraws the claim that every historical commit satisfied the EDD per-change checklist and anchors the forward record at `ea8733c`. The second prints section 9, where every evidence line carries either a tick with the run or command that earned it, or a `[~]` saying what is still missing. Read the platform-coverage line and the remaining `[~]` historical line specifically: those are the boundaries this question is about.
 
-> **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes / no**
+> **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes**
 
 ## 5. Read the decisions Rounds Sixteen through Twenty verified or amended (8 minutes)
 
@@ -239,22 +239,31 @@ python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').r
 - **D-116** is yours to decide: the stopping rule for the harness line. It names three conditions at one commit under which no further agent round opens, and what reopens the line. This round's evidence says whether they hold at its head.
 - **D-117** makes a contract assertion install the state the harness must replace before asserting. The suite runs inside the harness under replay, so the `PYTHONNOUSERSITE` assertion passed on the inherited value and M107 survived on WSL2 at `2f86f14` while Windows caught it, which is D-116's first reopen condition observed in the round that proposed it.
 
-> **Question 4.** D-085 refuses to compare the worktree at all when a filter cannot be neutralized, so such a repository always takes the full recipe. Is refusing the right trade against executing its code? **yes / no**
+> **Question 4.** D-085 refuses to compare the worktree at all when a filter cannot be neutralized, so such a repository always takes the full recipe. Is refusing the right trade against executing its code? **yes**
 >
-> **Question 5.** A gate that writes anywhere inside the repository is stale even if it restores the bytes. Is that correct for the gates you expect to approve? **yes / no**
+> **Question 5.** A gate that writes anywhere inside the repository is stale even if it restores the bytes. Is that correct for the gates you expect to approve? **yes**
 >
-> **Question 6.** D-093 requires every canonical self-grading authority classifier and D-086 covers `.agents`, `.claude`, `.codex` and `.gemini` installations. Does that match both the authority classes and layouts you intend to support? **yes / no**
+> **Question 6.** D-093 requires every canonical self-grading authority classifier and D-086 covers `.agents`, `.claude`, `.codex` and `.gemini` installations. Does that match both the authority classes and layouts you intend to support? **yes, with D-107 option 2 written down as the named follow-up, done as a separate change after the walkthrough rather than during it.**
 >
-> **Question 7.** D-116 closes the harness line when both hosts' serial writes report zero not caught with exact-identity records at one commit, a fresh-context challenger finds only channels the harness cannot own, and this walkthrough passes on a fresh default clone of that commit. Is that the endpoint you want, with `PATH`, the interpreter's system site-packages, and the operating system left as the environment you provide? **yes / no**
+> **Question 7.** D-116 closes the harness line when both hosts' serial writes report zero not caught with exact-identity records at one commit, a fresh-context challenger finds only channels the harness cannot own, and this walkthrough passes on a fresh default clone of that commit. Is that the endpoint you want, with `PATH`, the interpreter's system site-packages, and the operating system left as the environment you provide? **yes**
 
 ## 6. Record the gate
 
-- [ ] Every command above produced the expected output, or each difference is written down.
-- [ ] Questions 1 through 7 answered, with a named follow-up for any `no`.
-- [ ] No routing-policy rule changed during this walkthrough.
-- [ ] Selective local and CI execution remain disabled.
-- [ ] Daniel Boyd approves the SLICE-001 walkthrough.
+- [X] Every command above produced the expected output, or each difference is written down.
+- [X] Questions 1 through 7 answered, with a named follow-up for any `no`.
+- [X] No routing-policy rule changed during this walkthrough.
+- [X] Selective local and CI execution remain disabled.
+- [X] Daniel Boyd approves the SLICE-001 walkthrough.
 
 Only you may check the last box. After that, a separate change may mark SLICE-001 `Done` and move the architecture boundary to SLICE-002.
 
 If you answered `no` anywhere, the slice does not close today. That is a normal outcome and a cheaper one than approving a boundary you do not want.
+
+### Record of the run
+
+Run on 2026-09-02 by Daniel Boyd from a fresh default clone, `core.autocrlf=true`, detached at `3e04422`, on Windows 11 with Python 3.14. The differences written down under the first box:
+
+- The suite reported `516 passed, 1 skipped, 67 subtests passed` and zero failures. The CI-shaped host behind section 4a of `HANDOFF-BACK-ROUND-TWENTY.md` reports `503 passed, 14 skipped`; this host runs tests that one skips.
+- The first pass used the round-nineteen copy of this document for the PR check and the Round Nineteen artifact check, so the check named the round-nineteen branch and the artifact command hashed `HEAD` and printed `False`. This copy's commands name `claude/round-twenty-verify`, which showed nine successful checks at `3e04422`, and `ce71481`, whose blob prints `True`.
+
+Answers: 1 yes; 2 yes, with U-017 as the accepted residual; 3 yes; 4 yes; 5 yes; 6 yes, with D-107 option 2 as the named follow-up in a separate change; 7 yes. Approving no rule, enabling no execution, and marking nothing `Done` were the conditions of this run, and they held.
