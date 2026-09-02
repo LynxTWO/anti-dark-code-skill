@@ -12,6 +12,8 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 
 _nodeids: list[str] = []
 _reports: dict[str, list[tuple[str, str]]] = {}
@@ -35,6 +37,7 @@ def pytest_collection_finish(session) -> None:
         _nodeids = [item.nodeid for item in session.items]
 
 
+@pytest.hookimpl(optionalhook=True)
 def pytest_xdist_node_collection_finished(node, ids) -> None:
     """Require every xdist worker to collect the same exact ordered set."""
     global _nodeids

@@ -31,10 +31,12 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 MATRIX = Path(__file__).with_name("matrix.json")
+OUTCOME_PLUGIN_MODULE = "design.routing.mutants.exact_nodeid_plugin"
 
 
 def host_identity() -> dict:
@@ -85,11 +87,23 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def suite_command(paths) -> list[str]:
-    return [sys.executable, "-m", "pytest", *paths, "-q", "-k", INTEGRITY_FILTER]
+    return [sys.executable, "-m", "pytest", "-p", OUTCOME_PLUGIN_MODULE,
+            *paths, "-q", "-k", INTEGRITY_FILTER]
 
 
 class SuiteBroken(RuntimeError):
     """The suite did not run, so the mutant proved nothing either way."""
+
+
+class SuiteOutcome(tuple):
+    """Backward-compatible pytest tuple with exact failed/skip identities."""
+
+    def __new__(cls, exit_code: int, summary: str, skipped: int,
+                failed_nodeids=(), skipped_nodeids=()):
+        outcome = super().__new__(cls, (exit_code, summary, skipped))
+        outcome.failed_nodeids = tuple(failed_nodeids)
+        outcome.skipped_nodeids = tuple(skipped_nodeids)
+        return outcome
 
 
 def sha256_bytes(contents: bytes) -> str:
@@ -108,6 +122,21 @@ def commit_identity(repo_root: Path) -> str:
     return done.stdout.strip() if done.returncode == 0 else "unknown"
 
 
+def worktree_status(repo_root: Path) -> tuple[str, ...]:
+    """Return exact porcelain rows or refuse an unreadable repository."""
+    try:
+        done = subprocess.run(
+            ["git", "status", "--porcelain=v1"], cwd=repo_root,
+            capture_output=True, check=False)
+    except OSError as caught:
+        raise RuntimeError(f"git status could not start: {caught}") from caught
+    if done.returncode:
+        raise RuntimeError("git status failed: the worktree is not a readable repository")
+    return tuple(line for line in
+                 done.stdout.decode("utf-8", "replace").splitlines()
+                 if line.strip())
+
+
 def _summary_is_anchored(summary: str) -> bool:
     return PYTEST_SUMMARY.fullmatch(summary) is not None
 
@@ -123,7 +152,36 @@ def _skipped_from_summary(summary: str) -> int:
     return 0
 
 
-def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, str, int]:
+def _exact_outcomes(contents: str | None, exit_code: int,
+                    skipped: int) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Read and validate the tracked plugin's exact per-node outcome record."""
+    try:
+        payload = json.loads(contents) if contents is not None else None
+    except (TypeError, json.JSONDecodeError) as caught:
+        raise SuiteBroken(f"pytest exact outcome evidence is unreadable: {caught}") from caught
+    if not isinstance(payload, dict):
+        raise SuiteBroken("pytest exact outcome evidence is unreadable")
+    collected = payload.get("collect_nodeids")
+    outcomes = payload.get("outcomes")
+    if payload.get("exitstatus") != exit_code or not isinstance(collected, list) or \
+            not all(isinstance(nodeid, str) for nodeid in collected) or \
+            len(collected) != len(set(collected)) or not isinstance(outcomes, dict) or \
+            set(outcomes) != set(collected) or not all(
+                outcome in {"passed", "failed", "error", "skipped", "missing"}
+                for outcome in outcomes.values()):
+        raise SuiteBroken("pytest exact outcome evidence does not match the suite")
+    if payload.get("missing"):
+        raise SuiteBroken("pytest exact outcome evidence has missing test reports")
+    failed_nodeids = tuple(
+        nodeid for nodeid in collected if outcomes[nodeid] in {"failed", "error"})
+    skipped_nodeids = tuple(
+        nodeid for nodeid in collected if outcomes[nodeid] == "skipped")
+    if len(skipped_nodeids) != skipped:
+        raise SuiteBroken("pytest exact skipped identities do not match its summary")
+    return failed_nodeids, skipped_nodeids
+
+
+def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> SuiteOutcome:
     """Return the pytest exit, exact summary line, and skipped count.
 
     A mutant is caught when tests fail. It is not caught when they pass. A
@@ -133,7 +191,7 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
     """
     execution_cwd = _WORKER_SUITE_CWD or repo_root
     command_paths = paths
-    environment = None
+    environment = dict(os.environ)
     if _WORKER_SUITE_CWD is not None:
         command_paths = tuple(
             str(path if Path(path).is_absolute() else repo_root / path)
@@ -150,15 +208,34 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
         # another clone. The clone is the only directory a worker owns, so it
         # is the only acceptable root. See D-098.
         command.append(f"--rootdir={repo_root}")
+        # A rootdir contains conftest discovery, not pytest's environment or
+        # Python import path. Measured before D-101: PYTEST_ADDOPTS loaded a
+        # plugin from the coordinator through PYTHONPATH while the clone-owned
+        # suite passed. Workers accept only their explicit command and frozen
+        # clone, so caller plugin controls and import paths do not cross this
+        # boundary.
+    for name in ("PYTEST_ADDOPTS", "PYTEST_PLUGINS", "PYTEST_DEBUG",
+                 "PYTHONPATH"):
+        environment.pop(name, None)
+    environment.update({"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+                        "PYTHONSAFEPATH": "1",
+                        "PYTHONPATH": str(repo_root)})
     if _WORKER_TEMP_ROOT is not None:
         pytest_root = _WORKER_TEMP_ROOT / "pytest"
         command.append(f"--basetemp={pytest_root}")
-        environment = dict(os.environ)
         environment.update({"TMP": str(_WORKER_TEMP_ROOT),
                             "TEMP": str(_WORKER_TEMP_ROOT),
                             "TMPDIR": str(_WORKER_TEMP_ROOT)})
-    done = subprocess.run(command, cwd=execution_cwd, env=environment,
-                          capture_output=True, text=True)
+    with tempfile.TemporaryDirectory(
+            prefix="adc-pytest-outcomes-", dir=_WORKER_TEMP_ROOT) as raw_outcomes:
+        outcome_target = Path(raw_outcomes) / "outcomes.json"
+        environment["ADC_EVIDENCE_OUTCOMES"] = str(outcome_target)
+        done = subprocess.run(command, cwd=execution_cwd, env=environment,
+                              capture_output=True, text=True)
+        try:
+            outcome_contents = outcome_target.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            outcome_contents = None
     tail = (done.stdout or done.stderr).strip().splitlines()
     summary = tail[-1] if tail else "no output"
     diagnostic = ((done.stdout or "") + (done.stderr or "")).strip()
@@ -177,7 +254,10 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
     skipped = _skipped_from_summary(summary)
     if done.returncode not in (0, 1):
         raise SuiteBroken(f"pytest exit {done.returncode}: {summary}; output: {diagnostic}")
-    return done.returncode, summary, skipped
+    failed_nodeids, skipped_nodeids = _exact_outcomes(
+        outcome_contents, done.returncode, skipped)
+    return SuiteOutcome(done.returncode, summary, skipped,
+                        failed_nodeids, skipped_nodeids)
 
 
 def _row_evidence(row: dict, host: dict, worker: str, commit: str,
@@ -186,6 +266,7 @@ def _row_evidence(row: dict, host: dict, worker: str, commit: str,
     return {
         "id": row["id"], "status": "inconclusive", "verdict": "INCONCLUSIVE",
         "caught": None, "exit_code": None, "pytest": None, "skipped": 0,
+        "failed_nodeids": [], "skipped_nodeids": [],
         "source_hash_before": before, "source_hash_after": before,
         "source_after_state": "unknown",
         "restored": False, "commit": commit, "worker": worker,
@@ -215,10 +296,15 @@ def run_row(repo_root: Path, row: dict, host: dict, worker: str) -> dict:
     try:
         source.write_bytes(original.replace(old, new, 1))
         try:
-            exit_code, summary, skipped = run_suite(
+            suite_outcome = run_suite(
                 tuple(row.get("suite", DEFAULT_SUITE)), repo_root)
+            exit_code, summary, skipped = suite_outcome
             result["pytest"] = summary
             result["skipped"] = skipped
+            result["failed_nodeids"] = list(
+                getattr(suite_outcome, "failed_nodeids", ()))
+            result["skipped_nodeids"] = list(
+                getattr(suite_outcome, "skipped_nodeids", ()))
             result["exit_code"] = exit_code
             if not PYTEST_SUMMARY.fullmatch(summary):
                 raise SuiteBroken(
@@ -380,16 +466,7 @@ def _verify_clean_worktree(repo_root: Path) -> None:
     included, because an untracked conftest.py changes the suite as surely as
     a tracked edit. See D-096.
     """
-    try:
-        done = subprocess.run(["git", "status", "--porcelain"], cwd=repo_root,
-                              capture_output=True, check=False)
-    except OSError as caught:
-        raise RuntimeError(f"git status could not start: {caught}") from caught
-    if done.returncode:
-        raise RuntimeError(
-            "git status failed: the coordinator is not a readable repository")
-    dirty = [line for line in done.stdout.decode("utf-8", "replace").splitlines()
-             if line.strip()]
+    dirty = worktree_status(repo_root)
     if dirty:
         raise RuntimeError(
             f"working tree differs from HEAD in {len(dirty)} path(s); commit or "
@@ -402,10 +479,13 @@ def _verify_coordinator_sources(repo_root: Path, commit: str) -> None:
     try:
         matrix_relative = MATRIX.resolve().relative_to(REPO_ROOT.resolve())
         replay_relative = Path(__file__).resolve().relative_to(REPO_ROOT.resolve())
+        plugin_relative = Path(__file__).with_name(
+            "exact_nodeid_plugin.py").resolve().relative_to(REPO_ROOT.resolve())
     except ValueError as caught:
         raise RuntimeError("replay authority paths are outside the coordinator") from caught
     matrix_path = repo_root / matrix_relative
-    _verify_working_sources(repo_root, commit, {matrix_relative, replay_relative})
+    _verify_working_sources(
+        repo_root, commit, {matrix_relative, replay_relative, plugin_relative})
     _verify_working_sources(
         repo_root, commit, _active_matrix_sources(matrix_path))
 
@@ -560,8 +640,26 @@ def _parallel_error(prefix: str, caught: BaseException, owned_root: Path) -> str
     return f"{prefix}: {detail}"
 
 
+def _terminal_safe_diagnostic(value: str, limit: int = 2000) -> str:
+    """Render untrusted text as one bounded line without terminal controls."""
+    rendered: list[str] = []
+    remaining = limit
+    for character in value:
+        category = unicodedata.category(character)
+        token = (character.encode("unicode_escape").decode("ascii")
+                 if category in {"Cc", "Cf", "Zl", "Zp"} else character)
+        if len(token) > remaining:
+            break
+        rendered.append(token)
+        remaining -= len(token)
+        if remaining == 0:
+            break
+    return "".join(rendered)
+
+
 WORKER_RESULT_FIELDS = frozenset({
     "id", "status", "verdict", "caught", "exit_code", "pytest", "skipped",
+    "failed_nodeids", "skipped_nodeids",
     "source_hash_before", "source_hash_after", "source_after_state", "restored",
     "commit", "worker", "host", "duration", "matrix_index", "clone_retired",
 })
@@ -585,7 +683,8 @@ def _validate_worker_result(item: object, index: int, row: dict,
         # round-seventeen parallel run reported for 59 rows whose real error
         # was a collection failure. The row stays inconclusive either way;
         # the reason is what a reader needs. See D-099.
-        return f"worker row {item.get('status')}: {item['error'][:2000]}"
+        return (f"worker row {item.get('status')}: "
+                f"{_terminal_safe_diagnostic(item['error'])}")
     if set(item) != WORKER_RESULT_FIELDS:
         return "worker result schema does not match the required evidence fields"
     if item["matrix_index"] != index or isinstance(item["matrix_index"], bool):
@@ -613,6 +712,14 @@ def _validate_worker_result(item: object, index: int, row: dict,
     if type(item["skipped"]) is not int or item["skipped"] < 0 or \
             item["skipped"] != _skipped_from_summary(summary):
         return "worker result skip count is incompatible with pytest summary"
+    for field in ("failed_nodeids", "skipped_nodeids"):
+        nodeids = item[field]
+        if not isinstance(nodeids, list) or \
+                not all(isinstance(nodeid, str) and nodeid for nodeid in nodeids) or \
+                len(nodeids) != len(set(nodeids)):
+            return f"worker result {field} are not exact unique node ids"
+    if len(item["skipped_nodeids"]) != item["skipped"]:
+        return "worker result skipped node ids do not match the skip count"
     before = item["source_hash_before"]
     after = item["source_hash_after"]
     if not isinstance(before, str) or not SHA256.fullmatch(before) or \
@@ -844,12 +951,20 @@ def derive_verdict(results) -> str:
     stored foreign catch.
     """
     caught = [r for r in results if r["verdict"] == "caught"]
-    if any(r["verdict"] == "SURVIVED" and not r.get("skipped") for r in results):
-        return "SURVIVED"
+    if not caught and results and all(r.get("skipped") for r in results):
+        return "unverified: every host skipped"
+    failed_elsewhere = {
+        nodeid for result in caught for nodeid in result.get("failed_nodeids", ())
+    }
+    for result in results:
+        if result["verdict"] != "SURVIVED":
+            continue
+        skipped_nodeids = result.get("skipped_nodeids")
+        if not result.get("skipped") or not isinstance(skipped_nodeids, list) or \
+                not skipped_nodeids or failed_elsewhere.isdisjoint(skipped_nodeids):
+            return "SURVIVED"
     if caught:
         return "caught" if len(caught) == len(results) else "caught elsewhere"
-    if results and all(r.get("skipped") for r in results):
-        return "unverified: every host skipped"
     return "SURVIVED"
 
 
@@ -888,7 +1003,9 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
         results = {r["platform"]: r for r in row.get("results", [])}
         results[host["platform"]] = {**host, "verdict": verdict,
                                      "pytest": result["pytest"],
-                                     "skipped": result["skipped"]}
+                                     "skipped": result["skipped"],
+                                     "failed_nodeids": result["failed_nodeids"],
+                                     "skipped_nodeids": result["skipped_nodeids"]}
         row["results"] = [results[k] for k in sorted(results)]
         # Caught anywhere is caught. A host that cannot exercise the guarantee
         # reports a skip, and a skip is not evidence of absence.
@@ -918,6 +1035,14 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
             # this guard was being written, and git had to restore it.
             print("  --write refused for a filtered run: it would truncate the "
                   "matrix to the rows just replayed")
+            return 2
+        dirty = worktree_status(repo_root)
+        if dirty:
+            # D-103: a clean start is not enough. Handoff edits can land while
+            # a serial run is mutating and restoring sources. Recheck after
+            # every row and before the matrix becomes the authoritative record.
+            print(f"  --write refused: working tree changed during serial replay "
+                  f"and now differs from HEAD in {len(dirty)} path(s)")
             return 2
         MATRIX.write_text(json.dumps(rows, indent=2) + "\n",
                           encoding="utf-8", newline="\n")
@@ -976,8 +1101,29 @@ def main(argv: list[str]) -> int:
     before = matrix_sha256()
     evidence: list[dict] = []
     cleanup: list[dict] = []
-    outcome = replay(rows, write, wanted_subset=bool(wanted), repo_root=REPO_ROOT,
-                     evidence=evidence, cleanup=cleanup, jobs=jobs)
+    serial_status_before: tuple[str, ...] | None = None
+    serial_status_after: tuple[str, ...] | None = None
+    if jobs == 1:
+        try:
+            serial_status_before = worktree_status(REPO_ROOT)
+        except RuntimeError as caught:
+            print(f"serial replay refused: {caught}")
+            return 2
+    if jobs == 1 and write and serial_status_before:
+        # Read-only serial replay deliberately remains useful on a labelled
+        # dirty tree. Only matrix publication requires a clean endpoint.
+        print(f"--write refused before serial replay: working tree differs from "
+              f"HEAD in {len(serial_status_before)} path(s)")
+        outcome = 2
+    else:
+        outcome = replay(rows, write, wanted_subset=bool(wanted), repo_root=REPO_ROOT,
+                         evidence=evidence, cleanup=cleanup, jobs=jobs)
+    if jobs == 1:
+        try:
+            serial_status_after = worktree_status(REPO_ROOT)
+        except RuntimeError as caught:
+            print(f"serial replay endpoint could not be recorded: {caught}")
+            outcome = 2
     after = matrix_sha256()
     if report is not None:
         report_commit = (evidence[0]["commit"] if jobs > 1 and evidence
@@ -989,6 +1135,10 @@ def main(argv: list[str]) -> int:
             "matrix_sha256_after": after,
             "rows": evidence,
             "cleanup": cleanup,
+            "serial_worktree_status_before": (
+                list(serial_status_before) if serial_status_before is not None else None),
+            "serial_worktree_status_after": (
+                list(serial_status_after) if serial_status_after is not None else None),
         }, indent=2) + "\n", encoding="utf-8", newline="\n")
     return outcome
 

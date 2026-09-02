@@ -9,13 +9,16 @@ This script reviews evidence and asks you six questions. It does not approve a r
 ## 0. Get onto the reviewed tree (2 minutes)
 
 ```powershell
-git fetch origin
-git switch --detach origin/claude/round-seventeen-verify
+$reviewedHead = git rev-parse HEAD
+git switch --detach $reviewedHead
 git log -1 --format="%h %s"
 git status --short
 ```
 
-`--detach` on purpose. A plain `git checkout` of that branch exits 128 if any worktree already holds it, which is likely: the agents that produced this work keep their own worktrees. Detaching reads the same commit without claiming the branch.
+Start from a fresh clone of `codex/round-eighteen-verify`. The variable freezes
+the head that supplied this walkthrough, and `--detach` keeps every later
+command on that exact commit. Do not fetch or switch to a newer commit during
+the walkthrough.
 
 Expected: `git status --short` prints nothing, or only untracked `.anti-dark-code/`, which is the local run store.
 
@@ -102,7 +105,7 @@ Expected: `STALE` with `ADC-STALE-004 worktree_identity`, then `FRESH` again onc
 python -m pytest anti-dark-code/tests -q -p no:cacheprovider
 ```
 
-**The pass count is host-dependent, so read the failure count, not the total.** Expected: `0 failed`. The Round Seventeen Windows evidence host reported `491 passed, 14 skipped, 64 subtests passed`; another host may run tests this host skips. A different total is not a finding. A failure is.
+**The pass count is host-dependent, so read the failure count, not the total.** Expected: `0 failed`. Another host may run tests this host skips. A different total is not a finding. A failure is.
 
 Roughly three minutes.
 
@@ -121,24 +124,41 @@ python -c "import json,pathlib; rows=json.loads(pathlib.Path('design/routing/mut
 Expected:
 
 ```text
-rows 99 | active 94 | recorded on both hosts 91
-awaiting host records: ['M97', 'M98', 'M99']
+rows 106 | active 101 | recorded on both hosts 101
+awaiting host records: []
 ```
 
-Ninety-one active rows carry both authoritative Windows and T540P Linux records. M97, M98, and M99 were added in Round Seventeen to hold D-095, D-096, and D-098; they carry the Windows record from this round's serial oracle run and await the next T540P run for their per-row Linux record. The Linux CI job replays them on every run of this branch, so the Linux fact exists before the record does. M92 is one of five superseded rows: the frozen Linux replay measured it surviving after D-093 made its old path-loop attack redundant, and D-094 records why the stronger M96 authority-contract mutant replaces it. M96 was caught on both hosts.
+Every active row carries authoritative Windows and T540P Linux records. M97,
+M98, and M99 now have the per-row Linux record that Round Seventeen lacked.
+M37, M46, and M48 are `caught elsewhere`: Windows skipped the exact test that
+failed for each mutant on Linux. M92 is one of five superseded rows. D-094
+records why M96 replaces its inert path-loop attack.
 
 ```powershell
 python -c "import json,pathlib; d=json.loads(pathlib.Path('design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json').read_text()); print('execution_commit =', d['execution_commit']); print('matrix_sha256 =', d['matrix_sha256']); print('adoption =', d['adoption']); print('gates =', d['gates'])"
-gh pr checks claude/round-seventeen-verify
 ```
 
-Expected from the first command: execution commit `f3d08a45d4f0b2fb9f1e62b97014187dd2853977`, matrix SHA-256 `d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`, adoption `adopted`, and four empty gate lists. That artifact describes the Round Sixteen matrix; Round Seventeen added two rows, so the current matrix digest differs from it by design. Expected from the second: every required PR check passes on the final Round Seventeen branch head. If CI is pending, wait; if a check fails, stop.
+Expected: execution commit `f3d08a45d4f0b2fb9f1e62b97014187dd2853977`, matrix SHA-256 `d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`, adoption `adopted`, and four empty gate lists. This is the historical Round Sixteen adoption artifact. Its matrix digest is not the current digest.
 
 ```powershell
 python -c "import json,pathlib; d=json.loads(pathlib.Path('design/routing/PARALLEL-EVIDENCE-ROUND-SEVENTEEN.json').read_text()); print('execution_commit =', d['execution_commit']); print('summary =', d['parallel']['summary']); print('report_sha256 =', d['parallel']['report_sha256']); print('serial rows =', [(r['id'], r['verdict']) for r in d['serial_oracle']['rows']]); print('first run =', d['first_run_before_d098']['status_counts']); print('boundaries =', d['boundaries'])"
 ```
 
 Expected: execution commit `4b24122a6051109461d4d82826af34a6a84fca68`, summary `99 mutants, 0 not caught: none`, report SHA-256 `70da49098da9aa02361552c4edb9f925afcfd7ddc18ba241cd985c09b58c0024`, serial rows `M97`, `M98`, and `M99` all `caught`, a first run recorded with 59 inconclusive rows, and boundaries with every flag `False` and the matrix written from serial observations only. That first run is the D-098 measurement, kept rather than discarded: the same command failed before the fix under the same churn.
+
+```powershell
+python -c "import hashlib,json,pathlib; d=json.loads(pathlib.Path('design/routing/SERIAL-EVIDENCE-ROUND-EIGHTEEN.json').read_text()); x=d['t540p_full_write_replay']; h=hashlib.sha256(pathlib.Path('design/routing/mutants/matrix.json').read_bytes()).hexdigest(); assert h==x['final_annotated_matrix_sha256']; print('execution commit =', d['linux_execution_commit']); print('rows/completed/superseded =', x['rows'], x['completed'], x['superseded']); print('not caught =', x['not_caught']); print('M97-M99 =', x['m97_m99']); print('final matrix =', h); print('boundaries =', d['boundaries'])"
+gh pr checks codex/round-eighteen-verify
+```
+
+Expected from the first command: execution commit
+`c8466606b00677200756967adb0acf30bddd057f`, `106 101 5`, an empty
+`not caught` list, M97 through M99 all `caught`, final matrix SHA-256
+`d1eb1f3c8790da323c322e683e7e36a5e73306d2081c53bc2ca3e003b2635301`,
+and every protected boundary `False` except the statement that the matrix came
+from full serial Linux results. Expected from the second command: every
+required PR check passes on this walkthrough's exact head. If CI is pending,
+wait. If a check fails, stop.
 
 **Do not run `design/routing/mutants/replay.py` here.** It rewrites tracked source files and restores them; a replay belongs in a disposable clone.
 
@@ -153,10 +173,10 @@ The first prints D-080, which withdraws the claim that every historical commit s
 
 > **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes / no**
 
-## 5. Read the decisions Rounds Sixteen and Seventeen verified or amended (6 minutes)
+## 5. Read the decisions Rounds Sixteen through Eighteen verified or amended (6 minutes)
 
 ```powershell
-python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094','D-095','D-096','D-097','D-098','D-099')]"
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094','D-095','D-096','D-097','D-098','D-099','D-100','D-101','D-102','D-103','D-104')]"
 ```
 
 - **D-085** stops repository code executing during acquisition. A content filter whose name contains `=` escaped the neutralization and ran; the neutralization is now verified against effective configuration instead of assumed.
@@ -169,9 +189,14 @@ python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').r
 - **D-094** supersedes M92 with M96 because D-093 made M92's old replacement semantically inert; it does not disguise the measured Linux survivor.
 - **D-095** makes a survivor on a host that skipped nothing a survivor everywhere. Before it, a stored catch from the other host turned a fresh local survivor into `caught elsewhere` and kept the replay, and the Linux CI job, at exit 0; the Round Sixteen Linux replay that measured M92 surviving exited 0 for exactly that reason.
 - **D-096** makes a parallel replay refuse a coordinator tree that differs from HEAD, because its clones are built from HEAD while the serial path tests the disk. One uncommitted test edit had made M57 survive serially and be caught in parallel.
-- **D-097** makes the helper-naming convention executable: every script under `anti-dark-code/scripts/` is authority by its `adc*` name or a reviewed standalone script that `adc.py` never names.
+- **D-097** attempted to make the helper-naming convention executable. Round Eighteen broke its quoted-loader scan and replaced it with D-100.
 - **D-098** roots each parallel worker's pytest at its own clone. Rooted at the common ancestor of the coordinator and the clone, which on this host was the machine-wide temp directory, 59 rows died in collection the moment another process removed a temp entry.
 - **D-099** makes the coordinator report an inconclusive worker row's own reason instead of a sentence about field names, which is all the first run of D-098's failure had to show.
+- **D-100** classifies every shipped Python script as verification authority by its directory, not its name or a loader scan.
+- **D-101** removes caller pytest options and plugin paths, disables automatic plugins, and gives replay an explicit tracked outcome plugin.
+- **D-102** renders control and format characters as visible escapes before a worker diagnostic reaches the terminal.
+- **D-103** labels dirty read-only serial replay and requires a clean start plus a clean pre-publication check for `--write`.
+- **D-104** requires an exact skipped-node and failed-node intersection before another host can carry a skipped survivor.
 
 > **Question 4.** D-085 refuses to compare the worktree at all when a filter cannot be neutralized, so such a repository always takes the full recipe. Is refusing the right trade against executing its code? **yes / no**
 >

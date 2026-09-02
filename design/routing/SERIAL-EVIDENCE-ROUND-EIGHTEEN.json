@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "round": 18,
+  "date": "2026-09-02",
+  "implementation_commit": "da15c0d9faef2ce90dd2e4c6a889e812a1d71526",
+  "windows_record_commit": "c8466606b00677200756967adb0acf30bddd057f",
+  "linux_execution_commit": "c8466606b00677200756967adb0acf30bddd057f",
+  "windows_exact_replay": {
+    "host": {
+      "platform": "Windows",
+      "release": "11",
+      "python": "3.14.2",
+      "git": "git version 2.50.1.windows.1"
+    },
+    "clone_core_autocrlf": false,
+    "clean_status_before": true,
+    "clean_status_after": true,
+    "rows": [
+      "M37",
+      "M46",
+      "M48",
+      "M100",
+      "M101",
+      "M102",
+      "M103",
+      "M104",
+      "M105",
+      "M106"
+    ],
+    "row_duration_sum_seconds": 583.6434611000041,
+    "report_sha256": "24e1d6f869ac466a017e52910bff2e5e8c253100bdf7111de6de6e3fe1988376",
+    "survivors_under_exact_skip": [
+      "M37",
+      "M46",
+      "M48"
+    ],
+    "caught": [
+      "M100",
+      "M101",
+      "M102",
+      "M103",
+      "M104",
+      "M105",
+      "M106"
+    ]
+  },
+  "t540p_full_write_replay": {
+    "host": {
+      "platform": "Linux",
+      "release": "7.0.0-30-generic",
+      "python": "3.12.3",
+      "pytest": "9.1.1",
+      "git": "git version 2.43.0"
+    },
+    "bundle_sha256": "f9fb53ab6f6352d5c78dcb654a555fdd9e28d73fb12d914437a8750c6d57a856",
+    "clone_core_autocrlf": false,
+    "serial_worktree_status_before": [],
+    "serial_worktree_status_after": [
+      " M design/routing/mutants/matrix.json"
+    ],
+    "command": "<external-venv>/bin/python design/routing/mutants/replay.py --write --report <external>",
+    "exit_code": 0,
+    "rows": 106,
+    "completed": 101,
+    "superseded": 5,
+    "not_caught": [],
+    "row_duration_sum_seconds": 1469.3390162059222,
+    "matrix_sha256_before": "420f0e82b36ef68c954c04ae8afb5b6421d0aafc916181ba1d49ca035eac9d30",
+    "matrix_sha256_after": "0d6f375a8563c4f0fd995c49d322cb155550d3a060dd44b7cb06ee002c792dcb",
+    "final_annotated_matrix_sha256": "d1eb1f3c8790da323c322e683e7e36a5e73306d2081c53bc2ca3e003b2635301",
+    "report_sha256": "3563d8fe04ed6dd5dc0b57a6c8b08ad66a18e1fc28d5a777b560a4df2a159032",
+    "log_sha256": "970efd86fa0ce23dc57785f72d068a2f63a0088add776a32f955e569d7b31a9e",
+    "m97_m99": {
+      "M97": "caught",
+      "M98": "caught",
+      "M99": "caught"
+    },
+    "exact_cross_host_rows": {
+      "M37": "caught elsewhere",
+      "M46": "caught elsewhere",
+      "M48": "caught elsewhere"
+    },
+    "discarded_preflight_attempt": {
+      "reason": "system Python had no pytest",
+      "active_rows": 101,
+      "result": "all inconclusive",
+      "matrix_written": false,
+      "accepted_as_evidence": false
+    }
+  },
+  "dirty_serial_measurement": {
+    "status_samples_per_case": 60,
+    "clean_status_ms": {
+      "minimum": 25.872,
+      "median": 27.411,
+      "p95": 59.052,
+      "maximum": 63.075
+    },
+    "seven_path_dirty_status_ms": {
+      "minimum": 28.321,
+      "median": 29.191,
+      "p95": 32.652,
+      "maximum": 54.117
+    },
+    "three_row_serial_seconds": 173.03,
+    "historical_full_serial_seconds": {
+      "t540p_linux": 1524.0,
+      "windows": 6585.939
+    },
+    "selected_option": 2,
+    "selected_semantics": "label dirty read-only replay; require clean start and pre-publication status for --write"
+  },
+  "decision_attacks": {
+    "D-095": "amended by D-104",
+    "D-096": "upheld for parallel; serial amended by D-103",
+    "D-097": "broken and replaced by D-100",
+    "D-098": "broken and amended by D-101",
+    "D-099": "broken and amended by D-102"
+  },
+  "d099_source_flow": {
+    "functions": 5,
+    "production_shell_candidates": 0,
+    "known_positive_shell_candidates": 1,
+    "parallel_write_guard_count": 1
+  },
+  "traceability_challenge": {
+    "requirement": "R-032",
+    "verdict": "upheld",
+    "hosts": [
+      "Windows",
+      "T540P Linux"
+    ],
+    "cases": 5,
+    "canonical_output_sha256": "2a7b70cc3c5c0d6fed7103418e55fe6653bde876217f7aad0c118eb3d49e1e2c"
+  },
+  "boundaries": {
+    "routing_rule_approved": false,
+    "selective_execution_enabled": false,
+    "slice_marked_done": false,
+    "matrix_results_written_from_full_serial_linux_replay": true
+  }
+}

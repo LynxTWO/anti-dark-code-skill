@@ -959,7 +959,7 @@ def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
 # separate, exact classifier contract prevents replacing a class entry with a
 # protected representative plus cheap exact exceptions.  See D-093.
 AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
-    ("router, receipt, and installer controls", "**/scripts/adc*.py",
+    ("shipped script controls", "**/scripts/*.py",
      "product", "verification-authority", "repository", "normal"),
     ("tests and shared fixtures", "**/tests/*.py", "tests",
      "verification-authority", "repository", "normal"),

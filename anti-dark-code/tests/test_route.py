@@ -3122,6 +3122,7 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
             harness.host_identity = self._host
             harness.commit_identity = lambda repo_root: "commit-test"
             harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
+            harness.worktree_status = lambda repo_root: ()
 
             self.assertEqual(0, harness.main(["MX", "--jobs", "1", "--report", str(report)]))
 
@@ -3132,6 +3133,85 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
                              evidence["matrix_sha256_after"])
             self.assertEqual(["MX"], [row["id"] for row in evidence["rows"]])
             self.assertEqual("serial", evidence["rows"][0]["worker"])
+
+    def test_serial_report_records_dirty_endpoints_without_refusing_read_only(self) -> None:
+        """D-103. Dirty serial evidence is labelled, not silently forbidden."""
+        harness = self._harness("adc_replay_serial_dirty_report")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            source.write_text("before = True\n", encoding="utf-8")
+            matrix = root / "matrix.json"
+            matrix.write_text(json.dumps([self._row()]), encoding="utf-8")
+            report = root / "report.json"
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.host_identity = self._host
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
+            harness.worktree_status = mock.Mock(
+                side_effect=[(" M handoff.md",), (" M handoff.md",)])
+
+            self.assertEqual(0, harness.main(["--report", str(report)]))
+
+            evidence = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual([" M handoff.md"],
+                             evidence["serial_worktree_status_before"])
+            self.assertEqual([" M handoff.md"],
+                             evidence["serial_worktree_status_after"])
+            self.assertEqual(["MX"], [row["id"] for row in evidence["rows"]])
+
+    def test_serial_write_refuses_an_initially_dirty_tree_before_any_row(self) -> None:
+        """D-103. A dirty tree cannot rewrite the authoritative matrix."""
+        harness = self._harness("adc_replay_serial_dirty_write")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            matrix = root / "matrix.json"
+            original = json.dumps([self._row()]).encode()
+            matrix.write_bytes(original)
+            report = root / "report.json"
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.worktree_status = mock.Mock(return_value=(" M handoff.md",))
+            harness.run_serial = mock.Mock(side_effect=AssertionError(
+                "a dirty write started a row"))
+
+            self.assertEqual(2, harness.main(["--write", "--report", str(report)]))
+
+            self.assertEqual(original, matrix.read_bytes())
+            harness.run_serial.assert_not_called()
+            evidence = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual([], evidence["rows"])
+            self.assertEqual([" M handoff.md"],
+                             evidence["serial_worktree_status_before"])
+
+    def test_serial_write_refuses_new_dirt_before_matrix_publication(self) -> None:
+        """D-103. An edit during replay cannot race the final matrix write."""
+        harness = self._harness("adc_replay_serial_write_race")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            source.write_text("before = True\n", encoding="utf-8")
+            matrix = root / "matrix.json"
+            original = json.dumps([self._row()]).encode()
+            matrix.write_bytes(original)
+            report = root / "report.json"
+            harness.REPO_ROOT = root
+            harness.MATRIX = matrix
+            harness.host_identity = self._host
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.run_suite = lambda paths, repo_root: (1, "1 failed in 0.01s", 0)
+            harness.worktree_status = mock.Mock(
+                side_effect=[(), (" M handoff.md",), (" M handoff.md",)])
+
+            self.assertEqual(2, harness.main(["--write", "--report", str(report)]))
+
+            self.assertEqual(original, matrix.read_bytes())
+            evidence = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual(["MX"], [row["id"] for row in evidence["rows"]])
+            self.assertEqual([" M handoff.md"],
+                             evidence["serial_worktree_status_after"])
 
     def test_an_unskipped_local_survivor_is_a_survivor_despite_a_foreign_record(self) -> None:
         """D-095. A host that skipped nothing and saw the mutant survive found a gap.
@@ -3157,7 +3237,9 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
                 "git": "git version test"}
             foreign = {"platform": "Linux", "release": "1", "python": "3",
                        "git": "git version test", "verdict": "caught",
-                       "pytest": "1 failed, 2 passed in 0.01s", "skipped": 0}
+                       "pytest": "1 failed, 2 passed in 0.01s", "skipped": 0,
+                       "failed_nodeids": ["source.py::test_guarantee"],
+                       "skipped_nodeids": []}
 
             harness.run_suite = lambda paths, repo_root: (0, "3 passed in 0.01s", 0)
             row = {**self._row(), "results": [dict(foreign)]}
@@ -3166,23 +3248,80 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
 
             # Under a skipped test this host observed nothing for the
             # guarantee, and the foreign record legitimately holds the row.
-            harness.run_suite = lambda paths, repo_root: (
-                0, "2 passed, 1 skipped in 0.01s", 1)
+            harness.run_suite = lambda paths, repo_root: harness.SuiteOutcome(
+                0, "2 passed, 1 skipped in 0.01s", 1, (),
+                ("source.py::test_guarantee",))
             row = {**self._row(), "results": [dict(foreign)]}
             self.assertEqual(0, harness.replay([row], write=False))
             self.assertEqual("caught elsewhere", row["verdict"])
 
     def test_derive_verdict_lets_no_record_soften_an_unskipped_survivor(self) -> None:
         harness = self._harness("adc_replay_derive_unskipped")
-        caught = {"platform": "Linux", "verdict": "caught", "skipped": 0}
+        caught = {"platform": "Linux", "verdict": "caught", "skipped": 0,
+                  "failed_nodeids": ["source.py::test_guarantee"],
+                  "skipped_nodeids": []}
         survived = {"platform": "Windows", "verdict": "SURVIVED", "skipped": 0}
-        under_skip = {**survived, "skipped": 1}
+        under_skip = {**survived, "skipped": 1,
+                      "skipped_nodeids": ["source.py::test_guarantee"]}
         self.assertEqual("SURVIVED", harness.derive_verdict([caught, survived]))
         self.assertEqual("SURVIVED", harness.derive_verdict([survived, caught]))
         self.assertEqual("caught elsewhere",
                          harness.derive_verdict([caught, under_skip]))
         self.assertEqual("caught", harness.derive_verdict(
             [caught, {**caught, "platform": "Windows"}]))
+
+    def test_a_skipped_survivor_needs_exact_catching_test_attribution(self) -> None:
+        """D-104. An unrelated skip cannot borrow another host's catch."""
+        harness = self._harness("adc_replay_exact_skip_attribution")
+        caught = {
+            "platform": "Linux", "verdict": "caught", "skipped": 0,
+            "failed_nodeids": ["suite.py::test_holds_mutant"],
+            "skipped_nodeids": [],
+        }
+        relevant_skip = {
+            "platform": "Windows", "verdict": "SURVIVED", "skipped": 1,
+            "failed_nodeids": [],
+            "skipped_nodeids": ["suite.py::test_holds_mutant"],
+        }
+        unrelated_skip = {
+            **relevant_skip,
+            "skipped_nodeids": ["suite.py::test_unrelated_platform_case"],
+        }
+        missing_identity = {
+            key: value for key, value in relevant_skip.items()
+            if key != "skipped_nodeids"
+        }
+        self.assertEqual("caught elsewhere",
+                         harness.derive_verdict([caught, relevant_skip]))
+        self.assertEqual("SURVIVED",
+                         harness.derive_verdict([caught, unrelated_skip]))
+        self.assertEqual("SURVIVED",
+                         harness.derive_verdict([caught, missing_identity]))
+
+    def test_replay_collects_exact_failed_and_skipped_nodeids(self) -> None:
+        """D-104. Pytest identities, not summary counts, carry host limits."""
+        harness = self._harness("adc_replay_exact_outcome_collection")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            plugin = root / "design" / "routing" / "mutants" / "exact_nodeid_plugin.py"
+            plugin.parent.mkdir(parents=True)
+            shutil.copyfile(
+                REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py", plugin)
+            (root / "test_probe.py").write_text(
+                "import pytest\n\n"
+                "def test_holds_mutant():\n    assert False\n\n"
+                "@pytest.mark.skip(reason='platform probe')\n"
+                "def test_unrelated_platform_case():\n    assert True\n",
+                encoding="utf-8")
+
+            outcome = harness.run_suite(("test_probe.py",), root)
+
+        self.assertEqual(1, outcome[0])
+        self.assertEqual(1, outcome[2])
+        self.assertEqual(("test_probe.py::test_holds_mutant",),
+                         outcome.failed_nodeids)
+        self.assertEqual(("test_probe.py::test_unrelated_platform_case",),
+                         outcome.skipped_nodeids)
 
 
 @unittest.skipUnless(shutil.which("git"), "git is required")
@@ -3210,6 +3349,8 @@ class ReplayParallelCloneTests(unittest.TestCase):
             "id": row["id"], "status": "completed", "verdict": "caught",
             "caught": True, "exit_code": 1,
             "pytest": "1 failed, 2 passed in 0.01s", "skipped": 0,
+            "failed_nodeids": ["suite.py::test_holds_mutant"],
+            "skipped_nodeids": [],
             "source_hash_before": source_digest, "source_hash_after": source_digest,
             "source_after_state": "readable", "restored": True,
             "commit": commit, "worker": worker,
@@ -3303,6 +3444,9 @@ class ReplayParallelCloneTests(unittest.TestCase):
             replay = root / "design" / "routing" / "mutants" / "replay.py"
             replay.parent.mkdir(parents=True)
             shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+            shutil.copyfile(
+                REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py",
+                replay.with_name("exact_nodeid_plugin.py"))
             matrix = replay.with_name("matrix.json")
             matrix.write_text(json.dumps([self._row("M1")]), encoding="utf-8")
             (root / "source.py").write_text("before = True\n", encoding="utf-8")
@@ -3349,6 +3493,9 @@ class ReplayParallelCloneTests(unittest.TestCase):
                 replay = root / "design" / "routing" / "mutants" / "replay.py"
                 replay.parent.mkdir(parents=True)
                 shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+                shutil.copyfile(
+                    REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py",
+                    replay.with_name("exact_nodeid_plugin.py"))
                 matrix = replay.with_name("matrix.json")
                 matrix.write_text(json.dumps([self._row("M1")]), encoding="utf-8")
                 (root / "source.py").write_text("before = True\n", encoding="utf-8")
@@ -3475,6 +3622,13 @@ class ReplayParallelCloneTests(unittest.TestCase):
             def capture(command, **kwargs):
                 captured["command"] = command
                 captured["cwd"] = kwargs["cwd"]
+                Path(kwargs["env"]["ADC_EVIDENCE_OUTCOMES"]).write_text(
+                    json.dumps({
+                        "exitstatus": 1,
+                        "collect_nodeids": ["suite.py::test_holds_mutant"],
+                        "outcomes": {"suite.py::test_holds_mutant": "failed"},
+                        "missing": [],
+                    }), encoding="utf-8")
                 return completed
 
             harness._WORKER_SUITE_CWD = root
@@ -3547,6 +3701,13 @@ class ReplayParallelCloneTests(unittest.TestCase):
             def capture(command, **kwargs):
                 captured["command"] = command
                 captured["env"] = kwargs["env"]
+                Path(kwargs["env"]["ADC_EVIDENCE_OUTCOMES"]).write_text(
+                    json.dumps({
+                        "exitstatus": 1,
+                        "collect_nodeids": ["suite.py::test_holds_mutant"],
+                        "outcomes": {"suite.py::test_holds_mutant": "failed"},
+                        "missing": [],
+                    }), encoding="utf-8")
                 return completed
 
             harness._WORKER_TEMP_ROOT = private
@@ -3557,6 +3718,46 @@ class ReplayParallelCloneTests(unittest.TestCase):
         self.assertEqual(str(private), captured["env"]["TEMP"])
         self.assertEqual(str(private), captured["env"]["TMPDIR"])
         self.assertIn(f"--basetemp={private / 'pytest'}", captured["command"])
+
+    def test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone(self) -> None:
+        """D-101. Rootdir alone does not contain PYTEST_ADDOPTS plugins."""
+        harness = self._harness("adc_replay_parallel_external_plugin")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            coordinator = root / "coordinator"
+            clone = root / "owned" / "worker-0"
+            private = root / "owned" / "worker-0-pytest"
+            marker = root / "outside-plugin-loaded.txt"
+            coordinator.mkdir(parents=True)
+            clone.mkdir(parents=True)
+            private.mkdir(parents=True)
+            (clone / "test_probe.py").write_text(
+                "def test_inside_clone():\n    assert True\n", encoding="utf-8")
+            plugin = clone / "design" / "routing" / "mutants" / "exact_nodeid_plugin.py"
+            plugin.parent.mkdir(parents=True)
+            shutil.copyfile(
+                REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py", plugin)
+            (coordinator / "external_adc_plugin.py").write_text(
+                "import os, pathlib\n"
+                "pathlib.Path(os.environ['ADC_R18_PLUGIN_MARKER']).write_text("
+                "'loaded', encoding='utf-8')\n",
+                encoding="utf-8")
+
+            harness._WORKER_SUITE_CWD = coordinator
+            harness._WORKER_TEMP_ROOT = private
+            with mock.patch.dict(os.environ, {
+                    "PYTEST_ADDOPTS": "-p external_adc_plugin",
+                    "PYTEST_PLUGINS": "external_adc_plugin",
+                    "PYTHONPATH": str(coordinator),
+                    "ADC_R18_PLUGIN_MARKER": str(marker),
+            }):
+                code, summary, skipped = harness.run_suite(("test_probe.py",), clone)
+
+            self.assertEqual(0, code)
+            self.assertEqual(0, skipped)
+            self.assertRegex(summary, r"^1 passed in ")
+            self.assertFalse(marker.exists(),
+                             "the worker imported a plugin outside its clone")
 
     def test_parallel_aggregates_out_of_order_futures_into_canonical_order_and_cleans(self) -> None:
         harness = self._harness("adc_replay_parallel_order")
@@ -3817,6 +4018,9 @@ class ReplayParallelCloneTests(unittest.TestCase):
             replay = root / "design" / "routing" / "mutants" / "replay.py"
             replay.parent.mkdir(parents=True)
             shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+            shutil.copyfile(
+                REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py",
+                replay.with_name("exact_nodeid_plugin.py"))
             matrix = replay.with_name("matrix.json")
             matrix.write_text(json.dumps([row]), encoding="utf-8")
             (root / "source.py").write_text("before = True\n", encoding="utf-8")
@@ -3867,6 +4071,9 @@ class ReplayParallelCloneTests(unittest.TestCase):
             replay = root / "design" / "routing" / "mutants" / "replay.py"
             replay.parent.mkdir(parents=True)
             shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+            shutil.copyfile(
+                REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py",
+                replay.with_name("exact_nodeid_plugin.py"))
             matrix = replay.with_name("matrix.json")
             matrix.write_text(json.dumps([valid]), encoding="utf-8")
             (root / "source.py").write_text("before = True\n", encoding="utf-8")
@@ -3908,6 +4115,24 @@ class ReplayParallelCloneTests(unittest.TestCase):
             "worker result schema does not match the required evidence fields",
             harness._validate_worker_result(
                 completed, 0, row, "worker-0", "commit-test", self.SOURCE_DIGEST))
+
+    def test_worker_validator_renders_control_characters_before_truncating(self) -> None:
+        """D-102. A diagnostic cannot print a forged replay line."""
+        harness = self._harness("adc_replay_parallel_validator_terminal_safety")
+        payload = "useful\nFORGED\r\x1b[31m\u202e" + ("X" * 3000)
+        surfaced = harness._validate_worker_result(
+            {"status": "inconclusive", "error": payload}, 0, {"id": "M1"},
+            "worker-0", "commit-test", self.SOURCE_DIGEST)
+        prefix = "worker row inconclusive: "
+        self.assertTrue(surfaced.startswith(prefix))
+        rendered = surfaced[len(prefix):]
+        self.assertEqual(2000, len(rendered))
+        self.assertIn(r"\n", rendered)
+        self.assertIn(r"\r", rendered)
+        self.assertIn(r"\x1b", rendered)
+        self.assertIn(r"\u202e", rendered)
+        self.assertFalse(any(character in rendered for character in
+                             ("\n", "\r", "\x1b", "\u202e")))
 
     def test_worker_validator_rejects_each_required_evidence_contract_break(self) -> None:
         """A worker payload is untrusted until every coordinator invariant holds."""
@@ -4638,7 +4863,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
 
     def test_shipped_policy_matches_the_canonical_authority_class_contract(self) -> None:
         expected = (
-            ("router, receipt, and installer controls", "**/scripts/adc*.py",
+            ("shipped script controls", "**/scripts/*.py",
              "product", "verification-authority", "repository", "normal"),
             ("tests and shared fixtures", "**/tests/*.py", "tests",
              "verification-authority", "repository", "normal"),
@@ -4755,7 +4980,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("**/scripts/adc*.py", str(caught.exception))
+        self.assertIn("**/scripts/*.py", str(caught.exception))
 
     def test_one_authority_reference_cannot_cover_two_cheap_ones(self) -> None:
         data = json.loads(json.dumps(self.policy_source))
@@ -4783,13 +5008,13 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # the installed router as ordinary code.
         data = json.loads(json.dumps(self.policy_source))
         for entry in data["classifier"]["surfaces"]:
-            if entry.get("glob") == "**/scripts/adc*.py":
+            if entry.get("glob") == "**/scripts/*.py":
                 entry["glob"] = "anti-dark-code/scripts/adc_route.py"
         with self.assertRaises(self.route.PolicyError) as caught:
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("**/scripts/adc*.py", str(caught.exception))
+        self.assertIn("**/scripts/*.py", str(caught.exception))
 
     def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
         # The classifier is untouched here, so a guard that checked only the
@@ -5005,35 +5230,18 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         for _, path in self.route.SELF_GRADING_PATHS:
             self.assertTrue(self._route_for(path, policy).force_full, path)
 
-    # Scripts that adc.py loads by path at runtime. ENGINEERING section 12
-    # promises that a newly imported helper fails this table closed until
-    # reviewed, and the classifier reaches a helper only through the
-    # `**/scripts/adc*.py` name. Measured before D-097 with every rule
-    # approved: anti-dark-code/scripts/receipt_store.py, a name adc.py could
-    # load tomorrow, took the Level 2 product route in the source and installed
-    # spellings, and nothing derived the loaded set. A script named here is a
-    # reviewed standalone tool that adc.py must not load.
-    REVIEWED_STANDALONE_SCRIPTS = frozenset({"work_receipt.py"})
-
-    def test_every_script_adc_loads_is_authority_by_name(self) -> None:
+    def test_every_shipped_script_is_authority_by_location(self) -> None:
+        """D-100. Dynamic loader spellings cannot escape the script boundary."""
         scripts = SKILL_ROOT / "scripts"
-        adc_text = (scripts / "adc.py").read_text(encoding="utf-8")
-        self.assertIn("**/scripts/adc*.py",
+        self.assertIn("**/scripts/*.py",
                       {glob for _, glob, *_ in self.route.AUTHORITY_CLASSIFIERS})
-        problems = []
+        policy = self._approved_policy()
+        demoted = []
         for script in sorted(scripts.glob("*.py")):
-            name = script.name
-            if name.startswith("adc") and name.endswith(".py"):
-                continue
-            named = any(f"{quote}{token}{quote}" in adc_text
-                        for quote in ('"', "'") for token in (name, script.stem))
-            if name not in self.REVIEWED_STANDALONE_SCRIPTS:
-                problems.append(f"{name} is not authority by name and is not a "
-                                "reviewed standalone script")
-            elif named:
-                problems.append(f"{name} is a reviewed standalone script, "
-                                "but adc.py names it")
-        self.assertEqual([], problems, "; ".join(problems))
+            path = script.relative_to(REPO_ROOT).as_posix()
+            if not self._route_for(path, policy).force_full:
+                demoted.append(path)
+        self.assertEqual([], demoted, "; ".join(demoted))
 
 
 class SubmoduleContractTests(unittest.TestCase):
@@ -5473,9 +5681,13 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
         harness = load_module(
             "adc_replay",
             REPO_ROOT / "design" / "routing" / "mutants" / "replay.py")
-        caught_linux = {"platform": "Linux", "verdict": "caught", "skipped": 0}
+        caught_linux = {"platform": "Linux", "verdict": "caught", "skipped": 0,
+                        "failed_nodeids": ["suite.py::test_holds_mutant"],
+                        "skipped_nodeids": []}
         skipped_windows = {"platform": "Windows", "verdict": "SURVIVED",
-                           "skipped": 1}
+                           "skipped": 1,
+                           "failed_nodeids": [],
+                           "skipped_nodeids": ["suite.py::test_holds_mutant"]}
         self.assertEqual(
             harness.derive_verdict([caught_linux, skipped_windows]),
             harness.derive_verdict([skipped_windows, caught_linux]))

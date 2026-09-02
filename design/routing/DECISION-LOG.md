@@ -116,6 +116,11 @@ The documents state what is true. This log preserves why, what else was consider
 | D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Confirmed | |
 | D-098 | 2026-09-02 | A worker's collection tree stays inside its clone | Confirmed | |
 | D-099 | 2026-09-02 | The coordinator reports a worker row's own reason | Confirmed | |
+| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Confirmed | |
+| D-101 | 2026-09-02 | A worker owns its pytest environment as well as its rootdir | Confirmed | |
+| D-102 | 2026-09-02 | A worker diagnostic is one bounded terminal-safe line | Confirmed | |
+| D-103 | 2026-09-02 | Serial evidence labels dirt, and serial writes require clean endpoints | Confirmed | |
+| D-104 | 2026-09-02 | A skipped survivor needs exact catching-test attribution | Confirmed | |
 
 ---
 
@@ -2907,3 +2912,184 @@ pytest output that `run_suite` already collects. A completed row with an
 
 Revisit when:
 Worker rows gain a structured failure field, or the report format changes.
+
+## D-100: Every shipped script is verification authority by location
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-093, D-097, routing classifier, `anti-dark-code/scripts/`
+
+Context:
+D-097 inferred whether a script was authority from its `adc*.py` name, then
+scanned `adc.py` for a quoted filename or stem to keep the one reviewed
+standalone script unloaded. A real importlib load built `work_receipt.py` from
+three string fragments and loaded the module while the scan returned no match.
+The test therefore checked one spelling, not the load boundary it claimed.
+
+Decision:
+Every Python file directly under `anti-dark-code/scripts/` is verification
+authority through the canonical `**/scripts/*.py` classifier. The classifier
+applies to source and installed spellings. No loader scan or standalone
+exception decides authority.
+
+Because:
+A conservative directory boundary is stable under dynamic filenames, new
+loader functions, and helper renames. This directory ships executable control
+code. Treating one script change as ordinary product code saves too little to
+justify a second, incomplete loader implementation in a test.
+
+Consequences:
+`work_receipt.py` changes now force the full recipe even though `adc.py` does
+not currently load that script. M100 holds the directory-wide classifier.
+
+Revisit when:
+Standalone product scripts move into a separate directory with its own reviewed
+classification contract.
+
+## D-101: A worker owns its pytest environment as well as its rootdir
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-098, `run_suite`, parallel replay workers
+
+Context:
+`--rootdir=<clone>` stopped pytest from loading a `conftest.py` above the clone,
+but it did not contain plugin discovery. With `PYTEST_ADDOPTS=-p
+external_adc_plugin` and `PYTHONPATH` naming the coordinator, a worker rooted in
+its clone passed its test after importing the plugin from outside that clone.
+
+Decision:
+A parallel worker removes caller-supplied pytest plugin and option variables,
+disables automatic plugin loading, removes caller `PYTHONPATH`, and enables
+Python safe-path behavior. Its explicit command, clone, installed pytest, and
+private temp root are the only worker inputs inherited by design.
+
+Because:
+An external plugin can change collection, outcomes, process behavior, and logs.
+A clone-owned rootdir is not an isolation boundary while the caller can inject
+code before collection starts.
+
+Consequences:
+M101 holds the worker environment boundary. D-104 later applied the same
+controlled environment to serial replay and added one explicit tracked outcome
+plugin. The coordinator freezes that plugin with the replay source before a
+parallel worker may load it.
+
+Revisit when:
+The replay suite requires a non-builtin plugin, or pytest changes the variables
+that control plugin discovery.
+
+## D-102: A worker diagnostic is one bounded terminal-safe line
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-099, `_validate_worker_result`, replay console and JSON report
+
+Context:
+D-099 limited the worker error payload to 2,000 characters, but returned those
+characters unchanged. A payload containing a newline, carriage return, and ANSI
+escape retained all three and printed a forged replay summary on the next line.
+The JSON report escaped them, but the console did not.
+
+Decision:
+Before a worker error reaches the coordinator result, control and format
+characters are rendered as visible ASCII escapes and the rendered payload is
+limited to 2,000 characters. The useful diagnostic remains, but it cannot add a
+terminal line, move the cursor, recolor later output, or hide text direction.
+
+Because:
+An untrusted diagnostic is data. Printing it verbatim turns terminal control
+bytes into presentation authority.
+
+Consequences:
+Reports remain JSON-compatible and completed worker rows remain subject to the
+exact schema. M102 holds the sanitization boundary.
+
+Revisit when:
+Worker failures become structured fields rendered by a separate presentation
+layer.
+
+## D-103: Serial evidence labels dirt, and serial writes require clean endpoints
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-068, D-096, serial replay reports, `--write`
+
+Context:
+Serial replay tests the working tree and labels every row with `HEAD`. Unlike
+parallel replay, it did not say whether the disk differed from that commit.
+This is useful during the round-robin workflow, where handoff documents are
+edited while a long read-only replay runs, but it is not sufficient authority
+for rewriting the matrix.
+
+Three options were measured on the round-eighteen Windows tree. Sixty clean
+`git status --porcelain` calls took 27.411 ms median and 59.052 ms p95. Sixty
+calls on a seven-path dirty tree took 29.191 ms median and 32.652 ms p95. The
+three-row serial mutation check took 173.03 seconds. The most recent full serial
+records took 1,524 seconds on T540P and 6,585.939 seconds on Windows.
+
+Decision:
+A serial report records the exact porcelain status before and after replay.
+Dirty read-only replay remains available. `--write` refuses an initially dirty
+tree before running a row and refuses a tree that becomes dirty during replay
+immediately before matrix publication. A clean `--write` therefore binds both
+endpoints; the report still names the endpoint status.
+
+Because:
+Two status calls cost about 58 ms at the measured medians, below 0.004 percent
+of the shorter full serial run. Refusing every dirty serial run would discard
+useful read-only evidence and would still need the final check to close the
+mid-run race. Leaving serial unchanged would save milliseconds while allowing
+an ambiguous tree to rewrite the coverage record as if it were `HEAD`.
+
+Consequences:
+Round-robin handoff edits no longer prevent read-only mutation work, and their
+presence is visible in the report. Authoritative `--write` replay moves to a
+clean checkpoint. M103 holds the initial refusal and M104 holds the final
+publication check.
+
+Revisit when:
+Serial replay moves into a disposable committed clone, or reports bind a full
+content identity instead of Git porcelain state.
+
+## D-104: A skipped survivor needs exact catching-test attribution
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-095, mutation result schema, exact pytest outcome plugin
+
+Context:
+D-095 treats any local survivor with a nonzero skip count as caught elsewhere
+when another host caught the row. The count cannot say which test skipped. Two
+otherwise identical result sets, one where the skipped test holds the mutant
+and one where an unrelated test skipped, both derived `caught elsewhere`.
+
+The required Linux branch remains sound. A clean T540P probe committed a change
+that removed the only test holding M57, then ran `M57 --jobs 2`. The row completed
+with `19 passed`, zero skips, `SURVIVED`, exit 1, source restoration true, and a
+clean endpoint. The gap is limited to a host that both skips and observes a
+survivor, which currently means Windows.
+
+Decision:
+Each replay row records exact failed and skipped node IDs from the tracked
+outcome plugin. A local survivor under skips is `caught elsewhere` only when at
+least one exact skipped node ID also failed for that mutant on a catching host.
+An unrelated skip, a missing identity list, or an empty intersection leaves the
+row `SURVIVED`. Zero-skip survivors retain D-095's unconditional precedence.
+
+Because:
+The failed test names the branch that caught the mutant. Skip attribution must
+name that same test before another host's result can carry the row. Counts from
+two unrelated test sets are not coverage evidence.
+
+Consequences:
+The tracked plugin becomes replay authority and runs explicitly with automatic
+and caller-supplied plugins disabled. M37, M46, and M48 require refreshed
+Windows skipped-node records before the T540P catching-node replay can restore
+their `caught elsewhere` verdicts. M105 holds exact attribution and M106 holds
+the explicit outcome collector.
+
+Revisit when:
+Pytest provides a stable built-in machine-readable outcome format, or the
+matrix binds each mutation directly to an independently reviewed holding-test
+set.
