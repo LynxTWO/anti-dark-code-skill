@@ -114,6 +114,8 @@ The documents state what is true. This log preserves why, what else was consider
 | D-095 | 2026-09-02 | An unskipped local survivor is a survivor on every host | Confirmed | |
 | D-096 | 2026-09-02 | A parallel replay requires a clean coordinator tree | Confirmed | |
 | D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Confirmed | |
+| D-098 | 2026-09-02 | A worker's collection tree stays inside its clone | Confirmed | |
+| D-099 | 2026-09-02 | The coordinator reports a worker row's own reason | Confirmed | |
 
 ---
 
@@ -2819,3 +2821,89 @@ the current tree.
 Revisit when:
 adc.py gains an import mechanism the text scan cannot see, or a helper must
 carry a non-`adc` name for a reason a reviewer accepts.
+
+## D-098: A worker's collection tree stays inside its clone
+
+Date: 2026-09-02
+Status: Confirmed
+Area: M3, R-053, D-084, D-096, `run_suite`, parallel workers
+
+Context:
+A worker runs its suite from the coordinator root with an absolute path into
+its clone, so that detached helpers never hold the clone open (D-084). With
+no `--rootdir` and no configuration file, pytest derives its rootdir from the
+common ancestor of the invocation directory and the suite path. When the
+coordinator lives beneath the host temp directory, that ancestor is the temp
+directory itself, and pytest's session collects it: every entry of the
+machine-wide temp directory is scanned and stat-ed at each row's start.
+
+Measured on this host, where `TEMP` is `J:\TEMP` and the coordinator clone
+sat in a scratch directory beneath it. The first full `--jobs 8` replay at
+`3856f11` completed exactly four rows per worker, then 59 rows returned
+inconclusive inside the window in which a serial replay ran in another
+clone; two rows whose sessions started between deletions completed. Rerunning
+failed rows through the worker path alone, with a second serial run started
+100 seconds later, reproduced it with the error visible: `ERROR collecting
+test session ... FileNotFoundError: [WinError 2] ... 'J:\TEMP\tmpo1xr2yol'`,
+`Interrupted: 1 error during collection`, exit 2, about five seconds per
+row, while the rows before the window caught normally. Round sixteen's
+identical run never saw this because its coordinator lived on `C:` and its
+temp on `J:`, which share no ancestor. The Linux job never sees it because
+the ancestor is `/`, which pytest refuses as a rootdir.
+
+Decision:
+A worker's suite command carries `--rootdir=<clone>`. The clone is the only
+directory a worker owns, so it is the only directory its collection tree may
+start from. Serial replay is unchanged: it runs from the repository root with
+relative paths, and that root is already its rootdir. M99 holds the flag.
+
+Because:
+Evidence that depends on where the coordinator happens to sit, or on what
+another process does in a shared directory, is not evidence about the mutant.
+The failure was fail-closed, so no verdict was wrong, but 59 rows of nothing
+is not a replay.
+
+Consequences:
+The full parallel replay is repeatable from any coordinator location,
+including one beneath the host temp directory, and alongside other pytest
+runs on the same host. The layout dependence round sixteen's runs carried
+without knowing it is gone.
+
+Revisit when:
+pytest changes how it roots a collection tree for arguments outside the
+invocation directory, or a worker ever needs to collect outside its clone.
+
+## D-099: The coordinator reports a worker row's own reason
+
+Date: 2026-09-02
+Status: Confirmed
+Area: M3, D-068, D-084, `_validate_worker_result`
+
+Context:
+The coordinator validates each worker row against an exact field set before
+it reads anything else. A row that could not become evidence carries an
+`error` field explaining why: a suite that did not answer, a target that did
+not match, a source that did not restore. That field is outside the set, so
+every such row was reported as `worker result schema does not match the
+required evidence fields`, and the reason the worker had recorded was
+discarded with it. The first round-seventeen parallel run reported that
+sentence for 59 rows; the cause in D-098 appeared only after the failed rows
+were rerun through the worker path by hand.
+
+Decision:
+A worker row whose status is not `completed` and which carries a string
+`error` is reported as `worker row <status>: <error>`, truncated to 2,000
+characters. The row stays inconclusive, no evidence is accepted from it, and
+every check on completed rows is unchanged.
+
+Because:
+An inconclusive row is a finding only if a reader can act on it. A sentence
+about field names names nothing.
+
+Consequences:
+Parallel reports carry the worker's diagnostic, including the tail of the
+pytest output that `run_suite` already collects. A completed row with an
+`error` key is still rejected by the schema check.
+
+Revisit when:
+Worker rows gain a structured failure field, or the report format changes.

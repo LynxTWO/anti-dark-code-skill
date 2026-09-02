@@ -139,6 +139,17 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
             str(path if Path(path).is_absolute() else repo_root / path)
             for path in paths)
     command = suite_command(command_paths)
+    if _WORKER_SUITE_CWD is not None:
+        # Without an explicit rootdir, pytest takes the common ancestor of the
+        # invocation directory and the absolute suite path. A coordinator that
+        # lives beneath the host temp directory then puts the machine-wide temp
+        # directory at the top of the collection tree, and collection dies the
+        # moment any other process removes a temp entry mid-scan. Measured on
+        # this host: 59 rows inconclusive in one run, each "FileNotFoundError
+        # ... J:\TEMP\tmpXXXX", pytest exit 2, while a serial replay ran in
+        # another clone. The clone is the only directory a worker owns, so it
+        # is the only acceptable root. See D-098.
+        command.append(f"--rootdir={repo_root}")
     if _WORKER_TEMP_ROOT is not None:
         pytest_root = _WORKER_TEMP_ROOT / "pytest"
         command.append(f"--basetemp={pytest_root}")
@@ -566,6 +577,15 @@ def _validate_worker_result(item: object, index: int, row: dict,
         json.dumps(item, allow_nan=False)
     except (TypeError, ValueError):
         return "worker result is not JSON-compatible"
+    if item.get("status") != "completed" and isinstance(item.get("error"), str):
+        # A worker row that could not become evidence carries its own reason:
+        # a suite that did not answer, a target that did not match, a source
+        # that did not restore. The schema check below would replace that
+        # reason with a sentence about field names, which is what the first
+        # round-seventeen parallel run reported for 59 rows whose real error
+        # was a collection failure. The row stays inconclusive either way;
+        # the reason is what a reader needs. See D-099.
+        return f"worker row {item.get('status')}: {item['error'][:2000]}"
     if set(item) != WORKER_RESULT_FIELDS:
         return "worker result schema does not match the required evidence fields"
     if item["matrix_index"] != index or isinstance(item["matrix_index"], bool):

@@ -2906,5 +2906,19 @@
     "pytest": "",
     "results": [],
     "note": "D-096. Clones are built from HEAD while the serial path replays the disk, so a dirty coordinator makes the two modes describe different trees; the coordinator must refuse any difference before creating a worker. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M99",
+    "name": "worker collection tree climbs above the clone",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        command.append(f\"--rootdir={repo_root}\")",
+    "new": "        command.append(f\"--rootdir={_WORKER_SUITE_CWD}\")",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-098. A worker's pytest must be rooted at its own clone; rooted anywhere above it, the collection tree can include a directory other processes churn, and collection dies on an entry that vanishes mid-scan. Pending the next authoritative two-host replay."
   }
 ]

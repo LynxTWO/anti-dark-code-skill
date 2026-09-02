@@ -3484,6 +3484,12 @@ class ReplayParallelCloneTests(unittest.TestCase):
 
         self.assertEqual(root, captured["cwd"])
         self.assertIn(str(suite), captured["command"])
+        # D-098: the collection tree must not climb above the clone. Without
+        # this pytest roots itself at the common ancestor of cwd and the suite
+        # path, which on a coordinator beneath the host temp directory is the
+        # machine-wide temp directory, and collection dies when any other
+        # process removes an entry there mid-scan.
+        self.assertIn(f"--rootdir={clone}", captured["command"])
 
     def test_clone_partition_uses_the_stable_coordinator_cwd_for_its_suite(self) -> None:
         harness = self._harness("adc_replay_parallel_stable_cwd")
@@ -3881,6 +3887,27 @@ class ReplayParallelCloneTests(unittest.TestCase):
         self.assertEqual([], cleanup)
         self.assertEqual("inconclusive", result[0]["status"])
         self.assertIn("committed blob could not be read", result[0]["error"])
+
+    def test_worker_validator_surfaces_a_worker_rows_own_error(self) -> None:
+        """D-099. An inconclusive row's reason must outlive the schema check."""
+        harness = self._harness("adc_replay_parallel_validator_error")
+        row = self._row("M1")
+        broken = self._worker_result(row, 0, "worker-0", self.SOURCE_DIGEST)
+        broken.update(status="inconclusive", verdict="INCONCLUSIVE", caught=None,
+                      exit_code=None, pytest=None,
+                      error="pytest exit 2: 1 error in 4.25s; output: ERROR collecting test session")
+        self.assertEqual(
+            "worker row inconclusive: pytest exit 2: 1 error in 4.25s; output: "
+            "ERROR collecting test session",
+            harness._validate_worker_result(
+                broken, 0, row, "worker-0", "commit-test", self.SOURCE_DIGEST))
+        # A completed row carrying an error is still a schema violation.
+        completed = self._worker_result(row, 0, "worker-0", self.SOURCE_DIGEST)
+        completed["error"] = "stray"
+        self.assertEqual(
+            "worker result schema does not match the required evidence fields",
+            harness._validate_worker_result(
+                completed, 0, row, "worker-0", "commit-test", self.SOURCE_DIGEST))
 
     def test_worker_validator_rejects_each_required_evidence_contract_break(self) -> None:
         """A worker payload is untrusted until every coordinator invariant holds."""
