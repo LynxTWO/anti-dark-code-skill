@@ -35,6 +35,12 @@ CHANGE_KINDS = frozenset({
 })
 CHANGE_SOURCES = frozenset({"committed", "staged", "unstaged", "untracked"})
 
+# Git's mode for a gitlink, and the marker a fingerprint entry carries for one.
+# Both named once, because a literal repeated across acquisition and freshness
+# is two chances to update one of them.
+GITLINK_MODE = "160000"
+GITLINK_MARK = "gitlink-unsupported"
+
 # Git raw status letters. A letter absent here becomes "unknown" and is
 # reported, so an unrecognised record blocks the fast path instead of passing
 # as an ordinary modification.
@@ -250,6 +256,14 @@ def parse_raw_z(payload: bytes, source: str, width: int | None = None) -> RawPar
         kind = _RAW_STATUS.get(status[0], "unknown")
         if kind == "unknown":
             problems.append("ADC-ROUTE-UNKNOWN-STATUS")
+        if GITLINK_MODE in (old_mode, new_mode):
+            # R-019 already says an unsupported record blocks selective
+            # routing, and a gitlink is one: what changed is a commit in
+            # another repository, which nothing in this snapshot represents.
+            # The row is still kept, because the path is real and a reader
+            # needs to see it; it is the completeness of the snapshot that is
+            # withdrawn, which is what forces the full recipe. See D-072.
+            problems.append("ADC-ROUTE-SUBMODULE-UNSUPPORTED")
 
         wanted = 2 if kind in _TWO_PATH_KINDS else 1
         if index + wanted >= len(fields):
@@ -453,10 +467,27 @@ def _repo_fingerprint(repo: Path, run) -> tuple[Any, ...]:
                 continue
             entries.append((relative, size, mtime, f"symlink:{target}:{topology}"))
             continue
+        if stat_module.S_ISDIR(stat.st_mode):
+            # git never lists an ordinary directory here. It lists a directory
+            # for exactly the cases where it will not look inside one: a
+            # gitlink from ls-files, and an untracked embedded repository from
+            # ls-files --others, which arrives with a trailing slash. Both are
+            # the same problem, which is why the test is "is a directory" and
+            # not "mode 160000": whatever is in there is another repository's
+            # business, and the only fields this can record are the directory's
+            # own mode and topology, which do not move when its contents do.
+            #
+            # Measured against real Git: an ordinary edit to a tracked file
+            # inside a submodule left this fingerprint byte-identical while git
+            # reported the parent dirty. The receipt refuses such a tree
+            # instead of binding nothing and calling it fresh. See D-072.
+            entries.append(
+                (relative, size, mtime, f"{GITLINK_MARK}:{stat.st_mode:o}:{topology}"))
+            continue
         if not stat_module.S_ISREG(stat.st_mode):
-            # A directory, device, socket, or gitlink. Record what it is and do
-            # not open it: opening an unsupported special file is exactly the
-            # kind of side effect this fingerprint exists to avoid.
+            # A device or socket. Record what it is and do not open it: opening
+            # an unsupported special file is exactly the kind of side effect
+            # this fingerprint exists to avoid.
             entries.append(
                 (relative, size, mtime, f"special:{stat.st_mode:o}:{topology}"))
             continue
@@ -693,6 +724,86 @@ _UNMAPPED = {
     "sensitivity": "normal",
     "confidence": "unknown",
 }
+
+# One representative real path per self-grading class R-005 and R-021 name.
+# Measured, not assumed: with this repository's rules approved in memory, five
+# of these took ordinary routes. The router graded itself as Level 2 product
+# code, the capability catalog as a Level 2 schema, and a routing-owning pass
+# reference as Level 0 prose. See D-071.
+SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
+    ("router code and Git interpretation", "anti-dark-code/scripts/adc_route.py"),
+    ("receipt authority", "anti-dark-code/scripts/adc_receipt.py"),
+    ("installer and distribution controls", "anti-dark-code/scripts/adc.py"),
+    ("capability catalog", "anti-dark-code/assets/verification-capabilities.json"),
+    ("gate configuration",
+     ".agents/skills/anti-dark-code/calibration/gates.json"),
+    ("routing policy",
+     ".agents/skills/anti-dark-code/calibration/routing-policy.json"),
+    ("routing-owning pass reference",
+     "anti-dark-code/references/00-preflight.md"),
+    ("continuous integration", ".github/workflows/tests.yml"),
+    ("router tests", "anti-dark-code/tests/test_route.py"),
+    ("shared test support", "anti-dark-code/tests/test_adc.py"),
+    ("skill policy", "anti-dark-code/SKILL.md"),
+)
+
+# What counts as grading a path as authority. `verification-authority` is the
+# effect the shipped force-full rule matches. `skill-policy` is the surface its
+# own force-full rule matches, and SKILL.md carries instruction authority
+# rather than verification authority, so both are accepted.
+_AUTHORITY_EFFECTS = frozenset({"verification-authority"})
+_AUTHORITY_SURFACES = frozenset({"skill-policy"})
+
+
+def _check_self_grading(
+    classifier: Mapping[str, Any], rules: Sequence["ValidatedRule"]
+) -> None:
+    """Refuse a policy under which a change to this skill's own authority
+    could take a route cheaper than the full recipe.
+
+    This checks the property R-021 states rather than a proxy for it: classify
+    each self-grading path, then ask whether every rule that could fire on it
+    still leaves `force_full` true.
+
+    An earlier version checked only the classification, on the reasoning that an
+    authority fact matching no force-full rule becomes an unrouted fact, which
+    forces full anyway. That reasoning was wrong, and measuring it is what
+    showed it. `build_route` sets `fired` on *any* match, so one approved rule
+    matching `effects: ["verification-authority"]` with `minimum_level: 0`
+    suppressed the unrouted fallback and took ten of the eleven classes below
+    the full recipe with the classifier untouched. See D-071.
+
+    Every rule is considered, approved or not. A proposed rule is one review
+    away from approval, and refusing at load is the only moment where the answer
+    is still cheap. An unmapped path is still not a failure: confidence
+    `unknown` forces the full recipe on its own.
+    """
+    demoted: list[str] = []
+    for label, path in SELF_GRADING_PATHS:
+        entries = _matching_classifications(path, classifier)
+        if not entries:
+            continue
+        facts = [ChangeFact(path=path, change_kind="modify", source="unstaged",
+                            **entry) for entry in entries]
+        # Union semantics: one fact reaching one force-full rule is enough, and
+        # one fact reaching no rule at all is enough, because that is unrouted.
+        safe = any(
+            fact.confidence == "unknown"
+            or not [rule for rule in rules
+                    if _fact_matches(fact, dict(rule.match))]
+            or any(rule.force_full for rule in rules
+                   if _fact_matches(fact, dict(rule.match)))
+            for fact in facts)
+        if safe:
+            continue
+        seen = sorted({f"{e['surface']}/{e['effect']}" for e in entries})
+        demoted.append(f"{label} ({path}) classified as {' and '.join(seen)}")
+    if demoted:
+        raise PolicyError(
+            "this policy would route a change to what verifies the repository "
+            "more cheaply than a change it verifies. Either the classifier "
+            "grades a self-grading path below authority, or a rule that fires "
+            "on one does not force the full recipe: " + "; ".join(demoted))
 
 
 def _fact_sort_key(fact: ChangeFact) -> tuple[Any, ...]:
@@ -1274,7 +1385,6 @@ def load_policy(
             raise PolicyError(str(exc)) from exc
         frozen_classifier.append(
             tuple(sorted({"glob": str(entry["glob"]), **attrs}.items())))
-
     recipe_data = data.get("full_recipe")
     if not isinstance(recipe_data, Mapping):
         raise PolicyError("routing policy must define full_recipe")
@@ -1359,6 +1469,11 @@ def load_policy(
             independent_review=bool(requires.get("independent_review", False)),
             obligations=_freeze_obligations(rule.get("obligations", {})),
         ))
+
+    # Last, because it needs both halves: the classifier says what a path is,
+    # and the rules say what happens to it. Either alone answers the wrong
+    # question, which is the mistake the first version of this guard made.
+    _check_self_grading(classifier, rules)
 
     validated = ValidatedPolicy(
         schema_version=1,

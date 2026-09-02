@@ -33,7 +33,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+# 2 since D-072: the binding carries unsupported_paths. A receipt written
+# under schema 1 was computed by code that could not see a submodule, so it
+# is refused rather than compared field by field.
+SCHEMA_VERSION = 2
 
 # Where written receipts land, relative to the repository root.
 RUN_STORE = ".anti-dark-code/runs"
@@ -49,6 +52,8 @@ STALE_POLICY = "ADC-STALE-005"
 STALE_GATES = "ADC-STALE-006"
 STALE_CALIBRATION = "ADC-STALE-007"
 STALE_SCHEMA = "ADC-STALE-008"
+# Not a field that moved: a tree this receipt cannot bind at all.
+STALE_UNSUPPORTED = "ADC-STALE-009"
 
 # Why a gate is not in this route. A gate omitted with no reason is the thing
 # an auditor cannot check, so every omission carries one.
@@ -106,6 +111,10 @@ class Binding:
     routing_policy_sha256: str | None = None
     gate_configuration_sha256: str | None = None
     calibration_hashes: Mapping[str, str] = field(default_factory=dict)
+    # Paths whose state this binding cannot hold. Inside the authoritative
+    # payload rather than beside it, because whether a route was computed over
+    # a tree containing one is part of what the route depended on.
+    unsupported_paths: Sequence[str] = ()
 
     def as_payload(self) -> dict[str, Any]:
         return {
@@ -116,6 +125,7 @@ class Binding:
             "routing_policy_sha256": self.routing_policy_sha256,
             "gate_configuration_sha256": self.gate_configuration_sha256,
             "calibration_hashes": dict(sorted(self.calibration_hashes.items())),
+            "unsupported_paths": sorted(self.unsupported_paths),
         }
 
 
@@ -141,8 +151,30 @@ def worktree_identity(repo: Path, route_module: Any, runner: Any = None) -> str:
     state, content, executable modes, symlink targets, and hard-link topology,
     and a second implementation here would be a second rule to keep in step.
     """
+    return _identity_and_unsupported(repo, route_module, runner)[0]
+
+
+def _identity_and_unsupported(
+    repo: Path, route_module: Any, runner: Any = None
+) -> tuple[str, tuple[str, ...]]:
+    """The identity digest and the paths this fingerprint cannot bind.
+
+    Both come from one fingerprint pass. Asking twice would hash every tracked
+    file twice for an answer the first pass already had.
+
+    An unsupported path today is one holding another repository: a submodule
+    gitlink, or an untracked embedded repository. Their state lives outside
+    this repository, so the entry a fingerprint can record for either does not
+    move when their contents do. Reporting them here is what lets verification
+    refuse the tree rather than certify a binding that holds nothing. See
+    D-072.
+    """
     run = runner or route_module._default_runner(repo)
     index_state, entries = route_module._repo_fingerprint(repo, run)
+    mark = getattr(route_module, "GITLINK_MARK", "gitlink-unsupported") + ":"
+    unsupported = tuple(sorted(
+        str(entry[0]) for entry in entries
+        if isinstance(entry[3], str) and entry[3].startswith(mark)))
     # Written receipts are outputs, not inputs. Without this exclusion the act
     # of recording a receipt changes the worktree the receipt binds, and the
     # receipt is stale the instant it lands. That was observed, not predicted:
@@ -166,7 +198,7 @@ def worktree_identity(repo: Path, route_module: Any, runner: Any = None) -> str:
         # Already sorted by _repo_fingerprint, and sorted again here so this
         # does not silently depend on that.
         "entries": sorted(kept),
-    })
+    }), unsupported
 
 
 def collect_binding(
@@ -191,11 +223,13 @@ def collect_binding(
         # A calibration file that is absent is itself a fact worth binding: if
         # one appears later, the route was computed without it.
         calibration[path.name] = _sha256_file(path) if path.is_file() else ""
+    identity, unsupported = _identity_and_unsupported(repo, route_module, runner)
     return Binding(
         repo_binding_identity=repo_binding_identity,
         base_identity=base_identity,
         head_identity=head_identity,
-        worktree_identity=worktree_identity(repo, route_module, runner),
+        worktree_identity=identity,
+        unsupported_paths=unsupported,
         routing_policy_sha256=digest(policy_source),
         gate_configuration_sha256=digest(gates_source),
         calibration_hashes=calibration,
@@ -346,6 +380,15 @@ def verify_receipt(
     if not isinstance(recorded, Mapping):
         raise ReceiptError("receipt binding is not an object")
     now = current.as_payload()
+
+    # Checked before the field comparison, and not as one more field that
+    # moved. Every other reason here says the repository changed. This one says
+    # the repository holds something no field in this binding can follow, so
+    # matching fields would not mean the tree stood still. Fresh is not
+    # available for such a tree at any value of the other fields. See D-072.
+    blocking = sorted(now.get("unsupported_paths") or ())
+    if blocking:
+        reasons.append((STALE_UNSUPPORTED, ", ".join(blocking)))
 
     for key, code in (
         ("repo_binding_identity", STALE_BINDING),

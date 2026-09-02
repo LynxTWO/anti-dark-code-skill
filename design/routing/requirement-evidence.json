@@ -1,23 +1,25 @@
 {
   "schema_version": 2,
   "untraced": [
-    "R-005",
     "R-013",
-    "R-017",
     "R-018",
-    "R-019",
-    "R-021",
     "R-022"
   ],
   "requirements": {
     "R-001": {
-      "tests": ["anti-dark-code/tests/test_route.py::MonotonicityTests::test_adding_any_fact_never_lowers_any_field"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::MonotonicityTests::test_adding_any_fact_never_lowers_any_field"
+      ]
     },
     "R-002": {
-      "tests": ["anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id"]
+      "tests": [
+        "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id"
+      ]
     },
     "R-003": {
-      "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_unmapped_path_forces_full_and_is_recorded"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_unmapped_path_forces_full_and_is_recorded"
+      ]
     },
     "R-004": {
       "tests": [
@@ -26,8 +28,15 @@
       ]
     },
     "R-005": {
-      "partial": true,
-      "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_unmapped_self_grading_path_is_not_a_load_failure",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
+      ]
     },
     "R-006": {
       "tests": [
@@ -62,7 +71,9 @@
       ]
     },
     "R-011": {
-      "tests": ["anti-dark-code/tests/test_route.py::HintTests::test_no_hint_field_can_lower_anything"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::HintTests::test_no_hint_field_can_lower_anything"
+      ]
     },
     "R-012": {
       "tests": [
@@ -73,7 +84,9 @@
     },
     "R-013": {},
     "R-014": {
-      "tests": ["anti-dark-code/tests/test_route.py::AcquisitionTests::test_skill_tree_paths_are_not_filtered_out"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionTests::test_skill_tree_paths_are_not_filtered_out"
+      ]
     },
     "R-015": {
       "tests": [
@@ -90,22 +103,31 @@
       ]
     },
     "R-017": {
-      "partial": true,
       "tests": [
         "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_different_dirty_bytes_under_identical_status_are_stale",
         "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_index_rewrite_is_detected",
-        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_gitlink_is_reported_as_unbindable",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_receipt_over_a_submodule_tree_never_verifies_fresh",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_an_ordinary_tree_still_verifies_fresh",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_an_ordinary_untracked_directory_is_not_unbindable",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_an_untracked_embedded_repository_is_also_unbindable",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_the_identity_alone_still_cannot_see_the_submodule_move"
       ]
     },
     "R-018": {},
     "R-019": {
-      "partial": true,
       "tests": [
-        "anti-dark-code/tests/test_route.py::RawParserTests::test_rename_keeps_both_paths",
-        "anti-dark-code/tests/test_route.py::RawParserTests::test_copy_keeps_both_paths",
-        "anti-dark-code/tests/test_route.py::RawParserTests::test_type_change_and_unmerged_are_preserved",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_repository_mid_merge_still_acquires",
         "anti-dark-code/tests/test_route.py::AcquisitionTests::test_snapshot_unions_all_four_sources",
-        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_repository_mid_merge_still_acquires"
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_a_submodule_added_or_deleted_is_also_unsupported",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_copy_keeps_both_paths",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_every_real_git_mode_parses_into_a_record",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_only_the_gitlink_mode_withdraws_snapshot_completeness",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_rename_keeps_both_paths",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_type_change_and_unmerged_are_preserved",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_dirty_submodule_makes_the_snapshot_incomplete",
+        "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_so_the_route_forces_full"
       ]
     },
     "R-020": {
@@ -116,8 +138,15 @@
       ]
     },
     "R-021": {
-      "partial": true,
-      "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_unmapped_self_grading_path_is_not_a_load_failure",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads"
+      ]
     },
     "R-022": {},
     "R-023": {
@@ -135,10 +164,14 @@
       ]
     },
     "R-025": {
-      "tests": ["anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_staged_change_is_not_counted_twice"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_staged_change_is_not_counted_twice"
+      ]
     },
     "R-026": {
-      "tests": ["anti-dark-code/tests/test_route.py::ClassificationTests::test_a_broad_glob_cannot_mask_a_specific_one"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_broad_glob_cannot_mask_a_specific_one"
+      ]
     },
     "R-027": {
       "tests": [
@@ -174,7 +207,9 @@
       ]
     },
     "R-032": {
-      "tests": ["anti-dark-code/tests/test_route.py::ClassificationTests::test_glob_matching_is_case_sensitive_on_every_platform"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_glob_matching_is_case_sensitive_on_every_platform"
+      ]
     },
     "R-033": {
       "tests": [
@@ -253,7 +288,9 @@
       ]
     },
     "R-044": {
-      "tests": ["anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_rewrite_is_detected"]
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_rewrite_is_detected"
+      ]
     },
     "R-045": {
       "tests": [
@@ -320,7 +357,10 @@
       "mutation": {
         "matrix": "design/routing/mutants/matrix.json",
         "runner": "design/routing/mutants/replay.py",
-        "command": ["python", "design/routing/mutants/replay.py"]
+        "command": [
+          "python",
+          "design/routing/mutants/replay.py"
+        ]
       }
     },
     "R-054": {

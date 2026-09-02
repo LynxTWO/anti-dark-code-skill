@@ -16,7 +16,7 @@ This document is the puzzle. ENGINEERING.md holds the rules for placing pieces. 
 - **Current slice:** SLICE-001, read-only shadow routing. It computes and explains routes without being allowed to skip anything.
 - **What this is not:** not a risk score. Not a permission system for shortcuts. Not a new numbered pass.
 
-**Current gate:** Q-05 is proven against a real blobless clone served by a loopback Git daemon (D-060), and Linux mutation replay is required in CI (D-058). M3 is implemented but remains review-gated: D-070 found partial evidence for four M3 requirements after D-067's first acceptance. M4 has not started and remains blocked by D-069.
+**Current gate:** Q-05 is proven against a real blobless clone served by a loopback Git daemon (D-060), and Linux mutation replay is required in CI (D-058). M3 is implemented and its four partial requirements are closed: D-071 makes the classifier state this skill's own verification authority and refuses a policy that grades it lower, and D-072 refuses a tree containing a submodule rather than binding state it cannot follow. M4 has not started; its plan is repaired but its implementation is a separate round.
 
 The router is not new doctrine. `V11 Change-impact analysis` and `V20 Confidence ladder` are already capabilities in `assets/verification-capabilities.json`. This subsystem is the deterministic engine for two capabilities the skill already names and currently leaves to prose.
 
@@ -200,7 +200,7 @@ Existing GitHub Actions. Status Confirmed.
 
 ## 15. Current Build Boundary
 
-- **Current slice:** SLICE-001, read-only shadow routing. M2 is complete. M3 is implemented and review-gated by D-070. M4 is not started and is plan-blocked by D-069.
+- **Current slice:** SLICE-001, read-only shadow routing. M2 is complete. M3 is implemented, with D-070's four partial requirements closed by D-071 and D-072. M4 is not started; Tasks 10 through 12 are repaired and R-013, R-018, and R-022 remain unbuilt.
 - **Modules built through M3:** Git change reader, fact collector, routing policy, route builder, receipt writer, receipt verifier, and the `route` CLI path.
 - **Modules not built:** the M4 shadow comparator and gate runner binding. Nothing can skip a gate.
 - **Everything else:** designed above, deliberately unbuilt.
