@@ -4,6 +4,9 @@ anti-dark-code/incoming/*.md text eol=lf
 metrics/ledger/*.json text eol=lf
 metrics/summary.json text eol=lf
 docs/data/*.json text eol=lf
+# Evidence artifacts and the mutation matrix are hashed by their blob digest;
+# a checkout that rewrites their line endings must not disagree with it (D-114).
+design/routing/**/*.json text eol=lf
 brief/*.html text eol=lf
 brief/*.provenance.json text eol=lf
 brief/*.pdf -text

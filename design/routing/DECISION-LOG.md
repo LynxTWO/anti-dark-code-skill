@@ -122,11 +122,18 @@ The documents state what is true. This log preserves why, what else was consider
 | D-103 | 2026-09-02 | Serial evidence labels dirt, and serial writes require clean endpoints | Confirmed | |
 | D-104 | 2026-09-02 | A skipped survivor needs exact catching-test attribution | Confirmed | |
 | D-105 | 2026-09-02 | A worker owns its interpreter and its configuration, not only its pytest options | Confirmed | |
-| D-106 | 2026-09-02 | The serial console renders a diagnostic the same way the coordinator does | Confirmed | |
+| D-106 | 2026-09-02 | The serial console renders a diagnostic the same way the coordinator does | Amended | D-115 |
 | D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Open | |
 | D-108 | 2026-09-02 | A walkthrough check compares committed bytes, not a checkout | Confirmed | |
 | D-109 | 2026-09-02 | A host record is current only at the commit that produced it | Confirmed | |
-| D-110 | 2026-09-02 | A survivor with no catching host is a survivor, not an unverified row | Open, measured | |
+| D-110 | 2026-09-02 | A survivor with no catching host is a survivor, not an unverified row | Confirmed | |
+| D-111 | 2026-09-02 | A worker does not inherit flags that change what a test means | Confirmed | |
+| D-112 | 2026-09-02 | The suite's git reads only configuration the run wrote | Confirmed | |
+| D-113 | 2026-09-02 | M08 was held by the host, not by the suite | Confirmed | |
+| D-114 | 2026-09-02 | Evidence files under design/routing keep LF on every checkout | Confirmed | |
+| D-115 | 2026-09-02 | Every console field from the matrix passes through the renderer | Confirmed | |
+| D-116 | 2026-09-02 | The harness line closes on a stopping rule, not on a quiet round | Open | |
+| D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
 
 ---
 
@@ -3150,7 +3157,7 @@ interpreter gains an isolation mode that keeps `PYTHONPATH`.
 ## D-106: The serial console renders a diagnostic the same way the coordinator does
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-115
 Area: D-099, D-102, `replay()` console output
 
 Context:
@@ -3218,6 +3225,16 @@ this entry records the gap between its statement and its reach.
 
 Revisit when:
 The owner answers, or the classifier contract gains per-repository scoping.
+
+Measured in round twenty:
+Both options were loaded and routed on Windows at `39d745d` through the real
+`load_policy`, `collect_change_facts`, and `build_route`, with every rule
+approved in memory. Under both, all 71 self-grading guard paths force the
+full recipe. Option 1 forces the full route for `tools/scripts/build.py`,
+`packages/app/scripts/migrate.py`, `docs/scripts/render.py`,
+`ci/scripts/release.py`, and `src/scripts/__init__.py`; option 2 routes them
+as product code and changes nothing else measured. The table is in the D-107
+section of `HANDOFF-BACK-ROUND-TWENTY.md`. The choice stays the owner's.
 
 ## D-108: A walkthrough check compares committed bytes, not a checkout
 
@@ -3314,7 +3331,7 @@ currency can be checked by a test rather than by a handoff.
 ## D-110: A survivor with no catching host is a survivor, not an unverified row
 
 Date: 2026-09-02
-Status: Open, measured; the repair is scheduled for round twenty
+Status: Confirmed; landed in round twenty
 Area: D-054, D-095, D-104, `derive_verdict`, Windows replays of new rows
 
 Context:
@@ -3356,3 +3373,325 @@ and the repair, and re-measures M107 on both hosts.
 Revisit when:
 Round twenty lands the repair, or a host that skips nothing becomes the only
 authoritative replay host.
+
+Outcome in round twenty:
+The branch is removed. With no catching host the row is `SURVIVED` on every
+host, the console names the exact tests the host skipped, and a later
+catching host restores `caught elsewhere` through D-104's intersection.
+`test_a_row_no_host_caught_is_survived_even_under_skips` and the amended
+`test_a_verdict_does_not_depend_on_which_host_ran_last` hold it; M110
+reinstates the branch and fails both.
+
+## D-111: A worker does not inherit flags that change what a test means
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-101, D-105, `run_suite`, replay workers and serial replay
+
+Context:
+D-105 owned where a worker's code comes from: no user site, no caller
+plugin path, no configuration file the run did not write. The interpreter
+also reads flags that change what a test means. The round-twenty challenger
+measured through the real `run_suite`, and the author reproduced it:
+`PYTHONWARNINGS=error` turned a probe that emits a `DeprecationWarning`
+from `1 passed` into `1 failed`, and `PYTHONOPTIMIZE=2` turned `assert
+__debug__` from a pass into a failure. A mutant that survives can therefore
+be recorded as caught because the host set a warning filter, which is the
+D-095 class again with the environment as the foreign record.
+
+Decision:
+The suite environment drops `PYTHONWARNINGS`, `PYTHONOPTIMIZE`,
+`PYTHONBREAKPOINT`, `PYTHONPYCACHEPREFIX`, `PYTHONDEBUG`, `PYTHONDEVMODE`,
+`PYTHONPROFILEIMPORTTIME`, `PYTHONTRACEMALLOC`, `PYTHONFAULTHANDLER`,
+`PYTHONMALLOC`, `PYTHONASYNCIODEBUG`, `PYTHONINTMAXSTRDIGITS`,
+`PYTHONNODEBUGRANGES`, `PYTHONPLATLIBDIR`, `PYTHONCASEOK`,
+`PYTHONHASHSEED`, `PYTHONVERBOSE`, and `PYTHONPERFSUPPORT`. The locale and
+encoding variables stay, because the hostile-environment jobs exist to run
+the suite under them. M111 holds the scrub.
+
+Because:
+A verdict must depend on the mutant and the suite, not on which warning
+filter the shell that launched the coordinator happened to export.
+
+Consequences:
+An ambient warning filter or optimization level cannot flip a row. The
+bytecode cache prefix cannot point outside the clone.
+
+Revisit when:
+The interpreter adds a flag that changes test semantics, which the
+env-capture test will not see on its own.
+
+## D-112: The suite's git reads only configuration the run wrote
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-085, D-088, D-105, `run_suite`, real-git fixtures, M08
+
+Context:
+The suite's real-git fixtures run `git` with the worker's environment. The
+challenger measured a `GIT_CONFIG_GLOBAL` file carrying `core.hooksPath`
+running a hook from outside the clone during a fixture-shaped `git commit`,
+and `core.fsmonitor` running a script during `git status`; the author
+reproduced the hook. Round nineteen's WSL2 replay then showed the same
+surface deciding a verdict: M08, which drops the `-c` filter overrides,
+was caught on Windows, T540P, and the CI runners because each carries a
+global git-lfs driver that stayed live, and survived on WSL2, which carries
+none. With `GIT_CONFIG_GLOBAL` empty and the system configuration disabled,
+the whole route suite passed under M08 on Windows. Nothing in the suite
+held that path; the host did.
+
+Decision:
+Every git the suite runs reads an empty global configuration file the run
+wrote, no system configuration, no system attributes, an empty template
+directory, and an XDG directory holding no attributes or ignore file. The
+`GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_*`, `GIT_CONFIG_VALUE_*`,
+`GIT_CONFIG_PARAMETERS`, `GIT_CONFIG`, `GIT_DIR`, `GIT_WORK_TREE`,
+`GIT_COMMON_DIR`, `GIT_INDEX_FILE`, `GIT_OBJECT_DIRECTORY`,
+`GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_CEILING_DIRECTORIES`,
+`GIT_NAMESPACE`, `GIT_EXEC_PATH`, `GIT_SSH`, `GIT_SSH_COMMAND`,
+`GIT_ASKPASS`, `GIT_EDITOR`, `GIT_SEQUENCE_EDITOR`, `GIT_PAGER`,
+`GIT_PROXY_COMMAND`, `GIT_EXTERNAL_DIFF`, and `GIT_DIFF_OPTS` variables are
+dropped. M112 holds the global-configuration pin.
+
+Because:
+The acquisition code under test already neutralizes hostile configuration
+(R-034, R-054). The fixtures that build every real-git test did not, so a
+host's configuration could execute code in a worker and could decide a
+mutant's verdict.
+
+Consequences:
+M08 becomes inert on every host, which is what it always was on a host
+without git-lfs; D-113 records what happens to the row. The suite runs
+without any global git identity, which the CI runners already proved.
+
+Revisit when:
+A fixture needs a global git setting, which should then be written into
+the run-owned file rather than inherited.
+
+## D-113: M08 was held by the host, not by the suite
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-085, D-088, D-094, D-112, M08, M114
+
+Context:
+M08 replaces `worktree_isolation = _filter_overrides(run)` with an empty
+list. Measured on Windows at `39d745d`: with the host's git configuration,
+`test_a_dirty_submodule_makes_the_snapshot_incomplete` fails under M08;
+with an empty global configuration and the system configuration disabled,
+that test, the five filter tests, and the whole route suite pass under it.
+The catch on three hosts was the host's `filter.lfs.required=true` staying
+live once the `-c` overrides were dropped. WSL2, with no driver, saw the
+mutant survive.
+
+The code explains it. In production the runner is the default one, so
+when the `-c` overrides are dropped, `_live_filter_programs` reports every
+driver live, `read_change_inputs` builds the D-088 environment runner,
+verifies it, and runs the worktree comparison neutralized through it. The
+result is the same; only the mechanism differs. A caller-injected runner,
+which tests use, is denied that fallback by design, which is why an
+injected-runner test noticed the difference only on hosts whose global
+configuration declared a driver. On a git older than 2.31, dropping the
+overrides turns a neutralization into a refusal, which is the safe
+direction. Nothing in the suite held the `-c` path, and nothing needed to.
+
+Decision:
+M08 is superseded by M114, which disables the environment neutralization
+itself by never setting `GIT_CONFIG_COUNT`. Measured on Windows at this
+head: M114 fails `test_a_filter_name_containing_an_equals_cannot_run` and
+`test_the_environment_form_expresses_a_name_dash_c_cannot`, both against
+fixture-local drivers, so it is caught on every host. The `-c` overrides
+stay as defense in depth, as D-094 kept the layout derivation.
+
+Because:
+A mutation row is evidence only while its replacement can falsify the
+named guarantee. D-088 made the `-c` path's failure recoverable, so
+dropping it falsifies nothing; the environment path is the guarantee, and
+it had no row.
+
+Consequences:
+The matrix gains M114 and records M08 superseded. M08's Windows, T540P,
+and CI catches are recorded as environmental, not as coverage. D-112
+removes the global configuration that produced them.
+
+Revisit when:
+The environment neutralization is removed, or git drops numbered
+configuration.
+
+## D-114: Evidence files under design/routing keep LF on every checkout
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-108, `.gitattributes`, evidence artifacts, `matrix.json`
+
+Context:
+`.gitattributes` scopes `text eol=lf` to `anti-dark-code/**`. The matrix
+and the evidence artifacts under `design/routing/` carry no attribute, so a
+default Windows clone rewrites their line endings on checkout while `git
+status` stays clean, and any check that hashes the checkout disagrees with
+the recorded blob digest. D-108 moved the walkthrough check to the blob; the
+challenger found the missing attribute as the second root cause.
+
+Decision:
+`design/routing/**/*.json` is declared `text eol=lf`. Blob digests and
+checkout digests then agree on every host.
+
+Because:
+An evidence file whose bytes depend on the reader's checkout settings is
+harder to verify than it needs to be.
+
+Consequences:
+Existing clones re-normalize on the next checkout of those files.
+
+Revisit when:
+An evidence file needs CRLF, which none does.
+
+## D-115: Every console field from the matrix passes through the renderer
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-102, D-106, `replay()` console output, `matrix.json`
+
+Context:
+D-106 routed a broken row's error through `_terminal_safe_diagnostic` in
+both modes and said no console line could carry a raw control character.
+The challenger measured the other fields. `replay()` printed a row's id,
+name, replacement id, and verdict, and the summary's survivor ids, raw
+from `matrix.json`. A row whose name carried a newline and an escape
+printed a forged coloured summary line in both modes; the author
+reproduced it. Serial replay reads the matrix from the working tree, so an
+uncommitted row reaches the console directly; parallel replay needs the
+row committed.
+
+Decision:
+Every field `replay()` prints that originates in `matrix.json` passes
+through the renderer: ids, names, replacement ids, verdicts, and the ids
+in the summary. The JSON report keeps the raw values. M113 holds the name
+field, which is the one a forged line needs.
+
+Because:
+D-106's statement was wider than its code. The renderer is the boundary
+between data and presentation, and a boundary that covers one field is not
+one.
+
+Consequences:
+No console line carries a raw control character from any source, in either
+mode. Reports are unchanged.
+
+Revisit when:
+Row output becomes structured fields rendered by a separate presentation
+layer, as D-106 said.
+
+## D-116: The harness line closes on a stopping rule, not on a quiet round
+
+Date: 2026-09-02
+Status: Open; owner decision
+Area: SLICE-001 section 9, D-054, D-095 through D-115, the round robin,
+`WALKTHROUGH-SLICE-001.md`
+
+Context:
+Rounds fourteen through twenty each began by reproducing the previous
+round's numbers and each closed with four to six new decisions: D-080 to
+D-084, D-085 to D-090, D-091 to D-094, D-095 to D-099, D-100 to D-104,
+D-105 to D-110, D-111 to D-115. The count is flat. What moved is the
+subject. Through round sixteen the decisions concerned the router and its
+inputs. From round seventeen, sixteen of nineteen decisions concern the
+replay harness, its evidence files, or its console; the three that touch
+the router, D-097, D-100, and D-107, are one question about where
+verification authority lives, and D-107 has been with the owner since
+round nineteen. The harness findings have one shape: a channel through
+which the coordinator's host reaches a worker. Rootdir (D-098), pytest
+environment (D-101), user site and configuration files (D-105),
+interpreter flags (D-111), git configuration (D-112). After D-112 the
+channels the harness has not closed are the ones it cannot write: `PATH`,
+which chooses the interpreter and the git binary, that interpreter's
+system site-packages, and the operating system. Pinning those means
+choosing binaries, which is an environment the owner provides, not a
+repair the harness can make.
+
+The owner walkthrough has been the last box since round fourteen. Agents
+have passed it on fresh clones four times, in rounds sixteen, eighteen,
+nineteen, and twenty. Passing it again is not evidence the owner has seen
+it.
+
+Decision:
+Proposed to the owner, who decides. The harness line is closed when all
+three hold at one commit:
+
+1. A full serial `--write` on Windows and on Linux each report zero not
+   caught, and every active row carries an exact-identity record from
+   both hosts at that commit.
+2. A fresh-context challenger at that commit finds nothing except
+   channels the harness cannot own, or reproductions of closed decisions.
+3. The owner walkthrough passes literally on a fresh default clone of
+   that commit.
+
+When the three hold, no further agent round opens. The remaining work is
+the owner's: run the walkthrough, decide D-107 and this rule, mark
+SLICE-001, and land the stack. The line reopens only when one of these
+fires: a verdict for a real mutant differs between hosts at one commit
+without a code change; the walkthrough fails on a fresh default clone; or
+the router or the harness code changes, in which case one round verifies
+the change and stops.
+
+Because:
+A round finds what it goes looking for, and seven rounds at four to six
+findings each show that a quiet round will not arrive on its own. An
+endpoint has to be a condition at one commit that anyone can check, not a
+feeling that the findings have dried up.
+
+Consequences:
+Round twenty reports whether the three conditions hold at its final head.
+This decision approves no routing rule, does not enable selective
+execution, and does not mark SLICE-001 Done; those remain the owner's.
+
+Revisit when:
+A reopen condition fires, or the owner replaces the rule.
+
+## D-117: A contract assertion first installs the state the harness must replace
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-095, D-105, D-111, D-112, D-116, `run_suite`, the worker environment
+contract test, M107
+
+Context:
+The route suite runs inside `run_suite` when it is replayed, so every
+variable `run_suite` sets for its worker is already in the suite process's
+environment, and a nested `run_suite` under test builds its worker
+environment from that. The contract test asserted `PYTHONNOUSERSITE == "1"`
+and `GIT_CONFIG_NOSYSTEM == "1"` without first removing them, so under
+M107, which stops setting `PYTHONNOUSERSITE`, the assertion passed on the
+inherited value. Measured: the WSL2 serial write at `2f86f14` reported
+`114 mutants, 1 not caught: ['M107']` with `318 passed`; the Windows
+parallel replay at the same head caught M107 only through the behavioural
+probe, which needs a live user site that a venv disables. The contract
+assertion was masked on both hosts; only the venv host had nothing else to
+catch the mutant. This is a cross-host verdict difference at one commit
+without a code change, D-116's first reopen condition, observed in the
+round that proposed the rule.
+
+Decision:
+A contract assertion first installs the state the harness must replace: a
+variable the harness must add is removed from the inherited environment
+before the call, a variable it must overwrite is set to a caller-owned
+value, and a run-owned path is asserted by its prefix under the run's
+private root rather than by its suffix. The contract test does this for
+`PYTHONNOUSERSITE`, `PYTHONSAFEPATH`, `GIT_CONFIG_NOSYSTEM`,
+`GIT_ATTR_NOSYSTEM`, `GIT_CONFIG_GLOBAL`, `GIT_TEMPLATE_DIR`, and
+`XDG_CONFIG_HOME`. M107 holds it on every host.
+
+Because:
+A test that asserts the harness sets X while running inside the harness
+that set X measures inheritance, not the code under test. The masked
+assertion looked like coverage on every host and was coverage on none.
+
+Consequences:
+M107 is caught by the contract on a venv host and by the probe on a host
+with a live user site. The other constant-valued contract assertions are
+now falsifiable under replay. Round twenty's evidence runs at `2f86f14` are
+superseded by runs at the head that carries this repair.
+
+Revisit when:
+The suite stops running inside `run_suite` under replay, or a contract
+assertion is added without the inversion.

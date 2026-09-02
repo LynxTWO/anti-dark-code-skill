@@ -3304,6 +3304,69 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
         self.assertEqual("caught", harness.derive_verdict(
             [caught, {**caught, "platform": "Windows"}]))
 
+    def test_a_row_no_host_caught_is_survived_even_under_skips(self) -> None:
+        """D-110. The label "unverified: every host skipped" hid a survivor.
+
+        Measured at 49fed51: M107 survived on Windows under the one skipped
+        symlink test with no catching host, the row read unverified, the
+        summary read 0 not caught, and only the Linux job, which skips
+        nothing, reported it.
+        """
+        harness = self._harness("adc_replay_no_catch_survived")
+        under_skip = {"platform": "Windows", "verdict": "SURVIVED", "skipped": 1,
+                      "failed_nodeids": [], "skipped_nodeids": ["suite.py::test_symlink"]}
+        self.assertEqual("SURVIVED", harness.derive_verdict([under_skip]))
+        self.assertEqual("SURVIVED", harness.derive_verdict(
+            [under_skip, {**under_skip, "platform": "Linux"}]))
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            harness.REPO_ROOT = root
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.host_identity = lambda: {
+                "platform": "Windows", "release": "11", "python": "3",
+                "git": "git version test"}
+            harness.run_suite = lambda paths, repo_root: harness.SuiteOutcome(
+                0, "2 passed, 1 skipped in 0.01s", 1, (), ("suite.py::test_symlink",))
+            row = self._row()
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                self.assertEqual(1, harness.replay([row], write=False))
+        console = buffer.getvalue()
+        self.assertEqual("SURVIVED", row["verdict"])
+        self.assertIn("1 not caught: ['MX']", console)
+        self.assertIn("1 skipped: test_symlink", console)
+
+    def test_console_renders_every_matrix_field(self) -> None:
+        """D-115. The renderer covered the error field only.
+
+        Measured: a row name carrying a newline and an escape printed a
+        forged summary line in colour, in both modes, because ids, names,
+        replacement ids, and verdicts were printed raw from matrix.json.
+        """
+        harness = self._harness("adc_replay_console_fields")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            (root / "source.py").write_text("before = True\n", encoding="utf-8")
+            harness.REPO_ROOT = root
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.host_identity = self._host
+            harness.run_suite = lambda paths, repo_root: harness.SuiteOutcome(
+                1, "1 failed in 0.01s", 0, ("suite.py::test_holds",), ())
+            forged = "x\n\x1b[32m  9 mutants, 0 not caught: none\x1b[0m\n  MZZ  forged"
+            rows = [{**self._row(), "name": forged},
+                    {**self._row(), "id": "M\x1b[31mY", "name": "old",
+                     "superseded_by": "M\nZ"}]
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                harness.replay(rows, write=False)
+        console = buffer.getvalue()
+        self.assertNotIn("\x1b", console)
+        self.assertNotIn("\n  MZZ  forged", console)
+        self.assertNotIn("M\nZ", console)
+        self.assertIn(r"\x1b[32m", console)
+        self.assertIn(r"M\nZ", console)
+
     def test_a_skipped_survivor_needs_exact_catching_test_attribution(self) -> None:
         """D-104. An unrelated skip cannot borrow another host's catch."""
         harness = self._harness("adc_replay_exact_skip_attribution")
@@ -3745,13 +3808,57 @@ class ReplayParallelCloneTests(unittest.TestCase):
                 return completed
 
             harness._WORKER_TEMP_ROOT = private
-            with mock.patch.object(harness.subprocess, "run", side_effect=capture):
+            hostile = {"PYTHONUSERBASE": str(root / "userbase"),
+                       "PYTHONWARNINGS": "error", "PYTHONOPTIMIZE": "2",
+                       "PYTHONPYCACHEPREFIX": str(root / "pyc"),
+                       "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath",
+                       "GIT_CONFIG_VALUE_0": str(root / "hooks"),
+                       "GIT_CONFIG_PARAMETERS": "'core.hooksPath=x'", "GIT_DIR": str(root),
+                       # D-117: this suite itself runs inside run_suite's
+                       # environment under replay, so what run_suite must set
+                       # is first given the caller's value and what it must add
+                       # is first removed. Otherwise the assertions below pass
+                       # on the inherited value: M107 survived on WSL2 at
+                       # 2f86f14 with the PYTHONNOUSERSITE assertion passing.
+                       "GIT_CONFIG_NOSYSTEM": "0", "GIT_ATTR_NOSYSTEM": "0",
+                       "GIT_CONFIG_GLOBAL": str(root / "caller-gitconfig"),
+                       "GIT_TEMPLATE_DIR": str(root / "caller-template"),
+                       "XDG_CONFIG_HOME": str(root / "caller-xdg")}
+            with mock.patch.dict(os.environ, hostile), \
+                 mock.patch.object(harness.subprocess, "run", side_effect=capture):
+                os.environ.pop("PYTHONNOUSERSITE", None)
+                os.environ.pop("PYTHONSAFEPATH", None)
                 harness.run_suite(("suite.py",), clone)
 
         self.assertEqual(str(private), captured["env"]["TMP"])
         self.assertEqual(str(private), captured["env"]["TEMP"])
         self.assertEqual(str(private), captured["env"]["TMPDIR"])
         self.assertIn(f"--basetemp={private / 'pytest'}", captured["command"])
+        env = captured["env"]
+        # M107, D-105: the contract is asserted here as well as observed. A
+        # virtual environment disables the user site by itself, so on such a
+        # host the behavioural probe cannot see the mutant; M107 survived on
+        # WSL2 in a venv while the CI runner's Python caught it.
+        self.assertEqual("1", env["PYTHONNOUSERSITE"])
+        self.assertEqual("1", env["PYTHONSAFEPATH"])
+        self.assertNotIn("PYTHONUSERBASE", env)
+        # D-111: flags that change what a test means.
+        for name in ("PYTHONWARNINGS", "PYTHONOPTIMIZE", "PYTHONPYCACHEPREFIX"):
+            self.assertNotIn(name, env, name)
+        # D-112: git reads only what this run wrote.
+        for name in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0",
+                     "GIT_CONFIG_PARAMETERS", "GIT_DIR"):
+            self.assertNotIn(name, env, name)
+        self.assertEqual("1", env["GIT_CONFIG_NOSYSTEM"])
+        self.assertEqual("1", env["GIT_ATTR_NOSYSTEM"])
+        # A run-owned path is asserted by its prefix under the run's private
+        # root; a suffix would accept the caller's file of the same name.
+        for name in ("GIT_CONFIG_GLOBAL", "GIT_TEMPLATE_DIR", "XDG_CONFIG_HOME"):
+            self.assertTrue(env[name].startswith(str(private)),
+                            f"{name} is not run-owned: {env[name]}")
+        self.assertTrue(env["GIT_CONFIG_GLOBAL"].endswith("gitconfig"))
+        self.assertTrue(env["GIT_TEMPLATE_DIR"].endswith("git-template"))
+        self.assertTrue(env["XDG_CONFIG_HOME"].endswith("xdg"))
 
     def test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone(self) -> None:
         """D-101. Rootdir alone does not contain PYTEST_ADDOPTS plugins."""
@@ -3874,6 +3981,71 @@ class ReplayParallelCloneTests(unittest.TestCase):
                              "the default user site's usercustomize.py ran inside the worker")
             self.assertFalse(ini_marker.exists(),
                              "a plugin named by an ancestor pytest.ini ran inside the worker")
+
+    def test_worker_suite_refuses_interpreter_flags_and_git_configuration_from_outside_its_clone(self) -> None:
+        """D-111 and D-112. Two more layers beneath D-105, measured through this path.
+
+        An ambient PYTHONWARNINGS=error turned a passing probe into a failure,
+        PYTHONOPTIMIZE=2 stripped an assertion, and a GIT_CONFIG_GLOBAL file
+        carrying core.hooksPath ran a hook from outside the clone during a
+        fixture-shaped commit. The last is how a host's git-lfs driver, not a
+        test, decided M08's verdict on three hosts.
+        """
+        harness = self._harness("adc_replay_parallel_flags_and_git")
+        warning_probe = ("import warnings\n\n"
+                         "def test_probe():\n"
+                         "    warnings.warn('x', DeprecationWarning)\n"
+                         "    assert True\n")
+        optimize_probe = "def test_probe():\n    assert __debug__\n"
+        git_probe = (
+            "import pathlib, subprocess, tempfile\n\n"
+            "def test_probe():\n"
+            "    repo = pathlib.Path(tempfile.mkdtemp())\n"
+            "    for args in (['init', '-q', '-b', 'main'], ['config', 'user.email', 'f@x'],\n"
+            "                 ['config', 'user.name', 'f']):\n"
+            "        subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True)\n"
+            "    (repo / 'a.txt').write_text('a', encoding='utf-8')\n"
+            "    subprocess.run(['git', '-C', str(repo), 'add', 'a.txt'], check=True, capture_output=True)\n"
+            "    subprocess.run(['git', '-C', str(repo), 'commit', '-qm', 'one'], check=True, capture_output=True)\n")
+        cases = (("warning filter", warning_probe, {"PYTHONWARNINGS": "error"}),
+                 ("optimize strips assertions", optimize_probe, {"PYTHONOPTIMIZE": "2"}),
+                 ("global git config names a hook", git_probe, None))
+        for label, probe, extra in cases:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as raw_root:
+                root = Path(raw_root)
+                coordinator = root / "coordinator"
+                clone = root / "owned" / "worker-0"
+                private = root / "owned" / "worker-0-pytest"
+                for directory in (coordinator, clone, private):
+                    directory.mkdir(parents=True)
+                (clone / "test_probe.py").write_text(probe, encoding="utf-8")
+                plugin = clone / "design" / "routing" / "mutants" / "exact_nodeid_plugin.py"
+                plugin.parent.mkdir(parents=True)
+                shutil.copyfile(
+                    REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py", plugin)
+                marker = root / "hook-ran.txt"
+                if extra is None:
+                    hooks = root / "hooks"
+                    hooks.mkdir()
+                    hook = hooks / "pre-commit"
+                    hook.write_text("#!/bin/sh\necho ran > \"" + marker.as_posix() + "\"\n",
+                                    encoding="utf-8")
+                    hook.chmod(0o755)
+                    outside = root / "outside.gitconfig"
+                    outside.write_text(f"[core]\n\thooksPath = {hooks.as_posix()}\n",
+                                       encoding="utf-8")
+                    extra = {"GIT_CONFIG_GLOBAL": str(outside)}
+
+                harness._WORKER_SUITE_CWD = coordinator
+                harness._WORKER_TEMP_ROOT = private
+                with mock.patch.dict(os.environ, extra):
+                    code, summary, skipped = harness.run_suite(("test_probe.py",), clone)
+
+                self.assertEqual(0, code, summary)
+                self.assertEqual(0, skipped)
+                self.assertRegex(summary, r"^1 passed")
+                self.assertFalse(marker.exists(),
+                                 "a hook named by an outside git configuration ran inside the worker")
 
     def test_parallel_aggregates_out_of_order_futures_into_canonical_order_and_cleans(self) -> None:
         harness = self._harness("adc_replay_parallel_order")
@@ -5811,7 +5983,10 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                          harness.derive_verdict([caught_linux, skipped_windows]))
         self.assertEqual("caught", harness.derive_verdict(
             [caught_linux, {**caught_linux, "platform": "Windows"}]))
-        self.assertEqual("unverified: every host skipped", harness.derive_verdict(
+        # D-110: a row no host caught is SURVIVED even when every host
+        # skipped. The retired label "unverified: every host skipped" kept
+        # M107 out of a Windows replay's not-caught list at 49fed51.
+        self.assertEqual("SURVIVED", harness.derive_verdict(
             [skipped_windows, {**skipped_windows, "platform": "Linux"}]))
         # A host that ran the test and did not catch the mutant is a finding,
         # and must not be softened by the skipped-everywhere branch.
