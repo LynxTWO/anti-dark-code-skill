@@ -1,0 +1,2602 @@
+{
+  "schema": "round-seventeen-replay-evidence-v1",
+  "first_run_before_d098": {
+    "purpose": "the D-098 measurement: the same command before the fix, with a serial replay churning the host temp directory from another clone",
+    "commit": "3856f112d00234c27b327abb21118961da2edd7f",
+    "exit_code": 1,
+    "summary": "98 mutants, 59 not caught: ['M37', 'M38', 'M39', 'M40', 'M41', 'M42', 'M43', 'M44', 'M45', 'M46', 'M47', 'M48', 'M49', 'M50', 'M51', 'M52', 'M53', 'M54', 'M55', 'M56', 'M58', 'M59', 'M60', 'M62', 'M63', 'M64', 'M65', 'M66', 'M67', 'M68', 'M69', 'M70', 'M71', 'M72', 'M73', 'M74', 'M75', 'M76', 'M77', 'M78', 'M79', 'M80', 'M81', 'M82', 'M83', 'M84', 'M85', 'M86', 'M87', 'M88', 'M89', 'M90', 'M91', 'M93', 'M94', 'M95', 'M96', 'M97', 'M98']",
+    "wall_duration_seconds": 437,
+    "serial_churn_window_seconds": [
+      321,
+      432
+    ],
+    "report_sha256": "81e6d43b4cd2a170ebac0c71b210acf066ed2237cf0814762b07ed6f4d35bba4",
+    "status_counts": {
+      "completed": 34,
+      "superseded": 5,
+      "inconclusive": 59
+    },
+    "coordinator_error_reported": "worker result schema does not match the required evidence fields",
+    "worker_error_recovered_by_rerun": "pytest exit 2: 1 error in 4.25s; ERROR collecting test session; FileNotFoundError: [WinError 2] The system cannot find the file specified: 'J:\\\\TEMP\\\\tmpo1xr2yol'; Interrupted: 1 error during collection",
+    "rows_completed_per_worker_before_failure": 4
+  },
+  "purpose": "Windows whole-matrix evidence at the round-seventeen implementation head, and the serial oracle observations recorded for M97 and M98",
+  "execution_commit": "4b24122a6051109461d4d82826af34a6a84fca68",
+  "host": {
+    "platform": "Windows",
+    "release": "11",
+    "python": "3.14.2",
+    "git": "git version 2.50.1.windows.1"
+  },
+  "parallel": {
+    "command": [
+      "python",
+      "design/routing/mutants/replay.py",
+      "--jobs",
+      "8",
+      "--report",
+      "<external>/r17-parallel-b.json"
+    ],
+    "coordinator": "git -c core.autocrlf=false clone of the pushed branch beneath the host temp directory, clean tree, with the serial oracle run started 100 seconds later in another clone to recreate the temp-directory churn that broke the first run before D-098",
+    "exit_code": 0,
+    "summary": "99 mutants, 0 not caught: none",
+    "disclosure": "3 survived here under skipped tests and rest on another host's record: ['M37', 'M46', 'M48']",
+    "wall_duration_seconds": 879,
+    "report_sha256": "70da49098da9aa02361552c4edb9f925afcfd7ddc18ba241cd985c09b58c0024",
+    "matrix_sha256_before": "75a8bbc7712eb355e83377c9c601419eca9b4ce4b8c85402922b392e6f98284b",
+    "matrix_sha256_after": "75a8bbc7712eb355e83377c9c601419eca9b4ce4b8c85402922b392e6f98284b",
+    "status_counts": {
+      "completed": 94,
+      "superseded": 5
+    },
+    "verdict_counts": {
+      "caught": 91,
+      "superseded": 5,
+      "SURVIVED": 3
+    },
+    "stored_windows_record_mismatches": [],
+    "failed_counts_identical_to_stored_windows_records": true,
+    "count_changes_from_added_tests": [
+      {
+        "id": "M01",
+        "stored": {
+          "failed": 6,
+          "passed": 294,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 6,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M02",
+        "stored": {
+          "failed": 3,
+          "passed": 297,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 3,
+          "passed": 302,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M03",
+        "stored": {
+          "failed": 6,
+          "passed": 294,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 6,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M04",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M05",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M06",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M07",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M08",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M09",
+        "stored": {
+          "failed": 5,
+          "passed": 295,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 5,
+          "passed": 300,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M10",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M11",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M12",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M13",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M14",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M15",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M16",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M17",
+        "stored": {
+          "failed": 3,
+          "passed": 297,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 3,
+          "passed": 302,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M18",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M19",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M20",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M21",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M22",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M23",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M24",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M25",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M27",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M28",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M29",
+        "stored": {
+          "failed": 3,
+          "passed": 297,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 3,
+          "passed": 302,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M30",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M31",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M33",
+        "stored": {
+          "failed": 3,
+          "passed": 297,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 3,
+          "passed": 302,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M36",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M37",
+        "stored": {
+          "passed": 300,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "passed": 305,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M38",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M39",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M40",
+        "stored": {
+          "failed": 3,
+          "passed": 297,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 3,
+          "passed": 302,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M41",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M42",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M43",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M44",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M45",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M46",
+        "stored": {
+          "passed": 300,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "passed": 305,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M47",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M48",
+        "stored": {
+          "passed": 300,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "passed": 305,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M49",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M50",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M51",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M52",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M53",
+        "stored": {
+          "failed": 1,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M61",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M62",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M63",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M64",
+        "stored": {
+          "failed": 4,
+          "passed": 296,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 4,
+          "passed": 301,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M65",
+        "stored": {
+          "failed": 53,
+          "passed": 247,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 53,
+          "passed": 252,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M66",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M67",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M68",
+        "stored": {
+          "failed": 10,
+          "passed": 290,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 10,
+          "passed": 295,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M69",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M70",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M71",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M72",
+        "stored": {
+          "failed": 5,
+          "passed": 295,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 5,
+          "passed": 300,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M77",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M80",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M88",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M89",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M90",
+        "stored": {
+          "failed": 2,
+          "passed": 298,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 2,
+          "passed": 303,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M91",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M93",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M94",
+        "stored": {
+          "failed": 6,
+          "passed": 294,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 6,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M95",
+        "stored": {
+          "failed": 1,
+          "passed": 299,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 14
+        },
+        "replay": {
+          "failed": 1,
+          "passed": 304,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 16
+        }
+      },
+      {
+        "id": "M96",
+        "stored": {
+          "failed": 13,
+          "passed": 292,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 9
+        },
+        "replay": {
+          "failed": 13,
+          "passed": 297,
+          "skipped": 1,
+          "deselected": 9,
+          "subtests passed": 11
+        }
+      }
+    ],
+    "serial_churn_window_seconds": [
+      108,
+      347
+    ],
+    "cleanup": [
+      {
+        "worker": "worker-0",
+        "clone": "worker-0",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-0-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-1",
+        "clone": "worker-1",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-1-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-2",
+        "clone": "worker-2",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-2-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-3",
+        "clone": "worker-3",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-3-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-4",
+        "clone": "worker-4",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-4-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-5",
+        "clone": "worker-5",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-5-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-6",
+        "clone": "worker-6",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-6-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-7",
+        "clone": "worker-7",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-7-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      }
+    ],
+    "rows": [
+      {
+        "id": "M01",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "6 failed, 299 passed, 1 skipped, 9 deselected, 16 subtests passed in 84.65s (0:01:24)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M02",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.81s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M03",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "6 failed, 299 passed, 1 skipped, 9 deselected, 16 subtests passed in 85.01s (0:01:25)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M04",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.38s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M05",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.55s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M06",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.35s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M07",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.93s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M08",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 84.27s (0:01:24)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M09",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "5 failed, 300 passed, 1 skipped, 9 deselected, 16 subtests passed in 81.91s (0:01:21)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M10",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 84.19s (0:01:24)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M11",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.08s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M12",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.43s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M13",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 82.72s (0:01:22)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M14",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.07s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M15",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 82.47s (0:01:22)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M16",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 81.97s (0:01:21)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M17",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 85.73s (0:01:25)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M18",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 84.12s (0:01:24)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M19",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.65s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M20",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.80s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M21",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 84.06s (0:01:24)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M22",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 84.15s (0:01:24)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M23",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.82s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M24",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.21s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M25",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 77.80s (0:01:17)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M26",
+        "status": "superseded",
+        "verdict": "superseded",
+        "pytest": null,
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "serial"
+      },
+      {
+        "id": "M27",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 79.19s (0:01:19)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M28",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 77.67s (0:01:17)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M29",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 77.66s (0:01:17)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M30",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 77.82s (0:01:17)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M31",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 77.29s (0:01:17)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M32",
+        "status": "superseded",
+        "verdict": "superseded",
+        "pytest": null,
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "serial"
+      },
+      {
+        "id": "M33",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 78.50s (0:01:18)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M34",
+        "status": "superseded",
+        "verdict": "superseded",
+        "pytest": null,
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "serial"
+      },
+      {
+        "id": "M35",
+        "status": "superseded",
+        "verdict": "superseded",
+        "pytest": null,
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "serial"
+      },
+      {
+        "id": "M36",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 78.25s (0:01:18)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M37",
+        "status": "completed",
+        "verdict": "SURVIVED",
+        "pytest": "305 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.92s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M38",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.41s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M39",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.47s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M40",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 302 passed, 1 skipped, 9 deselected, 16 subtests passed in 77.05s (0:01:17)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M41",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.40s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M42",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 76.63s (0:01:16)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M43",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.68s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M44",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 76.61s (0:01:16)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M45",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.05s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M46",
+        "status": "completed",
+        "verdict": "SURVIVED",
+        "pytest": "305 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.73s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M47",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 73.42s (0:01:13)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M48",
+        "status": "completed",
+        "verdict": "SURVIVED",
+        "pytest": "305 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.33s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M49",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.25s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M50",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.88s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M51",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.55s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M52",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.23s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M53",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.26s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a6a3577fe4d57b67f6170ca7888021b219bebf03fe9810b32b7d4f997240b166",
+        "source_hash_after": "a6a3577fe4d57b67f6170ca7888021b219bebf03fe9810b32b7d4f997240b166",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M54",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "13 failed, 7 passed in 9.57s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M55",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 18 passed in 9.19s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M56",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 18 passed in 9.52s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M57",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed in 9.35s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M58",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed in 9.47s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M59",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 23 passed, 3 subtests passed in 45.93s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M60",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 48.52s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M61",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 71.21s (0:01:11)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M62",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.12s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M63",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.17s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M64",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "4 failed, 301 passed, 1 skipped, 9 deselected, 16 subtests passed in 73.13s (0:01:13)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M65",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "53 failed, 252 passed, 1 skipped, 9 deselected, 16 subtests passed in 90.86s (0:01:30)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M66",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.07s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M67",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 73.31s (0:01:13)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M68",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "10 failed, 295 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.29s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M69",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 68.54s (0:01:08)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M70",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 69.96s (0:01:09)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M71",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 69.93s (0:01:09)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M72",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "5 failed, 300 passed, 1 skipped, 9 deselected, 16 subtests passed in 73.21s (0:01:13)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M73",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 19 passed in 9.77s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M74",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 48.85s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M75",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 52.63s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M76",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 50.49s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M77",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 73.89s (0:01:13)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M78",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 49.39s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M79",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 47.42s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M80",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.30s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M81",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 49.95s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M82",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 48.35s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M83",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 49.68s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M84",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 52.54s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M85",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 49.24s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M86",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 50.99s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M87",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 51.70s",
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M88",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.90s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "source_hash_after": "195a1bb0df0bfaed42f50176b4b9492756fc321551e11e7f22bfa5198daa02a2",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M89",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.97s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "source_hash_after": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M90",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 73.89s (0:01:13)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-5"
+      },
+      {
+        "id": "M91",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 75.09s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-6"
+      },
+      {
+        "id": "M92",
+        "status": "superseded",
+        "verdict": "superseded",
+        "pytest": null,
+        "skipped": 0,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "serial"
+      },
+      {
+        "id": "M93",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 78.26s (0:01:18)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-7"
+      },
+      {
+        "id": "M94",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "6 failed, 299 passed, 1 skipped, 9 deselected, 16 subtests passed in 57.22s",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-0"
+      },
+      {
+        "id": "M95",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.85s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-1"
+      },
+      {
+        "id": "M96",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "13 failed, 297 passed, 1 skipped, 9 deselected, 11 subtests passed in 78.65s (0:01:18)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "source_hash_after": "a37df829be69f082d09e9a691439dd38e23dce202ca2b7edfce9384803062f6d",
+        "worker": "worker-2"
+      },
+      {
+        "id": "M97",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.02s",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "worker": "worker-3"
+      },
+      {
+        "id": "M98",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 305 passed, 1 skipped, 9 deselected, 14 subtests passed in 75.22s (0:01:15)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "worker": "worker-4"
+      },
+      {
+        "id": "M99",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 72.84s (0:01:12)",
+        "skipped": 1,
+        "restored": true,
+        "source": null,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "worker": "worker-5"
+      }
+    ]
+  },
+  "serial_oracle": {
+    "command": [
+      "python",
+      "design/routing/mutants/replay.py",
+      "M97",
+      "M98",
+      "M99",
+      "--jobs",
+      "1",
+      "--report",
+      "<external>/r17-serial-b.json"
+    ],
+    "exit_code": 0,
+    "wall_duration_seconds": 239,
+    "report_sha256": "98e037635ce5a6d0e65116c451b7784bfc7965ba398bce2dd5ede9166abdb0cb",
+    "rows": [
+      {
+        "id": "M97",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.36s (0:01:23)",
+        "skipped": 1,
+        "restored": true,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee"
+      },
+      {
+        "id": "M98",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "2 failed, 305 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.02s (0:01:19)",
+        "skipped": 1,
+        "restored": true,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee"
+      },
+      {
+        "id": "M99",
+        "status": "completed",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.15s (0:01:14)",
+        "skipped": 1,
+        "restored": true,
+        "source_hash_before": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee",
+        "source_hash_after": "0570af728ec017519d8c3b4f25852d9bc79b545ee11155e0bd7c47f685f1b5ee"
+      }
+    ]
+  },
+  "matrix_sha256_after_record": "a7203e6dc489bd9fbd7627230cdc376dcf4c5784f3b5dfa4a047292cd6b1bf4c",
+  "boundaries": {
+    "routing_rule_approved": false,
+    "selective_execution_enabled": false,
+    "slice_001_marked_done": false,
+    "matrix_written_by": "serial observations only; the parallel report is read-only evidence"
+  }
+}
