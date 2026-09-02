@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "catalog_version": "2026.08.22-unified.8",
-  "description": "Machine-readable catalog for the 20 Anti-Dark-Code verification capabilities.",
+  "description": "Machine-readable catalog for the 22 Anti-Dark-Code verification capabilities.",
   "statuses": [
     "selected",
     "candidate",
@@ -813,6 +813,78 @@
         "signals_any": [],
         "risks_any": [],
         "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V21",
+      "slug": "affected-unit-testing",
+      "name": "Affected-unit testing",
+      "category": "efficiency",
+      "default_level": 1,
+      "cost": "low",
+      "purpose": "Execute the assertions belonging to the slice a change actually touched.",
+      "local_work": [
+        "Run the unit and module tests owning the changed paths",
+        "Report the executed set, not the selected set"
+      ],
+      "agent_work": [
+        "Name ownership edges a path map cannot see"
+      ],
+      "adaptations": {
+        "service-web": "Run the tests owning the changed handlers, jobs, and persistence paths.",
+        "frontend": "Run the tests owning the changed components, stores, and routes.",
+        "monorepo": "Run the owning package suites plus direct reverse dependencies.",
+        "library-sdk": "Run the tests owning the changed public API and its compatibility paths.",
+        "game-simulation": "Run the tests owning the changed systems, rules, and save handling.",
+        "mobile-native": "Run the tests owning the changed screens, storage, and platform bridges.",
+        "infra-as-code": "Run the tests owning the changed modules and their plan assertions.",
+        "ai-data": "Run the tests owning the changed transforms, schemas, and evaluation steps.",
+        "cli-desktop": "Run the tests owning the changed commands, flags, and file handling.",
+        "small-new": "Run the whole suite; the affected set is the suite at this size.",
+        "mixed": "Run the owning suite for each changed area and record what was not run."
+      },
+      "selection": {
+        "core": true,
+        "signals_any": [],
+        "risks_any": [],
+        "candidate_if_missing": false
+      }
+    },
+    {
+      "id": "V22",
+      "slug": "input-fuzz-testing",
+      "name": "Input fuzz testing",
+      "category": "resilience",
+      "default_level": 2,
+      "cost": "medium",
+      "purpose": "Perturb input values and bytes to find parsing, decoding, and boundary defects.",
+      "local_work": [
+        "Generate hostile and malformed inputs against a parser or decoder",
+        "Minimize and record any failing input"
+      ],
+      "agent_work": [
+        "Choose the input surfaces worth fuzzing and the properties that must hold"
+      ],
+      "adaptations": {
+        "service-web": "Fuzz request bodies, query values, headers, and event payloads.",
+        "frontend": "Fuzz stored state, URL parameters, and API responses the client parses.",
+        "monorepo": "Fuzz the shared parsers and serializers packages depend on.",
+        "library-sdk": "Fuzz every public entry point that accepts caller-supplied data.",
+        "game-simulation": "Fuzz save files, replay inputs, and network messages.",
+        "mobile-native": "Fuzz deep links, intents, and locally persisted payloads.",
+        "infra-as-code": "Fuzz variable files and templated inputs before they reach a plan.",
+        "ai-data": "Fuzz records that cross a schema or decoding boundary.",
+        "cli-desktop": "Fuzz argument values, config files, and paths, including hostile encodings.",
+        "small-new": "Fuzz the one parser or decoder the product depends on most.",
+        "mixed": "Fuzz each decoding boundary and record which surfaces were not covered."
+      },
+      "selection": {
+        "core": false,
+        "signals_any": [
+          "generated_or_serialized_output"
+        ],
+        "risks_any": [],
+        "candidate_if_missing": true
       }
     }
   ]

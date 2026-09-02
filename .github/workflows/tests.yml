@@ -159,6 +159,64 @@ jobs:
           python -c "import locale, sys, tempfile; print('locale', locale.getpreferredencoding(False)); print('fsenc', sys.getfilesystemencoding()); print('tmp', tempfile.gettempdir())"
           python -m pytest anti-dark-code/tests -q
 
+  mutation-replay:
+    # Linux is the required replay host, and this is the first time the
+    # mutation matrix runs anywhere but a developer's machine.
+    #
+    # The matrix is the repository's coverage record, and until now it was a
+    # local artifact: a reviewer had to take its verdicts on trust, and a row
+    # could go stale without anything noticing. It caught a test this branch
+    # deleted by accident, which is exactly the signal that should not depend
+    # on someone remembering to run it.
+    #
+    # Linux rather than the three-platform matrix above, because verdicts are
+    # platform-qualified by design. A host that cannot create a symlink skips
+    # the tests that hold the symlink guarantees, and a replay there reports
+    # what the host could not observe rather than what the code does. Linux
+    # can observe all of it: the suite runs with no skips. Windows and macOS
+    # keep their suite legs above and are deliberately not replay hosts.
+    name: Mutation replay (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out the candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Install the test runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet pytest
+
+      - name: Replay every mutant
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No --write. The committed matrix is the record under review, and a
+          # job that rewrites it would be grading its own homework.
+          python design/routing/mutants/replay.py
+
+      - name: Refuse a run that did not put the source back
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Replay edits real source files and restores them. A dirty tree here
+          # means a restore was missed, which would make the verdicts above
+          # describe a tree nobody reviewed.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "replay left the working tree modified:"
+            git status --porcelain
+            exit 1
+          fi
+
   # The single context branch protection should require.
   #
   # Protection pins required checks by exact name, so listing every matrix leg
@@ -179,7 +237,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [suite, distribution, hostile-environment]
+    needs: [suite, distribution, hostile-environment, mutation-replay]
     # always(), so this reports a verdict even when a dependency fails or is
     # skipped. That makes explicitly checking each result mandatory: without the
     # loop below this job would succeed no matter what happened upstream, which
@@ -193,11 +251,12 @@ jobs:
           SUITE_RESULT: ${{ needs.suite.result }}
           DISTRIBUTION_RESULT: ${{ needs.distribution.result }}
           HOSTILE_RESULT: ${{ needs.hostile-environment.result }}
+          MUTATION_RESULT: ${{ needs.mutation-replay.result }}
         run: |
           set -euo pipefail
-          echo "suite=${SUITE_RESULT} distribution=${DISTRIBUTION_RESULT} hostile=${HOSTILE_RESULT}"
+          echo "suite=${SUITE_RESULT} distribution=${DISTRIBUTION_RESULT} hostile=${HOSTILE_RESULT} mutation=${MUTATION_RESULT}"
           failed=0
-          for entry in "suite=${SUITE_RESULT}" "distribution=${DISTRIBUTION_RESULT}" "hostile=${HOSTILE_RESULT}"; do
+          for entry in "suite=${SUITE_RESULT}" "distribution=${DISTRIBUTION_RESULT}" "hostile=${HOSTILE_RESULT}" "mutation=${MUTATION_RESULT}"; do
             if [ "${entry#*=}" != "success" ]; then
               echo "required job did not succeed: ${entry}"
               failed=1

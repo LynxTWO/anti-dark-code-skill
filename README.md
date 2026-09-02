@@ -132,7 +132,7 @@ If this saves you real time and you feel like covering some of my build costs, t
 
 ## What It Does
 
-- Evaluates all 20 verification capabilities for every repository.
+- Evaluates all 22 verification capabilities for every repository.
 - Selects, defers, or rejects capabilities instead of forcing every technique into every project.
 - Installs one canonical repo-local copy at `.agents/skills/anti-dark-code/`.
 - Keeps repo-specific learning under `calibration/` so it survives managed-core updates.

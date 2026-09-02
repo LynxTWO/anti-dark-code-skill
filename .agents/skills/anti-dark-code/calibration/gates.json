@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "execution_policy": {
+    "owner_confirmed_safe_to_execute": false,
+    "notes": "Gate ids mirror the jobs in .github/workflows/tests.yml. The router names gates; it does not run them."
+  },
+  "canonical_full_set": {
+    "_note": [
+      "What a full route runs. The routing policy is checked against this and",
+      "cannot define it, because a policy able to say what 'full' means could",
+      "shrink it and still look complete."
+    ],
+    "passes": [
+      "07",
+      "10",
+      "11",
+      "14"
+    ],
+    "obligations": {
+      "V01": [
+        "mutation-replay"
+      ],
+      "V08": [
+        "distribution"
+      ],
+      "V09": [
+        "validate-core"
+      ],
+      "V12": [
+        "hostile-environment"
+      ],
+      "V21": [
+        "full-suite"
+      ]
+    }
+  },
+  "machine": {
+    "notes": [],
+    "avoid_locally": [],
+    "preferred_remote_runner": null
+  },
+  "gates": [
+    {
+      "id": "validate-core",
+      "enabled": true,
+      "review_status": "approved",
+      "note": "adc.py validate --mode universal, the tests.yml step of the same name"
+    },
+    {
+      "id": "full-suite",
+      "enabled": true,
+      "review_status": "approved",
+      "note": "pytest anti-dark-code/tests on ubuntu, macos, windows"
+    },
+    {
+      "id": "distribution",
+      "enabled": true,
+      "review_status": "approved",
+      "note": "validate --mode distribution against a clean git archive"
+    },
+    {
+      "id": "hostile-environment",
+      "enabled": true,
+      "review_status": "approved",
+      "note": "C locale and international paths"
+    },
+    {
+      "id": "mutation-replay",
+      "enabled": true,
+      "review_status": "approved",
+      "note": "design/routing/mutants/replay.py on Linux, required since D-058"
+    }
+  ]
+}

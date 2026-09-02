@@ -1,0 +1,340 @@
+{
+  "schema_version": 2,
+  "untraced": [
+    "R-005",
+    "R-013",
+    "R-017",
+    "R-018",
+    "R-019",
+    "R-021",
+    "R-022"
+  ],
+  "requirements": {
+    "R-001": {
+      "tests": ["anti-dark-code/tests/test_route.py::MonotonicityTests::test_adding_any_fact_never_lowers_any_field"]
+    },
+    "R-002": {
+      "tests": ["anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id"]
+    },
+    "R-003": {
+      "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_unmapped_path_forces_full_and_is_recorded"]
+    },
+    "R-004": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_skill_md_is_never_only_inert_documentation",
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_broad_glob_cannot_mask_a_specific_one"
+      ]
+    },
+    "R-005": {
+      "partial": true,
+      "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe"]
+    },
+    "R-006": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_type_change_and_unmerged_are_preserved",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_mode_only_change_is_not_reported_as_modify",
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_change_kind_and_source_survive_classification",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_untracked_file_is_acquired"
+      ]
+    },
+    "R-007": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionTests::test_unreachable_base_is_reported_not_raised",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_an_incomplete_snapshot_forces_full"
+      ]
+    },
+    "R-008": {
+      "tests": [
+        "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_a_changed_worktree_is_stale",
+        "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_changed_worktree_makes_the_receipt_stale_and_exits_two"
+      ]
+    },
+    "R-009": {
+      "tests": [
+        "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_a_changed_policy_is_stale",
+        "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_a_changed_gate_configuration_is_stale"
+      ]
+    },
+    "R-010": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_two_rules_union_their_requirements",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_one_capability_unions_gates_from_several_rules"
+      ]
+    },
+    "R-011": {
+      "tests": ["anti-dark-code/tests/test_route.py::HintTests::test_no_hint_field_can_lower_anything"]
+    },
+    "R-012": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_obligation_naming_an_unknown_gate_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_obligation_naming_an_unapproved_gate_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_obligation_naming_a_disabled_gate_is_rejected"
+      ]
+    },
+    "R-013": {},
+    "R-014": {
+      "tests": ["anti-dark-code/tests/test_route.py::AcquisitionTests::test_skill_tree_paths_are_not_filtered_out"]
+    },
+    "R-015": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_rule_discriminated_only_by_paths_fires_on_the_right_path",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_rule_discriminated_only_by_mode_fires_on_a_mode_change",
+        "anti-dark-code/tests/test_route.py::MonotonicityTests::test_adding_any_fact_never_lowers_any_field"
+      ]
+    },
+    "R-016": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_empty_obligation_gate_list_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_duplicate_gate_ids_are_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_obligation_naming_an_unknown_gate_is_rejected"
+      ]
+    },
+    "R-017": {
+      "partial": true,
+      "tests": [
+        "anti-dark-code/tests/test_receipt.py::ReceiptFreshnessTests::test_different_dirty_bytes_under_identical_status_are_stale",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_index_rewrite_is_detected",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+      ]
+    },
+    "R-018": {},
+    "R-019": {
+      "partial": true,
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_rename_keeps_both_paths",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_copy_keeps_both_paths",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_type_change_and_unmerged_are_preserved",
+        "anti-dark-code/tests/test_route.py::AcquisitionTests::test_snapshot_unions_all_four_sources",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_repository_mid_merge_still_acquires"
+      ]
+    },
+    "R-020": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::HintTests::test_no_hint_field_can_lower_anything",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_clear_an_existing_reason_or_unmapped_path",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_write_deterministic_fields"
+      ]
+    },
+    "R-021": {
+      "partial": true,
+      "tests": ["anti-dark-code/tests/test_route.py::RouteBuildingTests::test_authority_change_forces_the_full_recipe"]
+    },
+    "R-022": {},
+    "R-023": {
+      "tests": [
+        "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id",
+        "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_observed_metadata_cannot_change_the_run_id"
+      ]
+    },
+    "R-024": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_garbage_is_reported_not_silently_dropped",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_truncated_header_is_reported",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_rename_missing_its_destination_is_reported",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_unrecognised_status_letter_is_kept_and_reported"
+      ]
+    },
+    "R-025": {
+      "tests": ["anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_staged_change_is_not_counted_twice"]
+    },
+    "R-026": {
+      "tests": ["anti-dark-code/tests/test_route.py::ClassificationTests::test_a_broad_glob_cannot_mask_a_specific_one"]
+    },
+    "R-027": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_hostile_repository_cannot_run_its_own_program",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_acquisition_does_not_write_to_the_repository"
+      ]
+    },
+    "R-028": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_payload_without_a_terminal_nul_is_reported",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_untracked_payload_without_a_terminal_nul_is_reported",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_a_header_with_extra_fields_is_reported",
+        "anti-dark-code/tests/test_route.py::AcquisitionTests::test_a_blank_merge_base_result_does_not_count_as_resolved"
+      ]
+    },
+    "R-029": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_copy_from_an_unchanged_source_keeps_its_source_path",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_staged_content_and_mode_change_keeps_its_mode_signal"
+      ]
+    },
+    "R-030": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_classifier_typo_is_rejected_not_passed_through",
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_bad_change_kind_or_source_is_rejected",
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_every_fact_field_is_a_closed_enum_value"
+      ]
+    },
+    "R-031": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_duplicate_inputs_collapse_to_one_fact",
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_ordering_is_stable_across_processes"
+      ]
+    },
+    "R-032": {
+      "tests": ["anti-dark-code/tests/test_route.py::ClassificationTests::test_glob_matching_is_case_sensitive_on_every_platform"]
+    },
+    "R-033": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::CapabilityCatalogTests::test_catalog_ids_are_contiguous_with_no_gaps",
+        "anti-dark-code/tests/test_route.py::CapabilityCountContractTests::test_no_shipped_code_hard_codes_a_stale_capability_count",
+        "anti-dark-code/tests/test_route.py::CapabilityCatalogTests::test_catalog_carries_the_two_router_capabilities"
+      ]
+    },
+    "R-034": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_content_filter_cannot_run_during_acquisition",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_globally_configured_filter_is_also_neutralized",
+        "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_acquisition_reports_the_missing_object_and_fetches_nothing"
+      ]
+    },
+    "R-035": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_the_loaded_policy_is_immune_to_later_mutation",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_raw_mapping_is_refused_by_the_type_check"
+      ]
+    },
+    "R-036": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_every_plural_predicate_must_be_a_nonempty_list_of_strings",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_mode_changed_must_be_an_actual_boolean",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_full_recipe_below_level_three_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_pass_is_rejected"
+      ]
+    },
+    "R-037": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_a_copy_or_rename_without_a_score_is_rejected",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_an_out_of_range_similarity_score_is_rejected",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_an_unmerged_record_with_both_modes_null_is_rejected",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_one_payload_cannot_mix_object_widths_across_records"
+      ]
+    },
+    "R-038": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_order_does_not_change_the_route",
+        "anti-dark-code/tests/test_route.py::MonotonicityTests::test_obligation_key_order_does_not_depend_on_fact_order",
+        "anti-dark-code/tests/test_receipt.py::ReceiptIdentityTests::test_fact_order_does_not_change_the_run_id"
+      ]
+    },
+    "R-039": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_invent_a_pass_capability_or_gate",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_write_deterministic_fields",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_invent_a_rule_match"
+      ]
+    },
+    "R-040": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_glob_matching_is_case_sensitive_on_every_platform",
+        "anti-dark-code/tests/test_route.py::ClassificationTests::test_a_literal_backslash_is_a_filename_character_not_a_separator"
+      ]
+    },
+    "R-041": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_rule_discriminated_only_by_paths_fires_on_the_right_path",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_rule_discriminated_only_by_mode_fires_on_a_mode_change",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_unmapped_path_forces_full_and_is_recorded"
+      ]
+    },
+    "R-042": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_loading_requires_a_capability_catalog",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_the_supplied_capability_set_is_the_one_used"
+      ]
+    },
+    "R-043": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_the_clone_is_missing_a_real_promisor_object",
+        "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_acquisition_reports_the_missing_object_and_fetches_nothing",
+        "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_without_the_guard_acquisition_reaches_the_network"
+      ]
+    },
+    "R-044": {
+      "tests": ["anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_rewrite_is_detected"]
+    },
+    "R-045": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_directly_constructed_policy_is_refused",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_pass_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_capability_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_recipe_missing_a_canonical_gate_is_rejected"
+      ]
+    },
+    "R-046": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_a_copy_or_rename_without_a_score_is_rejected",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_a_scored_unmerged_record_is_rejected",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_one_payload_cannot_mix_object_widths_across_records"
+      ]
+    },
+    "R-047": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_level_must_be_a_real_level",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_flag_must_be_a_real_boolean",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_must_name_a_capability_and_gate_that_are_paired",
+        "anti-dark-code/tests/test_route.py::HintTests::test_a_hint_cannot_borrow_a_pairing_from_a_proposed_rule"
+      ]
+    },
+    "R-048": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_proxy_over_mutable_backing_does_not_survive_construction",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_obligations_are_immutable_however_a_route_is_made",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_every_route_construction_path_freezes_obligations"
+      ]
+    },
+    "R-049": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_loading_requires_the_canonical_full_set",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_an_empty_canonical_full_set_is_rejected",
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_field_replacement_does_not_carry_authority"
+      ]
+    },
+    "R-050": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_same_size_index_rewrite_is_detected",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_linked_worktree_index_is_found",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_path_topology_alone_moves_the_fingerprint",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+      ]
+    },
+    "R-051": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionTests::test_object_width_is_consistent_across_the_whole_snapshot",
+        "anti-dark-code/tests/test_route.py::AcquisitionTests::test_one_source_cannot_disagree_with_the_merge_base_width",
+        "anti-dark-code/tests/test_route.py::RawParserTests::test_a_plain_raw_conflict_record_is_accepted",
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_repository_mid_merge_still_acquires"
+      ]
+    },
+    "R-052": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_route_obligations_cannot_be_mutated_after_construction",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_a_proxy_over_mutable_backing_does_not_survive_construction",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_obligations_are_immutable_however_a_route_is_made",
+        "anti-dark-code/tests/test_route.py::RouteBuildingTests::test_every_route_construction_path_freezes_obligations"
+      ]
+    },
+    "R-053": {
+      "mutation": {
+        "matrix": "design/routing/mutants/matrix.json",
+        "runner": "design/routing/mutants/replay.py",
+        "command": ["python", "design/routing/mutants/replay.py"]
+      }
+    },
+    "R-054": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_globally_configured_filter_is_also_neutralized",
+        "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_acquisition_reports_the_missing_object_and_fetches_nothing",
+        "anti-dark-code/tests/test_route.py::PartialCloneAgainstRealGitDaemonTests::test_without_the_guard_acquisition_reaches_the_network"
+      ]
+    },
+    "R-055": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-047: Cost evidence names units and isolation properties"
+      }
+    }
+  }
+}

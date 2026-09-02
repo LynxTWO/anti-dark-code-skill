@@ -118,6 +118,10 @@ TOOLING_PATH_PREFIXES = (
 
 VALIDATION_MODES = ("auto", "distribution", "universal", "installed")
 
+# The catalog size is asserted in several places. Keep it here so a future
+# capability changes one line rather than five that can drift apart.
+CAPABILITY_COUNT = 22
+
 CONTENT_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
     "stateful": (re.compile(r"\b(state|store|reducer|transaction|workflow|state machine)\b", re.I),),
     "workflow_or_ui": (re.compile(r"\b(route|screen|view|component|button|navigation|dialog|window|ui)\b", re.I),),
@@ -1557,7 +1561,7 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
         "confidence_levels": catalog["confidence_levels"],
         "capabilities": capabilities,
         "notes": [
-            "All 20 capabilities were evaluated. Status does not authorize dependency installation or repo-code execution.",
+            f"All {CAPABILITY_COUNT} capabilities were evaluated. Status does not authorize dependency installation or repo-code execution.",
             "Re-run after architecture, risk, test, CI, or runtime boundaries change."
         ],
     }
@@ -3558,13 +3562,13 @@ def validate_skill(skill: Path, mode: str = "auto") -> tuple[list[str], list[str
         catalog = read_json(catalog_path)
         caps = catalog.get("capabilities", []) if isinstance(catalog, dict) else []
         ids = [c.get("id") for c in caps if isinstance(c, dict)]
-        if len(caps) != 20:
-            errors.append(f"Capability catalog contains {len(caps)} entries, expected 20")
+        if len(caps) != CAPABILITY_COUNT:
+            errors.append(f"Capability catalog contains {len(caps)} entries, expected {CAPABILITY_COUNT}")
         if len(set(ids)) != len(ids):
             errors.append("Capability catalog contains duplicate ids")
-        expected = {f"V{i:02d}" for i in range(1, 21)}
+        expected = {f"V{i:02d}" for i in range(1, CAPABILITY_COUNT + 1)}
         if set(ids) != expected:
-            errors.append(f"Capability ids differ from V01..V20: {sorted(set(ids) ^ expected)}")
+            errors.append(f"Capability ids differ from V01..V{CAPABILITY_COUNT:02d}: {sorted(set(ids) ^ expected)}")
         repo_types = catalog.get("repo_types", []) if isinstance(catalog, dict) else []
         required = {"id", "slug", "name", "category", "default_level", "cost", "purpose", "local_work", "agent_work", "adaptations", "selection"}
         for cap in caps:
@@ -3919,6 +3923,209 @@ def command_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+_ROUTER_HELPERS: tuple[Any, Any] | None = None
+
+
+def load_router_helpers() -> tuple[Any, Any]:
+    """Load the pure router and the receipt writer, once.
+
+    Same shape as load_efficiency_helper, including the bytecode guard: writing
+    __pycache__ into the skill tree is exactly what universal validation
+    reports, and a helper that dirties the tree it is about to audit produces a
+    finding about itself.
+
+    Cached, and not as an optimization. load_policy records which module
+    validated a policy and build_route refuses one from anywhere else, so a
+    second load of adc_route produces a second ValidatedPolicy type and the two
+    do not recognize each other. Calling this twice in one command raised
+    "requires a ValidatedPolicy from load_policy, not ValidatedPolicy", which
+    is the provenance guard working correctly on a caller that was wrong.
+    """
+    global _ROUTER_HELPERS
+    if _ROUTER_HELPERS is not None:
+        return _ROUTER_HELPERS
+    modules = []
+    for name in ("adc_route", "adc_receipt"):
+        helper_path = Path(__file__).with_name(f"{name}.py")
+        spec = importlib.util.spec_from_file_location(name, helper_path)
+        if spec is None or spec.loader is None:
+            raise SystemExit(f"Could not load router helper: {helper_path}")
+        module = importlib.util.module_from_spec(spec)
+        previous_bytecode_setting = sys.dont_write_bytecode
+        # Register before executing. Dataclasses resolve field annotations
+        # through sys.modules, and both helpers define them.
+        sys.modules[spec.name] = module
+        try:
+            sys.dont_write_bytecode = True
+            spec.loader.exec_module(module)
+        finally:
+            sys.dont_write_bytecode = previous_bytecode_setting
+        modules.append(module)
+    _ROUTER_HELPERS = (modules[0], modules[1])
+    return _ROUTER_HELPERS
+
+
+ROUTE_CALIBRATION = Path(".agents") / "skills" / "anti-dark-code" / "calibration"
+
+
+def _route_calibration_dir(args: argparse.Namespace) -> Path:
+    if getattr(args, "calibration", None):
+        return Path(args.calibration)
+    return Path(args.repo) / ROUTE_CALIBRATION
+
+
+def _load_route_inputs(args: argparse.Namespace) -> tuple[Any, dict, dict, list[Path]]:
+    """Read policy, gates, and the canonical full set, or refuse.
+
+    Refusing is the point. A missing or invalid policy does not fall back to a
+    cheap route or to no route: it blocks, because the failure mode this whole
+    subsystem exists to prevent is running less verification than a change
+    deserved. See the fail-closed rule in the EDD.
+    """
+    route_module, _ = load_router_helpers()
+    calibration = _route_calibration_dir(args)
+    policy_path = calibration / "routing-policy.json"
+    gates_path = calibration / "gates.json"
+    for path in (policy_path, gates_path):
+        if not path.is_file():
+            raise SystemExit(
+                f"REFUSED: no {path.name} at {path}. The router will not route "
+                "without a reviewed policy and gate configuration.")
+    try:
+        policy_source = json.loads(policy_path.read_text(encoding="utf-8"))
+        gates_source = json.loads(gates_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"REFUSED: {error}") from error
+
+    full_set = gates_source.get("canonical_full_set")
+    if not isinstance(full_set, dict) or not full_set.get("passes"):
+        raise SystemExit(
+            "REFUSED: gates.json has no canonical_full_set with passes. The "
+            "routing policy is checked against it and cannot supply it.")
+
+    catalog_path = Path(__file__).resolve().parents[1] / "assets" / "verification-capabilities.json"
+    capability_ids = [c["id"] for c in
+                      json.loads(catalog_path.read_text(encoding="utf-8"))["capabilities"]]
+    try:
+        validated = route_module.load_policy(
+            policy_source, gates_source, capability_ids, full_set)
+    except route_module.PolicyError as error:
+        raise SystemExit(f"REFUSED: invalid routing policy: {error}") from error
+
+    calibration_paths = sorted(
+        p for p in calibration.glob("*") if p.is_file()) if calibration.is_dir() else []
+    return validated, policy_source, gates_source, calibration_paths
+
+
+def command_route(args: argparse.Namespace) -> int:
+    route_module, receipt_module = load_router_helpers()
+    repo = Path(args.repo).resolve()
+
+    if args.verify:
+        return _route_verify(args, repo, route_module, receipt_module)
+
+    validated, policy_source, gates_source, calibration_paths = _load_route_inputs(args)
+
+    snapshot = route_module.read_change_inputs(repo, args.base)
+    facts = route_module.collect_change_facts(snapshot, validated.classifier_map())
+    route = route_module.build_route(facts, validated, snapshot_ok=snapshot.complete)
+
+    def identity(ref: str) -> str | None:
+        done = subprocess.run(["git", "-C", str(repo), "rev-parse", ref],
+                              capture_output=True, text=True, timeout=30)
+        return done.stdout.strip() if done.returncode == 0 else None
+
+    binding = receipt_module.collect_binding(
+        repo, route_module,
+        base_identity=identity(args.base), head_identity=identity("HEAD"),
+        policy_source=policy_source, gates_source=gates_source,
+        calibration_paths=calibration_paths,
+        repo_binding_identity=_route_binding_identity(_route_calibration_dir(args)))
+
+    payload = receipt_module.authoritative_payload(
+        route, facts, snapshot, binding, gates_source)
+    receipt = receipt_module.build_receipt(payload, {
+        "written_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "tool": "adc.py route",
+    })
+
+    gates = payload["route"]["selected_gate_ids"]
+    print(
+        f"ROUTE level={route.minimum_level} "
+        f"passes={','.join(sorted(route.passes)) or '-'} "
+        f"gates={','.join(gates) or '-'} "
+        f"rules={','.join(sorted(route.matched_rule_ids)) or '-'} "
+        f"force_full={str(route.force_full).lower()} "
+        f"complete={str(snapshot.complete).lower()} "
+        f"run={receipt['run_id'][:12]}")
+    if snapshot.problems:
+        # Not a footnote. An incomplete snapshot is why the route is heavy, and
+        # a reader who does not see it will think the router is being cautious
+        # for no reason.
+        print(f"  snapshot incomplete: {', '.join(sorted(snapshot.problems))}")
+    for capability, gate_ids in sorted(route.obligations.items()):
+        print(f"  {capability}: {', '.join(sorted(gate_ids))}")
+
+    if args.write:
+        runs = repo / ".anti-dark-code" / "runs"
+        runs.mkdir(parents=True, exist_ok=True)
+        target = runs / f"{receipt['run_id']}.json"
+        target.write_bytes(receipt_module.receipt_bytes(receipt))
+        print(f"  receipt: {target}")
+    return 0
+
+
+def _route_binding_identity(calibration: Path) -> str | None:
+    binding_path = calibration / "repo-binding.json"
+    if not binding_path.is_file():
+        return None
+    try:
+        data = json.loads(binding_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    value = data.get("repo_identity") or data.get("identity")
+    return value if isinstance(value, str) else None
+
+
+def _route_verify(args: argparse.Namespace, repo: Path,
+                  route_module: Any, receipt_module: Any) -> int:
+    receipt_path = Path(args.verify)
+    if not receipt_path.is_file():
+        raise SystemExit(f"REFUSED: no receipt at {receipt_path}")
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"REFUSED: {error}") from error
+
+    _, policy_source, gates_source, calibration_paths = _load_route_inputs(args)
+    recorded = receipt.get("authoritative", {}).get("binding", {})
+
+    def identity(ref: str) -> str | None:
+        done = subprocess.run(["git", "-C", str(repo), "rev-parse", ref],
+                              capture_output=True, text=True, timeout=30)
+        return done.stdout.strip() if done.returncode == 0 else None
+
+    current = receipt_module.collect_binding(
+        repo, route_module,
+        # The base the receipt was written against, not a fresh guess. Verifying
+        # against a different base would report the receipt stale for a reason
+        # that has nothing to do with the repository moving.
+        base_identity=recorded.get("base_identity"),
+        head_identity=identity("HEAD"),
+        policy_source=policy_source, gates_source=gates_source,
+        calibration_paths=calibration_paths,
+        repo_binding_identity=_route_binding_identity(_route_calibration_dir(args)))
+
+    verdict = receipt_module.verify_receipt(receipt, current)
+    if verdict.fresh:
+        print(f"FRESH {receipt.get('run_id', '')[:12]}")
+        return 0
+    print(f"STALE {receipt.get('run_id', '')[:12]}")
+    for code, detail in verdict.reasons:
+        print(f"  {code} {detail}")
+    return verdict.exit_code
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="adc.py", description="Deterministic helpers for the Anti-Dark-Code skill")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -3931,7 +4138,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--content-scan-limit", type=int, default=4_000)
     p.set_defaults(func=command_probe)
 
-    p = sub.add_parser("plan", help="Evaluate all 20 verification capabilities")
+    p = sub.add_parser("plan", help=f"Evaluate all {CAPABILITY_COUNT} verification capabilities")
     p.add_argument("--repo", default=".")
     p.add_argument("--write", action="store_true", help="Write verification plan and proposed gates")
     p.add_argument("--json", action="store_true", help="Print full JSON")
@@ -3994,6 +4201,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("efficiency", help="Create opt-in local usage receipts and controlled token comparisons")
     p.add_argument("efficiency_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_efficiency)
+
+    p = sub.add_parser("route", help="Route one change to the verification it needs, and bind the result to a receipt")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--base", default="HEAD", help="Comparison base for the change")
+    p.add_argument("--calibration", help="Calibration directory holding routing-policy.json and gates.json")
+    p.add_argument("--write", action="store_true", help="Write the receipt under .anti-dark-code/runs/")
+    p.add_argument("--verify", help="Verify an existing receipt instead of routing; exits 2 when stale")
+    p.set_defaults(func=command_route)
 
     p = sub.add_parser("release-check", help="Verify a release tag reproduces its core and describes its own changes")
     p.add_argument("--repo", default=".")

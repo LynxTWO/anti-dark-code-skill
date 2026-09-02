@@ -1,0 +1,1806 @@
+[
+  {
+    "id": "M01",
+    "name": "obligation union to assignment",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "into.setdefault(capability, set()).update(gate_ids)",
+    "new": "into[capability] = set(gate_ids)",
+    "verdict": "caught",
+    "pytest": "6 failed, 192 passed, 5 deselected in 6.96s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "6 failed, 192 passed, 5 deselected in 6.96s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "6 failed, 191 passed, 1 skipped, 5 deselected in 18.33s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M02",
+    "name": "level max to assignment",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "level = max(level, rule.minimum_level)",
+    "new": "level = rule.minimum_level",
+    "verdict": "caught",
+    "pytest": "3 failed, 195 passed, 5 deselected in 6.63s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 195 passed, 5 deselected in 6.63s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 194 passed, 1 skipped, 5 deselected in 17.93s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M03",
+    "name": "force_full or to assignment",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "force_full = force_full or rule.force_full",
+    "new": "force_full = rule.force_full",
+    "verdict": "caught",
+    "pytest": "5 failed, 193 passed, 5 deselected in 6.78s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "5 failed, 193 passed, 5 deselected in 6.78s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "5 failed, 192 passed, 1 skipped, 5 deselected in 18.39s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M04",
+    "name": "full route skips recipe passes",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        passes.update(recipe.passes)",
+    "new": "",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.56s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.56s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.79s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M05",
+    "name": "full route skips recipe level",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        level = max(level, recipe.minimum_level)",
+    "new": "        pass",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.56s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.56s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.66s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M06",
+    "name": "full route skips recipe review",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        independent_review = independent_review or recipe.independent_review",
+    "new": "        pass",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.50s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.50s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.85s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M07",
+    "name": "drop unrouted reason code",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "unknowns.add(\"ADC-ROUTE-UNROUTED-FACT\")",
+    "new": "pass",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.36s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.36s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 18.33s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M08",
+    "name": "drop filter overrides",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    worktree_isolation = _filter_overrides(run)",
+    "new": "    worktree_isolation = []",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.44s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.44s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.47s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M09",
+    "name": "drop boundary detector",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if _repo_fingerprint(repo, run) != before:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "5 failed, 193 passed, 5 deselected in 6.49s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "5 failed, 193 passed, 5 deselected in 6.49s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "5 failed, 192 passed, 1 skipped, 5 deselected in 17.00s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M10",
+    "name": "drop lazy-fetch control",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
+    "new": "pass",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.52s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.52s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.86s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M11",
+    "name": "drop fsmonitor isolation",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "\"-c\", \"core.fsmonitor=false\",",
+    "new": "",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.68s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.68s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 18.02s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M12",
+    "name": "fingerprint without content",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
+    "new": "entries.append((relative, size, mtime, f\":{topology}\"))",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.34s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.34s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.58s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M13",
+    "name": "fingerprint without metadata",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
+    "new": "entries.append((relative, 0, 0, f\"{digest.hexdigest()}:{topology}\"))",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.46s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.46s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.92s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M14",
+    "name": "drop copy detection",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "\"--find-copies-harder\",",
+    "new": "",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.75s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.75s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.79s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M15",
+    "name": "accept any file mode",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if old_mode not in _GIT_MODES or new_mode not in _GIT_MODES:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.47s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.47s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.86s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M16",
+    "name": "accept mixed object widths",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if len(old_object) != len(new_object):",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.47s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.47s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.72s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M17",
+    "name": "skip payload width consistency",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if width is not None and len(old_object) != width:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "3 failed, 195 passed, 5 deselected in 6.78s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 195 passed, 5 deselected in 6.78s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 194 passed, 1 skipped, 5 deselected in 18.05s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M18",
+    "name": "skip status side check",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if (has_old, has_new) != sides:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.64s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.64s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.94s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M19",
+    "name": "score optional on copy and rename",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        return score is not None and 0 <= int(score) <= 100",
+    "new": "        return score is None or 0 <= int(score) <= 100",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.43s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.43s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.84s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M20",
+    "name": "guess the capability catalog",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    known_capabilities = set(capability_ids)",
+    "new": "    known_capabilities = {f'V{n:02d}' for n in range(1,23)}",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.60s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.60s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.81s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M21",
+    "name": "skip canonical pass check",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        missing_passes = sorted(set(full_set.get(\"passes\", [])) - recipe_passes)",
+    "new": "        missing_passes = []",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.44s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.44s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 18.18s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M22",
+    "name": "skip canonical capability check",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "            if capability not in recipe_obligations:",
+    "new": "            if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.37s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.37s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.73s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M23",
+    "name": "drop provenance check",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if not _is_validated(policy):",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.60s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.60s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 18.63s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M24",
+    "name": "accept an unvalidated mapping",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if not isinstance(policy, ValidatedPolicy):",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.40s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.40s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 18.62s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M25",
+    "name": "accept a string predicate",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if not isinstance(value, list) or not value:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.50s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.50s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 18.71s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M26",
+    "name": "unsorted obligation keys",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "{k: frozenset(obligations[k]) for k in sorted(obligations)}",
+    "new": "{k: frozenset(v) for k, v in obligations.items()}",
+    "verdict": "superseded",
+    "pytest": "",
+    "results": [],
+    "superseded_by": "M40",
+    "note": "Q-01 made Route.__post_init__ sort unconditionally, so removing build_route's sort no longer changes the result. The ordering guarantee now lives in __post_init__, which M40 attacks."
+  },
+  {
+    "id": "M27",
+    "name": "hint may write any field",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    unsupported = set(hints) - _HINT_FIELDS",
+    "new": "    unsupported = set()",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.49s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.49s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 18.89s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M28",
+    "name": "hint level coerced not checked",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if isinstance(level, bool) or not isinstance(level, int) or level not in _LEVELS:",
+    "new": "        if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.53s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.53s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 18.14s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M29",
+    "name": "hint pairs not checked",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "            if (capability, gate_id) not in reviewed_pairs:",
+    "new": "            if False:",
+    "verdict": "caught",
+    "pytest": "3 failed, 195 passed, 5 deselected in 6.60s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 195 passed, 5 deselected in 6.60s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 194 passed, 1 skipped, 5 deselected in 18.23s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M30",
+    "name": "rewrite backslashes in paths",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "if not fnmatch.fnmatchcase(path, glob):",
+    "new": "if not fnmatch.fnmatchcase(path.replace(chr(92),\"/\"), glob):",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.60s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.60s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.81s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M31",
+    "name": "drop duplicate collapse",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "sorted(set(facts), key=_fact_sort_key)",
+    "new": "sorted(facts, key=_fact_sort_key)",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.56s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.56s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.60s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M32",
+    "name": "built route obligations mutable",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        obligations=MappingProxyType(\n            {k: frozenset(obligations[k]) for k in sorted(obligations)}),",
+    "new": "        obligations={k: frozenset(obligations[k]) for k in sorted(obligations)},",
+    "verdict": "superseded",
+    "pytest": "",
+    "superseded_by": "M40",
+    "note": "the freeze moved to Route.__post_init__, so removing the construction-site wrapper is a no-op"
+  },
+  {
+    "id": "M33",
+    "name": "fingerprint ignores index state",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    return (index_state, tuple(sorted(entries)))",
+    "new": "    return (None, tuple(sorted(entries)))",
+    "verdict": "caught",
+    "pytest": "3 failed, 195 passed, 5 deselected in 6.70s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 195 passed, 5 deselected in 6.70s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 194 passed, 1 skipped, 5 deselected in 17.74s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M34",
+    "name": "hinted route obligations mutable",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        obligations=MappingProxyType(\n            {k: frozenset(merged[k]) for k in sorted(merged)}),",
+    "new": "        obligations={k: frozenset(merged[k]) for k in sorted(merged)},",
+    "verdict": "superseded",
+    "pytest": "",
+    "superseded_by": "M40",
+    "note": "same: __post_init__ re-freezes whatever a construction site passes"
+  },
+  {
+    "id": "M35",
+    "name": "require both sides for unmerged",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    \"T\": (True, True),\n}",
+    "new": "    \"T\": (True, True), \"U\": (True, True),\n}",
+    "verdict": "superseded",
+    "pytest": "",
+    "superseded_by": "M41 and M42",
+    "note": "U is handled before the _STATUS_SIDES lookup, so that entry is unreachable"
+  },
+  {
+    "id": "M36",
+    "name": "fingerprint ignores path topology",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "topology = (getattr(stat, \"st_nlink\", 0), getattr(stat, \"st_ino\", 0),\n                        stat.st_mode)",
+    "new": "topology = 0",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.46s",
+    "challenge_evidence": "A Windows hard-link probe held bytes, size, and mtime equal. The current fingerprint changed and M36 did not. Keep the topology fields, but add this discriminating case to the suite.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.46s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.77s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M37",
+    "name": "lstat becomes stat",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "stat = path.lstat()",
+    "new": "stat = path.stat()",
+    "verdict": "caught elsewhere",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.41s",
+    "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.41s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "SURVIVED",
+        "pytest": "197 passed, 1 skipped, 5 deselected in 17.56s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M38",
+    "name": "validated policy registry pins values",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "_VALIDATED_POLICIES: \"weakref.WeakValueDictionary[int, ValidatedPolicy]\" = (\n    weakref.WeakValueDictionary()\n)",
+    "new": "_VALIDATED_POLICIES: dict[int, ValidatedPolicy] = {}",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.46s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.46s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.62s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M39",
+    "name": "empty canonical full set accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    if not canonical_passes or not canonical_obligations:",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.54s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.54s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.47s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M40",
+    "name": "route obligations not frozen in post-init",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        object.__setattr__(\n            self, \"obligations\",\n            MappingProxyType({k: frozenset(v)",
+    "new": "        object.__setattr__(\n            self, \"obligations\",\n            dict({k: frozenset(v)",
+    "verdict": "caught",
+    "pytest": "3 failed, 195 passed, 5 deselected in 6.54s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 195 passed, 5 deselected in 6.54s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 194 passed, 1 skipped, 5 deselected in 17.82s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M41",
+    "name": "scored unmerged record accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if score is not None:\n            return False\n        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
+    "new": "        if False:\n            return False\n        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.45s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.45s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.65s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M42",
+    "name": "committed unmerged record accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        return source is None or source in _UNMERGED_SOURCES",
+    "new": "        return True",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.45s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.45s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.63s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M43",
+    "name": "width not carried across sources",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        parsed = parse_raw_z(payload, source, snapshot_width[0])",
+    "new": "        parsed = parse_raw_z(payload, source, None)",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.43s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.43s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.78s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M44",
+    "name": "index fingerprinted without content",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        index_digest = hashlib.sha256(index.read_bytes()).hexdigest()\n        index_state: Any = (stat.st_size, stat.st_mtime_ns, index_digest)",
+    "new": "        index_state: Any = (stat.st_size, stat.st_mtime_ns)",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.39s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.39s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.62s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M45",
+    "name": "index path assumed rather than resolved",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    located = run(_isolated([\"rev-parse\", \"--git-path\", \"index\"]))",
+    "new": "    located = None",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.42s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.42s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 16.89s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M46",
+    "name": "symlink followed for content",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if stat_module.S_ISLNK(stat.st_mode):",
+    "new": "        if False:",
+    "verdict": "caught elsewhere",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.54s",
+    "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.54s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "SURVIVED",
+        "pytest": "197 passed, 1 skipped, 5 deselected in 17.38s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M47",
+    "name": "snapshot width not seeded from merge base",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "    snapshot_width: list[int | None] = [len(merge_base) if merge_base else None]",
+    "new": "    snapshot_width: list[int | None] = [None]",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.53s",
+    "challenge_evidence": "With a 40-character resolved merge base and one 64-character raw row, current code reports malformed and incomplete. M47 accepts the row and reports the snapshot complete.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.53s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.65s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M48",
+    "name": "symlink target text omitted from fingerprint",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "            entries.append((relative, size, mtime, f\"symlink:{target}:{topology}\"))",
+    "new": "            entries.append((relative, size, mtime, f\"symlink:{topology}\"))",
+    "verdict": "caught elsewhere",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.55s",
+    "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text.",
+    "note": "Codex reported this surviving under Ubuntu against the earlier symlink test, which asserted only the marker. That test now asserts the recorded target and retargets the link, so the Ubuntu result is stale. Unverified on a symlink-capable host.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.55s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "SURVIVED",
+        "pytest": "197 passed, 1 skipped, 5 deselected in 17.53s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M49",
+    "name": "route trusts an existing mapping proxy",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        # Always rebuild, never trust an existing proxy.",
+    "new": "        if isinstance(self.obligations, MappingProxyType): return\n        # Always rebuild, never trust an existing proxy.",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.50s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.50s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.69s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M50",
+    "name": "unmerged absence read from object ids again",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
+    "new": "        if old_object == \"0\" * len(old_object) and new_object == \"0\" * len(new_object):",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.40s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.40s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.67s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M51",
+    "name": "unmerged both-null modes accepted",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:\n            return False",
+    "new": "        if False:\n            return False",
+    "verdict": "caught",
+    "pytest": "1 failed, 197 passed, 5 deselected in 6.41s",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 197 passed, 5 deselected in 6.41s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 196 passed, 1 skipped, 5 deselected in 17.59s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M52",
+    "name": "lazy fetch guard disabled",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "old": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
+    "new": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"0\"",
+    "verdict": "caught",
+    "pytest": "2 failed, 196 passed, 5 deselected in 6.64s",
+    "note": "Q-05. Held against a real blobless clone served over git:// by a daemon on loopback, where a genuinely missing promisor object is reachable through inexact rename detection.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 196 passed, 5 deselected in 6.64s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 1 skipped, 5 deselected in 17.81s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M53",
+    "name": "one test shadows another by name",
+    "source": "anti-dark-code/tests/test_route.py",
+    "old": "    def test_clean_snapshot_is_complete(self) -> None:",
+    "new": "    def test_ordering_is_canonical(self) -> None:",
+    "verdict": "caught",
+    "pytest": "2 failed, 195 passed, 5 deselected in 6.68s",
+    "note": "The failure this branch hit twice: a test that is defined but never runs. Python keeps the later definition, the suite stays green, and the lost coverage is invisible. Mutates the test file rather than the router, because the guarantee is about the suite.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 195 passed, 5 deselected in 6.68s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 194 passed, 1 skipped, 5 deselected in 17.87s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M54",
+    "name": "run id hashes observed metadata too",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "        \"run_id\": digest(payload),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
+    "new": "        \"run_id\": digest({\"p\": dict(payload), \"o\": dict(observed or {})}),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
+    "verdict": "caught",
+    "pytest": "2 failed, 17 passed in 0.58s",
+    "note": "R-023. A clock must not be able to change routing authority.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 17 passed in 0.58s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 17 passed in 5.26s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M55",
+    "name": "verification stops at the first moved field",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "        if recorded.get(key) != now.get(key):\n            reasons.append((code, key))",
+    "new": "        if recorded.get(key) != now.get(key):\n            return Staleness(False, ((code, key),))",
+    "verdict": "caught",
+    "pytest": "2 failed, 17 passed in 0.57s",
+    "note": "A reader who fixes one stale field and reruns should not discover the next one only then.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 17 passed in 0.57s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 17 passed in 5.22s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M56",
+    "name": "worktree identity ignores file content",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "        \"entries\": sorted(kept),",
+    "new": "        \"entries\": len(kept),",
+    "verdict": "caught",
+    "pytest": "2 failed, 17 passed in 0.59s",
+    "note": "R-017. Binding to a count is the status-text mistake in another form: different bytes, same identity.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "2 failed, 17 passed in 0.59s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 17 passed in 5.24s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M57",
+    "name": "binding exclusion widens past the run store",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "RUN_STORE = \".anti-dark-code/runs\"",
+    "new": "RUN_STORE = \".anti-dark-code\"",
+    "verdict": "caught",
+    "pytest": "1 failed, 18 passed in 0.55s",
+    "note": "An exclusion wide enough to cover the whole tree would let a policy or gate file change without making any receipt stale. See D-010.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 0.55s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 5.29s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M58",
+    "name": "receipt keeps no record of the changed files",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_receipt.py"
+    ],
+    "old": "         for row in getattr(snapshot, \"inputs\", ())),",
+    "new": "         for row in ()),",
+    "verdict": "caught",
+    "pytest": "1 failed, 18 passed in 0.55s",
+    "note": "A receipt that does not quote the change it routed cannot be audited against it.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 0.55s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 18 passed in 5.22s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M59",
+    "name": "receipt binding depends on mtime again",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    kept = [[entry[0], entry[3]] for entry in entries",
+    "new": "    kept = [list(entry) for entry in entries",
+    "verdict": "caught",
+    "pytest": "1 failed, 10 passed in 3.48s",
+    "note": "A receipt that stays stale after the bytes are restored is binding to the fact that something happened rather than to the state, and it trains a reader to ignore staleness.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 10 passed in 3.48s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 10 passed in 9.14s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M60",
+    "name": "a stale receipt exits zero",
+    "source": "anti-dark-code/scripts/adc_receipt.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        return 0 if self.fresh else 2",
+    "new": "        return 0",
+    "verdict": "caught",
+    "pytest": "3 failed, 8 passed in 3.35s",
+    "note": "The exit code is the half a gate runner reads. Text saying STALE beside a success status is worse than no receipt.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "3 failed, 8 passed in 3.35s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "3 failed, 8 passed in 8.71s",
+        "skipped": 0
+      }
+    ]
+  },
+  {
+    "id": "M61",
+    "name": "replay assumes a python launcher alias",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    return [sys.executable, \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "new": "    return [\"python\", \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "verdict": "caught",
+    "pytest": "1 failed, 203 passed, 6 deselected in 6.06s",
+    "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 203 passed, 6 deselected in 6.06s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 202 passed, 1 skipped, 6 deselected in 23.38s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M62",
+    "name": "replay normalizes source line endings",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        original = source.read_bytes()",
+    "new": "        original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
+    "verdict": "caught",
+    "pytest": "1 failed, 203 passed, 6 deselected in 6.02s",
+    "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 203 passed, 6 deselected in 6.02s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 202 passed, 1 skipped, 6 deselected in 23.49s",
+        "skipped": 1
+      }
+    ]
+  },
+  {
+    "id": "M63",
+    "name": "launcher failure counts as a caught mutant",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if not PYTEST_SUMMARY.fullmatch(summary):",
+    "new": "    if False:",
+    "verdict": "caught",
+    "pytest": "1 failed, 203 passed, 6 deselected in 5.99s",
+    "note": "A Python or pytest startup error may exit 1 without executing a test; only a real pytest outcome summary can turn exit 1 into mutation evidence.",
+    "results": [
+      {
+        "platform": "Linux",
+        "release": "7.0.0-28-generic",
+        "python": "3.12.3",
+        "git": "git version 2.43.0",
+        "verdict": "caught",
+        "pytest": "1 failed, 203 passed, 6 deselected in 5.99s",
+        "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 202 passed, 1 skipped, 6 deselected in 23.38s",
+        "skipped": 1
+      }
+    ]
+  }
+]
