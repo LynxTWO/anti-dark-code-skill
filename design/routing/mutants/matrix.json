@@ -310,38 +310,11 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "    worktree_isolation = _filter_overrides(run)",
     "new": "    worktree_isolation = []",
-    "verdict": "caught",
+    "verdict": "superseded",
     "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 89.42s (0:01:29)",
-    "results": [
-      {
-        "platform": "Linux",
-        "release": "7.0.0-30-generic",
-        "python": "3.12.3",
-        "git": "git version 2.43.0",
-        "verdict": "caught",
-        "pytest": "1 failed, 312 passed, 9 deselected, 16 subtests passed in 15.17s",
-        "skipped": 0,
-        "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_dirty_submodule_makes_the_snapshot_incomplete"
-        ],
-        "skipped_nodeids": []
-      },
-      {
-        "platform": "Windows",
-        "release": "11",
-        "python": "3.14.2",
-        "git": "git version 2.50.1.windows.1",
-        "verdict": "caught",
-        "pytest": "1 failed, 313 passed, 1 skipped, 9 deselected, 16 subtests passed in 89.42s (0:01:29)",
-        "skipped": 1,
-        "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_a_dirty_submodule_makes_the_snapshot_incomplete"
-        ],
-        "skipped_nodeids": [
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
-        ]
-      }
-    ]
+    "results": [],
+    "superseded_by": "M114",
+    "note": "D-113. Dropping the -c filter overrides is inert wherever git honours numbered configuration, because D-088's environment path neutralizes the same drivers; the catches on Windows, T540P, and the CI runners were the host's global git-lfs driver staying live in injected-runner tests, and WSL2, with no driver, saw the mutant survive. M114 holds the environment path."
   },
   {
     "id": "M09",
@@ -4576,5 +4549,75 @@
       }
     ],
     "note": "D-106. The serial print path bypassed D-102's renderer, so a broken suite's text could print a forged replay line. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M110",
+    "name": "a row no host caught reads unverified under skips",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    caught = [r for r in results if r[\"verdict\"] == \"caught\"]\n    failed_elsewhere = {",
+    "new": "    caught = [r for r in results if r[\"verdict\"] == \"caught\"]\n    if not caught and results and all(r.get(\"skipped\") for r in results):\n        return \"unverified: every host skipped\"\n    failed_elsewhere = {",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-110. With no catching host, a survivor under skips must be SURVIVED; the retired label kept M107 out of a Windows replay's not-caught list at 49fed51. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M111",
+    "name": "worker inherits flags that change what a test means",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    for name in (\"PYTHONWARNINGS\", \"PYTHONOPTIMIZE\", \"PYTHONBREAKPOINT\",",
+    "new": "    for name in (\"PYTHONBREAKPOINT\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-111. PYTHONWARNINGS=error failed a passing probe and PYTHONOPTIMIZE=2 stripped an assertion through the real worker path. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M112",
+    "name": "the suite's git reads the caller's global configuration",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        environment.update({\"GIT_CONFIG_GLOBAL\": str(git_config),",
+    "new": "        environment.update({\"GIT_CONFIG_GLOBAL_UNUSED\": str(git_config),",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-112. A GIT_CONFIG_GLOBAL file naming core.hooksPath ran a hook from outside the clone during a fixture-shaped commit; a host's git-lfs driver decided M08's verdict. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M113",
+    "name": "console prints a matrix row name raw",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        name = _terminal_safe_diagnostic(str(row[\"name\"]))",
+    "new": "        name = str(row[\"name\"])",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-115. Ids, names, replacement ids, verdicts, and summary ids from matrix.json printed raw and could forge a summary line. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M114",
+    "name": "environment neutralization never sets GIT_CONFIG_COUNT",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if index:\n        environment[\"GIT_CONFIG_COUNT\"] = str(index)",
+    "new": "    if False:\n        environment[\"GIT_CONFIG_COUNT\"] = str(index)",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-113. Supersedes M08: the -c overrides failing is recoverable through this path, so the environment neutralization is the guarantee. Caught by two fixture-local filter tests on any host. Pending the next authoritative two-host replay."
   }
 ]

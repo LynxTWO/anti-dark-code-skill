@@ -1067,7 +1067,7 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
         # error. The id, name, and replacement id come from matrix.json, which
         # serial replay reads from disk unfrozen. Measured after D-106: a row
         # name carrying a newline and an escape printed a forged summary line
-        # in colour, in both modes. See D-106 as amended.
+        # in colour, in both modes. See D-115.
         label = _terminal_safe_diagnostic(str(row["id"]))
         name = _terminal_safe_diagnostic(str(row["name"]))
         if result["status"] == "superseded":

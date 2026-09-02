@@ -3338,7 +3338,7 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
         self.assertIn("1 skipped: test_symlink", console)
 
     def test_console_renders_every_matrix_field(self) -> None:
-        """D-106 as amended. The renderer covered the error field only.
+        """D-115. The renderer covered the error field only.
 
         Measured: a row name carrying a newline and an escape printed a
         forged summary line in colour, in both modes, because ids, names,
