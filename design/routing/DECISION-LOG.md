@@ -111,16 +111,19 @@ The documents state what is true. This log preserves why, what else was consider
 | D-092 | 2026-08-31 | Host-generated pytest cache is not install provenance | Confirmed | |
 | D-093 | 2026-09-01 | Self-grading authority is a classifier contract, not a path sample | Confirmed | |
 | D-094 | 2026-09-01 | A stronger guard supersedes a redundant mutation row | Confirmed | |
-| D-095 | 2026-09-02 | An unskipped local survivor is a survivor on every host | Confirmed | |
-| D-096 | 2026-09-02 | A parallel replay requires a clean coordinator tree | Confirmed | |
-| D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Confirmed | |
-| D-098 | 2026-09-02 | A worker's collection tree stays inside its clone | Confirmed | |
-| D-099 | 2026-09-02 | The coordinator reports a worker row's own reason | Confirmed | |
-| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Confirmed | |
-| D-101 | 2026-09-02 | A worker owns its pytest environment as well as its rootdir | Confirmed | |
-| D-102 | 2026-09-02 | A worker diagnostic is one bounded terminal-safe line | Confirmed | |
+| D-095 | 2026-09-02 | An unskipped local survivor is a survivor on every host | Amended | D-104 |
+| D-096 | 2026-09-02 | A parallel replay requires a clean coordinator tree | Amended | D-103 |
+| D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Superseded | D-100 |
+| D-098 | 2026-09-02 | A worker's collection tree stays inside its clone | Amended | D-101 |
+| D-099 | 2026-09-02 | The coordinator reports a worker row's own reason | Amended | D-102 |
+| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Confirmed | D-107 |
+| D-101 | 2026-09-02 | A worker owns its pytest environment as well as its rootdir | Amended | D-105 |
+| D-102 | 2026-09-02 | A worker diagnostic is one bounded terminal-safe line | Amended | D-106 |
 | D-103 | 2026-09-02 | Serial evidence labels dirt, and serial writes require clean endpoints | Confirmed | |
 | D-104 | 2026-09-02 | A skipped survivor needs exact catching-test attribution | Confirmed | |
+| D-105 | 2026-09-02 | A worker owns its interpreter and its configuration, not only its pytest options | Confirmed | |
+| D-106 | 2026-09-02 | The serial console renders a diagnostic the same way the coordinator does | Confirmed | |
+| D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Open | |
 
 ---
 
@@ -2685,7 +2688,7 @@ mechanism that no longer covers managed installed script spellings.
 ## D-095: An unskipped local survivor is a survivor on every host
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-104
 Area: M3, R-053, D-054, D-068, `derive_verdict`, `Mutation replay (Linux)`
 
 Context:
@@ -2738,7 +2741,7 @@ added.
 ## D-096: A parallel replay requires a clean coordinator tree
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-103 for serial replay
 Area: M3, R-053, D-068, D-084, `run_parallel`, `_verify_coordinator_sources`
 
 Context:
@@ -2785,7 +2788,7 @@ dirty run to a refusal; or serial replay gains the same refusal.
 ## D-097: A helper that adc.py loads is authority by its name
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Superseded by D-100
 Area: M3, R-005, R-021, D-093, ENGINEERING section 12
 
 Context:
@@ -2830,7 +2833,7 @@ carry a non-`adc` name for a reason a reviewer accepts.
 ## D-098: A worker's collection tree stays inside its clone
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-101
 Area: M3, R-053, D-084, D-096, `run_suite`, parallel workers
 
 Context:
@@ -2881,7 +2884,7 @@ invocation directory, or a worker ever needs to collect outside its clone.
 ## D-099: The coordinator reports a worker row's own reason
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-102
 Area: M3, D-068, D-084, `_validate_worker_result`
 
 Context:
@@ -2949,7 +2952,7 @@ classification contract.
 ## D-101: A worker owns its pytest environment as well as its rootdir
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-105
 Area: D-098, `run_suite`, parallel replay workers
 
 Context:
@@ -2982,7 +2985,7 @@ that control plugin discovery.
 ## D-102: A worker diagnostic is one bounded terminal-safe line
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-106
 Area: D-099, `_validate_worker_result`, replay console and JSON report
 
 Context:
@@ -3093,3 +3096,122 @@ Revisit when:
 Pytest provides a stable built-in machine-readable outcome format, or the
 matrix binds each mutation directly to an independently reviewed holding-test
 set.
+
+## D-105: A worker owns its interpreter and its configuration, not only its pytest options
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-098, D-101, `run_suite`, replay workers and serial replay
+
+Context:
+D-101 removed the pytest option and plugin variables, disabled plugin
+autoload, removed the caller's `PYTHONPATH`, and enabled safe-path. Two
+layers sit beneath that boundary. The interpreter runs site initialization
+before pytest reads an option: with `PYTHONUSERBASE` pointed at a
+caller-controlled directory, a `usercustomize.py` and a `.pth` import line in
+its site-packages both executed inside a worker whose suite reported `1
+passed`; with `PYTHONNOUSERSITE=1` neither ran. And pytest searches for
+`pytest.ini`, `tox.ini`, `setup.cfg`, and `pyproject.toml` from the common
+ancestor of the invocation directory and the arguments upward, which a
+rootdir does not stop: a `pytest.ini` at that ancestor supplied `addopts = -p
+external_adc_plugin`, the worker obeyed it, and its row went inconclusive
+with an import error. For a worker that ancestor is the host temp directory;
+for serial replay it is every parent of the repository, `/tmp` for a T540P
+clone.
+
+Decision:
+The suite environment drops `PYTHONUSERBASE`, `PYTHONSTARTUP`, `PYTHONHOME`,
+`PYTHONEXECUTABLE`, and `PYTHONINSPECT` and sets `PYTHONNOUSERSITE=1`. Every
+suite command names an empty `pytest.ini` owned by the run with `-c`, and
+serial replay pins `--rootdir` to the repository root so the pin cannot move
+it. Both modes. M107 holds the user-site boundary and M108 holds the
+configuration pin.
+
+Because:
+Code that runs before pytest starts is not contained by anything pytest does.
+A configuration file the run did not write is caller input. The inputs a
+worker inherits by design remain its explicit command, its clone, the
+installed pytest, and its private temp root.
+
+Consequences:
+A caller-controlled user site cannot execute in a worker or a serial run. A
+configuration file above the clone or the repository cannot change
+collection, options, or outcomes. Node ids keep their rootdir-relative
+spelling in both modes, so D-104's cross-host attribution is unaffected.
+System site-packages, where pytest itself lives, stay in use.
+
+Revisit when:
+pytest gains a flag that disables configuration discovery outright, or the
+interpreter gains an isolation mode that keeps `PYTHONPATH`.
+
+## D-106: The serial console renders a diagnostic the same way the coordinator does
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-099, D-102, `replay()` console output
+
+Context:
+D-102 renders control and format characters before a worker diagnostic
+reaches the coordinator result, so the parallel console is one bounded line
+per row. The serial path printed a broken row's error directly. Measured: a
+serial `SuiteBroken` whose text carried a newline and an ANSI escape printed
+a forged `M01 forged row caught` line on its own line, followed by a
+coloured forged summary.
+
+Decision:
+`replay()` passes every non-completed row's error through the same renderer
+before printing it, in both modes. The JSON report keeps the raw text. M109
+holds the serial print path.
+
+Because:
+The console is presentation and the summary line is what a reader trusts.
+One renderer for both modes removes the asymmetry D-102 left.
+
+Consequences:
+No console line can carry a raw control character in either mode. Reports
+are unchanged.
+
+Revisit when:
+Row failures become structured fields rendered by a separate presentation
+layer.
+
+## D-107: D-100's contract reaches every scripts directory, and its statement does not say so
+
+Date: 2026-09-02
+Status: Open, owner decision
+Area: D-093, D-100, canonical authority classifiers, shipped policy template
+
+Context:
+D-100 says every Python file directly under `anti-dark-code/scripts/` is
+verification authority by location. The canonical classifier that
+implements it is `**/scripts/*.py`, which the D-093 contract requires in
+every policy that pairs a nonempty classifier with a non-force-full rule, and
+the template ships to every installing repository. Measured with every rule
+approved: `tools/scripts/build.py`, `packages/app/scripts/migrate.py`, and
+`docs/scripts/render.py` in an installing repository route as verification
+authority at Level 3 with `force_full`; under the previous
+`**/scripts/adc*.py` entry they took the Level 2 product route. A root-level
+`scripts/deploy.py` was already full because nothing maps it.
+
+Decision:
+None taken here. The owner chooses between: (1) keep the wide entry and
+amend D-100 and ENGINEERING section 12 to say that any nested `scripts/*.py`
+in an installing repository is authority; (2) narrow the canonical entry to
+the shipped skill's own scripts in both spellings,
+`anti-dark-code/scripts/*.py` and `**/anti-dark-code/scripts/*.py`, and
+re-measure every self-grading probe; (3) return to name-based authority
+behind a stronger loader guard. Option 2 keeps every current self-grading
+path forced full, because both the source and the installed spellings match
+it.
+
+Because:
+Widening a universal contract to close a repository-local hole is a product
+decision, not a harness repair, and a decision's text should say what its
+contract does.
+
+Consequences:
+Until the owner decides, the contract stands as D-100 implemented it, and
+this entry records the gap between its statement and its reach.
+
+Revisit when:
+The owner answers, or the classifier contract gains per-repository scoping.

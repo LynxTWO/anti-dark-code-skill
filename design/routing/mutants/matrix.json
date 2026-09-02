@@ -3835,5 +3835,47 @@
       }
     ],
     "note": "D-104. Exact failed and skipped identities come from a tracked plugin loaded explicitly under disabled autoload; an absent collector makes the row inconclusive rather than silently falling back to counts. Caught on Windows and T540P in round eighteen."
+  },
+  {
+    "id": "M107",
+    "name": "worker inherits the caller's user site-packages",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "                        \"PYTHONNOUSERSITE\": \"1\",\n                        \"PYTHONSAFEPATH\": \"1\",",
+    "new": "                        \"PYTHONSAFEPATH\": \"1\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-105. Site initialization runs before pytest reads an option; a caller's PYTHONUSERBASE executed usercustomize.py and a .pth import line inside a worker that reported one passing test. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M108",
+    "name": "worker obeys a configuration file above its clone",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        command.extend([\"-c\", str(pinned_config)])",
+    "new": "        command.extend([\"-p\", \"no:cacheprovider\"])",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-105. pytest searches for configuration from the common ancestor of the invocation directory and the arguments upward; an ancestor pytest.ini's addopts reached a worker. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M109",
+    "name": "serial console prints a raw broken-suite diagnostic",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "                  f\"{_terminal_safe_diagnostic(result.get('error', 'no row evidence'))}\")",
+    "new": "                  f\"{result.get('error', 'no row evidence')}\")",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-106. The serial print path bypassed D-102's renderer, so a broken suite's text could print a forged replay line. Pending the next authoritative two-host replay."
   }
 ]
