@@ -57,8 +57,32 @@ document contradictions: the pre-D-094 95-row totals remained in the slice and
 engineering table, D-082 described M92's pre-D-093 outcome as current, the
 execution plan did not qualify its historical 95-row input, and the handoff and
 artifact called D-083 pending although it is confirmed. This consistency commit
-corrects those records without changing the frozen replay evidence. Final-head
-CI is recorded below only when it exists; a pending field is not evidence.
+corrects those records without changing the frozen replay evidence. CI is
+recorded below only from a completed run; a pending field is not evidence.
+
+## Pull request and CI receipt
+
+PR [#26](https://github.com/LynxTWO/anti-dark-code-skill/pull/26) targets
+`claude/round-fifteen-verify`. Required workflow run
+[`33590598057`](https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/33590598057)
+passed at implementation-and-review head
+`429f0d7da0838c5f6f73143587f4cd5cc8f272d4`:
+
+| Job | Result | Duration |
+| --- | --- | ---: |
+| Ubuntu / Python 3.12 | success | 35s |
+| Ubuntu / Python 3.13 | success | 36s |
+| Windows / Python 3.12 | success | 2m36s |
+| macOS / Python 3.12 | success | 1m04s |
+| Hostile environment (C locale) | success | 33s |
+| Hostile environment (international paths) | success | 34s |
+| Clean distribution archive | success | 6s |
+| Mutation replay (Linux) | success | 6m33s |
+| Aggregate `Tests` | success | 2s |
+
+This handoff-only receipt commit follows that green head and therefore triggers
+one final exact-head workflow run. Embedding that later run id here would change
+the head again; its immutable receipt belongs on PR #26 after it completes.
 
 ## Fixed adversarial checklist
 
@@ -215,8 +239,11 @@ not approve on the owner's behalf.
 
 The owner-observed **21h01m** was total wall clock from goal start at that
 checkpoint, not any replay. At evidence-artifact construction the goal manager
-reported **101,016 seconds (28h03m36s)** total elapsed; the final goal total is
-recorded after CI.
+reported **101,016 seconds (28h03m36s)** total elapsed. Immediately after the
+first green PR run it reported **102,872 seconds (28h34m32s)** total elapsed
+from goal start. That whole-goal figure includes implementation, review,
+coordination, transfer, and waiting overhead; it is not the duration of one
+gate and it is not the sum of the authoritative evidence commands below.
 
 The final authoritative evidence commands themselves total **17,905.033
 seconds (4.974 hours)**:
