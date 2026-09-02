@@ -29,8 +29,19 @@ Fresh pre-documentation baseline receipts at that head were:
 - clean status and matrix SHA-256
   `d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`.
 
-Final post-documentation local gates and final-head CI are recorded below when
-they exist. A pending field is not evidence.
+Fresh post-documentation clean-head receipts at `a429d9c` were:
+
+- CI-shaped `python -m pytest anti-dark-code/tests -q -n auto -p
+  no:cacheprovider`: exit 0, `486 passed, 14 skipped, 62 subtests passed in
+  51.20s` (51.699 seconds wall clock);
+- universal validation: exit 0, `VALID (universal): 0 errors, 1 warning(s)`;
+- matrix integrity, requirement traceability, and workflow parallel contracts:
+  exit 0, `12 passed in 0.59s`;
+- artifact JSON parsing, `git diff --check`, and `git status --short`: clean.
+
+The receipt commit changes only this handoff; its decision-reference integrity
+check is rerun on the resulting head. Final-head CI is recorded below only when
+it exists. A pending field is not evidence.
 
 ## Fixed adversarial checklist
 
