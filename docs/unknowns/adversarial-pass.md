@@ -7,11 +7,15 @@ with `OSError: [Errno 66] Directory not empty` while removing a temporary
 directory that held a `.git` folder; 512 other tests passed and the second
 attempt passed every job. The test touches nothing round nineteen changed and
 the same leg passed on the previous head. It is a cleanup race between
-`TemporaryDirectory` teardown and a git process on macOS, not yet reproduced
-on demand; until it is, a macOS suite failure on that test with that error
-is this unknown, not a routing finding. Round twenty's run `33668817057` at
-`2f86f14` passed the macOS leg on its first attempt; the unknown stays open
-until the race is reproduced on demand.
+`TemporaryDirectory` teardown and a git process, not yet reproduced on
+demand. It is not macOS-specific: round twenty's receipt run `33683890541`
+at `ec1dbe2` failed the Ubuntu C-locale job on the same test with
+`OSError: [Errno 39] Directory not empty` under `.git/objects/pack`, after
+three earlier round-twenty runs at `2f86f14`, `0ace58f`, and `3943b08` had
+passed every job on their first attempt. Until the race is reproduced on
+demand, a suite failure on that test with that error on any platform is this
+unknown, not a routing finding. The rerun of that job, attempt 2 of the same
+run, passed, as round nineteen's macOS rerun had.
 
 Round nineteen's R-011 challenge created no open unknown. A non-object hint
 document raises `TypeError` from `apply_hints`; nothing on the command line

@@ -129,7 +129,7 @@ The owner walkthrough was run as written, in PowerShell, on a fresh default clon
 
 The first run of this walkthrough, on a fresh default clone at `5843737`, matched everything except the Round Nineteen artifact check, which printed `False` because it hashed `HEAD`; section 5 records the correction, and `3943b08` is the head that carries it. Run `33681946215` at `5843737` also passed every job.
 
-This receipt commit follows `3943b08` and therefore triggers one more exact-head run. Embedding that run here would move the head again; its receipt belongs on PR #30.
+The receipt commit `ec1dbe2` that followed `3943b08` triggered run `33683890541`, whose first attempt failed one job: the Ubuntu C-locale suite leg, on `test_efficiency.py::EfficiencyReceiptTests::test_receipt_pr_requires_one_receipt_and_fresh_mirrored_summaries` with `OSError: [Errno 39] Directory not empty` under `.git/objects/pack`, `1 failed, 514 passed`. That is the temporary-directory cleanup race round nineteen recorded as an open unknown on macOS, now seen on Linux; the unknowns entry is widened accordingly. Every other job in that attempt passed, including the mutation replay, and the rerun of the failed job, attempt 2 of the same run, passed. The commit that records this triggers one more exact-head run; its receipt belongs on PR #30.
 
 ## 5. Round twenty's own defects
 
