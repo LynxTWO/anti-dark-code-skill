@@ -104,3 +104,66 @@ requirement confidence, slice order, or the empty `untraced` list.
 No risk moved up or down. This review did not touch an approval-gated area and
 does not authorize a routing-policy rule. SLICE-001 remains open for owner
 acceptance.
+
+# Adversarial review: round twenty
+
+Date: 2026-09-02
+
+## Area reviewed
+
+This pass challenged the worker boundary that rounds eighteen and nineteen
+built, D-101, D-105, and D-106, the round-nineteen walkthrough as committed,
+and R-040, that Git path classification is case-sensitive and never rewrites
+literal characters. A fresh-context challenger with no memory of writing
+round nineteen ran the attacks against `39d745d` in its own clones; its
+report is `design/routing/CHALLENGE-ROUND-TWENTY.md`. R-011, R-021, R-032,
+and R-053 were excluded because rounds seventeen through nineteen touched
+their evidence.
+
+## Direct challenge
+
+Every vector went through the real `run_suite` with a clone-owned probe test
+and only environment variables and files outside the clone. Ancestor
+`conftest.py` files in four locations were contained by the pinned
+configuration and rootdir. `PYTHONWARNINGS=error` turned a probe emitting a
+`DeprecationWarning` from `1 passed` into `1 failed`; `PYTHONOPTIMIZE=2` turned
+`assert __debug__` from a pass into a failure. A `GIT_CONFIG_GLOBAL` file
+naming `core.hooksPath` ran a hook from outside the clone during a
+fixture-shaped `git commit`, and `core.fsmonitor` ran a script during `git
+status`. The renderer D-106 named was applied to the error field only: a row
+name from `matrix.json` carrying a newline and an escape printed a forged
+coloured summary line in both modes. The committed walkthrough's evidence
+check failed in both a default clone and an `autocrlf=false` clone, because
+the matrix carried no `eol=lf` attribute.
+
+A WSL2 Ubuntu full serial write at the same head then showed one of the
+above deciding a verdict: M08, which drops the `-c` filter overrides, was
+caught on Windows, T540P, and the CI runners by each host's global git-lfs
+driver staying live, and survived on WSL2, which carries none. With an
+empty global configuration the whole route suite passes under M08 on
+Windows.
+
+R-040 was measured with the real `collect_change_facts` and the shipped
+classifier on Windows against the `**/scripts/*.py` authority glob:
+`anti-dark-code/scripts/adc.py` maps to authority; the upper-cased,
+backslash, and unrelated spellings all fall through to unmapped and force
+the full route.
+
+## Coverage verdict
+
+D-105 and D-106 were broken as stated and are amended by D-111, D-112, and
+D-115, each with a test and a mutation row. D-108's second root cause is
+closed by D-114. M08 is superseded by M114 under D-113, and its catches on
+three hosts are recorded as environmental. R-040 is upheld. One
+observation is recorded without a change: `**/*.md` never matches a
+top-level file, so `README.md` is unmapped and forces the full route, which
+is fail-closed.
+
+## Risks and protected areas
+
+No risk moved up. The channels the harness still does not own are `PATH`,
+which chooses the interpreter and the git binary, that interpreter's system
+site-packages, and the operating system; D-116 names them as the owner's
+environment rather than a harness repair. This review did not touch an
+approval-gated area and does not authorize a routing-policy rule. SLICE-001
+remains open for owner acceptance.

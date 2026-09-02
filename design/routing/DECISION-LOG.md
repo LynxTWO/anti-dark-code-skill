@@ -133,6 +133,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-114 | 2026-09-02 | Evidence files under design/routing keep LF on every checkout | Confirmed | |
 | D-115 | 2026-09-02 | Every console field from the matrix passes through the renderer | Confirmed | |
 | D-116 | 2026-09-02 | The harness line closes on a stopping rule, not on a quiet round | Open | |
+| D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
 
 ---
 
@@ -3646,3 +3647,51 @@ execution, and does not mark SLICE-001 Done; those remain the owner's.
 
 Revisit when:
 A reopen condition fires, or the owner replaces the rule.
+
+## D-117: A contract assertion first installs the state the harness must replace
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-095, D-105, D-111, D-112, D-116, `run_suite`, the worker environment
+contract test, M107
+
+Context:
+The route suite runs inside `run_suite` when it is replayed, so every
+variable `run_suite` sets for its worker is already in the suite process's
+environment, and a nested `run_suite` under test builds its worker
+environment from that. The contract test asserted `PYTHONNOUSERSITE == "1"`
+and `GIT_CONFIG_NOSYSTEM == "1"` without first removing them, so under
+M107, which stops setting `PYTHONNOUSERSITE`, the assertion passed on the
+inherited value. Measured: the WSL2 serial write at `2f86f14` reported
+`114 mutants, 1 not caught: ['M107']` with `318 passed`; the Windows
+parallel replay at the same head caught M107 only through the behavioural
+probe, which needs a live user site that a venv disables. The contract
+assertion was masked on both hosts; only the venv host had nothing else to
+catch the mutant. This is a cross-host verdict difference at one commit
+without a code change, D-116's first reopen condition, observed in the
+round that proposed the rule.
+
+Decision:
+A contract assertion first installs the state the harness must replace: a
+variable the harness must add is removed from the inherited environment
+before the call, a variable it must overwrite is set to a caller-owned
+value, and a run-owned path is asserted by its prefix under the run's
+private root rather than by its suffix. The contract test does this for
+`PYTHONNOUSERSITE`, `PYTHONSAFEPATH`, `GIT_CONFIG_NOSYSTEM`,
+`GIT_ATTR_NOSYSTEM`, `GIT_CONFIG_GLOBAL`, `GIT_TEMPLATE_DIR`, and
+`XDG_CONFIG_HOME`. M107 holds it on every host.
+
+Because:
+A test that asserts the harness sets X while running inside the harness
+that set X measures inheritance, not the code under test. The masked
+assertion looked like coverage on every host and was coverage on none.
+
+Consequences:
+M107 is caught by the contract on a venv host and by the probe on a host
+with a live user site. The other constant-valued contract assertions are
+now falsifiable under replay. Round twenty's evidence runs at `2f86f14` are
+superseded by runs at the head that carries this repair.
+
+Revisit when:
+The suite stops running inside `run_suite` under replay, or a contract
+assertion is added without the inversion.

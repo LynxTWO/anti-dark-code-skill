@@ -3813,9 +3813,21 @@ class ReplayParallelCloneTests(unittest.TestCase):
                        "PYTHONPYCACHEPREFIX": str(root / "pyc"),
                        "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath",
                        "GIT_CONFIG_VALUE_0": str(root / "hooks"),
-                       "GIT_CONFIG_PARAMETERS": "'core.hooksPath=x'", "GIT_DIR": str(root)}
+                       "GIT_CONFIG_PARAMETERS": "'core.hooksPath=x'", "GIT_DIR": str(root),
+                       # D-117: this suite itself runs inside run_suite's
+                       # environment under replay, so what run_suite must set
+                       # is first given the caller's value and what it must add
+                       # is first removed. Otherwise the assertions below pass
+                       # on the inherited value: M107 survived on WSL2 at
+                       # 2f86f14 with the PYTHONNOUSERSITE assertion passing.
+                       "GIT_CONFIG_NOSYSTEM": "0", "GIT_ATTR_NOSYSTEM": "0",
+                       "GIT_CONFIG_GLOBAL": str(root / "caller-gitconfig"),
+                       "GIT_TEMPLATE_DIR": str(root / "caller-template"),
+                       "XDG_CONFIG_HOME": str(root / "caller-xdg")}
             with mock.patch.dict(os.environ, hostile), \
                  mock.patch.object(harness.subprocess, "run", side_effect=capture):
+                os.environ.pop("PYTHONNOUSERSITE", None)
+                os.environ.pop("PYTHONSAFEPATH", None)
                 harness.run_suite(("suite.py",), clone)
 
         self.assertEqual(str(private), captured["env"]["TMP"])
@@ -3828,6 +3840,7 @@ class ReplayParallelCloneTests(unittest.TestCase):
         # host the behavioural probe cannot see the mutant; M107 survived on
         # WSL2 in a venv while the CI runner's Python caught it.
         self.assertEqual("1", env["PYTHONNOUSERSITE"])
+        self.assertEqual("1", env["PYTHONSAFEPATH"])
         self.assertNotIn("PYTHONUSERBASE", env)
         # D-111: flags that change what a test means.
         for name in ("PYTHONWARNINGS", "PYTHONOPTIMIZE", "PYTHONPYCACHEPREFIX"):
@@ -3838,6 +3851,11 @@ class ReplayParallelCloneTests(unittest.TestCase):
             self.assertNotIn(name, env, name)
         self.assertEqual("1", env["GIT_CONFIG_NOSYSTEM"])
         self.assertEqual("1", env["GIT_ATTR_NOSYSTEM"])
+        # A run-owned path is asserted by its prefix under the run's private
+        # root; a suffix would accept the caller's file of the same name.
+        for name in ("GIT_CONFIG_GLOBAL", "GIT_TEMPLATE_DIR", "XDG_CONFIG_HOME"):
+            self.assertTrue(env[name].startswith(str(private)),
+                            f"{name} is not run-owned: {env[name]}")
         self.assertTrue(env["GIT_CONFIG_GLOBAL"].endswith("gitconfig"))
         self.assertTrue(env["GIT_TEMPLATE_DIR"].endswith("git-template"))
         self.assertTrue(env["XDG_CONFIG_HOME"].endswith("xdg"))
