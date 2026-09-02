@@ -116,14 +116,14 @@ The documents state what is true. This log preserves why, what else was consider
 | D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Superseded | D-100 |
 | D-098 | 2026-09-02 | A worker's collection tree stays inside its clone | Amended | D-101 |
 | D-099 | 2026-09-02 | The coordinator reports a worker row's own reason | Amended | D-102 |
-| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Confirmed | D-107 |
+| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Amended | D-118 |
 | D-101 | 2026-09-02 | A worker owns its pytest environment as well as its rootdir | Amended | D-105 |
 | D-102 | 2026-09-02 | A worker diagnostic is one bounded terminal-safe line | Amended | D-106 |
 | D-103 | 2026-09-02 | Serial evidence labels dirt, and serial writes require clean endpoints | Confirmed | |
 | D-104 | 2026-09-02 | A skipped survivor needs exact catching-test attribution | Confirmed | |
 | D-105 | 2026-09-02 | A worker owns its interpreter and its configuration, not only its pytest options | Confirmed | |
 | D-106 | 2026-09-02 | The serial console renders a diagnostic the same way the coordinator does | Amended | D-115 |
-| D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Open | |
+| D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Decided | D-118 |
 | D-108 | 2026-09-02 | A walkthrough check compares committed bytes, not a checkout | Confirmed | |
 | D-109 | 2026-09-02 | A host record is current only at the commit that produced it | Confirmed | |
 | D-110 | 2026-09-02 | A survivor with no catching host is a survivor, not an unverified row | Confirmed | |
@@ -134,6 +134,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-115 | 2026-09-02 | Every console field from the matrix passes through the renderer | Confirmed | |
 | D-116 | 2026-09-02 | The harness line closes on a stopping rule, not on a quiet round | Open | |
 | D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
+| D-118 | 2026-09-02 | Verification authority for scripts is the shipped skill's own directory, in every spelling | Confirmed | |
 
 ---
 
@@ -2929,7 +2930,7 @@ Worker rows gain a structured failure field, or the report format changes.
 ## D-100: Every shipped script is verification authority by location
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-118
 Area: D-093, D-097, routing classifier, `anti-dark-code/scripts/`
 
 Context:
@@ -3188,7 +3189,7 @@ layer.
 ## D-107: D-100's contract reaches every scripts directory, and its statement does not say so
 
 Date: 2026-09-02
-Status: Open, owner decision
+Status: Decided by the owner on 2026-09-02, option 2; implemented by D-118
 Area: D-093, D-100, canonical authority classifiers, shipped policy template
 
 Context:
@@ -3695,3 +3696,54 @@ superseded by runs at the head that carries this repair.
 Revisit when:
 The suite stops running inside `run_suite` under replay, or a contract
 assertion is added without the inversion.
+
+## D-118: Verification authority for scripts is the shipped skill's own directory, in every spelling
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-093, D-100, D-107, D-116, canonical authority classifiers, shipped
+policy template, M100, M115, M116
+
+Context:
+D-100 said every Python file directly under `anti-dark-code/scripts/` is
+verification authority, and implemented it with the canonical
+`**/scripts/*.py` entry, which D-093 requires in every policy that pairs a
+nonempty classifier with a non-force-full rule and which the template ships
+to every installing repository. D-107 measured the gap: with every rule
+approved, `tools/scripts/build.py`, `packages/app/scripts/migrate.py`,
+`docs/scripts/render.py`, `ci/scripts/release.py`, and
+`src/scripts/__init__.py` in an installing repository routed as
+verification authority at Level 3 with `force_full`, wider than the
+statement. Round twenty measured the owner's three options, and the owner
+chose option 2 in the SLICE-001 walkthrough on 2026-09-02, as the named
+follow-up under its Question 6.
+
+Decision:
+The canonical scripts entry becomes two: `anti-dark-code/scripts/*.py`, the
+source spelling, and `**/anti-dark-code/scripts/*.py`, every installed
+spelling. The shipped template and this repository's installed policy carry
+both as verification authority. The cheap `**/scripts/*.py` product entry
+stays, because it is what returns a consumer's nested scripts to the product
+route. Measured after the change with every rule approved: every shipped
+script forces full in the source spelling and under each of the four
+installed prefixes, the five consumer paths route as product code at Level
+2, and a root-level `scripts/deploy.py` stays unmapped and full. M100 is
+re-anchored to the source entry; M115 widens the installed entry back to
+`**/scripts/*.py`; M116 narrows it to one host layout.
+
+Because:
+A universal contract should say what it does. D-100's statement was the
+right boundary; its implementation reached directories D-100 never named,
+and the cost fell on every installing repository.
+
+Consequences:
+An installing repository's own `scripts/*.py` files are product code unless
+its policy says otherwise. A copy of the skill installed under a directory
+not named `anti-dark-code` is outside both spellings; the installer never
+writes one and the self-grading guard does not probe one, so this narrows
+nothing the guard proves. This is a router change, so under D-116 it gets
+one verifying round, round twenty-one, after which the line stops again.
+
+Revisit when:
+The installer gains a configurable directory name, or a second shipped
+scripts directory appears.

@@ -4134,63 +4134,12 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "    (\"shipped script controls\", \"**/scripts/*.py\",",
-    "new": "    (\"shipped script controls\", \"**/scripts/adc*.py\",",
-    "verdict": "caught",
-    "pytest": "12 failed, 305 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.21s",
-    "results": [
-      {
-        "platform": "Linux",
-        "release": "6.18.33.2-microsoft-standard-WSL2",
-        "python": "3.12.3",
-        "git": "git version 2.43.0",
-        "verdict": "caught",
-        "pytest": "12 failed, 306 passed, 9 deselected, 19 subtests passed in 10.14s",
-        "skipped": 0,
-        "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_cheap_rule_that_fires_on_authority_is_refused",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_the_probe_shape_is_refused",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shipped_script_is_authority_by_location",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_shipped_policy_matches_the_canonical_authority_class_contract",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads",
-          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_so_the_route_forces_full"
-        ],
-        "skipped_nodeids": []
-      },
-      {
-        "platform": "Windows",
-        "release": "11",
-        "python": "3.14.2",
-        "git": "git version 2.50.1.windows.1",
-        "verdict": "caught",
-        "pytest": "12 failed, 305 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.21s",
-        "skipped": 1,
-        "failed_nodeids": [
-          "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_cheap_rule_that_fires_on_authority_is_refused",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_the_probe_shape_is_refused",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shipped_script_is_authority_by_location",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_shipped_policy_matches_the_canonical_authority_class_contract",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router",
-          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads",
-          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_so_the_route_forces_full"
-        ],
-        "skipped_nodeids": [
-          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
-        ]
-      }
-    ],
-    "note": "D-100. Every shipped Python script is verification authority by location, so a dynamically constructed helper name or future loader cannot bypass the full route. Caught on Windows and T540P in round eighteen."
+    "old": "    (\"shipped script controls, source\", \"anti-dark-code/scripts/*.py\",",
+    "new": "    (\"shipped script controls, source\", \"anti-dark-code/scripts/adc*.py\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-100, re-anchored under D-118 to the source spelling of the shipped scripts entry. Narrowing it to adc*.py demotes work_receipt.py, the reviewed standalone script, which D-100 says is authority by location. Pending the next authoritative two-host replay."
   },
   {
     "id": "M101",
@@ -4810,5 +4759,33 @@
       }
     ],
     "note": "D-113. Supersedes M08: the -c overrides failing is recoverable through this path, so the environment neutralization is the guarantee. Caught by two fixture-local filter tests on any host. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M115",
+    "name": "scripts authority widened back to every scripts directory",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    (\"shipped script controls, installed\", \"**/anti-dark-code/scripts/*.py\",",
+    "new": "    (\"shipped script controls, installed\", \"**/scripts/*.py\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-118. The canonical installed entry reaches every nested scripts directory of an installing repository again, which is the D-107 width, and the shipped policy no longer carries the canonical entry. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M116",
+    "name": "installed scripts authority narrowed to one host layout",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    (\"shipped script controls, installed\", \"**/anti-dark-code/scripts/*.py\",",
+    "new": "    (\"shipped script controls, installed\", \".agents/skills/anti-dark-code/scripts/*.py\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-118. The installed spelling must cover every prefix the installer writes (D-086), not one representative. Pending the next authoritative two-host replay."
   }
 ]

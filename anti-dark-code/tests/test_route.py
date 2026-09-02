@@ -5151,7 +5151,10 @@ class SelfGradingAuthorityTests(unittest.TestCase):
 
     def test_shipped_policy_matches_the_canonical_authority_class_contract(self) -> None:
         expected = (
-            ("shipped script controls", "**/scripts/*.py",
+            ("shipped script controls, source", "anti-dark-code/scripts/*.py",
+             "product", "verification-authority", "repository", "normal"),
+            ("shipped script controls, installed",
+             "**/anti-dark-code/scripts/*.py",
              "product", "verification-authority", "repository", "normal"),
             ("tests and shared fixtures", "**/tests/*.py", "tests",
              "verification-authority", "repository", "normal"),
@@ -5268,7 +5271,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("**/scripts/*.py", str(caught.exception))
+        self.assertIn("anti-dark-code/scripts/*.py", str(caught.exception))
 
     def test_one_authority_reference_cannot_cover_two_cheap_ones(self) -> None:
         data = json.loads(json.dumps(self.policy_source))
@@ -5296,13 +5299,14 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # the installed router as ordinary code.
         data = json.loads(json.dumps(self.policy_source))
         for entry in data["classifier"]["surfaces"]:
-            if entry.get("glob") == "**/scripts/*.py":
+            if entry.get("glob") in ("anti-dark-code/scripts/*.py",
+                                     "**/anti-dark-code/scripts/*.py"):
                 entry["glob"] = "anti-dark-code/scripts/adc_route.py"
         with self.assertRaises(self.route.PolicyError) as caught:
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("**/scripts/*.py", str(caught.exception))
+        self.assertIn("**/anti-dark-code/scripts/*.py", str(caught.exception))
 
     def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
         # The classifier is untouched here, so a guard that checked only the
@@ -5519,16 +5523,51 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.assertTrue(self._route_for(path, policy).force_full, path)
 
     def test_every_shipped_script_is_authority_by_location(self) -> None:
-        """D-100. Dynamic loader spellings cannot escape the script boundary."""
+        """D-100, amended by D-118. Dynamic loader spellings cannot escape the script boundary."""
         scripts = SKILL_ROOT / "scripts"
-        self.assertIn("**/scripts/*.py",
-                      {glob for _, glob, *_ in self.route.AUTHORITY_CLASSIFIERS})
+        globs = {glob for _, glob, *_ in self.route.AUTHORITY_CLASSIFIERS}
+        self.assertIn("anti-dark-code/scripts/*.py", globs)
+        self.assertIn("**/anti-dark-code/scripts/*.py", globs)
         policy = self._approved_policy()
         demoted = []
         for script in sorted(scripts.glob("*.py")):
             path = script.relative_to(REPO_ROOT).as_posix()
             if not self._route_for(path, policy).force_full:
                 demoted.append(path)
+        self.assertEqual([], demoted, "; ".join(demoted))
+
+    def test_nested_consumer_scripts_are_product_code_and_shipped_scripts_are_authority(self) -> None:
+        """D-118. The canonical scripts entry names the shipped skill's own directory.
+
+        Measured before D-118 with every rule approved: tools/scripts/build.py,
+        packages/app/scripts/migrate.py, docs/scripts/render.py,
+        ci/scripts/release.py, and src/scripts/__init__.py in an installing
+        repository routed as verification authority at Level 3 with
+        force_full under the `**/scripts/*.py` entry, wider than D-100's
+        statement (D-107). The cheap `**/scripts/*.py` product entry is what
+        returns them to the product route; removing it leaves them unmapped
+        and full, which is safe and was not the owner's choice.
+        """
+        policy = self._approved_policy()
+        consumer = ("tools/scripts/build.py", "packages/app/scripts/migrate.py",
+                    "docs/scripts/render.py", "ci/scripts/release.py",
+                    "src/scripts/__init__.py")
+        widened = [path for path in consumer
+                   if self._route_for(path, policy).force_full]
+        self.assertEqual([], widened, "; ".join(widened))
+        for path in consumer:
+            self.assertEqual(2, self._route_for(path, policy).minimum_level, path)
+        # A root-level scripts directory matches nothing and forces full, as
+        # it did before D-118.
+        self.assertTrue(self._route_for("scripts/deploy.py", policy).force_full)
+        demoted = []
+        for script in sorted((SKILL_ROOT / "scripts").glob("*.py")):
+            source = script.relative_to(REPO_ROOT).as_posix()
+            spellings = (source, *(f"{prefix}{source}"
+                                   for prefix in self.route.INSTALLED_SKILL_PREFIXES))
+            for path in spellings:
+                if not self._route_for(path, policy).force_full:
+                    demoted.append(path)
         self.assertEqual([], demoted, "; ".join(demoted))
 
 
