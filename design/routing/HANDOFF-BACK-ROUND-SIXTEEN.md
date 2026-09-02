@@ -1,181 +1,230 @@
 # Handoff back: round sixteen
 
-Date: 2026-09-01.  This handoff covers the Round Sixteen branch through
-`bcc23461de970fb44aaea06236ec8bbd0b5e9657`; its final documentation commit
-follows this record.  The durable, independently checkable replay record is
-[`PARALLEL-EVIDENCE-ROUND-SIXTEEN.json`](PARALLEL-EVIDENCE-ROUND-SIXTEEN.json).
+Date: 2026-09-02. This handoff covers the Round Sixteen implementation and
+frozen evidence head through `f3d08a45d4f0b2fb9f1e62b97014187dd2853977`;
+documentation and final-CI receipt commits follow it. The durable evidence
+record is [`PARALLEL-EVIDENCE-ROUND-SIXTEEN.json`](PARALLEL-EVIDENCE-ROUND-SIXTEEN.json).
 
 ## Result
 
-Parallel replay is **adopted** from the Round Five evidence at
-`51bd525311dd98dc933655252120e4fe4a501550`, not from a timing claim.  The
-artifact records empty row, suite, restoration, and cleanup gate lists.  Serial
-remains the oracle and remains available.
+Parallel replay is **adopted from current-head evidence**, not from timing or
+the superseded Round Five record. Serial remains the oracle and is available as
+`--jobs 1`. The final matrix has **96 rows: 91 active and 5 superseded**; all 91
+active rows carry both Windows and T540P Linux records.
 
-Fresh final-local receipts at `bcc2346`:
+The frozen `f3d08a4` evidence gates are empty:
 
-- `python -B anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal`:
-  exit 0, `VALID (universal): 0 errors, 1 warning(s)`.  The warning is only
-  generated `__pycache__`, which universal validation deliberately ignores.
-- `python -m pytest anti-dark-code/tests -q -p no:cacheprovider`: exit 0,
-  `481 passed, 14 skipped, 57 subtests passed in 248.32s`.
-- `python -m pytest anti-dark-code/tests/test_route.py::MutationMatrixIntegrityTests -q -p no:cacheprovider`:
-  exit 0, `9 passed in 0.16s`.
-- `git diff --check` and `git status --short` were empty before this handoff.
+- row mismatches: none;
+- suite outcome-set mismatches: none;
+- restoration failures: none;
+- cleanup failures: none.
 
-## Independent decision checklist
+Fresh pre-documentation baseline receipts at that head were:
 
-| Decision | Verdict | Reproducer and fixed checklist result |
+- universal validation: exit 0, `VALID (universal): 0 errors, 1 warning(s)`;
+  the warning names ignored generated `__pycache__` entries;
+- serial full suite: exit 0, `486 passed, 14 skipped, 62 subtests passed in
+  263.07s` (263.549 seconds wall clock);
+- mutation-matrix integrity: exit 0, `9 passed in 0.21s`;
+- clean status and matrix SHA-256
+  `d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`.
+
+Final post-documentation local gates and final-head CI are recorded below when
+they exist. A pending field is not evidence.
+
+## Fixed adversarial checklist
+
+The review stayed on the handoff's fixed attack list; these are measurements,
+not a second open-ended design round.
+
+| Decision | Verdict | Measurement |
 | --- | --- | --- |
-| D-085 | upheld | `AcquisitionAgainstRealGitTests::test_a_filter_name_containing_an_equals_cannot_run` demonstrates that an `a=b` filter cannot execute during acquisition.  The original `-c` spelling was exploitable; effective-key verification refuses comparison if neutralization is still live. |
-| D-086 | amended by D-091 | `SelfGradingAuthorityTests::test_one_authority_reference_cannot_cover_two_cheap_ones` proved that one representative pass reference could hide the other two.  All three routing-owning references are now probes. |
-| D-087 | upheld | `MutationMatrixIntegrityTests::test_every_mutant_target_occurs_exactly_once` holds each active mutation to exactly one literal target; superseded rows are intentionally excluded. |
-| D-088 | upheld | The real-Git `a=b` filter reproducer proves `GIT_CONFIG_COUNT` neutralizes the inexpressible key; unreadable keys remain live/fail-closed. |
-| D-089 | amended by D-091 | The calibration-layout attack proved a cheap route was possible through an unprobed calibration spelling.  Calibration roots and installed spellings are now derived and tested. |
-| D-090 | amended | `MutationMatrixIntegrityTests::test_decision_guard_recurses_through_claimed_source_classes` places a dangling decision citation in nested scripts, tests, and routing Markdown.  The guard now recursively covers those claimed source classes. |
+| D-085 | upheld | A deterministic 297-name real-Git corpus accepted 296 configurations; all 296 acquisitions were complete, all 296 ran the worktree comparison, and repository filter markers executed zero times. The direct nonzero-query control returned the injected live key rather than treating query failure as absence. |
+| D-086 | amended by D-091 and D-093 | Installed-layout derivation is still required, but one path per class was not enough: distinct routing-owning references and broader authority classes could still be partitioned cheaply. D-091 added every pass-owning reference and D-093 added the canonical classifier contract. |
+| D-087 | upheld | Every then-active row had exactly one literal target, 91 distinct effective `(source, mutant SHA-256)` values, no no-op replacement, and no effective collision. Superseded rows invoked no suite; the final matrix integrity gate remains 9/9 after M96 and D-094. |
+| D-088 | upheld | The corpus included 96 names whose first `--get` through command-line overrides returned nonzero; numbered environment configuration recovered all 96, including leading `=`, without filter execution. `_live_filter_programs()` also treated an injected `None` query result as live/fail-closed. |
+| D-089 | amended by D-091 and D-093 | Calibration-root derivation closes the measured fallback-layout hole, but it did not establish coverage of every distinct authority file or class. Those broader claims now belong to D-091 and D-093. |
+| D-090 | amended | A nested-script/test/routing-Markdown attack bypassed the original top-level list. `test_every_referenced_decision_exists` now recursively derives all claimed Python and routing-Markdown sources, and the final integrity suite passes. |
+| D-091 | upheld within its scope | Exact cheap classification of either omitted routing-owning reference is rejected. It remains a path-set guarantee; D-093 supplies the separate class contract. |
+| D-092 | upheld | A tagged fixture containing a real `.pytest_cache/.gitignore` and cache payload keeps the same managed file set, provenance digest, and `git-tag` classification. Authoritative commands still use `-p no:cacheprovider` to keep evidence runs sterile. |
+| D-093 | broken, repaired, then confirmed | The first class-contract implementation could be disabled by deleting every authority-labelled entry and retaining only a cheap exact classifier. `7b0dc2d` now requires the full canonical class set for every nonempty classifier paired with any non-force-full rule; empty and all-force-full policies retain their safe compatibility. |
+| D-094 | upheld | The frozen T540P run measured M92 surviving because D-093 made its old path-loop reversion inert. M96 attacks the stronger load-time contract and was caught on both hosts, so superseding M92 records rather than hides the changed guarantee. |
 
-The literal owner walkthrough was rerun and corrected in `868a0db`
-(`WALKTHROUGH-SLICE-001.md`): its D-080 extraction is a single executable
-Python command and its matrix narrative distinguishes the then-missing Linux
-per-row bookkeeping from the existing Linux CI fact.  It remains an owner
-walkthrough, not an approval.
+The retained attack generator, harness tests, and measurement have SHA-256
+values respectively
+`62a91547f3fefda1232e61efe1797dda6854b2d55ac747ce838d7742514ed359`,
+`37f5f7019f77ce1d2210360b6d9f40967e911ecfb43bdf49526c752250bbccbc`,
+and `9df495a3cfcac922823264c8dca008d3f96e2249310d7a6750d850ef567d0788`.
+Eight unneutralized positive controls executed 14 marker writes while production
+neutralization executed none, proving the fixture could observe the attack.
+
+The traceability challenge selected **R-021** rather than trusting the empty
+`untraced` list. Exact cheap classifiers for mutation harnesses, repository
+metadata, source-scope provenance, workflows, and project manifests loaded and
+routed below full despite representative-path tests; D-093 is the resulting
+requirement-level repair.
 
 ## Two-host mutation evidence
 
-The matrix has **95 rows: 91 active and 4 superseded**.  All 91 active rows
-have both Windows and T540P Linux records; the T540P refresh is commit
-`fdfbda90495b0cb4e426e1f425859a222a4c0f41`.
+### T540P Linux first
 
-The Linux run used a detached `03540a846d4ef85c3dbd232c726789b4d5574c4e`
-checkout, Git 2.43.0, Python 3.12.3, pytest 9.1.1, kernel
-`7.0.0-30-generic`, and a disposable CI-shaped virtual environment.  Its
-canonical command was `python design/routing/mutants/replay.py --write`, exit
-0, with `95 mutants, 0 not caught: none`.  The recorded **1215.277 seconds**
-is the measured duration of the complete isolated evidence command (clone,
-checkout, environment setup, replay, restoration/blob checks, and
-matrix/status checks), not the replay subprocess alone; execution metadata id
-`exec-286c7fd0-cc60-4efe-b52c-e1c607b05393` recorded exit 0 and 1,215,277 ms.
+The authoritative Linux write replay used a clean detached checkout at
+`0a26531b7a32e9dd126d932b94b4c47ecfb00752`, Python 3.12.3, Git 2.43.0,
+kernel `7.0.0-30-generic`, disabled pytest cache and bytecode, and a disposable
+CI-shaped virtual environment. It began `2026-09-01T18:45:44-04:00`, ended
+`19:11:08-04:00`, and took **1,524 seconds**, including clone/setup/checks.
 
-All five mutable sources matched frozen, before, and after SHA-256 values;
-the remote status was matrix-only, its transferred matrix hash matched, and
-both remote and local owned roots were cleaned.  The evidence records the five
-source hashes rather than duplicating them here.
+`python design/routing/mutants/replay.py --write --report <external>` exited 0
+with `96 mutants, 0 not caught: none`. The report SHA-256 is
+`3b2cd5e60582fc670523b6a0d66b13831f0d7cd0797546a9f886243d4b6034ce`;
+its generated matrix SHA-256 is
+`cfcb3f8fa2da32400d1661445bfebed8d5b50c0cfedb4c93c538be0a751685ff`.
+All 96 rows restored and all five mutable source hashes matched frozen/before/
+after bytes. Remote status was matrix-only and the owned remote root was
+removed after transfer.
 
-M61--M63 were retargeted to the replay authority controls and caught on both
-hosts: M61 holds the `sys.executable` launcher, M62 the raw-byte mutation and
-restoration path, and M63 the anchored pytest-summary gate.  Their fresh Linux
-summaries were respectively `1 failed, 291 passed, 9 deselected, 9 subtests
-passed`, `2 failed, 290 passed, 9 deselected, 9 subtests passed`, and `1
-failed, 291 passed, 9 deselected, 9 subtests passed`.
+At this frozen point the report held 92 completed and 4 superseded rows. M92's
+local survivor was the D-094 finding, not a replay failure to paper over: its
+old attack had become redundant, while M96 caught the stronger guarantee.
+
+### Windows and final record
+
+After D-094 superseded M92, the authoritative Windows write replay used clean
+commit `ff95c8c4e5a7a5a4179b70b3a90f02259d03408a`, Python 3.14.2, Git
+2.50.1.windows.1, disabled pytest cache and bytecode, and source bytes equal to
+the commit blobs. It began `2026-09-01T19:17:44.3443460-04:00`, ended
+`21:08:45.2058977-04:00`, and took **6,660.666 seconds (1h51m)**.
+
+The same `--write --report` shape exited 0 with `96 mutants, 0 not caught:
+none`. Report SHA-256 is
+`6e613b1530ad5da5bea111f4b9ade3ce86aabd2f71f3662bcb59310588edd564`;
+the generated matrix SHA-256 was
+`8441237dc1d06a2013c97e8f9ca776854fcf6ce02a9253bcac2987e79bd8c63d`.
+The later M96 note-only annotation changed the committed matrix digest to
+`d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`;
+it did not change result data and did not justify repeating the expensive
+replay.
+
+M61, M62, M63, and M96 are active and caught on both hosts. Their final Windows
+summaries are respectively `1 failed, 299 passed, 1 skipped, 9 deselected, 14
+subtests passed`, `2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests
+passed`, `1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed`,
+and `13 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed`.
 
 ## Exact replay identity and cleanup
 
-The adopted comparison is read-only at `51bd525` against matrix SHA-256
-`e690d16e77107cc6a5581ab7f54a6d92b28a58be4a279208f27b6776c57f6564`.
+Both comparison runs were read-only at exact commit `f3d08a4` and matrix digest
+`d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`:
 
-- Serial `--jobs 1`: exit 0, report `round5/serial.json`, SHA-256
-  `538346bdb97b8cd0af75f9c9bbfc70d6885da7fd5cd976057409e71747d3f1f3`.
-- Parallel `--jobs 8`: exit 0, report `round5/parallel.json`, SHA-256
-  `8eda90dd462864c26e18d88a9d3b628600707fb9687fe8c4639c8746dd18d34e`.
-- Both report 95 canonical rows and `95 mutants, 0 not caught`; matrix hashes
-  before and after are equal.  The full normalized identity digest is the
-  same in both reports:
-  `c291ae2ea09a2025cdf8bf9ab200ef66472e9fc39b8f08da883a240aa66d94dd`.
-  It compares state, status, verdict/caught, skip reason/count, return code,
-  parsed pytest summary/counts, source hashes, frozen commit, and restoration;
-  it excludes only duration and worker label.  There are no missing, extra,
-  duplicate, reordered, or mismatched rows.
-- M37, M46, and M48 intentionally remain local `SURVIVED` rows with
-  `skipped=1`; M79 is caught in both modes.  M36 and M79 are therefore part of
-  the equal normalized comparison, not exceptional adoption paths.
-- Every row restored its source.  All eight parallel worker cleanup records
-  report clone removal, auxiliary pytest-root removal, and owned-root removal.
-  No cleanup failure remains.
+- serial `--jobs 1`: exit 0, **6,585.939 seconds (1h49m46s)**, report SHA-256
+  `5934573d24fcec957ae74f64797936dcc12ba48c25c20c666a1e3b5c096beefe`;
+- parallel `--jobs 8`: exit 0, **1,903.084 seconds (31m43s)**, report SHA-256
+  `73c3016cec363d05eee0a21297f7451f5685752aebe50656606a6a8cd323b223`.
 
-The reports retain cumulative per-row durations (serial 5,446.198 s; parallel
-10,679.835 s).  They are not aggregate coordinator wall-clock measurements,
-so this handoff does **not** invent a replay speedup.  The separately measured
-suite trials demonstrate the expected process-parallel wall-clock reduction
-below; identity, restoration, and cleanup are the adoption criteria.
+Both contain 96 canonical rows in the same order, 91 completed and 5
+superseded, with zero duplicate, missing, extra, reordered, or mismatched rows.
+The normalized identity digest is identical:
+`13b75072ae9c54045f84ae97cc59c9a8676aceac3c05702e415934e3340d2ecc`.
+Identity includes state, status, verdict/caught, skip reason/count, pytest
+return and parsed counts, source, before/after hashes, post-restore state,
+frozen commit, restoration, and host. It excludes elapsed timing, worker label,
+and parallel transport fields (`matrix_index`, `clone_retired`).
 
-The abandoned Round Two M79 reports are diagnostic-only, not adoption
-evidence: serial SHA-256
-`a134faf9666407ca26e7671c401a13c27b1fcb7e06b6182075afa624a49baa5d` versus
-parallel SHA-256
-`516922236a849bcc11a7dc6ffc3b735f8702ffbe65e03830c0e59e3d593d2d90` exposed
-a Git-index refresh precondition.  `d5168c1` made that precondition
-deterministic.  `51bd525` independently removed M36's fixture-repository
-index-refresh side channel.
+M37, M46, and M48 are the same Windows-local `SURVIVED`, `skipped=1` rows in
+both modes and remain `caught elsewhere` from Linux. Every row restored. All
+eight cleanup records prove clone removal, auxiliary pytest-root removal, and
+owned-root removal with no error. Coordinator wall-clock speedup was **3.46x**;
+that is useful operational evidence, not the adoption criterion.
 
 ## Suite stability
 
-Round Five first collected **494 exact node ids** (collection SHA-256
-`b472b64c61a53b33d8e10405489a64d40f45ace5b28fe56811c7dded70e48196`).  An
-external evidence-only controller plugin reconstructed every outcome by exact
-node id.  All six runs were exit 0, bijective to collection, and produced the
-same outcome-set SHA-256
-`68ec624bdd0ca4dad6c01ea672c18b55d30700d4e71e6fb80aa374e041da3aa8`:
-480 passed, 14 skipped, zero failed, and zero errors.
+The tracked controller plugin
+`design.routing.mutants.exact_nodeid_plugin` collected **500 exact node ids**
+with digest
+`13e8c4023e8d139ff4b5e0f6fb5fdb02d0afe34bc12cd0b5deed7531ff58480a`.
+All six trials were exit 0, bijective to collection, and produced the same
+outcome-set digest
+`e57dd443dd8525aa12944f11d77020015e599a17c1baa09b18225e7339a97bf6`:
+486 passed, 14 skipped, zero failed/error/missing.
 
-| Runs | Durations (s) | Collection proof |
+| Runs | Wall durations (s) | Exact collection proof |
 | --- | --- | --- |
-| serial-1, serial-2, serial-3 | 246.80, 243.62, 248.23 | Each is one-to-one with all 494 ids. |
-| xdist-1, xdist-2, xdist-3 (`-n auto`) | 39.00, 41.27, 43.62 | Each has 32 worker collection lists; every ordered list exactly equals the 494-id collection. |
+| serial-1, serial-2, serial-3 | 270.657, 270.461, 269.624 | Each controller map contains every one of the 500 ids exactly once. |
+| xdist-1, xdist-2, xdist-3 (`-n auto`) | 51.521, 51.633, 52.492 | Each has 32 ordered worker collection lists; every list equals the frozen 500-id collection. |
 
-The suite trial timing is an observed comparison, not an eligibility shortcut:
-the exact set equality above is the stability gate.
+The node-id and outcome sets, not the faster times, satisfy the stability gate.
 
-## Provenance and CI decision
+## CI decision and current status
 
-D-092 excludes `.pytest_cache` from managed-source provenance.  Local
-controlled commands retain `-p no:cacheprovider` because cache state in the
-managed tree used to alter the digest while remaining Git-ignored.  Generated
-`__pycache__` is a validator warning only.  This is why the fresh local gates
-above retain the flag; the CI workflow uses a pristine checkout and its own
-contract.
+Local evidence supports the already-staged CI settings: both suite-running
+jobs install `pytest-xdist`, complete full-suite commands use `-n auto`, and
+the Linux mutation job runs the entire matrix with `--jobs 2`. It has no row
+selector and no `--write`; the workflow contract test rejects either weakening.
 
-`af57da7` adopts the measured CI settings: both suite-running install steps
-install `pytest-xdist`; both full suite invocations retain
-`anti-dark-code/tests` and add `-n auto`; the mutation replay has exactly
-`python design/routing/mutants/replay.py --jobs 2`.  It has no `--id`, no
-`--write`, and no selective test subset.  `bcc2346` adds the workflow contract
-test that rejects a selective replay command rather than merely detecting
-parallelism.
+CI is **pending until the Round Sixteen PR exists and every required job passes
+on its final head**. The final run URL, head SHA, and job conclusions belong
+here only after observation.
 
-CI is **pending until a new PR is opened and its required jobs run**.  No push
-or PR was made as part of this handoff.
+## Owner walkthrough and remaining blockers
 
-## Non-negotiable boundaries and remaining SLICE-001 blockers
+`WALKTHROUGH-SLICE-001.md` now detaches the Round Sixteen branch, expects
+96/91/91 and no missing host records, checks the current evidence artifact and
+PR, and reads D-085 through D-094. Its boxes remain unchecked; this work does
+not approve on the owner's behalf.
 
-- No routing-policy rule was approved; candidate/shadow information cannot
-  select executable gates.
-- Selective local and CI execution remain prohibited; CI's parallel replay is
-  the complete matrix, not a selector.
-- SLICE-001 is not `Done`.  The owner must run the literal walkthrough, record
-  every command/expectation difference, answer questions 1--6, and personally
-  approve its last checkbox.  A separate change may then change slice state.
-- The `_repo_fingerprint` owner decision remains **provisional** (D-073's
-  unreadable-index alternative); it must not be silently treated as an owner
-  decision or final policy.
-- Parallel adoption does not authorize changing routing policy, evidence
-  labels, owner approvals, or the serial oracle.
+- No routing-policy rule was approved. All six shipped rules remain proposed.
+- Selective local and CI execution remain prohibited.
+- SLICE-001 is not `Done`; Daniel Boyd must run the literal walkthrough, record
+  any difference, answer questions 1--6, and personally approve the final box.
+- `_repo_fingerprint` remains a **provisional implementation pending the owner
+  decision**. This round did not silently convert it into policy approval.
+- Parallel adoption changes execution mechanics only; it grants no routing,
+  evidence-label, or owner-approval authority.
 
-## Runtime postmortem
+## Runtime postmortem and warning proposal
 
-The user-observed minimum is **1261 minutes (21h01m)**.  Its scope is total
-wall-clock time from goal start, including discarded/restart investigation;
-it is not any individual replay or gate duration.  A clean path is estimated
-at **2.5--3.5 hours**.
+The owner-observed **21h01m** was total wall clock from goal start at that
+checkpoint, not any replay. At evidence-artifact construction the goal manager
+reported **101,016 seconds (28h03m36s)** total elapsed; the final goal total is
+recorded after CI.
 
-Necessary clean-path cost: fresh universal/full/integrity gates, the isolated
-T540P bookkeeping replay, exact serial and jobs-8 comparison, and six
-collection-bijective suite trials.  Avoidable/restarted cost: wrong-worktree
-provenance, M79 deterministic-precondition diagnosis, M36 index-refresh
-side-channel diagnosis, and discarded wrapper/plugin evidence.  Before any
-gate expected to exceed 60 minutes or per-mutant full-suite replay, require a
-runtime forecast and explicit acknowledgement.
+The final authoritative evidence commands themselves total **17,905.033
+seconds (4.974 hours)**:
 
-## Complete round-sixteen commit ledger
+| Gate | Wall time |
+| --- | ---: |
+| Linux two-host write | 25m24s |
+| Windows two-host write | 1h51m01s |
+| baseline full suite | 4m24s |
+| read-only serial replay | 1h49m46s |
+| read-only parallel replay | 31m43s |
+| three serial stability trials | 13m31s |
+| three xdist stability trials | 2m36s |
+| collection and universal validation | 1.4s |
+
+The difference between roughly five hours of final gates and whole-goal
+elapsed is implementation, adversarial diagnosis, independent review,
+discarded evidence, restarts after real findings, remote coordination,
+documentation, and waiting. A clean Round Sixteen-shaped path is now forecast
+at **5.5--7 hours**, including final review and CI but excluding queue outages.
+
+Before launching a costly mutation gate, the skill should show:
+
+1. active mutant count and whether the repository mandates a full affected
+   suite per mutant;
+2. a measured suite sample and worker count;
+3. an estimated range based on
+   `active_mutants × suite_seconds ÷ effective_workers`, widened for clone,
+   setup, cleanup, and host variance;
+4. explicit confirmation when the upper estimate exceeds a threshold such as
+   30 minutes; and
+5. completed/total progress plus a revised ETA while running.
+
+That warning changes consent and observability, not evidence strength. Full
+per-mutant execution remains an exceptional repository contract, not the
+default cost of using Anti-Dark-Code on an ordinary repository.
+
+## Round Sixteen commit ledger through the evidence head
 
 - `908d43d` docs: specify round sixteen verification
 - `5367bc9` docs: incorporate round sixteen review
@@ -206,7 +255,9 @@ runtime forecast and explicit acknowledgement.
 - `17d8dd4` evidence: clarify runtime postmortem scope
 - `af57da7` ci: use proven parallel verification
 - `bcc2346` test: reject selective CI replay
-
-The only uncertainty is intentionally explicit: no new-PR CI result exists
-yet, and replay report data does not store a coordinator wall-clock duration
-from which to calculate a defensible replay speedup.
+- `2f9a827` docs: hand back round sixteen
+- `b3ea5ae` fix: guard self-grading authority classes
+- `7b0dc2d` fix: fail closed for cheap classifiers
+- `0a26531` evidence: track exact suite outcome collector
+- `ff95c8c` evidence: refresh Linux record and supersede M92
+- `f3d08a4` evidence: complete final two-host mutation record

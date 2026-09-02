@@ -2615,7 +2615,8 @@ full, remains compatible because it cannot route a classified path cheaply.
 All shipped rules remain proposed.  Adding a future authority class requires
 adding its canonical classifier entry, the drift test, and a review; it cannot
 silently inherit a cheap generic classification.  M96 holds the load-time
-enforcement, pending a future authoritative replay.
+enforcement and was caught on both T540P Linux and Windows in the final
+authoritative Round Sixteen replay.
 
 The machine-checkable Python authority set is root and nested
 `pyproject.toml`, `requirements*.txt`, `Pipfile`, `*.lock`, `setup.py`,
