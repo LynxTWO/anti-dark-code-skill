@@ -220,6 +220,36 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> SuiteOutcome:
     for name in ("PYTHONUSERBASE", "PYTHONSTARTUP", "PYTHONHOME",
                  "PYTHONEXECUTABLE", "PYTHONINSPECT"):
         environment.pop(name, None)
+    # Flags that change what a test means rather than where code comes from.
+    # Measured after D-105, through this function: PYTHONWARNINGS=error turned
+    # a passing probe into a failure, and PYTHONOPTIMIZE=2 stripped an
+    # assertion. A surviving mutant recorded as caught because the host set a
+    # warning filter is the D-095 class again. See D-111.
+    for name in ("PYTHONWARNINGS", "PYTHONOPTIMIZE", "PYTHONBREAKPOINT",
+                 "PYTHONPYCACHEPREFIX", "PYTHONDEBUG", "PYTHONDEVMODE",
+                 "PYTHONPROFILEIMPORTTIME", "PYTHONTRACEMALLOC",
+                 "PYTHONFAULTHANDLER", "PYTHONMALLOC", "PYTHONASYNCIODEBUG",
+                 "PYTHONINTMAXSTRDIGITS", "PYTHONNODEBUGRANGES",
+                 "PYTHONPLATLIBDIR", "PYTHONCASEOK", "PYTHONHASHSEED",
+                 "PYTHONVERBOSE", "PYTHONPERFSUPPORT"):
+        environment.pop(name, None)
+    # The suite's own fixtures run git with this environment. Measured after
+    # D-105: a GIT_CONFIG_GLOBAL file carrying core.hooksPath ran a hook from
+    # outside the clone during a fixture-shaped commit, and a host's global
+    # git-lfs driver decided M08's verdict on three hosts while a host without
+    # one saw the mutant survive. The worker's git reads only configuration
+    # this run wrote; the file, template, and XDG directories are created
+    # below, beside the pinned pytest configuration. See D-112.
+    for name in [key for key in environment
+                 if key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))] + [
+            "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG",
+            "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE",
+            "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE", "GIT_EXEC_PATH",
+            "GIT_SSH", "GIT_SSH_COMMAND", "GIT_ASKPASS", "GIT_EDITOR",
+            "GIT_SEQUENCE_EDITOR", "GIT_PAGER", "GIT_PROXY_COMMAND",
+            "GIT_EXTERNAL_DIFF", "GIT_DIFF_OPTS"]:
+        environment.pop(name, None)
     # The interpreter runs site initialization before pytest reads one option.
     # Measured after D-101: a caller's PYTHONUSERBASE pointed the worker at a
     # user site-packages whose usercustomize.py and .pth import line both ran
@@ -255,6 +285,20 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> SuiteOutcome:
         pinned_config = Path(raw_outcomes) / "pytest.ini"
         pinned_config.write_text("[pytest]\n", encoding="utf-8")
         command.extend(["-c", str(pinned_config)])
+        # D-112: every git the suite runs reads this empty global file, no
+        # system file, no system attributes, an empty template directory, and
+        # an XDG directory that holds no attributes or ignore file.
+        git_config = Path(raw_outcomes) / "gitconfig"
+        git_config.write_text("", encoding="utf-8")
+        git_template = Path(raw_outcomes) / "git-template"
+        git_template.mkdir()
+        xdg_home = Path(raw_outcomes) / "xdg"
+        (xdg_home / "git").mkdir(parents=True)
+        environment.update({"GIT_CONFIG_GLOBAL": str(git_config),
+                            "GIT_CONFIG_NOSYSTEM": "1",
+                            "GIT_ATTR_NOSYSTEM": "1",
+                            "GIT_TEMPLATE_DIR": str(git_template),
+                            "XDG_CONFIG_HOME": str(xdg_home)})
         outcome_target = Path(raw_outcomes) / "outcomes.json"
         environment["ADC_EVIDENCE_OUTCOMES"] = str(outcome_target)
         done = subprocess.run(command, cwd=execution_cwd, env=environment,
@@ -964,9 +1008,16 @@ def derive_verdict(results) -> str:
     host could not check it, and that is a fact about the host the record
     should keep rather than average away.
 
-    Every host skipping is not evidence of absence. It is evidence nobody
-    looked, and calling it SURVIVED would put a gap in the record that no host
-    has observed.
+    A row no host caught is SURVIVED on every host, a host that skipped
+    included. Until D-110 such a row read "unverified: every host skipped"
+    when every result carried a skip, on the reasoning that nobody had
+    looked. With exact identities (D-104) the console can name the tests the
+    host skipped, and a later catching host restores "caught elsewhere"
+    through the intersection, so the label protected nothing and hid
+    something: on Windows, which skips the symlink test on every row, a new
+    row could never fail a replay. Measured: M107 survived at 49fed51 under
+    its first test, the summary read "0 not caught", and only the Linux job,
+    which skips nothing, said otherwise.
 
     A host that skipped nothing and still did not catch the mutant has
     observed a survivor, and another host's record cannot soften that. The
@@ -978,8 +1029,6 @@ def derive_verdict(results) -> str:
     stored foreign catch.
     """
     caught = [r for r in results if r["verdict"] == "caught"]
-    if not caught and results and all(r.get("skipped") for r in results):
-        return "unverified: every host skipped"
     failed_elsewhere = {
         nodeid for result in caught for nodeid in result.get("failed_nodeids", ())
     }
@@ -1014,12 +1063,19 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
     if cleanup is not None:
         cleanup.extend(cleanup_results)
     for row, result in zip(rows, row_results, strict=True):
+        # Every field on a console line is rendered, not only the worker's
+        # error. The id, name, and replacement id come from matrix.json, which
+        # serial replay reads from disk unfrozen. Measured after D-106: a row
+        # name carrying a newline and an escape printed a forged summary line
+        # in colour, in both modes. See D-106 as amended.
+        label = _terminal_safe_diagnostic(str(row["id"]))
+        name = _terminal_safe_diagnostic(str(row["name"]))
         if result["status"] == "superseded":
             # The behaviour this mutant attacked moved, so applying it is a
             # no-op and it would report as surviving. That reads like a gap and
             # is not one. Its replacement id is recorded on the row.
-            print(f"  {row['id']}  {row['name']:42} superseded by "
-                  f"{row['superseded_by']}")
+            print(f"  {label}  {name:42} superseded by "
+                  f"{_terminal_safe_diagnostic(str(row['superseded_by']))}")
             continue
         if result["status"] != "completed":
             # D-102 rendered worker diagnostics on the parallel path only.
@@ -1027,7 +1083,7 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
             # escape printed a forged replay line on the console. The JSON
             # report keeps the raw text; the console gets one bounded,
             # terminal-safe line in both modes. See D-106.
-            print(f"  {row['id']}  {row['name']:42} {result['verdict']}: "
+            print(f"  {label}  {name:42} {_terminal_safe_diagnostic(str(result['verdict']))}: "
                   f"{_terminal_safe_diagnostic(result.get('error', 'no row evidence'))}")
             survivors.append(row["id"])
             continue
@@ -1043,22 +1099,32 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
         # reports a skip, and a skip is not evidence of absence.
         row["verdict"] = derive_verdict(row["results"])
         row["pytest"] = result["pytest"]
-        note = "" if verdict == row["verdict"] else (
-            f"  (here: {verdict}{', ' + str(result['skipped']) + ' skipped' if result['skipped'] else ''})")
-        print(f"  {row['id']}  {row['name']:42} {row['verdict']}{note}")
+        # D-110: a local survivor under skips names the tests it skipped, so
+        # a reader can see which test might have held it.
+        skipped_names = ", ".join(
+            nodeid.rsplit("::", 1)[-1] for nodeid in result["skipped_nodeids"])
+        skip_note = (f", {result['skipped']} skipped: {skipped_names}"
+                     if result["skipped"] else "")
+        note = "" if verdict == row["verdict"] and not (
+            verdict == "SURVIVED" and result["skipped"]) else (
+            f"  (here: {verdict}{skip_note})")
+        print(f"  {label}  {name:42} "
+              f"{_terminal_safe_diagnostic(str(row['verdict']))}"
+              f"{_terminal_safe_diagnostic(note)}")
         if row["verdict"] == "SURVIVED":
             survivors.append(row["id"])
         elif verdict == "SURVIVED":
             held_elsewhere.append(row["id"])
     print(f"\n  {len(rows)} mutants, {len(survivors)} not caught: "
-          f"{survivors or 'none'}")
+          f"{[_terminal_safe_diagnostic(str(item)) for item in survivors] or 'none'}")
     if held_elsewhere:
         # Not a gate, a disclosure. These rows survived on this host only
         # under skipped tests, and the record that holds them came from a host
         # that could run those tests. A reader who sees only the line above
         # would not know this host observed nothing for them.
         print(f"  {len(held_elsewhere)} survived here under skipped tests and "
-              f"rest on another host's record: {held_elsewhere}")
+              f"rest on another host's record: "
+              f"{[_terminal_safe_diagnostic(str(item)) for item in held_elsewhere]}")
     if write:
         if wanted_subset:
             # Writing a filtered run drops every row it did not touch, so the
