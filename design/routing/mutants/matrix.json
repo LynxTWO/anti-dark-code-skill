@@ -1716,8 +1716,8 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "    return [sys.executable, \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
-    "new": "    return [\"python\", \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "old": "sys.executable",
+    "new": "\"python\"",
     "verdict": "caught",
     "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.85s (0:01:11)",
     "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
@@ -2886,8 +2886,8 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "    if any(r[\"verdict\"] == \"SURVIVED\" and not r.get(\"skipped\") for r in results):\n        return \"SURVIVED\"",
-    "new": "    if False:\n        return \"SURVIVED\"",
+    "old": "        if result[\"verdict\"] != \"SURVIVED\":\n            continue",
+    "new": "        if result[\"verdict\"] != \"SURVIVED\" or not result.get(\"skipped\"):\n            continue",
     "verdict": "caught",
     "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.36s (0:01:23)",
     "results": [
@@ -2950,5 +2950,103 @@
       }
     ],
     "note": "D-098. A worker's pytest must be rooted at its own clone; rooted anywhere above it, the collection tree can include a directory other processes churn, and collection dies on an entry that vanishes mid-scan. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
+  },
+  {
+    "id": "M100",
+    "name": "standalone shipped script is not verification authority",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    (\"shipped script controls\", \"**/scripts/*.py\",",
+    "new": "    (\"shipped script controls\", \"**/scripts/adc*.py\",",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-100. Every shipped Python script is verification authority by location, so a dynamically constructed helper name or future loader cannot bypass the full route. Awaiting authoritative host records."
+  },
+  {
+    "id": "M101",
+    "name": "worker accepts an injected pytest plugin",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    for name in (\"PYTEST_ADDOPTS\", \"PYTEST_PLUGINS\", \"PYTEST_DEBUG\",\n                 \"PYTHONPATH\"):",
+    "new": "    for name in (\"PYTEST_PLUGINS\", \"PYTEST_DEBUG\",\n                 \"PYTHONPATH\"):",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-101. A worker must reject caller pytest options and plugin paths; rootdir alone does not stop code outside the clone from changing collection or outcomes. Awaiting authoritative host records."
+  },
+  {
+    "id": "M102",
+    "name": "worker diagnostic retains terminal controls",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        token = (character.encode(\"unicode_escape\").decode(\"ascii\")\n                 if category in {\"Cc\", \"Cf\", \"Zl\", \"Zp\"} else character)",
+    "new": "        token = character",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-102. An inconclusive worker diagnostic remains useful, but control and format characters must become visible escapes before the 2,000-character boundary reaches the console. Awaiting authoritative host records."
+  },
+  {
+    "id": "M103",
+    "name": "serial write starts from a dirty tree",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if jobs == 1 and write and serial_status_before:\n        # Read-only serial replay deliberately remains useful on a labelled\n        # dirty tree. Only matrix publication requires a clean endpoint.\n        print(f\"--write refused before serial replay: working tree differs from \"\n              f\"HEAD in {len(serial_status_before)} path(s)\")\n        outcome = 2",
+    "new": "    if False:\n        # Read-only serial replay deliberately remains useful on a labelled\n        # dirty tree. Only matrix publication requires a clean endpoint.\n        print(f\"--write refused before serial replay: working tree differs from \"\n              f\"HEAD in {len(serial_status_before)} path(s)\")\n        outcome = 2",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-103. Read-only serial replay may describe a dirty tree, but a dirty starting endpoint must refuse --write before any mutation row runs. Awaiting authoritative host records."
+  },
+  {
+    "id": "M104",
+    "name": "serial write ignores a tree dirtied during replay",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        dirty = worktree_status(repo_root)\n        if dirty:\n            # D-103: a clean start is not enough. Handoff edits can land while\n            # a serial run is mutating and restoring sources. Recheck after\n            # every row and before the matrix becomes the authoritative record.",
+    "new": "        dirty = worktree_status(repo_root)\n        if False:\n            # D-103: a clean start is not enough. Handoff edits can land while\n            # a serial run is mutating and restoring sources. Recheck after\n            # every row and before the matrix becomes the authoritative record.",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-103. A clean start cannot authorize publication if the tree changes while rows run; the final endpoint is checked immediately before the matrix write. Awaiting authoritative host records."
+  },
+  {
+    "id": "M105",
+    "name": "unrelated skip borrows another host's catch",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        if not result.get(\"skipped\") or not isinstance(skipped_nodeids, list) or \\\n                not skipped_nodeids or failed_elsewhere.isdisjoint(skipped_nodeids):\n            return \"SURVIVED\"",
+    "new": "        if not result.get(\"skipped\"):\n            return \"SURVIVED\"",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-104. A skipped survivor may rest on another host only when one exact skipped node id is an exact failed node id there; a count or unrelated skip cannot soften the finding. Awaiting authoritative host records."
+  },
+  {
+    "id": "M106",
+    "name": "pytest outcome collector is not explicitly loaded",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    return [sys.executable, \"-m\", \"pytest\", \"-p\", OUTCOME_PLUGIN_MODULE,\n            *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "new": "    return [sys.executable, \"-m\", \"pytest\",\n            *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
+    "verdict": "unverified",
+    "pytest": "not run",
+    "results": [],
+    "note": "D-104. Exact failed and skipped identities come from a tracked plugin loaded explicitly under disabled autoload; an absent collector makes the row inconclusive rather than silently falling back to counts. Awaiting authoritative host records."
   }
 ]

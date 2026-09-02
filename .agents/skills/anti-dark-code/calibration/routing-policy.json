@@ -53,7 +53,7 @@
       },
       {
         "_note": "The router and the receipt writer decide what every other change is allowed to skip. Left as ordinary product code they graded themselves: with the rules below approved, a change to the router took the Level 2 product route. Entries below this line exist because a classifier is what makes a path authority, and load_policy refuses a policy that omits them. See D-071.",
-        "glob": "**/scripts/adc*.py",
+        "glob": "**/scripts/*.py",
         "surface": "product",
         "effect": "verification-authority",
         "breadth": "repository"
