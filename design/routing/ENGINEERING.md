@@ -12,7 +12,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 - **Build philosophy in one line:** the router establishes a minimum, judgment may raise it, and only a reviewed rule backed by deterministic evidence may permit less work.
 - **The three goals that outrank the rest:** correctness of the monotonic property, auditability of every omission, and honest measurement before any shortcut is allowed to govern anything.
 - **The verification standard:** tests, logs, diffs, and observed behavior. An agent saying the route was right is not evidence. Shadow mode exists because this subsystem cannot be trusted on its own account.
-- **Current build boundary:** SLICE-001, per ADD section 15.
+- **Current build boundary:** SLICE-002, the shadow evidence campaign defined in SLICE-001 section 12, per ADD section 15. SLICE-001 is `Done` as of 2026-09-02; no routing rule is approved and selective execution stays disabled until SLICE-002 produces the evidence.
 - **Current gate:** M4 is implemented in round twelve. Candidate routes are shadow-only, real gate outcomes feed their comparator, and the human walkthrough remains before slice completion.
 
 ## 2. Engineering Principles
