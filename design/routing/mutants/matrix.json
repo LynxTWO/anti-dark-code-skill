@@ -6,7 +6,7 @@
     "old": "into.setdefault(capability, set()).update(gate_ids)",
     "new": "into[capability] = set(gate_ids)",
     "verdict": "caught",
-    "pytest": "6 failed, 295 passed, 9 deselected, 14 subtests passed in 18.36s",
+    "pytest": "6 failed, 294 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.45s (0:01:23)",
     "results": [
       {
         "platform": "Linux",
@@ -23,7 +23,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "6 failed, 247 passed, 1 skipped, 7 deselected in 46.20s",
+        "pytest": "6 failed, 294 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.45s (0:01:23)",
         "skipped": 1
       }
     ]
@@ -52,11 +52,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 250 passed, 1 skipped, 7 deselected in 45.56s",
+        "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 84.90s (0:01:24)",
         "skipped": 1
       }
     ],
-    "pytest": "3 failed, 298 passed, 9 deselected, 14 subtests passed in 17.21s"
+    "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 84.90s (0:01:24)"
   },
   {
     "id": "M03",
@@ -82,11 +82,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "6 failed, 247 passed, 1 skipped, 7 deselected in 46.61s",
+        "pytest": "6 failed, 294 passed, 1 skipped, 9 deselected, 14 subtests passed in 85.92s (0:01:25)",
         "skipped": 1
       }
     ],
-    "pytest": "6 failed, 295 passed, 9 deselected, 14 subtests passed in 17.50s"
+    "pytest": "6 failed, 294 passed, 1 skipped, 9 deselected, 14 subtests passed in 85.92s (0:01:25)"
   },
   {
     "id": "M04",
@@ -112,11 +112,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 46.13s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.37s (0:01:21)",
         "skipped": 1
       }
     ],
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.79s"
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.37s (0:01:21)"
   },
   {
     "id": "M05",
@@ -142,11 +142,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 46.52s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.43s (0:01:21)",
         "skipped": 1
       }
     ],
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.62s"
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.43s (0:01:21)"
   },
   {
     "id": "M06",
@@ -155,7 +155,7 @@
     "old": "        independent_review = independent_review or recipe.independent_review",
     "new": "        pass",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.34s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.94s (0:01:21)",
     "results": [
       {
         "platform": "Linux",
@@ -172,7 +172,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.62s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.94s (0:01:21)",
         "skipped": 1
       }
     ]
@@ -184,7 +184,7 @@
     "old": "unknowns.add(\"ADC-ROUTE-UNROUTED-FACT\")",
     "new": "pass",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.10s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 85.13s (0:01:25)",
     "results": [
       {
         "platform": "Linux",
@@ -201,7 +201,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.21s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 85.13s (0:01:25)",
         "skipped": 1
       }
     ]
@@ -213,7 +213,7 @@
     "old": "    worktree_isolation = _filter_overrides(run)",
     "new": "    worktree_isolation = []",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.96s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 88.83s (0:01:28)",
     "results": [
       {
         "platform": "Linux",
@@ -230,7 +230,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.01s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 88.83s (0:01:28)",
         "skipped": 1
       }
     ]
@@ -242,7 +242,7 @@
     "old": "    if _repo_fingerprint(repo, run) != before:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "5 failed, 296 passed, 9 deselected, 14 subtests passed in 17.50s",
+    "pytest": "5 failed, 295 passed, 1 skipped, 9 deselected, 14 subtests passed in 80.73s (0:01:20)",
     "results": [
       {
         "platform": "Linux",
@@ -259,7 +259,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "5 failed, 248 passed, 1 skipped, 7 deselected in 44.21s",
+        "pytest": "5 failed, 295 passed, 1 skipped, 9 deselected, 14 subtests passed in 80.73s (0:01:20)",
         "skipped": 1
       }
     ]
@@ -271,7 +271,7 @@
     "old": "environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
     "new": "pass",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.68s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.18s (0:01:23)",
     "results": [
       {
         "platform": "Linux",
@@ -288,7 +288,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 45.75s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.18s (0:01:23)",
         "skipped": 1
       }
     ]
@@ -300,7 +300,7 @@
     "old": "\"-c\", \"core.fsmonitor=false\",",
     "new": "",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.84s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 84.19s (0:01:24)",
     "results": [
       {
         "platform": "Linux",
@@ -317,7 +317,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 46.46s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 84.19s (0:01:24)",
         "skipped": 1
       }
     ]
@@ -329,7 +329,7 @@
     "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
     "new": "entries.append((relative, size, mtime, f\":{topology}\"))",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.97s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.07s (0:01:23)",
     "results": [
       {
         "platform": "Linux",
@@ -346,7 +346,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 46.53s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.07s (0:01:23)",
         "skipped": 1
       }
     ]
@@ -358,7 +358,7 @@
     "old": "entries.append((relative, size, mtime, f\"{digest.hexdigest()}:{topology}\"))",
     "new": "entries.append((relative, 0, 0, f\"{digest.hexdigest()}:{topology}\"))",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.57s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 82.31s (0:01:22)",
     "results": [
       {
         "platform": "Linux",
@@ -375,7 +375,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 48.97s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 82.31s (0:01:22)",
         "skipped": 1
       }
     ]
@@ -387,7 +387,7 @@
     "old": "\"--find-copies-harder\",",
     "new": "",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 18.48s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.73s (0:01:23)",
     "results": [
       {
         "platform": "Linux",
@@ -404,7 +404,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 49.37s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.73s (0:01:23)",
         "skipped": 1
       }
     ]
@@ -416,7 +416,7 @@
     "old": "    if old_mode not in _GIT_MODES or new_mode not in _GIT_MODES:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.98s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.32s (0:01:23)",
     "results": [
       {
         "platform": "Linux",
@@ -433,7 +433,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 49.15s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.32s (0:01:23)",
         "skipped": 1
       }
     ]
@@ -445,7 +445,7 @@
     "old": "    if len(old_object) != len(new_object):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.54s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.90s (0:01:14)",
     "results": [
       {
         "platform": "Linux",
@@ -462,7 +462,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.00s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.90s (0:01:14)",
         "skipped": 1
       }
     ]
@@ -474,7 +474,7 @@
     "old": "    if width is not None and len(old_object) != width:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "3 failed, 298 passed, 9 deselected, 14 subtests passed in 16.96s",
+    "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.26s (0:01:21)",
     "results": [
       {
         "platform": "Linux",
@@ -491,7 +491,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 250 passed, 1 skipped, 7 deselected in 50.56s",
+        "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.26s (0:01:21)",
         "skipped": 1
       }
     ]
@@ -503,7 +503,7 @@
     "old": "    if (has_old, has_new) != sides:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.44s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 80.22s (0:01:20)",
     "results": [
       {
         "platform": "Linux",
@@ -520,7 +520,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 47.95s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 80.22s (0:01:20)",
         "skipped": 1
       }
     ]
@@ -532,7 +532,7 @@
     "old": "        return score is not None and 0 <= int(score) <= 100",
     "new": "        return score is None or 0 <= int(score) <= 100",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.83s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 84.86s (0:01:24)",
     "results": [
       {
         "platform": "Linux",
@@ -549,7 +549,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.57s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 84.86s (0:01:24)",
         "skipped": 1
       }
     ]
@@ -561,7 +561,7 @@
     "old": "    known_capabilities = set(capability_ids)",
     "new": "    known_capabilities = {f'V{n:02d}' for n in range(1,23)}",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.84s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 86.17s (0:01:26)",
     "results": [
       {
         "platform": "Linux",
@@ -578,7 +578,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.77s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 86.17s (0:01:26)",
         "skipped": 1
       }
     ]
@@ -590,7 +590,7 @@
     "old": "        missing_passes = sorted(set(full_set.get(\"passes\", [])) - recipe_passes)",
     "new": "        missing_passes = []",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.12s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.98s (0:01:21)",
     "results": [
       {
         "platform": "Linux",
@@ -607,7 +607,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.54s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 81.98s (0:01:21)",
         "skipped": 1
       }
     ]
@@ -619,7 +619,7 @@
     "old": "            if capability not in recipe_obligations:",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.76s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.33s (0:01:23)",
     "results": [
       {
         "platform": "Linux",
@@ -636,7 +636,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.42s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 83.33s (0:01:23)",
         "skipped": 1
       }
     ]
@@ -648,7 +648,7 @@
     "old": "    if not _is_validated(policy):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.93s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 92.02s (0:01:32)",
     "results": [
       {
         "platform": "Linux",
@@ -665,7 +665,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 46.03s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 92.02s (0:01:32)",
         "skipped": 1
       }
     ]
@@ -677,7 +677,7 @@
     "old": "    if not isinstance(policy, ValidatedPolicy):",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.85s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 86.20s (0:01:26)",
     "results": [
       {
         "platform": "Linux",
@@ -694,7 +694,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.93s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 86.20s (0:01:26)",
         "skipped": 1
       }
     ]
@@ -706,7 +706,7 @@
     "old": "    if not isinstance(value, list) or not value:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.47s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 78.47s (0:01:18)",
     "results": [
       {
         "platform": "Linux",
@@ -723,7 +723,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 46.95s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 78.47s (0:01:18)",
         "skipped": 1
       }
     ]
@@ -747,7 +747,7 @@
     "old": "    unsupported = set(hints) - _HINT_FIELDS",
     "new": "    unsupported = set()",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.03s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.85s (0:01:19)",
     "results": [
       {
         "platform": "Linux",
@@ -764,7 +764,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 47.22s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.85s (0:01:19)",
         "skipped": 1
       }
     ]
@@ -776,7 +776,7 @@
     "old": "        if isinstance(level, bool) or not isinstance(level, int) or level not in _LEVELS:",
     "new": "        if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.92s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 130.91s (0:02:10)",
     "results": [
       {
         "platform": "Linux",
@@ -793,7 +793,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.68s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 130.91s (0:02:10)",
         "skipped": 1
       }
     ]
@@ -805,7 +805,7 @@
     "old": "            if (capability, gate_id) not in reviewed_pairs:",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "3 failed, 298 passed, 9 deselected, 14 subtests passed in 17.57s",
+    "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 177.54s (0:02:57)",
     "results": [
       {
         "platform": "Linux",
@@ -822,7 +822,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 250 passed, 1 skipped, 7 deselected in 45.64s",
+        "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 177.54s (0:02:57)",
         "skipped": 1
       }
     ]
@@ -834,7 +834,7 @@
     "old": "if not fnmatch.fnmatchcase(path, glob):",
     "new": "if not fnmatch.fnmatchcase(path.replace(chr(92),\"/\"), glob):",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.70s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 158.39s (0:02:38)",
     "results": [
       {
         "platform": "Linux",
@@ -851,7 +851,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.50s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 158.39s (0:02:38)",
         "skipped": 1
       }
     ]
@@ -863,7 +863,7 @@
     "old": "sorted(set(facts), key=_fact_sort_key)",
     "new": "sorted(facts, key=_fact_sort_key)",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.87s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 75.51s (0:01:15)",
     "results": [
       {
         "platform": "Linux",
@@ -880,7 +880,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.75s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 75.51s (0:01:15)",
         "skipped": 1
       }
     ]
@@ -903,7 +903,7 @@
     "old": "    return (index_state, tuple(sorted(entries)))",
     "new": "    return (None, tuple(sorted(entries)))",
     "verdict": "caught",
-    "pytest": "3 failed, 298 passed, 9 deselected, 14 subtests passed in 17.33s",
+    "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.10s (0:01:14)",
     "results": [
       {
         "platform": "Linux",
@@ -920,7 +920,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 250 passed, 1 skipped, 7 deselected in 47.22s",
+        "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.10s (0:01:14)",
         "skipped": 1
       }
     ]
@@ -954,7 +954,7 @@
     "old": "topology = (getattr(stat, \"st_nlink\", 0), getattr(stat, \"st_ino\", 0),\n                        stat.st_mode)",
     "new": "topology = 0",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.65s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.21s (0:01:11)",
     "challenge_evidence": "A Windows hard-link probe held bytes, size, and mtime equal. The current fingerprint changed and M36 did not. Keep the topology fields, but add this discriminating case to the suite.",
     "results": [
       {
@@ -972,7 +972,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 47.34s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.21s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -984,7 +984,7 @@
     "old": "stat = path.lstat()",
     "new": "stat = path.stat()",
     "verdict": "caught elsewhere",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.90s",
+    "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.59s (0:01:10)",
     "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
     "results": [
       {
@@ -1002,7 +1002,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "253 passed, 1 skipped, 7 deselected in 46.80s",
+        "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.59s (0:01:10)",
         "skipped": 1
       }
     ]
@@ -1014,7 +1014,7 @@
     "old": "_VALIDATED_POLICIES: \"weakref.WeakValueDictionary[int, ValidatedPolicy]\" = (\n    weakref.WeakValueDictionary()\n)",
     "new": "_VALIDATED_POLICIES: dict[int, ValidatedPolicy] = {}",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.37s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.93s (0:01:10)",
     "results": [
       {
         "platform": "Linux",
@@ -1031,7 +1031,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.13s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.93s (0:01:10)",
         "skipped": 1
       }
     ]
@@ -1043,7 +1043,7 @@
     "old": "    if not canonical_passes or not canonical_obligations:",
     "new": "    if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 18.00s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.08s (0:01:12)",
     "results": [
       {
         "platform": "Linux",
@@ -1060,7 +1060,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.39s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.08s (0:01:12)",
         "skipped": 1
       }
     ]
@@ -1089,11 +1089,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 250 passed, 1 skipped, 7 deselected in 46.87s",
+        "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.31s (0:01:12)",
         "skipped": 1
       }
     ],
-    "pytest": "3 failed, 298 passed, 9 deselected, 14 subtests passed in 18.19s"
+    "pytest": "3 failed, 297 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.31s (0:01:12)"
   },
   {
     "id": "M41",
@@ -1102,7 +1102,7 @@
     "old": "        if score is not None:\n            return False\n        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
     "new": "        if False:\n            return False\n        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.97s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.52s (0:01:11)",
     "results": [
       {
         "platform": "Linux",
@@ -1119,7 +1119,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 47.03s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.52s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1131,7 +1131,7 @@
     "old": "        return source is None or source in _UNMERGED_SOURCES",
     "new": "        return True",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.69s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.29s (0:01:12)",
     "results": [
       {
         "platform": "Linux",
@@ -1148,7 +1148,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 47.05s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.29s (0:01:12)",
         "skipped": 1
       }
     ]
@@ -1160,7 +1160,7 @@
     "old": "        parsed = parse_raw_z(payload, source, snapshot_width[0])",
     "new": "        parsed = parse_raw_z(payload, source, None)",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.99s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.08s (0:01:19)",
     "results": [
       {
         "platform": "Linux",
@@ -1177,7 +1177,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 47.94s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.08s (0:01:19)",
         "skipped": 1
       }
     ]
@@ -1189,7 +1189,7 @@
     "old": "        index_digest = hashlib.sha256(index.read_bytes()).hexdigest()\n        index_state: Any = (stat.st_size, stat.st_mtime_ns, index_digest)",
     "new": "        index_state: Any = (stat.st_size, stat.st_mtime_ns)",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.88s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.25s (0:01:13)",
     "results": [
       {
         "platform": "Linux",
@@ -1206,7 +1206,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.70s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.25s (0:01:13)",
         "skipped": 1
       }
     ]
@@ -1218,7 +1218,7 @@
     "old": "    located = run(_isolated([\"rev-parse\", \"--git-path\", \"index\"]))",
     "new": "    located = None",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.47s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.69s (0:01:11)",
     "results": [
       {
         "platform": "Linux",
@@ -1235,7 +1235,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.48s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.69s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1247,7 +1247,7 @@
     "old": "        if stat_module.S_ISLNK(stat.st_mode):",
     "new": "        if False:",
     "verdict": "caught elsewhere",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.83s",
+    "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.83s (0:01:11)",
     "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
     "results": [
       {
@@ -1265,7 +1265,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "253 passed, 1 skipped, 7 deselected in 47.52s",
+        "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.83s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1277,7 +1277,7 @@
     "old": "    snapshot_width: list[int | None] = [len(merge_base) if merge_base else None]",
     "new": "    snapshot_width: list[int | None] = [None]",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.89s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.91s (0:01:11)",
     "challenge_evidence": "With a 40-character resolved merge base and one 64-character raw row, current code reports malformed and incomplete. M47 accepts the row and reports the snapshot complete.",
     "results": [
       {
@@ -1295,7 +1295,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 47.92s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.91s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1307,7 +1307,7 @@
     "old": "            entries.append((relative, size, mtime, f\"symlink:{target}:{topology}\"))",
     "new": "            entries.append((relative, size, mtime, f\"symlink:{topology}\"))",
     "verdict": "caught elsewhere",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.80s",
+    "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.55s (0:01:10)",
     "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text.",
     "note": "Codex reported this surviving under Ubuntu against the earlier symlink test, which asserted only the marker. That test now asserts the recorded target and retargets the link, so the Ubuntu result is stale. Unverified on a symlink-capable host.",
     "results": [
@@ -1326,7 +1326,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "253 passed, 1 skipped, 7 deselected in 46.63s",
+        "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.55s (0:01:10)",
         "skipped": 1
       }
     ]
@@ -1338,7 +1338,7 @@
     "old": "        # Always rebuild, never trust an existing proxy.",
     "new": "        if isinstance(self.obligations, MappingProxyType): return\n        # Always rebuild, never trust an existing proxy.",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.14s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.91s (0:01:10)",
     "results": [
       {
         "platform": "Linux",
@@ -1355,7 +1355,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.36s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.91s (0:01:10)",
         "skipped": 1
       }
     ]
@@ -1367,7 +1367,7 @@
     "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:",
     "new": "        if old_object == \"0\" * len(old_object) and new_object == \"0\" * len(new_object):",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.77s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.10s (0:01:11)",
     "results": [
       {
         "platform": "Linux",
@@ -1384,7 +1384,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.50s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.10s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1396,7 +1396,7 @@
     "old": "        if old_mode == _NULL_MODE and new_mode == _NULL_MODE:\n            return False",
     "new": "        if False:\n            return False",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.95s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.06s (0:01:11)",
     "results": [
       {
         "platform": "Linux",
@@ -1413,7 +1413,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.60s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.06s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1425,7 +1425,7 @@
     "old": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"1\"",
     "new": "            environment[\"GIT_NO_LAZY_FETCH\"] = \"0\"",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.92s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.17s (0:01:11)",
     "note": "Q-05. Held against a real blobless clone served over git:// by a daemon on loopback, where a genuinely missing promisor object is reachable through inexact rename detection.",
     "results": [
       {
@@ -1443,7 +1443,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 44.81s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.17s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1455,7 +1455,7 @@
     "old": "    def test_clean_snapshot_is_complete(self) -> None:",
     "new": "    def test_ordering_is_canonical(self) -> None:",
     "verdict": "caught",
-    "pytest": "1 failed, 299 passed, 9 deselected, 14 subtests passed in 16.74s",
+    "pytest": "1 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.83s (0:01:11)",
     "note": "The failure this branch hit twice: a test that is defined but never runs. Python keeps the later definition, the suite stays green, and the lost coverage is invisible. Mutates the test file rather than the router, because the guarantee is about the suite.",
     "results": [
       {
@@ -1473,7 +1473,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 251 passed, 1 skipped, 7 deselected in 44.82s",
+        "pytest": "1 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.83s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1488,7 +1488,7 @@
     "old": "        \"run_id\": digest(payload),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
     "new": "        \"run_id\": digest({\"p\": dict(payload), \"o\": dict(observed or {})}),\n        \"authoritative\": dict(payload),\n        \"observed\": dict(observed or {}),",
     "verdict": "caught",
-    "pytest": "13 failed, 7 passed in 1.53s",
+    "pytest": "13 failed, 7 passed in 9.12s",
     "note": "R-023. A clock must not be able to change routing authority.",
     "results": [
       {
@@ -1506,7 +1506,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "13 failed, 7 passed in 5.77s",
+        "pytest": "13 failed, 7 passed in 9.12s",
         "skipped": 0
       }
     ]
@@ -1521,7 +1521,7 @@
     "old": "        if recorded.get(key) != now.get(key):\n            reasons.append((code, key))",
     "new": "        if recorded.get(key) != now.get(key):\n            return Staleness(False, ((code, key),))",
     "verdict": "caught",
-    "pytest": "2 failed, 18 passed in 1.35s",
+    "pytest": "2 failed, 18 passed in 8.72s",
     "note": "A reader who fixes one stale field and reruns should not discover the next one only then.",
     "results": [
       {
@@ -1539,7 +1539,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 18 passed in 5.51s",
+        "pytest": "2 failed, 18 passed in 8.72s",
         "skipped": 0
       }
     ]
@@ -1554,7 +1554,7 @@
     "old": "        \"entries\": sorted(kept),",
     "new": "        \"entries\": len(kept),",
     "verdict": "caught",
-    "pytest": "2 failed, 18 passed in 1.35s",
+    "pytest": "2 failed, 18 passed in 8.71s",
     "note": "R-017. Binding to a count is the status-text mistake in another form: different bytes, same identity.",
     "results": [
       {
@@ -1572,7 +1572,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 18 passed in 5.58s",
+        "pytest": "2 failed, 18 passed in 8.71s",
         "skipped": 0
       }
     ]
@@ -1587,7 +1587,7 @@
     "old": "RUN_STORE = \".anti-dark-code/runs\"",
     "new": "RUN_STORE = \".anti-dark-code\"",
     "verdict": "caught",
-    "pytest": "1 failed, 19 passed in 1.41s",
+    "pytest": "1 failed, 19 passed in 8.78s",
     "note": "An exclusion wide enough to cover the whole tree would let a policy or gate file change without making any receipt stale. See D-010.",
     "results": [
       {
@@ -1605,7 +1605,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 5.55s",
+        "pytest": "1 failed, 19 passed in 8.78s",
         "skipped": 0
       }
     ]
@@ -1620,7 +1620,7 @@
     "old": "         for row in getattr(snapshot, \"inputs\", ())),",
     "new": "         for row in ()),",
     "verdict": "caught",
-    "pytest": "1 failed, 19 passed in 1.34s",
+    "pytest": "1 failed, 19 passed in 8.81s",
     "note": "A receipt that does not quote the change it routed cannot be audited against it.",
     "results": [
       {
@@ -1638,7 +1638,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 5.75s",
+        "pytest": "1 failed, 19 passed in 8.81s",
         "skipped": 0
       }
     ]
@@ -1653,7 +1653,7 @@
     "old": "    kept = [[entry[0], entry[3]] for entry in entries",
     "new": "    kept = [list(entry) for entry in entries",
     "verdict": "caught",
-    "pytest": "2 failed, 23 passed, 3 subtests passed in 15.35s",
+    "pytest": "2 failed, 23 passed, 3 subtests passed in 46.74s",
     "note": "A receipt that stays stale after the bytes are restored is binding to the fact that something happened rather than to the state, and it trains a reader to ignore staleness.",
     "results": [
       {
@@ -1671,7 +1671,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 34.25s",
+        "pytest": "2 failed, 23 passed, 3 subtests passed in 46.74s",
         "skipped": 0
       }
     ]
@@ -1686,7 +1686,7 @@
     "old": "        return 0 if self.fresh else 2",
     "new": "        return 0",
     "verdict": "caught",
-    "pytest": "3 failed, 22 passed, 3 subtests passed in 15.07s",
+    "pytest": "3 failed, 22 passed, 3 subtests passed in 48.20s",
     "note": "The exit code is the half a gate runner reads. Text saying STALE beside a success status is worse than no receipt.",
     "results": [
       {
@@ -1704,7 +1704,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 22 passed, 3 subtests passed in 33.17s",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 48.20s",
         "skipped": 0
       }
     ]
@@ -1719,7 +1719,7 @@
     "old": "    return [sys.executable, \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
     "new": "    return [\"python\", \"-m\", \"pytest\", *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.73s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.85s (0:01:11)",
     "note": "A replay tool that depends on an ambient python alias cannot run on ordinary Python 3-only hosts, so its cross-host mutation claims are not reproducible.",
     "results": [
       {
@@ -1737,7 +1737,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 43.49s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.85s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1752,7 +1752,7 @@
     "old": "    original = source.read_bytes()",
     "new": "    original = source.read_text(encoding=\"utf-8\").encode(\"utf-8\")",
     "verdict": "caught",
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.88s",
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.56s (0:01:11)",
     "note": "Mutation replay is a temporary operation; normalizing CRLF to LF during restoration leaves a material source change behind even when every mutant is caught.",
     "results": [
       {
@@ -1770,7 +1770,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.41s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.56s (0:01:11)",
         "skipped": 1
       }
     ]
@@ -1785,7 +1785,7 @@
     "old": "            if not PYTEST_SUMMARY.fullmatch(summary):",
     "new": "            if False:",
     "verdict": "caught",
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.48s",
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.59s (0:01:12)",
     "note": "A Python or pytest startup error may exit 1 without executing a test; only a real pytest outcome summary can turn exit 1 into mutation evidence.",
     "results": [
       {
@@ -1803,7 +1803,7 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.19s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 72.59s (0:01:12)",
         "skipped": 1
       }
     ]
@@ -1835,11 +1835,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "8 failed, 245 passed, 1 skipped, 7 deselected in 47.23s",
+        "pytest": "4 failed, 296 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.55s (0:01:13)",
         "skipped": 1
       }
     ],
-    "pytest": "4 failed, 297 passed, 9 deselected, 14 subtests passed in 17.35s"
+    "pytest": "4 failed, 296 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.55s (0:01:13)"
   },
   {
     "id": "M65",
@@ -1868,11 +1868,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "53 failed, 200 passed, 1 skipped, 7 deselected in 56.87s",
+        "pytest": "53 failed, 247 passed, 1 skipped, 9 deselected, 14 subtests passed in 94.60s (0:01:34)",
         "skipped": 1
       }
     ],
-    "pytest": "53 failed, 248 passed, 9 deselected, 14 subtests passed in 28.73s"
+    "pytest": "53 failed, 247 passed, 1 skipped, 9 deselected, 14 subtests passed in 94.60s (0:01:34)"
   },
   {
     "id": "M66",
@@ -1901,11 +1901,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.39s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.49s (0:01:13)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.77s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.49s (0:01:13)"
   },
   {
     "id": "M67",
@@ -1934,11 +1934,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 45.72s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.26s (0:01:13)",
         "skipped": 1
       }
     ],
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 16.85s"
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 73.26s (0:01:13)"
   },
   {
     "id": "M68",
@@ -1967,11 +1967,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "4 failed, 249 passed, 1 skipped, 7 deselected in 45.65s",
+        "pytest": "10 failed, 290 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.56s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "10 failed, 291 passed, 9 deselected, 14 subtests passed in 17.02s"
+    "pytest": "10 failed, 290 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.56s (0:01:14)"
   },
   {
     "id": "M69",
@@ -2000,11 +2000,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.10s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.72s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.88s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.72s (0:01:14)"
   },
   {
     "id": "M70",
@@ -2033,11 +2033,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.75s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.71s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.89s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.71s (0:01:14)"
   },
   {
     "id": "M71",
@@ -2066,11 +2066,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.46s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.83s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.78s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.83s (0:01:14)"
   },
   {
     "id": "M72",
@@ -2099,11 +2099,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "5 failed, 248 passed, 1 skipped, 7 deselected in 48.43s",
+        "pytest": "5 failed, 295 passed, 1 skipped, 9 deselected, 14 subtests passed in 76.29s (0:01:16)",
         "skipped": 1
       }
     ],
-    "pytest": "5 failed, 296 passed, 9 deselected, 14 subtests passed in 17.70s"
+    "pytest": "5 failed, 295 passed, 1 skipped, 9 deselected, 14 subtests passed in 76.29s (0:01:16)"
   },
   {
     "id": "M73",
@@ -2132,11 +2132,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 19 passed in 5.67s",
+        "pytest": "1 failed, 19 passed in 9.09s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 19 passed in 1.41s"
+    "pytest": "1 failed, 19 passed in 9.09s"
   },
   {
     "id": "M74",
@@ -2165,11 +2165,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 34.73s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 50.86s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 15.59s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 50.86s"
   },
   {
     "id": "M75",
@@ -2198,11 +2198,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "3 failed, 22 passed, 3 subtests passed in 46.29s",
+        "pytest": "3 failed, 22 passed, 3 subtests passed in 57.31s",
         "skipped": 0
       }
     ],
-    "pytest": "3 failed, 22 passed, 3 subtests passed in 16.17s"
+    "pytest": "3 failed, 22 passed, 3 subtests passed in 57.31s"
   },
   {
     "id": "M76",
@@ -2231,11 +2231,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.65s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 51.72s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 15.39s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 51.72s"
   },
   {
     "id": "M77",
@@ -2264,11 +2264,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 48.12s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.96s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.78s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.96s (0:01:14)"
   },
   {
     "id": "M78",
@@ -2297,11 +2297,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 25 passed, 2 subtests passed in 38.02s",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 51.58s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 25 passed, 2 subtests passed in 15.46s"
+    "pytest": "1 failed, 25 passed, 2 subtests passed in 51.58s"
   },
   {
     "id": "M79",
@@ -2330,11 +2330,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 34.87s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 50.09s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 15.28s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 50.09s"
   },
   {
     "id": "M80",
@@ -2363,11 +2363,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.83s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 93.53s (0:01:33)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.76s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 93.53s (0:01:33)"
   },
   {
     "id": "M81",
@@ -2396,11 +2396,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.25s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 55.49s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 15.58s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 55.49s"
   },
   {
     "id": "M82",
@@ -2429,11 +2429,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 25 passed, 2 subtests passed in 36.63s",
+        "pytest": "1 failed, 25 passed, 2 subtests passed in 56.26s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 25 passed, 2 subtests passed in 15.51s"
+    "pytest": "1 failed, 25 passed, 2 subtests passed in 56.26s"
   },
   {
     "id": "M83",
@@ -2462,11 +2462,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 37.40s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 58.46s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 15.57s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 58.46s"
   },
   {
     "id": "M84",
@@ -2495,11 +2495,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 41.97s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 61.40s (0:01:01)",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 17.24s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 61.40s (0:01:01)"
   },
   {
     "id": "M85",
@@ -2528,11 +2528,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.28s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 58.41s",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 16.76s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 58.41s"
   },
   {
     "id": "M86",
@@ -2561,11 +2561,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.28s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 68.65s (0:01:08)",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 15.60s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 68.65s (0:01:08)"
   },
   {
     "id": "M87",
@@ -2594,11 +2594,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 24 passed, 3 subtests passed in 36.83s",
+        "pytest": "1 failed, 24 passed, 3 subtests passed in 74.10s (0:01:14)",
         "skipped": 0
       }
     ],
-    "pytest": "1 failed, 24 passed, 3 subtests passed in 16.06s"
+    "pytest": "1 failed, 24 passed, 3 subtests passed in 74.10s (0:01:14)"
   },
   {
     "id": "M88",
@@ -2627,11 +2627,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.79s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 82.89s (0:01:22)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.63s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 82.89s (0:01:22)"
   },
   {
     "id": "M89",
@@ -2660,11 +2660,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 44.96s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.80s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.92s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.80s (0:01:14)"
   },
   {
     "id": "M90",
@@ -2693,11 +2693,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 45.44s",
+        "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 77.43s (0:01:17)",
         "skipped": 1
       }
     ],
-    "pytest": "2 failed, 299 passed, 9 deselected, 14 subtests passed in 17.55s"
+    "pytest": "2 failed, 298 passed, 1 skipped, 9 deselected, 14 subtests passed in 77.43s (0:01:17)"
   },
   {
     "id": "M91",
@@ -2726,11 +2726,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 45.08s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 76.92s (0:01:16)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.15s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 76.92s (0:01:16)"
   },
   {
     "id": "M92",
@@ -2774,11 +2774,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "1 failed, 252 passed, 1 skipped, 7 deselected in 46.28s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 77.65s (0:01:17)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 17.48s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 77.65s (0:01:17)"
   },
   {
     "id": "M94",
@@ -2807,11 +2807,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "6 failed, 247 passed, 1 skipped, 7 deselected in 49.86s",
+        "pytest": "6 failed, 294 passed, 1 skipped, 9 deselected, 14 subtests passed in 78.99s (0:01:18)",
         "skipped": 1
       }
     ],
-    "pytest": "6 failed, 295 passed, 9 deselected, 14 subtests passed in 20.63s"
+    "pytest": "6 failed, 294 passed, 1 skipped, 9 deselected, 14 subtests passed in 78.99s (0:01:18)"
   },
   {
     "id": "M95",
@@ -2840,11 +2840,11 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "caught",
-        "pytest": "2 failed, 251 passed, 1 skipped, 7 deselected in 53.15s",
+        "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.78s (0:01:14)",
         "skipped": 1
       }
     ],
-    "pytest": "1 failed, 300 passed, 9 deselected, 14 subtests passed in 16.89s"
+    "pytest": "1 failed, 299 passed, 1 skipped, 9 deselected, 14 subtests passed in 74.78s (0:01:14)"
   },
   {
     "id": "M96",
@@ -2856,7 +2856,7 @@
     "old": "    if missing:\n        rendered = \"; \".join(f\"{label} ({glob})\" for label, glob in missing)\n        raise PolicyError(\n            \"policy omits canonical self-grading classifier(s): \" + rendered)",
     "new": "    if False:\n        rendered = \"; \".join(f\"{label} ({glob})\" for label, glob in missing)\n        raise PolicyError(\n            \"policy omits canonical self-grading classifier(s): \" + rendered)",
     "verdict": "caught",
-    "pytest": "13 failed, 293 passed, 9 deselected, 9 subtests passed in 19.91s",
+    "pytest": "13 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed in 79.31s (0:01:19)",
     "results": [
       {
         "platform": "Linux",
@@ -2866,8 +2866,17 @@
         "verdict": "caught",
         "pytest": "13 failed, 293 passed, 9 deselected, 9 subtests passed in 19.91s",
         "skipped": 0
+      },
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "13 failed, 292 passed, 1 skipped, 9 deselected, 9 subtests passed in 79.31s (0:01:19)",
+        "skipped": 1
       }
     ],
-    "note": "D-093. A policy must retain every canonical self-grading classifier; otherwise an exact representative may remain authoritative while another class member routes cheaply. Pending the next authoritative two-host replay."
+    "note": "D-093. A policy must retain every canonical self-grading classifier; otherwise an exact representative may remain authoritative while another class member routes cheaply. Caught on both hosts in the final authoritative replay."
   }
 ]
