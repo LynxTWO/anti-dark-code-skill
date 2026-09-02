@@ -39,9 +39,26 @@ Fresh post-documentation clean-head receipts at `a429d9c` were:
   exit 0, `12 passed in 0.59s`;
 - artifact JSON parsing, `git diff --check`, and `git status --short`: clean.
 
-The receipt commit changes only this handoff; its decision-reference integrity
-check is rerun on the resulting head. Final-head CI is recorded below only when
-it exists. A pending field is not evidence.
+Fresh post-review receipts immediately before the consistency commit were:
+
+- artifact invariants: pass; the JSON parses, its matrix SHA-256 matches the
+  current matrix, all four adoption gates are empty, and the three protected
+  boundaries remain false;
+- matrix integrity, requirement traceability, and workflow parallel contracts:
+  exit 0, `12 passed in 0.39s`;
+- CI-shaped full suite: exit 0, `486 passed, 14 skipped, 62 subtests passed in
+  51.03s`;
+- universal validation: exit 0, `VALID (universal): 0 errors, 1 warning(s)`;
+  the warning names ignored generated `__pycache__` entries; and
+- `git diff --check`: clean.
+
+Independent review found no code or evidence-gate failure. It did find four
+document contradictions: the pre-D-094 95-row totals remained in the slice and
+engineering table, D-082 described M92's pre-D-093 outcome as current, the
+execution plan did not qualify its historical 95-row input, and the handoff and
+artifact called D-083 pending although it is confirmed. This consistency commit
+corrects those records without changing the frozen replay evidence. Final-head
+CI is recorded below only when it exists; a pending field is not evidence.
 
 ## Fixed adversarial checklist
 
@@ -187,8 +204,10 @@ not approve on the owner's behalf.
 - Selective local and CI execution remain prohibited.
 - SLICE-001 is not `Done`; Daniel Boyd must run the literal walkthrough, record
   any difference, answer questions 1--6, and personally approve the final box.
-- `_repo_fingerprint` remains a **provisional implementation pending the owner
-  decision**. This round did not silently convert it into policy approval.
+- `_repo_fingerprint` alternative 1 is **confirmed by D-083**: an unreadable
+  fingerprint raises a typed receipt refusal, and D-073 is superseded. The owner
+  may still reopen that model under D-083's stated condition; this round did not
+  convert the decision into routing-rule approval.
 - Parallel adoption changes execution mechanics only; it grants no routing,
   evidence-label, or owner-approval authority.
 

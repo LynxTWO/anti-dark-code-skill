@@ -2228,7 +2228,7 @@ Because:
 The installer changes the path spelling, not the authority of the file. A guard that protects only the development layout does not protect the repository that consumes the skill.
 
 Consequences:
-`test_source_only_authority_cannot_hide_the_installed_router` fails against the source-only guard and passes with the installed alias included. M92 reverts the guard to the literal list and is caught on Linux and Windows. The source existence test still checks real source files; policy loading checks both layouts.
+`test_source_only_authority_cannot_hide_the_installed_router` fails against the source-only guard and passes with the installed alias included. At D-082 confirmation, M92 reverted the guard to the literal list and was caught on Linux and Windows. D-093 later made that implementation-specific reversion inert; D-094 records the measured Linux survivor, supersedes M92, and replaces it with M96 against the stronger canonical-classifier contract. The source existence test still checks real source files; policy loading checks both layouts.
 
 Revisit when:
 The managed install root changes or another supported installer places authoritative files under a third repository-relative prefix.

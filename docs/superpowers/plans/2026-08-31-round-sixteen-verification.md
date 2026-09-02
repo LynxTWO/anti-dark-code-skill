@@ -8,6 +8,8 @@
 
 **Tech Stack:** Python 3.12+, `unittest` under pytest, Git subprocesses, `concurrent.futures.ProcessPoolExecutor`, JSON evidence, JUnit XML, pytest-xdist, GitHub Actions.
 
+> **Final-state addendum (2026-09-02):** This plan started from a 95-row matrix with eight missing T540P records. During execution, the frozen Linux replay measured M92 surviving after D-093 made its old implementation-specific attack inert. D-094 therefore superseded M92 and added the stronger M96 authority-contract mutant. References below to 95 rows or eight missing records describe the historical planned input, not the final state. The final evidence is 96 rows, 91 active, 5 superseded, all 91 active rows recorded on both hosts, and 0 not caught on each full replay.
+
 **Spec:** `docs/superpowers/specs/2026-08-31-round-sixteen-verification-design.md`
 
 ## Global Constraints
@@ -533,7 +535,7 @@ Expected: validator has zero errors, suite has zero failures, matrix integrity p
 
 - [ ] **Step 3: Write the handoff from measured evidence**
 
-Name each decision verdict and reproducer, the T540P and Windows host facts, exact matrix totals, comparison result and speed, six suite runs and exact-set result, M61-M63 retargets, provenance decision, walkthrough corrections, cleanup, remaining blockers to Done, commit list, and CI status. Mark the `_repo_fingerprint` owner decision provisional if touched.
+Name each decision verdict and reproducer, the T540P and Windows host facts, exact matrix totals, comparison result and speed, six suite runs and exact-set result, M61-M63 retargets, provenance decision, walkthrough corrections, cleanup, remaining blockers to Done, commit list, and CI status. Record D-083's confirmation of `_repo_fingerprint` alternative 1 and its explicit reopen condition; do not present that confirmed decision as still pending.
 
 - [ ] **Step 4: Verify and commit the handoff**
 

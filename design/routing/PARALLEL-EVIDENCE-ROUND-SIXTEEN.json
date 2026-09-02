@@ -8487,6 +8487,6 @@
     "routing_rule_approved": false,
     "selective_execution_enabled": false,
     "slice_001_marked_done": false,
-    "repo_fingerprint_owner_decision": "provisional implementation remains explicitly pending owner decision"
+    "repo_fingerprint_owner_decision": "D-083 confirms alternative 1 and supersedes D-073; the owner may reopen the model under D-083's stated condition"
   }
 }
