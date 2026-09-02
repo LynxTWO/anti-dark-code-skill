@@ -725,6 +725,27 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertFalse(plain["dirty"])
             self.assertEqual(plain["core_digest"], tagged["core_digest"])
 
+    def test_source_provenance_ignores_pytest_cache_in_tagged_fixture(self) -> None:
+        """Host pytest state cannot change the bytes an install carries."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skill"
+            core = self.make_skill_repo(root, "1.0.0-test", "# Changelog\n\n## 1.0.0-test\n\nNotes.\n")
+            subprocess.run(["git", "-C", str(root), "tag", "v1.0.0-test"], check=True)
+            tagged = adc.assess_source_provenance(core)
+
+            cache = core / ".pytest_cache"
+            (cache / "v" / "cache").mkdir(parents=True)
+            self.write_lf(cache / ".gitignore", "*\n")
+            self.write_lf(cache / "v" / "cache" / "nodeids", "[]\n")
+
+            cached = adc.assess_source_provenance(core)
+            files = adc.managed_source_files(core)
+            self.assertEqual(cached["core_digest"], tagged["core_digest"])
+            self.assertEqual(cached["kind"], "git-tag")
+            self.assertFalse(cached["dirty"])
+            self.assertNotIn(".pytest_cache/.gitignore", files)
+            self.assertNotIn(".pytest_cache/v/cache/nodeids", files)
+
     def test_install_refuses_an_untagged_or_dirty_source_without_override(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "skill"

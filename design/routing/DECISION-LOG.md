@@ -101,6 +101,16 @@ The documents state what is true. This log preserves why, what else was consider
 | D-082 | 2026-08-31 | Self-grading probes source and managed installed layouts | Confirmed | |
 | D-083 | 2026-08-31 | An unreadable fingerprint raises a typed receipt refusal | Confirmed | |
 | D-084 | 2026-08-31 | Worktree-writing gates remain stale for this slice | Confirmed | |
+| D-085 | 2026-08-31 | Filter neutralization is verified, not assumed | Confirmed | |
+| D-086 | 2026-08-31 | The self-grading guard covers every prefix the installer writes | Amended | D-091 |
+| D-087 | 2026-08-31 | A mutation target must match exactly one place | Confirmed | |
+| D-088 | 2026-08-31 | Neutralize through the environment, and refuse only what that cannot reach | Confirmed | |
+| D-089 | 2026-08-31 | Calibration is authority, and it lives outside the skill tree | Amended | D-091 |
+| D-090 | 2026-08-31 | A decision id cited in code must exist | Amended | |
+| D-091 | 2026-08-31 | Every routing-owning pass reference is a guard probe | Confirmed | |
+| D-092 | 2026-08-31 | Host-generated pytest cache is not install provenance | Confirmed | |
+| D-093 | 2026-09-01 | Self-grading authority is a classifier contract, not a path sample | Confirmed | |
+| D-094 | 2026-09-01 | A stronger guard supersedes a redundant mutation row | Confirmed | |
 
 ---
 
@@ -2218,7 +2228,7 @@ Because:
 The installer changes the path spelling, not the authority of the file. A guard that protects only the development layout does not protect the repository that consumes the skill.
 
 Consequences:
-`test_source_only_authority_cannot_hide_the_installed_router` fails against the source-only guard and passes with the installed alias included. M92 reverts the guard to the literal list and is caught on Linux and Windows. The source existence test still checks real source files; policy loading checks both layouts.
+`test_source_only_authority_cannot_hide_the_installed_router` fails against the source-only guard and passes with the installed alias included. At D-082 confirmation, M92 reverted the guard to the literal list and was caught on Linux and Windows. D-093 later made that implementation-specific reversion inert; D-094 records the measured Linux survivor, supersedes M92, and replaces it with M96 against the stronger canonical-classifier contract. The source existence test still checks real source files; policy loading checks both layouts.
 
 Revisit when:
 The managed install root changes or another supported installer places authoritative files under a third repository-relative prefix.
@@ -2309,7 +2319,7 @@ Git gains a way to disable content filters wholesale, which would replace discov
 ## D-086: The self-grading guard covers every prefix the installer writes
 
 Date: 2026-08-31
-Status: Confirmed
+Status: Amended by D-091
 Area: M3, R-005, R-021, D-071, D-078, D-082
 
 Context:
@@ -2414,7 +2424,7 @@ Git gains a way to disable content filters wholesale, or the per-driver cost sho
 ## D-089: Calibration is authority, and it lives outside the skill tree
 
 Date: 2026-08-31
-Status: Confirmed
+Status: Amended by D-091
 Area: M3, R-005, R-021, D-071, D-078, D-082, D-086
 
 Context:
@@ -2447,7 +2457,7 @@ Revisit when:
 ## D-090: A decision id cited in code must exist
 
 Date: 2026-08-31
-Status: Confirmed
+Status: Amended
 Area: M2, M3, D-088, D-089
 
 Context:
@@ -2459,8 +2469,17 @@ A comment reading "See D-088" where there is no D-088 is worse than no comment. 
 
 Nothing caught this. `RequirementTraceabilityTests` resolves R-ids and test node ids against real sources; no check resolved D-ids, and the suite passed at 436 with eight dangling references in it.
 
+The original implementation was narrower than this decision: it named six
+top-level Python files and only top-level routing Markdown. A citation in a
+nested script, test, or routing document could therefore bypass the guard.
+
 Decision:
-`test_every_referenced_decision_exists` collects every `D-0\d\d` mentioned in the router sources, the tests, and the design documents, and fails on any that has no `## D-0xx` heading in `DECISION-LOG.md`.
+`test_every_referenced_decision_exists` derives its claimed scope from every
+`*.py` below `anti-dark-code/scripts/` and `anti-dark-code/tests/`, plus every
+`*.md` below `design/routing/`. It collects every `D-0\d\d` citation from those
+sources and fails on any that has no `## D-0xx` heading in
+`DECISION-LOG.md`. The log's headings are definitions, and its prose is not
+treated as citation failures.
 
 Because:
 The project's own rule is that a claim names its evidence. A decision id is a claim that evidence exists at a known address, and it is the cheapest kind to check.
@@ -2470,3 +2489,185 @@ A decision must be written before, or in the same change as, the first code that
 
 Revisit when:
 Decision ids gain a second home, or a document deliberately references a decision from another repository.
+
+## D-091: Every routing-owning pass reference is a guard probe
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071, D-086, D-089
+
+Context:
+The self-grading guard represented the three routing-owning pass references
+with only `00-preflight.md`. That was enough while the shipped classifier used
+one broad `**/references/*.md` authority entry, but the classifier accepts
+exact globs too. A policy could retain authority for `00-preflight.md` and
+grade `10-maintenance-harness.md` and
+`14-deterministic-verification.md` as cheap prose.
+
+Measurement replaced the broad authority entry with that exact
+`00-preflight.md` entry and appended a cheap broad reference entry. The
+existing installed-spelling probes rejected the installed `00-preflight.md`,
+but neither source reference that owns the other passes appeared in the
+diagnosis. They were outside the guard's authority set.
+
+Decision:
+`ROUTING_OWNING_PASS_REFERENCES` names all three pass-owning references, and
+`SELF_GRADING_PATHS` expands each one into a guard probe. The regression
+requires the load error to name `10-maintenance-harness.md` or
+`14-deterministic-verification.md`.
+
+Because:
+One representative path cannot stand for a classifier that may distinguish
+exact paths. Layout derivation answers where one authority file can move; it
+does not answer which distinct files own routing passes.
+
+Consequences:
+D-086 and D-089 are amended by measurement. Their installer-prefix and
+calibration-layout derivations remain necessary, but neither establishes that
+one source representative covers distinct authority files. The guard gains
+two source references and their managed-install spellings; a policy that
+cheaply classifies either now fails at load.
+
+Revisit when:
+A new reference owns a routing pass, or routing ownership moves out of the
+reference set.
+
+## D-092: Host-generated pytest cache is not install provenance
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, source provenance, install integrity
+
+Context:
+`.pytest_cache` was already an ignored repository directory, but
+`managed_source_files()` independently excluded only `__pycache__` and `.git`
+at every depth. A real pytest cache carries its own `.gitignore` containing
+`*`, so Git did not report the host-generated state as dirt. The managed-file
+walk nevertheless included its bytes in the core digest. A tag could therefore
+remain clean while its recorded install digest changed for data no install
+would be meant to distribute.
+
+Decision:
+`managed_source_files()` excludes `.pytest_cache` at every depth, alongside
+`__pycache__` and `.git`. The provenance regression builds a tagged fixture
+core with the real cache `.gitignore` and a cache payload, then requires both
+the file set and the provenance digest to remain unchanged and the source to
+remain a clean `git-tag`.
+
+Because:
+Host-generated runner state is not distributed source authority and must not
+alter install provenance.
+
+Consequences:
+The provenance boundary now matches the ignored pytest runner state for both
+the shipped file set and the digest derived from it. A cache cannot cause
+spurious digest drift or make an otherwise immutable tagged source appear to
+have different install bytes.
+
+Revisit when:
+The distributed core intentionally includes pytest runner artifacts, or a new
+host-generated directory is excluded by source-control and install policy but
+not by the provenance walk.
+
+## D-093: Self-grading authority is a classifier contract, not a path sample
+
+Date: 2026-09-01
+Status: Confirmed
+Area: M3, R-021, R-053, D-071, D-086, D-089, D-091
+
+Context:
+The self-grading guard derived source, installed, and calibration spellings
+from a short list of representative paths.  ENGINEERING names broader authority
+classes: mutation and validator harnesses, repository metadata, source-scope
+provenance, every workflow, project manifests and locks, as well as router,
+policy, pass, and test authority.
+
+Measured with every rule approved in memory: a policy that classified each of
+`design/routing/mutants/replay.py`, `.gitattributes`, `.gitignore`, or
+`anti-dark-code/SOURCE-SCOPE.json` as exact docs/prose loaded.  A policy that
+kept only `.github/workflows/tests.yml` as authority and classified the rest of
+`.github/workflows/**` as docs/prose also loaded.  Each affected target routed
+below the full recipe in all 72 change-kind, source, and mode shapes.
+
+Decision:
+When a nonempty classifier is paired with any current or proposed rule that
+does not force full, `load_policy()` requires every exact entry in
+`AUTHORITY_CLASSIFIERS`.  The entries are the canonical classifier forms for
+all ENGINEERING self-grading classes.  A policy may add another matching fact,
+but it cannot replace a required authority class with an exact representative
+or a cheap exception.  The existing per-path, per-layout, and per-shape guard
+stays in place; it proves rule behaviour after the class contract proves the
+classifier cannot omit a class.
+
+Because:
+One path can demonstrate a class only while the classifier cannot distinguish
+that path.  It can distinguish exact paths, so representative probing leaves an
+attacker-controlled partition.  Retaining the canonical authority glob means
+an exact cheap entry still coexists with an authority fact and therefore cannot
+lower the route.
+
+Consequences:
+Any nonempty classifier paired with a current or proposed non-force-full rule
+must carry every named authority class or fail closed at load.  This includes a
+policy that removed every authority-labelled entry and retained only an exact
+cheap exception.  A classifier-free policy, or a policy whose rules all force
+full, remains compatible because it cannot route a classified path cheaply.
+All shipped rules remain proposed.  Adding a future authority class requires
+adding its canonical classifier entry, the drift test, and a review; it cannot
+silently inherit a cheap generic classification.  M96 holds the load-time
+enforcement and was caught on both T540P Linux and Windows in the final
+authoritative Round Sixteen replay.
+
+The machine-checkable Python authority set is root and nested
+`pyproject.toml`, `requirements*.txt`, `Pipfile`, `*.lock`, `setup.py`,
+`setup.cfg`, `pytest.ini`, and `tox.ini`.  `**/scripts/adc*.py` deliberately
+covers every dynamically imported `adc` helper, including receipt, routing,
+and efficiency controls.  `design/routing/mutants/*` deliberately includes
+both harness code and `matrix.json`.
+
+Revisit when:
+ENGINEERING changes a self-grading class or the router gains classifier syntax
+whose coverage cannot be represented by the canonical entries.
+
+## D-094: A stronger guard supersedes a redundant mutation row
+
+Date: 2026-09-01
+Status: Confirmed
+Area: M3, R-021, D-082, D-093, M92, M96
+
+Context:
+The final frozen-head T540P replay at `0a26531` ran all 96 rows and found one
+local survivor: M92, which replaces `_self_grading_guard_paths()` with the
+literal `SELF_GRADING_PATHS`.  The earlier Linux record had caught M92 before
+D-093 added the canonical classifier contract.
+
+The changed outcome is expected.  With the exact M92 reversion in force, a
+nonempty classifier with a cheap current or proposed rule cannot narrow
+`**/scripts/adc*.py` to the source spelling: D-093 rejects the missing
+canonical class before `_check_self_grading()` runs.  The two compatibility
+branches are also safe.  An empty classifier grades the installed router as
+unknown and routes full; a policy whose rules all force full still routes the
+installed router at Level 3 with `force_full=true`.
+
+Decision:
+M92 is superseded by M96.  M92's historical attack no longer changes routing
+behaviour under any policy that can load, while M96 attacks the stronger
+load-time class-contract enforcement that now prevents it.  Keep the
+source/installed-layout derivation and its direct tests as defense in depth;
+do not make a redundant mutant fail merely to preserve an old count.
+
+Because:
+A mutation row is evidence only while its replacement can falsify the named
+guarantee.  Once a stronger independent guard makes the replacement inert, a
+surviving mutant is evidence of supersession rather than a reason to add a
+test that encodes obsolete implementation structure.
+
+Consequences:
+The matrix remains 96 rows and now has 91 active rows and 5 superseded rows.
+The T540P report retains the measured M92 survivor as the reason for the
+transition; the durable matrix clears obsolete host results from the
+superseded row.  M96 remains active and was caught on the same T540P run.
+
+Revisit when:
+The canonical classifier contract is removed, narrowed, or replaced by a
+mechanism that no longer covers managed installed script spellings.

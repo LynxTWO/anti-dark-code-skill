@@ -10,7 +10,7 @@ This script reviews evidence and asks you six questions. It does not approve a r
 
 ```powershell
 git fetch origin
-git switch --detach origin/claude/round-fifteen-verify
+git switch --detach origin/codex/round-sixteen-verify
 git log -1 --format="%h %s"
 git status --short
 ```
@@ -102,11 +102,11 @@ Expected: `STALE` with `ADC-STALE-004 worktree_identity`, then `FRESH` again onc
 python -m pytest anti-dark-code/tests -q -p no:cacheprovider
 ```
 
-**The pass count is host-dependent, so read the failure count, not the total.** Expected: `0 failed`, and a total in the low 400s. The author's Windows host reported `436 passed, 14 skipped, 48 subtests passed`; GitHub's `windows-latest` runner reported a higher total for the same commit, because it can create symlinks and therefore runs tests this host skips. A different total is not a finding. A failure is.
+**The pass count is host-dependent, so read the failure count, not the total.** Expected: `0 failed`. The final Round Sixteen Windows evidence host reported `486 passed, 14 skipped, 62 subtests passed`; another host may run tests this host skips. A different total is not a finding. A failure is.
 
 Roughly three minutes.
 
-`-p no:cacheprovider` is not cosmetic. Without it pytest writes `anti-dark-code/.pytest_cache`, which lands inside the managed skill tree, changes its digest, and fails the three provenance tests in `test_adc.py`. That is a real trap and it cost the author a wrong diagnosis.
+`-p no:cacheprovider` keeps this evidence run free of host-generated cache state. D-092 now excludes `.pytest_cache` from install provenance, so the old false digest drift is fixed; retaining the flag makes this command match the authoritative Round Sixteen evidence environment.
 
 ```powershell
 python anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal
@@ -115,58 +115,58 @@ python anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode univ
 Expected: `VALID (universal): 0 errors, 1 warning(s)`. The single warning lists generated `__pycache__` files and appears only because you just ran pytest.
 
 ```powershell
-python -c "import json,pathlib; rows=json.loads(pathlib.Path('design/routing/mutants/matrix.json').read_text()); act=[r for r in rows if not r.get('superseded_by')]; both=[r for r in act if {x['platform'] for x in r.get('results',[])} >= {'Linux','Windows'}]; print('rows', len(rows), '| active', len(act), '| recorded on both hosts', len(both)); print('awaiting a Linux record:', [r['id'] for r in act if r not in both])"
+python -c "import json,pathlib; rows=json.loads(pathlib.Path('design/routing/mutants/matrix.json').read_text()); act=[r for r in rows if not r.get('superseded_by')]; both=[r for r in act if {x['platform'] for x in r.get('results',[])} >= {'Linux','Windows'}]; print('rows', len(rows), '| active', len(act), '| recorded on both hosts', len(both)); print('awaiting host records:', [r['id'] for r in act if r not in both])"
 ```
 
 Expected:
 
 ```text
-rows 95 | active 91 | recorded on both hosts 83
-awaiting a Linux record: ['M02', 'M03', 'M04', 'M05', 'M40', 'M93', 'M94', 'M95']
+rows 96 | active 91 | recorded on both hosts 91
+awaiting host records: []
 ```
 
-Those eight are round fifteen's own: three new rows and five retargeted when D-087 removed their ambiguity. Each carries a Windows verdict from a full replay at this head, which reported `95 mutants, 0 not caught`; none carries a Linux verdict yet.
-
-Two different things are being distinguished, and the difference is the honest part. The Linux **fact** for the whole matrix is established: the `Mutation replay (Linux)` job in the CI run below replays every row on Linux and fails if any survives. The Linux **per-row record** is bookkeeping that has not been done, because CI deliberately runs without `--write` so that a job cannot rewrite the record it is grading.
-
-An earlier version of this document said those eight had Windows verdicts recorded when they had none at all. That was wrong, and it is the second time a statement here outran the tree.
+All 91 active rows now carry both authoritative Windows and T540P Linux records. M92 is one of five superseded rows: the frozen Linux replay measured it surviving after D-093 made its old path-loop attack redundant, and D-094 records why the stronger M96 authority-contract mutant replaces it. M96 was caught on both hosts.
 
 ```powershell
-gh run view 33424857336 --json headSha,conclusion
+python -c "import json,pathlib; d=json.loads(pathlib.Path('design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json').read_text()); print('execution_commit =', d['execution_commit']); print('matrix_sha256 =', d['matrix_sha256']); print('adoption =', d['adoption']); print('gates =', d['gates'])"
+gh pr checks codex/round-sixteen-verify
 ```
 
-Expected: `"conclusion":"success"` at `57e941fa1d1f3098941322606234c08af68b2271`. That run covers ubuntu, macOS and windows, both hostile-environment legs, the clean distribution archive, and the Linux mutation replay — but at round fourteen's head, not this one. Round fifteen's own CI is a separate run on this branch.
+Expected from the first command: execution commit `f3d08a45d4f0b2fb9f1e62b97014187dd2853977`, matrix SHA-256 `d7e88dcc2a8f3d3e4158a505cf13a77584b821c4fb54ecb0833e6ba2ab9e18ba`, adoption `adopted`, and four empty gate lists. Expected from the second: every required PR check passes on the final Round Sixteen branch head. If CI is pending, wait; if a check fails, stop.
 
 **Do not run `design/routing/mutants/replay.py` here.** It rewrites tracked source files and restores them; a replay belongs in a disposable clone.
 
 Read the two qualifications you are being asked to accept, rather than taking this document's word for them:
 
 ```powershell
-python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); print(re.search(r'## D-080.*?(?=
-## D-)', t, re.S).group(0))"
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); print(re.search(r'## D-080.*?(?=\n## D-)', t, re.S).group(0))"
 python -c "import pathlib; t=pathlib.Path('design/routing/SLICE-001-route-shadow.md').read_text(encoding='utf-8'); s=t.split('## 9. Verification evidence required')[1].split('### K, L')[0]; print(s.strip())"
 ```
 
-The first prints D-080, which withdraws the claim that every historical commit satisfied the EDD per-change checklist and anchors the forward record at `ea8733c`. The second prints section 9, where every evidence line carries either a tick with the run or command that earned it, or a `[~]` saying what is still missing. Read the `[~]` lines specifically: those are the boundaries this question is about.
+The first prints D-080, which withdraws the claim that every historical commit satisfied the EDD per-change checklist and anchors the forward record at `ea8733c`. The second prints section 9, where every evidence line carries either a tick with the run or command that earned it, or a `[~]` saying what is still missing. Read the platform-coverage line and the remaining `[~]` historical line specifically: those are the boundaries this question is about.
 
 > **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes / no**
 
-## 5. Read the four decisions that changed most recently (5 minutes)
+## 5. Read the decisions Round Sixteen verified or amended (5 minutes)
 
 ```powershell
-python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-084','D-085','D-086','D-087')]"
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094')]"
 ```
 
-- **D-084** keeps a gate `stale` if it writes inside the verified worktree even when it restores the bytes. A gate that must write needs an isolated checkout.
 - **D-085** stops repository code executing during acquisition. A content filter whose name contains `=` escaped the neutralization and ran; the neutralization is now verified against effective configuration instead of assumed.
-- **D-086** makes the self-grading guard cover all four layouts the installer writes, with a drift test against the installer's own list.
+- **D-086/D-089/D-091** make the self-grading guard cover installed layouts, calibration layouts, and every routing-owning pass reference rather than one representative.
 - **D-087** makes a mutation row match exactly one place, after six rows were found testing one of two identical sites while reporting both covered.
+- **D-088** neutralizes filter names through numbered environment configuration while retaining D-085's fail-closed verification.
+- **D-090** requires every decision id cited in scripts, tests, or routing Markdown to resolve to a real decision heading.
+- **D-092** excludes host-generated `.pytest_cache` from install provenance.
+- **D-093** replaces path sampling with a canonical classifier contract for every self-grading authority class. The Round Sixteen attack found the sixth guard hole before this fix.
+- **D-094** supersedes M92 with M96 because D-093 made M92's old replacement semantically inert; it does not disguise the measured Linux survivor.
 
 > **Question 4.** D-085 refuses to compare the worktree at all when a filter cannot be neutralized, so such a repository always takes the full recipe. Is refusing the right trade against executing its code? **yes / no**
 >
-> **Question 5.** D-084's strictness means a gate that writes anywhere inside the repository is stale. Is that correct for the gates you expect to approve? **yes / no**
+> **Question 5.** A gate that writes anywhere inside the repository is stale even if it restores the bytes. Is that correct for the gates you expect to approve? **yes / no**
 >
-> **Question 6.** D-086 covers `.agents`, `.claude`, `.codex` and `.gemini` skill trees. Does that match the layouts you install into? **yes / no**
+> **Question 6.** D-093 requires every canonical self-grading authority classifier and D-086 covers `.agents`, `.claude`, `.codex` and `.gemini` installations. Does that match both the authority classes and layouts you intend to support? **yes / no**
 
 ## 6. Record the gate
 

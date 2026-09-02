@@ -47,9 +47,16 @@ GATES = {
     ],
 }
 
+TEST_AUTHORITY_SURFACES = [
+    {"glob": glob, "surface": surface, "effect": effect,
+     "breadth": breadth, "sensitivity": sensitivity}
+    for _, glob, surface, effect, breadth, sensitivity
+    in ROUTE.AUTHORITY_CLASSIFIERS
+]
+
 POLICY = {
     "schema_version": 1,
-    "classifier": {"surfaces": [
+    "classifier": {"surfaces": [*TEST_AUTHORITY_SURFACES,
         {"glob": "docs/*", "surface": "docs", "effect": "prose"},
     ]},
     "full_recipe": {
@@ -63,6 +70,13 @@ POLICY = {
          "match": {"surfaces": ["docs"]},
          "requires": {"passes": ["06"], "minimum_level": 0},
          "obligations": {"V09": ["validate-core"]}},
+        {"id": "authority", "review_status": "approved",
+         "match": {"effects": ["verification-authority", "public-contract"]},
+         "requires": {"passes": ["07", "10", "11", "14"],
+                      "minimum_level": 3, "force_full": True,
+                      "independent_review": True},
+         "obligations": {"V09": ["validate-core"],
+                         "V21": ["full-suite"]}},
     ],
 }
 

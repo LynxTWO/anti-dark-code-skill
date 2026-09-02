@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --quiet pytest
+          python -m pip install --disable-pip-version-check --quiet pytest pytest-xdist
 
       - name: Validate the core before anything writes to the tree
         shell: bash
@@ -67,7 +67,7 @@ jobs:
           # piping pytest into tail would report tail's status and a red suite
           # would read as green. See the shell exit-code contract in
           # references/14-deterministic-verification.md.
-          python -m pytest anti-dark-code/tests -q
+          python -m pytest anti-dark-code/tests -q -n auto
 
   distribution:
     name: Clean distribution archive
@@ -139,7 +139,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --quiet pytest
+          python -m pip install --disable-pip-version-check --quiet pytest pytest-xdist
 
       - name: Run the suite where the platform is unhelpful
         shell: bash
@@ -157,7 +157,7 @@ jobs:
           # digest disagree with the archive it came from.
           git config core.autocrlf true
           python -c "import locale, sys, tempfile; print('locale', locale.getpreferredencoding(False)); print('fsenc', sys.getfilesystemencoding()); print('tmp', tempfile.gettempdir())"
-          python -m pytest anti-dark-code/tests -q
+          python -m pytest anti-dark-code/tests -q -n auto
 
   mutation-replay:
     # Linux is the required replay host, and this is the first time the
@@ -202,7 +202,7 @@ jobs:
           set -euo pipefail
           # No --write. The committed matrix is the record under review, and a
           # job that rewrites it would be grading its own homework.
-          python design/routing/mutants/replay.py
+          python design/routing/mutants/replay.py --jobs 2
 
       - name: Refuse a run that did not put the source back
         shell: bash

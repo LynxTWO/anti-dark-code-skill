@@ -856,7 +856,16 @@ _UNMAPPED = {
 # Measured, not assumed: with this repository's rules approved in memory, five
 # of these took ordinary routes. The router graded itself as Level 2 product
 # code, the capability catalog as a Level 2 schema, and a routing-owning pass
-# reference as Level 0 prose. See D-071.
+# reference as Level 0 prose. Routing-owning references are the exception to
+# the representative rule: a classifier can distinguish exact paths, so every
+# reference that owns a pass is probed. See D-071 and D-091.
+ROUTING_OWNING_PASS_REFERENCES = (
+    "anti-dark-code/references/00-preflight.md",
+    "anti-dark-code/references/10-maintenance-harness.md",
+    "anti-dark-code/references/14-deterministic-verification.md",
+)
+
+
 SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
     ("router code and Git interpretation", "anti-dark-code/scripts/adc_route.py"),
     ("receipt authority", "anti-dark-code/scripts/adc_receipt.py"),
@@ -870,8 +879,9 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
      "anti-dark-code/assets/templates/calibration/gates.json"),
     ("shipped policy template",
      "anti-dark-code/assets/templates/calibration/routing-policy.json"),
-    ("routing-owning pass reference",
-     "anti-dark-code/references/00-preflight.md"),
+    ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[0]),
+    ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[1]),
+    ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[2]),
     ("continuous integration", ".github/workflows/tests.yml"),
     ("router tests", "anti-dark-code/tests/test_route.py"),
     ("shared test support", "anti-dark-code/tests/test_adc.py"),
@@ -944,12 +954,99 @@ def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
                 add(f"{label}, calibration under {root}", f"{root}{leaf}")
     return tuple(paths)
 
-# What counts as grading a path as authority. `verification-authority` is the
-# effect the shipped force-full rule matches. `skill-policy` is the surface its
-# own force-full rule matches, and SKILL.md carries instruction authority
-# rather than verification authority, so both are accepted.
-_AUTHORITY_EFFECTS = frozenset({"verification-authority"})
-_AUTHORITY_SURFACES = frozenset({"skill-policy"})
+# ENGINEERING names these classes as self-grading authority.  The path probe
+# below proves rule behaviour for concrete source and installed layouts; this
+# separate, exact classifier contract prevents replacing a class entry with a
+# protected representative plus cheap exact exceptions.  See D-093.
+AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
+    ("router, receipt, and installer controls", "**/scripts/adc*.py",
+     "product", "verification-authority", "repository", "normal"),
+    ("tests and shared fixtures", "**/tests/*.py", "tests",
+     "verification-authority", "repository", "normal"),
+    ("capability catalog", "**/assets/verification-capabilities.json",
+     "schema", "verification-authority", "repository", "normal"),
+    ("source scope marker", "anti-dark-code/SOURCE-SCOPE.json", "schema",
+     "verification-authority", "repository", "normal"),
+    ("calibration", "**/calibration/*.json", "schema",
+     "verification-authority", "repository", "normal"),
+    ("skill instructions", "**/SKILL.md", "skill-policy", "public-contract",
+     "repository", "normal"),
+    ("routing pass references", "**/references/*.md", "docs",
+     "verification-authority", "repository", "normal"),
+    ("workflow class", ".github/workflows/**", "ci",
+     "verification-authority", "repository", "release"),
+    ("code owners", ".github/CODEOWNERS", "ci", "verification-authority",
+     "repository", "release"),
+    ("attributes", ".gitattributes", "schema", "verification-authority",
+     "repository", "normal"),
+    ("ignore policy", ".gitignore", "schema", "verification-authority",
+     "repository", "normal"),
+    ("submodule policy", ".gitmodules", "schema", "verification-authority",
+     "repository", "normal"),
+    ("mutation and validator harnesses", "design/routing/mutants/*", "tests",
+     "verification-authority", "repository", "normal"),
+    ("Python project manifest", "pyproject.toml", "schema",
+     "verification-authority", "repository", "normal"),
+    ("nested Python project manifest", "**/pyproject.toml", "schema",
+     "verification-authority", "repository", "normal"),
+    ("Python requirements family", "requirements*.txt", "schema",
+     "verification-authority", "repository", "normal"),
+    ("nested Python requirements family", "**/requirements*.txt", "schema",
+     "verification-authority", "repository", "normal"),
+    ("Pipfile", "Pipfile", "schema", "verification-authority", "repository",
+     "normal"),
+    ("nested Pipfile", "**/Pipfile", "schema", "verification-authority",
+     "repository", "normal"),
+    ("Python lock family", "*.lock", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested Python lock family", "**/*.lock", "schema",
+     "verification-authority", "repository", "normal"),
+    ("setup.py", "setup.py", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested setup.py", "**/setup.py", "schema",
+     "verification-authority", "repository", "normal"),
+    ("setup.cfg", "setup.cfg", "schema", "verification-authority", "repository",
+     "normal"),
+    ("nested setup.cfg", "**/setup.cfg", "schema", "verification-authority",
+     "repository", "normal"),
+    ("pytest.ini", "pytest.ini", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested pytest.ini", "**/pytest.ini", "schema", "verification-authority",
+     "repository", "normal"),
+    ("tox.ini", "tox.ini", "schema", "verification-authority",
+     "repository", "normal"),
+    ("nested tox.ini", "**/tox.ini", "schema", "verification-authority",
+     "repository", "normal"),
+)
+
+
+def _check_authority_classifier_contract(
+    classifier: Mapping[str, Any], rules: Sequence["ValidatedRule"],
+) -> None:
+    """Require every ENGINEERING authority class before any policy can route."""
+    entries = classifier.get("surfaces", [])
+    # A classifier-free policy cannot classify a path cheaply.  A nonempty
+    # classifier becomes self-grading authority as soon as any current or
+    # proposed rule can route a matching fact below the full recipe; requiring
+    # a pre-existing authority label would let an attacker remove every label
+    # and retain only an exact cheap exception.
+    if not entries or not any(not rule.force_full for rule in rules):
+        return
+    actual = {
+        (str(entry.get("glob")), str(entry.get("surface")),
+         str(entry.get("effect")), str(entry.get("breadth", "leaf")),
+         str(entry.get("sensitivity", "normal")))
+        for entry in entries if isinstance(entry, Mapping)
+    }
+    missing = [
+        (label, glob) for label, glob, surface, effect, breadth, sensitivity
+        in AUTHORITY_CLASSIFIERS
+        if (glob, surface, effect, breadth, sensitivity) not in actual
+    ]
+    if missing:
+        rendered = "; ".join(f"{label} ({glob})" for label, glob in missing)
+        raise PolicyError(
+            "policy omits canonical self-grading classifier(s): " + rendered)
 
 
 def _check_self_grading(
@@ -1802,6 +1899,8 @@ def load_policy(
             independent_review=bool(requires.get("independent_review", False)),
             obligations=_freeze_obligations(rule.get("obligations", {})),
         ))
+
+    _check_authority_classifier_contract(classifier, rules)
 
     # Last, because it needs both halves: the classifier says what a path is,
     # and the rules say what happens to it. Either alone answers the wrong

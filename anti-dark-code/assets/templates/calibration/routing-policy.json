@@ -45,7 +45,7 @@
       },
       {
         "_note": "A workflow decides which checks run at all. Same reasoning as tests, one level up.",
-        "glob": ".github/workflows/*",
+        "glob": ".github/workflows/**",
         "surface": "ci",
         "effect": "verification-authority",
         "breadth": "repository",
@@ -53,7 +53,7 @@
       },
       {
         "_note": "The router and the receipt writer decide what every other change is allowed to skip. Left as ordinary product code they graded themselves: with the rules below approved, a change to the router took the Level 2 product route. Entries below this line exist because a classifier is what makes a path authority, and load_policy refuses a policy that omits them. See D-071.",
-        "glob": "**/scripts/adc_route.py",
+        "glob": "**/scripts/adc*.py",
         "surface": "product",
         "effect": "verification-authority",
         "breadth": "repository"
@@ -81,6 +81,139 @@
       {
         "_note": "Installed and shipped calibration: the routing policy itself, the gate configuration, and the verification plan. A policy that could route its own edits cheaply could approve its own shortcut.",
         "glob": "**/calibration/*.json",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "anti-dark-code/SOURCE-SCOPE.json",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": ".github/CODEOWNERS",
+        "surface": "ci",
+        "effect": "verification-authority",
+        "breadth": "repository",
+        "sensitivity": "release"
+      },
+      {
+        "glob": ".gitattributes",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": ".gitignore",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": ".gitmodules",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "design/routing/mutants/*",
+        "surface": "tests",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "pyproject.toml",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/pyproject.toml",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "requirements*.txt",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/requirements*.txt",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "Pipfile",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/Pipfile",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "*.lock",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/*.lock",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "setup.py",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/setup.py",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "setup.cfg",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/setup.cfg",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "pytest.ini",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/pytest.ini",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "tox.ini",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
+        "glob": "**/tox.ini",
         "surface": "schema",
         "effect": "verification-authority",
         "breadth": "repository"

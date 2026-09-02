@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import importlib.util
+import os
 import shutil
 import subprocess
 import sys
@@ -549,9 +550,21 @@ raise SystemExit(module.main([
 
 class ShadowComparatorCliTests(_RoutedGateCliFixture):
     def test_real_gate_outcomes_feed_the_candidate_shadow_record(self) -> None:
+        # M79. The receipt is fresh only while Git's index stat cache is fresh.
+        # Move the tracked file timestamp without changing bytes so a normal
+        # status would refresh that cache. The gate planner must not do so
+        # after receipt verification.
+        original = self.source.read_bytes()
+        before = self.source.stat()
+        os.utime(self.source, ns=(before.st_atime_ns, before.st_mtime_ns + 2_000_000_000))
+        self.assertEqual(original, self.source.read_bytes())
+        index = self.repo / ".git" / "index"
+        index_before = index.read_bytes()
         done = self._run(
             "--route", str(self.receipt), "--allow-exec", "--keep-going")
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertEqual(index_before, index.read_bytes(),
+                         "gate planning refreshed the Git index after preflight")
         shadows = sorted(
             (self.repo / ".anti-dark-code" / "runs").glob("*/shadow.json"))
         self.assertEqual(1, len(shadows), done.stdout)
