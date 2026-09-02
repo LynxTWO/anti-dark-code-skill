@@ -15,7 +15,7 @@ git log -1 --format="%h %s"
 git status --short
 ```
 
-Start from a fresh clone of `codex/round-eighteen-verify`. The variable freezes
+Start from a fresh clone of `claude/round-nineteen-verify`. The variable freezes
 the head that supplied this walkthrough, and `--detach` keeps every later
 command on that exact commit. Do not fetch or switch to a newer commit during
 the walkthrough.
@@ -124,15 +124,19 @@ python -c "import json,pathlib; rows=json.loads(pathlib.Path('design/routing/mut
 Expected:
 
 ```text
-rows 106 | active 101 | recorded on both hosts 101
-awaiting host records: []
+rows 109 | active 104 | recorded on both hosts 101
+awaiting host records: ['M107', 'M108', 'M109']
 ```
 
-Every active row carries authoritative Windows and T540P Linux records. M97,
-M98, and M99 now have the per-row Linux record that Round Seventeen lacked.
-M37, M46, and M48 are `caught elsewhere`: Windows skipped the exact test that
-failed for each mutant on Linux. M92 is one of five superseded rows. D-094
-records why M96 replaces its inert path-loop attack.
+Every Windows record was refreshed by Round Nineteen's full serial write at
+`39d745d`, so each carries exact failed and skipped test identities from one
+commit (D-109). The Linux records are Round Eighteen's T540P records at
+`c846660`; M107, M108, and M109 were added after that run and await their
+per-row Linux record, although the Linux CI job has caught all three on every
+run since the test correction. M37, M46, and M48 are `caught elsewhere`:
+Windows skipped the exact test that failed for each mutant on Linux. M92 is
+one of five superseded rows. D-094 records why M96 replaces its inert
+path-loop attack.
 
 ```powershell
 python -c "import json,pathlib; d=json.loads(pathlib.Path('design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json').read_text()); print('execution_commit =', d['execution_commit']); print('matrix_sha256 =', d['matrix_sha256']); print('adoption =', d['adoption']); print('gates =', d['gates'])"
@@ -147,18 +151,26 @@ python -c "import json,pathlib; d=json.loads(pathlib.Path('design/routing/PARALL
 Expected: execution commit `4b24122a6051109461d4d82826af34a6a84fca68`, summary `99 mutants, 0 not caught: none`, report SHA-256 `70da49098da9aa02361552c4edb9f925afcfd7ddc18ba241cd985c09b58c0024`, serial rows `M97`, `M98`, and `M99` all `caught`, a first run recorded with 59 inconclusive rows, and boundaries with every flag `False` and the matrix written from serial observations only. That first run is the D-098 measurement, kept rather than discarded: the same command failed before the fix under the same churn.
 
 ```powershell
-python -c "import hashlib,json,pathlib; d=json.loads(pathlib.Path('design/routing/SERIAL-EVIDENCE-ROUND-EIGHTEEN.json').read_text()); x=d['t540p_full_write_replay']; h=hashlib.sha256(pathlib.Path('design/routing/mutants/matrix.json').read_bytes()).hexdigest(); assert h==x['final_annotated_matrix_sha256']; print('execution commit =', d['linux_execution_commit']); print('rows/completed/superseded =', x['rows'], x['completed'], x['superseded']); print('not caught =', x['not_caught']); print('M97-M99 =', x['m97_m99']); print('final matrix =', h); print('boundaries =', d['boundaries'])"
-gh pr checks codex/round-eighteen-verify
+python -c "import hashlib,json,pathlib,subprocess; d=json.loads(pathlib.Path('design/routing/SERIAL-EVIDENCE-ROUND-EIGHTEEN.json').read_text()); x=d['t540p_full_write_replay']; h=hashlib.sha256(subprocess.run(['git','cat-file','blob','08d0576f1bd50a0d302bb6ac3d953733bed65899:design/routing/mutants/matrix.json'],capture_output=True,check=True).stdout).hexdigest(); print('round-eighteen matrix blob matches its artifact =', h==x['final_annotated_matrix_sha256']); print('execution commit =', d['linux_execution_commit']); print('rows/completed/superseded =', x['rows'], x['completed'], x['superseded']); print('not caught =', x['not_caught']); print('M97-M99 =', x['m97_m99']); print('boundaries =', d['boundaries'])"
+gh pr checks claude/round-nineteen-verify
 ```
 
-Expected from the first command: execution commit
+Expected from the first command: `True`, execution commit
 `c8466606b00677200756967adb0acf30bddd057f`, `106 101 5`, an empty
-`not caught` list, M97 through M99 all `caught`, final matrix SHA-256
-`d1eb1f3c8790da323c322e683e7e36a5e73306d2081c53bc2ca3e003b2635301`,
-and every protected boundary `False` except the statement that the matrix came
-from full serial Linux results. Expected from the second command: every
-required PR check passes on this walkthrough's exact head. If CI is pending,
-wait. If a check fails, stop.
+`not caught` list, M97 through M99 all `caught`, and every protected boundary
+`False` except the statement that the matrix came from full serial Linux
+results. The digest is taken from the committed blob at the Round Eighteen
+head, not from the checkout: a default Windows clone checks the file out
+with CRLF line endings and the working-tree bytes differ from the blob
+(D-108). Expected from the second command: every required PR check passes on
+this walkthrough's exact head. If CI is pending, wait. If a check fails,
+stop.
+
+```powershell
+python -c "import hashlib,json,pathlib,subprocess; d=json.loads(pathlib.Path('design/routing/SERIAL-EVIDENCE-ROUND-NINETEEN.json').read_text()); s=d['serial_write']; h=hashlib.sha256(subprocess.run(['git','cat-file','blob','HEAD:design/routing/mutants/matrix.json'],capture_output=True,check=True).stdout).hexdigest(); print('implementation_commit =', d['implementation_commit']); print('serial summary =', s['summary']); print('report_sha256 =', s['report_sha256']); print('committed matrix blob matches the serial write =', h==s['matrix_sha256_after']); print('windows records without exact ids before =', d['record_currency_before']['windows_records_without_exact_ids']); print('first test M107 =', d['first_test_record']['m107']); print('boundaries =', d['boundaries'])"
+```
+
+Expected: implementation commit `39d745d5720ef629231a4c17563be818399141f5`, serial summary `109 mutants, 0 not caught: none`, report SHA-256 `18073613eb138403a78d29153f73ec27eb0543e85a547b76c2393862ee4f3adf`, `True` for the committed matrix blob, `91` Windows records without exact identities before the refresh, first-test M107 `SURVIVED`, and boundaries with every flag `False`, the matrix written by the serial write only, and the Linux records not refreshed this round. The `SURVIVED` is the D-110 measurement, kept rather than discarded.
 
 **Do not run `design/routing/mutants/replay.py` here.** It rewrites tracked source files and restores them; a replay belongs in a disposable clone.
 
@@ -173,10 +185,10 @@ The first prints D-080, which withdraws the claim that every historical commit s
 
 > **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes / no**
 
-## 5. Read the decisions Rounds Sixteen through Eighteen verified or amended (6 minutes)
+## 5. Read the decisions Rounds Sixteen through Nineteen verified or amended (7 minutes)
 
 ```powershell
-python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094','D-095','D-096','D-097','D-098','D-099','D-100','D-101','D-102','D-103','D-104')]"
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094','D-095','D-096','D-097','D-098','D-099','D-100','D-101','D-102','D-103','D-104','D-105','D-106','D-107','D-108','D-109','D-110')]"
 ```
 
 - **D-085** stops repository code executing during acquisition. A content filter whose name contains `=` escaped the neutralization and ran; the neutralization is now verified against effective configuration instead of assumed.
@@ -197,6 +209,12 @@ python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').r
 - **D-102** renders control and format characters as visible escapes before a worker diagnostic reaches the terminal.
 - **D-103** labels dirty read-only serial replay and requires a clean start plus a clean pre-publication check for `--write`.
 - **D-104** requires an exact skipped-node and failed-node intersection before another host can carry a skipped survivor.
+- **D-105** closes the two layers beneath D-101: the interpreter's user site, where a caller's `PYTHONUSERBASE` executed code inside a worker, and pytest's configuration search, where an ancestor `pytest.ini` reached a worker. Every suite run now disables the user site and pins an empty run-owned configuration file.
+- **D-106** applies D-102's renderer to the serial console, which had printed a forged replay line from a broken suite's text.
+- **D-107** is yours to decide: D-100's canonical entry forces the full route for every nested `scripts/*.py` in any installing repository, wider than its own statement. Three options are recorded.
+- **D-108** makes this walkthrough's Round Eighteen check hash the committed blob; hashing the checkout failed on a default Windows clone.
+- **D-109** records that 91 Windows records predated D-100 through D-104 and refreshes every Windows record from a full serial write at this round's implementation head.
+- **D-110** is measured and deferred to round twenty: a new row that survives on Windows under its one skipped test reads `unverified: every host skipped` and cannot fail a Windows replay; the Linux job, which skips nothing, is where M107 was caught surviving.
 
 > **Question 4.** D-085 refuses to compare the worktree at all when a filter cannot be neutralized, so such a repository always takes the full recipe. Is refusing the right trade against executing its code? **yes / no**
 >

@@ -124,6 +124,9 @@ The documents state what is true. This log preserves why, what else was consider
 | D-105 | 2026-09-02 | A worker owns its interpreter and its configuration, not only its pytest options | Confirmed | |
 | D-106 | 2026-09-02 | The serial console renders a diagnostic the same way the coordinator does | Confirmed | |
 | D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Open | |
+| D-108 | 2026-09-02 | A walkthrough check compares committed bytes, not a checkout | Confirmed | |
+| D-109 | 2026-09-02 | A host record is current only at the commit that produced it | Confirmed | |
+| D-110 | 2026-09-02 | A survivor with no catching host is a survivor, not an unverified row | Open, measured | |
 
 ---
 
@@ -3215,3 +3218,141 @@ this entry records the gap between its statement and its reach.
 
 Revisit when:
 The owner answers, or the classifier contract gains per-repository scoping.
+
+## D-108: A walkthrough check compares committed bytes, not a checkout
+
+Date: 2026-09-02
+Status: Confirmed
+Area: WALKTHROUGH-SLICE-001, SERIAL-EVIDENCE-ROUND-EIGHTEEN, Windows checkouts
+
+Context:
+Round eighteen added a walkthrough command that hashes
+`design/routing/mutants/matrix.json` from the working tree and asserts
+equality with the artifact's `final_annotated_matrix_sha256`. The artifact
+records the digest of the committed blob, which has LF line endings. This
+machine, the owner's, has `core.autocrlf=true` globally, so a fresh `git
+clone` checks the file out with CRLF and the assertion fails with a bare
+`AssertionError`. Measured: the literal walkthrough at `08d0576` on a fresh
+default clone passed every other expectation and failed this one. Round
+eighteen's own run passed because its clone was made with
+`core.autocrlf=false`.
+
+Decision:
+The walkthrough hashes the committed blob through `git cat-file blob
+<commit>:<path>` and prints whether it matches, so the check is independent
+of checkout line endings. The commit is named in the command, so the check
+cannot drift to a later head.
+
+Because:
+A walkthrough step that fails on the owner's default configuration is a
+document that says something the tree does not, which is the class of defect
+the walkthrough exists to catch. The artifact records a blob digest, and a
+blob digest is what the check should compare.
+
+Consequences:
+The owner can run the walkthrough from a default clone. Evidence artifacts
+keep recording blob digests.
+
+Revisit when:
+A walkthrough step needs to bind working-tree bytes rather than committed
+bytes.
+
+## D-109: A host record is current only at the commit that produced it
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-068, D-104, matrix host records, `--write`
+
+Context:
+Round eighteen refreshed ten Windows rows from a clean clone and ran the
+full serial `--write` matrix on T540P, then recorded that every active row
+carries Windows and Linux records. By count that is true. By commit it is
+not: 91 of the 101 active rows carry Windows records taken in rounds sixteen
+and seventeen, before D-100 through D-104 changed the router, the harness,
+and the suite, and those records carry no exact node identities. Only the
+Linux side was replayed in full at the round-eighteen head. The walkthrough
+line `recorded on both hosts 101` invites a reader to take both records as
+current.
+
+Measured in this round: a full read-only parallel replay at `08d0576`, from a
+clean `core.autocrlf=false` clone, processed all 106 rows with `0 not
+caught`, exit 0, in 1,169 seconds under three concurrent replays. Its
+Windows verdicts agree with all 91 stale records, but one record no longer
+describes the head: M68's stored Windows record says ten tests fail under
+it, the fresh run says eleven, and the Linux record written at the
+round-eighteen head already says eleven. The suite gained a catching test
+after the Windows record was written, and the record did not know.
+
+Decision:
+A host record is evidence for the commit it was produced at and no other.
+The matrix does not store that commit per result, so the artifact and
+handoff of the round that writes a record must say which commit and how
+many rows it covered. This round refreshes every Windows record from a
+full serial `--write` at its implementation head, so every active row's
+Windows record carries exact identities from one commit. Done: the full
+serial `--write` at `39d745d` processed all 109 rows with `0 not caught`
+from a clean clone, changed only `matrix.json`, and its matrix is the
+committed matrix, SHA-256 `7660b7533a22dc745b675a0a480bef0d4e87a985c61851faa45d32f8731d2f6f`.
+The Linux records were not touched by it and remain round eighteen's, at
+`c846660`.
+
+Because:
+"Every row carries both records" is a claim about currency as well as
+existence. A record that predates the code it describes is a historical
+fact, not evidence about the tree under review.
+
+Consequences:
+The matrix's Windows records are current at this round's implementation
+head with exact identities. Future rounds that change the router, the
+harness, or the suite either refresh the affected host records or say which
+records predate the change.
+
+Revisit when:
+Each stored result records the commit that produced it, at which point
+currency can be checked by a test rather than by a handoff.
+
+## D-110: A survivor with no catching host is a survivor, not an unverified row
+
+Date: 2026-09-02
+Status: Open, measured; the repair is scheduled for round twenty
+Area: D-054, D-095, D-104, `derive_verdict`, Windows replays of new rows
+
+Context:
+`derive_verdict` returns `unverified: every host skipped` when no host caught
+the mutant and every recorded result skipped at least one test. Windows
+skips the symlink test on every row. A new row therefore cannot be
+`SURVIVED` on a Windows-only replay: it is `unverified`, it leaves the
+not-caught list, and the exit stays 0. D-095 closed this shape for rows
+with a stored foreign catch; D-104 gave the harness exact skipped and
+failed identities; this branch predates both and still runs first.
+
+Measured: the full parallel replay at `49fed51`, under the first version of
+the D-105 test, printed `M107 ... unverified: every host skipped (here:
+SURVIVED, 1 skipped)`, then `109 mutants, 0 not caught: none`, exit 0, and
+listed M107 on the disclosure line as resting on another host's record when
+no other host had a record. The Linux CI job at the same commit, which skips
+nothing, reported `109 mutants, 1 not caught: ['M107']`. The mutant was a
+real survivor; only the host that could not skip said so.
+
+Decision:
+Deferred to round twenty so this round's evidence runs stay at one head. The
+intended repair: when no host caught the mutant, the row is `SURVIVED` on
+every host, and the console names the exact tests the host skipped so a
+reader knows which test might hold it; the `unverified` label is retired.
+A later catching host restores `caught elsewhere` through D-104's exact
+intersection, as now. The zero-skip branch is unchanged.
+
+Because:
+"Nobody could check this" was the honest label before exact identities
+existed. With them, a host that ran every test but one and saw the mutant
+survive has observed a survivor with one named exception, and a summary that
+reads "0 not caught" for it is the D-095 defect in a new place.
+
+Consequences:
+Until the repair lands, a Windows-only replay of a new row cannot fail. The
+Linux replay job can, and did. Round twenty adds the test, the mutation row,
+and the repair, and re-measures M107 on both hosts.
+
+Revisit when:
+Round twenty lands the repair, or a host that skips nothing becomes the only
+authoritative replay host.
