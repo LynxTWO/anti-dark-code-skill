@@ -2878,5 +2878,77 @@
       }
     ],
     "note": "D-093. A policy must retain every canonical self-grading classifier; otherwise an exact representative may remain authoritative while another class member routes cheaply. Caught on both hosts in the final authoritative replay."
+  },
+  {
+    "id": "M97",
+    "name": "unskipped local survivor softened by a foreign record",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if any(r[\"verdict\"] == \"SURVIVED\" and not r.get(\"skipped\") for r in results):\n        return \"SURVIVED\"",
+    "new": "    if False:\n        return \"SURVIVED\"",
+    "verdict": "caught",
+    "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.36s (0:01:23)",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 303 passed, 1 skipped, 9 deselected, 16 subtests passed in 83.36s (0:01:23)",
+        "skipped": 1
+      }
+    ],
+    "note": "D-095. A host that skipped nothing and saw the mutant survive has observed a survivor; a stored catch from another host must not turn it into caught elsewhere, drop it from the not-caught list, or keep the exit at 0. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
+  },
+  {
+    "id": "M98",
+    "name": "parallel replay accepts an unclean coordinator tree",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    if dirty:\n        raise RuntimeError(",
+    "new": "    if False:\n        raise RuntimeError(",
+    "verdict": "caught",
+    "pytest": "2 failed, 305 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.02s (0:01:19)",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 305 passed, 1 skipped, 9 deselected, 14 subtests passed in 79.02s (0:01:19)",
+        "skipped": 1
+      }
+    ],
+    "note": "D-096. Clones are built from HEAD while the serial path replays the disk, so a dirty coordinator makes the two modes describe different trees; the coordinator must refuse any difference before creating a worker. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
+  },
+  {
+    "id": "M99",
+    "name": "worker collection tree climbs above the clone",
+    "source": "design/routing/mutants/replay.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        command.append(f\"--rootdir={repo_root}\")",
+    "new": "        command.append(f\"--rootdir={_WORKER_SUITE_CWD}\")",
+    "verdict": "caught",
+    "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.15s (0:01:14)",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 304 passed, 1 skipped, 9 deselected, 16 subtests passed in 74.15s (0:01:14)",
+        "skipped": 1
+      }
+    ],
+    "note": "D-098. A worker's pytest must be rooted at its own clone; rooted anywhere above it, the collection tree can include a directory other processes churn, and collection dies on an entry that vanishes mid-scan. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
   }
 ]

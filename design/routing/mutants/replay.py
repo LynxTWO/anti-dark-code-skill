@@ -139,6 +139,17 @@ def run_suite(paths=DEFAULT_SUITE, repo_root: Path = REPO_ROOT) -> tuple[int, st
             str(path if Path(path).is_absolute() else repo_root / path)
             for path in paths)
     command = suite_command(command_paths)
+    if _WORKER_SUITE_CWD is not None:
+        # Without an explicit rootdir, pytest takes the common ancestor of the
+        # invocation directory and the absolute suite path. A coordinator that
+        # lives beneath the host temp directory then puts the machine-wide temp
+        # directory at the top of the collection tree, and collection dies the
+        # moment any other process removes a temp entry mid-scan. Measured on
+        # this host: 59 rows inconclusive in one run, each "FileNotFoundError
+        # ... J:\TEMP\tmpXXXX", pytest exit 2, while a serial replay ran in
+        # another clone. The clone is the only directory a worker owns, so it
+        # is the only acceptable root. See D-098.
+        command.append(f"--rootdir={repo_root}")
     if _WORKER_TEMP_ROOT is not None:
         pytest_root = _WORKER_TEMP_ROOT / "pytest"
         command.append(f"--basetemp={pytest_root}")
@@ -353,8 +364,41 @@ def _active_matrix_sources(matrix_path: Path) -> set[Path]:
     return sources
 
 
+def _verify_clean_worktree(repo_root: Path) -> None:
+    """Refuse a coordinator whose working tree is not exactly its HEAD.
+
+    Every clone is built from the committed HEAD, so a parallel verdict
+    describes the commit. The serial path replays whatever is on disk. On a
+    clean tree those are one tree, which is what the round-sixteen identity
+    comparison measured. On a dirty tree they are two, and nothing in either
+    report says which one a verdict describes. Measured: with one uncommitted
+    edit that removed the only test holding M57, the serial replay reported
+    SURVIVED here and the parallel replay reported caught, both exit 0. The
+    frozen-source check in _verify_coordinator_sources catches a dirty
+    mutation target; it cannot see a dirty suite, policy, or fixture, and the
+    suite reads all of them. Fail closed on any difference, untracked files
+    included, because an untracked conftest.py changes the suite as surely as
+    a tracked edit. See D-096.
+    """
+    try:
+        done = subprocess.run(["git", "status", "--porcelain"], cwd=repo_root,
+                              capture_output=True, check=False)
+    except OSError as caught:
+        raise RuntimeError(f"git status could not start: {caught}") from caught
+    if done.returncode:
+        raise RuntimeError(
+            "git status failed: the coordinator is not a readable repository")
+    dirty = [line for line in done.stdout.decode("utf-8", "replace").splitlines()
+             if line.strip()]
+    if dirty:
+        raise RuntimeError(
+            f"working tree differs from HEAD in {len(dirty)} path(s); commit or "
+            "remove them before a parallel replay, whose clones are built from HEAD")
+
+
 def _verify_coordinator_sources(repo_root: Path, commit: str) -> None:
     """Freeze the coordinator bytes before it creates any clone or worker."""
+    _verify_clean_worktree(repo_root)
     try:
         matrix_relative = MATRIX.resolve().relative_to(REPO_ROOT.resolve())
         replay_relative = Path(__file__).resolve().relative_to(REPO_ROOT.resolve())
@@ -533,6 +577,15 @@ def _validate_worker_result(item: object, index: int, row: dict,
         json.dumps(item, allow_nan=False)
     except (TypeError, ValueError):
         return "worker result is not JSON-compatible"
+    if item.get("status") != "completed" and isinstance(item.get("error"), str):
+        # A worker row that could not become evidence carries its own reason:
+        # a suite that did not answer, a target that did not match, a source
+        # that did not restore. The schema check below would replace that
+        # reason with a sentence about field names, which is what the first
+        # round-seventeen parallel run reported for 59 rows whose real error
+        # was a collection failure. The row stays inconclusive either way;
+        # the reason is what a reader needs. See D-099.
+        return f"worker row {item.get('status')}: {item['error'][:2000]}"
     if set(item) != WORKER_RESULT_FIELDS:
         return "worker result schema does not match the required evidence fields"
     if item["matrix_index"] != index or isinstance(item["matrix_index"], bool):
@@ -771,16 +824,28 @@ def derive_verdict(results) -> str:
     when Linux finished the run and "caught elsewhere" when Windows did. That
     made the coverage record describe the order someone happened to replay in.
 
-    Caught anywhere is caught, because a guarantee held on one host is held.
-    Caught everywhere and caught somewhere are still worth distinguishing: the
-    second means a host could not check it, and that is a fact about the host
-    the record should keep rather than average away.
+    Caught anywhere is caught, because a guarantee held on one host is held,
+    unless a host that ran every test saw the guarantee fail. Caught everywhere
+    and caught somewhere are still worth distinguishing: the second means a
+    host could not check it, and that is a fact about the host the record
+    should keep rather than average away.
 
     Every host skipping is not evidence of absence. It is evidence nobody
     looked, and calling it SURVIVED would put a gap in the record that no host
     has observed.
+
+    A host that skipped nothing and still did not catch the mutant has
+    observed a survivor, and another host's record cannot soften that. The
+    other record was taken on another host and, because a result stores no
+    commit, usually at another commit. Before D-095 this function had no such
+    branch: the round-sixteen Linux replay that measured M92 surviving exited
+    0 with "0 not caught" because the stored Windows record said caught, and
+    the same arithmetic kept the Linux CI job green for every row with a
+    stored foreign catch.
     """
     caught = [r for r in results if r["verdict"] == "caught"]
+    if any(r["verdict"] == "SURVIVED" and not r.get("skipped") for r in results):
+        return "SURVIVED"
     if caught:
         return "caught" if len(caught) == len(results) else "caught elsewhere"
     if results and all(r.get("skipped") for r in results):
@@ -793,6 +858,7 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
            cleanup: list[dict] | None = None, jobs: int = 1) -> int:
     repo_root = REPO_ROOT if repo_root is None else repo_root
     survivors: list[str] = []
+    held_elsewhere: list[str] = []
     host = host_identity()
     print(f"  host: {host['platform']} {host['release']}, "
           f"python {host['python']}, {host['git']}\n")
@@ -833,8 +899,17 @@ def replay(rows: list[dict], write: bool, wanted_subset: bool = False,
         print(f"  {row['id']}  {row['name']:42} {row['verdict']}{note}")
         if row["verdict"] == "SURVIVED":
             survivors.append(row["id"])
+        elif verdict == "SURVIVED":
+            held_elsewhere.append(row["id"])
     print(f"\n  {len(rows)} mutants, {len(survivors)} not caught: "
           f"{survivors or 'none'}")
+    if held_elsewhere:
+        # Not a gate, a disclosure. These rows survived on this host only
+        # under skipped tests, and the record that holds them came from a host
+        # that could run those tests. A reader who sees only the line above
+        # would not know this host observed nothing for them.
+        print(f"  {len(held_elsewhere)} survived here under skipped tests and "
+              f"rest on another host's record: {held_elsewhere}")
     if write:
         if wanted_subset:
             # Writing a filtered run drops every row it did not touch, so the

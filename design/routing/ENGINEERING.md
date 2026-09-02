@@ -346,7 +346,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
 | R-051 | repository-wide object format plus real source-specific conflict grammar | named tests in `requirement-evidence.json`; M47 is caught and the plain raw conflict form is accepted |
 | R-052 | direct, replaced, built, copied, and hinted Route immutability table | named tests in `requirement-evidence.json`; mutable proxy backing is copied |
-| R-053 | data-driven replay of all 96 stored mutations | `mutants/`; 91 active and 5 superseded under D-094. The final full T540P Linux and Windows replays each processed all 96 rows with 0 not caught; all 91 active rows carry both host records, and M37, M46, and M48 are caught on Linux where Windows skips the symlink test. Source restoration is hash-verified by D-068 |
+| R-053 | data-driven replay of all 99 stored mutations | `mutants/`; 94 active and 5 superseded under D-094. Round Sixteen's final full T540P Linux and Windows replays processed the first 96 rows with 0 not caught, and all 91 active rows of that matrix carry both host records. Round Seventeen's full Windows parallel replay at `4b24122` processed all 99 rows with 0 not caught while a serial replay churned the host temp directory (D-098); M97, M98, and M99 carry Windows records from the serial oracle run and await their T540P record. M37, M46, and M48 are caught on Linux where Windows skips the symlink test, and an unskipped survivor on any host is SURVIVED everywhere (D-095). Source restoration is hash-verified by D-068 |
 | R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
 
@@ -373,7 +373,7 @@ Modes and standing rules per the core skill. The additions specific to this subs
 - `.github/workflows/**`, `.github/CODEOWNERS`, `.gitattributes`, `.gitignore`, `.gitmodules`, and any future Python project or lock file
 - `test_route.py`, shared test fixtures such as a future `conftest.py`, and any mutation, fuzz, or validator harness used to grade a router change
 
-The path table has one test per class. A newly imported helper or newly authoritative config that is not represented makes the table test fail closed until reviewed.
+The path table has one test per class. A newly imported helper or newly authoritative config that is not represented makes the table test fail closed until reviewed. The helper half of that sentence was prose until D-097: `test_every_script_adc_loads_is_authority_by_name` now requires every script under `anti-dark-code/scripts/` to be authority by its `adc*` name or a reviewed standalone script that `adc.py` never names.
 
 ## 13. Observability
 

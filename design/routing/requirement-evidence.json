@@ -171,6 +171,7 @@
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_unmapped_self_grading_path_is_not_a_load_failure",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_each_named_self_grading_path_exists",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_installed_spelling_of_skill_policy_is_probed",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_script_adc_loads_is_authority_by_name",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
         "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router",
