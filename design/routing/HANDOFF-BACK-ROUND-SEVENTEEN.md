@@ -90,6 +90,26 @@ SLICE-001 ticked "from `ea8733c` forward, every commit carries `EDD-Checklist: s
 - CI on PR #27: run `33608219799` at `3856f11` and run `33610038786` at `4b24122`, all nine jobs `success` in each; the second's mutation job ran 9m08s and ended `99 mutants, 0 not caught: none` with M97, M98, and M99 caught. The final documentation head's exact-head run is recorded below once observed.
 - The owner walkthrough at the documentation head, and that head's exact CI run, are recorded in section 4a by the receipt commit that follows it. The receipt commit's own exact-head run belongs on PR #27, for the reason round sixteen gave: embedding it would move the head again.
 
+## 4a. Receipt at the documentation head
+
+The documentation head is `eba8ea9`. Required run [`33611787880`](https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/33611787880) at exactly that commit passed every job; the mutation job ended `99 mutants, 0 not caught: none` with M97, M98, and M99 caught.
+
+| Job | Result | Duration |
+| --- | --- | ---: |
+| Ubuntu / Python 3.12 | success | 36s |
+| Ubuntu / Python 3.13 | success | 38s |
+| Windows / Python 3.12 | success | 1m36s |
+| macOS / Python 3.12 | success | 51s |
+| Hostile environment (C locale) | success | 32s |
+| Hostile environment (international paths) | success | 36s |
+| Clean distribution archive | success | 6s |
+| Mutation replay (Linux) | success | 8m50s |
+| Aggregate `Tests` | success | 2s |
+
+The owner walkthrough was run as written, in PowerShell, on a fresh GitHub clone detached at `eba8ea9`. Every stated expectation held: the six proposed rules; `False` and `[]`; `3 passed`; the `ROUTE` line with `rules=-`; `FRESH`, `STALE` with `ADC-STALE-004 worktree_identity`, `FRESH`; `491 passed, 14 skipped, 64 subtests passed` and no failure; `VALID (universal): 0 errors, 1 warning(s)`; `rows 99 | active 94 | recorded on both hosts 91` with `awaiting host records: ['M97', 'M98', 'M99']`; both artifacts' expected values; D-080, section 9, and fifteen decision headings printed; and the end state `?? .anti-dark-code/`. One difference, which the document anticipates: when its `gh pr checks` step ran, eight checks had passed and the mutation job was still pending, so the walkthrough says to wait; the completed run above is the receipt. The boxes in section 6 remain unchecked. This round does not approve on the owner's behalf.
+
+This receipt commit follows `eba8ea9` and therefore triggers one more exact-head run. Embedding that run here would move the head again; its receipt belongs on PR #27.
+
 ## 5. Round seventeen's own defects
 
 - The handoff-to-Codex claim that CI fails on any survivor was Claude's, from round fifteen. This round found it by measurement, not by rereading.
@@ -100,5 +120,23 @@ SLICE-001 ticked "from `ea8733c` forward, every commit carries `EDD-Checklist: s
 ## 6. What round eighteen should do
 
 `design/routing/HANDOFF-CODEX-ROUND-EIGHTEEN.md` has the detail. In short: attack D-095 through D-099, record M97, M98, and M99 on T540P, and present the serial-replay trade to the owner with measurements rather than deciding it.
+
+## 7. Runtime
+
+Round sixteen reported 28h48m whole-goal elapsed against about five hours of evidence commands. This round, on the same Windows host: about 1h30m from its first command to this receipt commit, of which the authoritative evidence commands took about 45 minutes.
+
+| Command | Wall time |
+| --- | ---: |
+| baseline CI-shaped suite at `92e028e` | 35s |
+| owner walkthrough at `92e028e`, all steps | about 6m |
+| xdist stability trial with the tracked plugin | 26s |
+| first full parallel replay at `3856f11`, failed under churn | 7m17s |
+| serial oracle runs, three in all | 7m26s |
+| worker-path diagnostic rerun of five rows | 2m01s |
+| full parallel replay at `4b24122` under the same churn | 14m39s |
+| suite and validation runs after each change, three in all | about 1m30s |
+| owner walkthrough at `eba8ea9`, all steps | about 6m |
+
+Three CI runs of nine to ten minutes each overlapped other work. The gap between forty-five minutes of evidence and ninety of elapsed time was reading round sixteen's record, attacking it, writing five decisions and their tests, one evidence run that failed and had to be diagnosed, and the documents. The largest single cost was the failed run: launched from a layout no earlier round had used, it needed a diagnostic rerun before its cause could be named, which is what D-099 now removes.
 
 Do not treat this handoff as acceptance of its own contracts. Its author has now twice recorded a claim about the replay gate that the code did not hold.
