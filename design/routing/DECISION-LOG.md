@@ -89,7 +89,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-070 | 2026-08-30 | Node-id reachability is necessary and not sufficient evidence | Open | |
 | D-071 | 2026-08-30 | A classifier is what makes a path authority, and it is checked at load | Confirmed | |
 | D-072 | 2026-08-30 | A submodule is refused, not bound | Confirmed | |
-| D-073 | 2026-08-30 | An unreadable repository fingerprint refuses the binding provisionally | Provisional | D-083 |
+| D-073 | 2026-08-30 | An unreadable repository fingerprint refuses the binding provisionally | Superseded | D-083 |
 | D-074 | 2026-08-30 | Candidate routes are a separate shadow-only type | Confirmed | |
 | D-075 | 2026-08-30 | Gate execution consumes one verified receipt and its exact identity | Confirmed | |
 | D-076 | 2026-08-30 | Verified execution authority is a closed in-memory context | Confirmed | |
@@ -111,6 +111,8 @@ The documents state what is true. This log preserves why, what else was consider
 | D-092 | 2026-08-31 | Host-generated pytest cache is not install provenance | Confirmed | |
 | D-093 | 2026-09-01 | Self-grading authority is a classifier contract, not a path sample | Confirmed | |
 | D-094 | 2026-09-01 | A stronger guard supersedes a redundant mutation row | Confirmed | |
+| D-095 | 2026-09-02 | An unskipped local survivor is a survivor on every host | Confirmed | |
+| D-096 | 2026-09-02 | A parallel replay requires a clean coordinator tree | Confirmed | |
 
 ---
 
@@ -1979,7 +1981,7 @@ Submodule state is bound for real, with a fixture per Git behavior the claim dep
 ## D-073: An unreadable repository fingerprint refuses the binding provisionally
 
 Date: 2026-08-30
-Status: Provisional
+Status: Superseded by D-083
 Area: M4, R-017, R-018, `_repo_fingerprint`
 
 Context:
@@ -2671,3 +2673,103 @@ superseded row.  M96 remains active and was caught on the same T540P run.
 Revisit when:
 The canonical classifier contract is removed, narrowed, or replaced by a
 mechanism that no longer covers managed installed script spellings.
+
+## D-095: An unskipped local survivor is a survivor on every host
+
+Date: 2026-09-02
+Status: Confirmed
+Area: M3, R-053, D-054, D-068, `derive_verdict`, `Mutation replay (Linux)`
+
+Context:
+`replay()` folded the local result into the row's stored results before it
+decided anything, and `derive_verdict` then read "caught anywhere" as caught.
+The matrix stores one result per host and no commit per result, so the stored
+foreign result comes from another host and, in practice, another commit. A
+row the other host once caught therefore could not fail a replay on this
+host: a fresh local SURVIVED became "caught elsewhere", left the not-caught
+list, and the exit stayed 0. Only the "(here: SURVIVED)" note said otherwise.
+
+Measured twice. Round sixteen's own authoritative T540P write replay at
+`0a26531` recorded M92 as a local survivor and still exited 0 with `96
+mutants, 0 not caught: none`; its report's `local_survivor_ids` names M92
+while its summary names nothing. In this round, an uncommitted edit that
+removed the one test holding M57 made the serial replay print `caught
+elsewhere (here: SURVIVED)` and `1 mutants, 0 not caught: none`, exit 0. The
+CI job runs the same function, so the `Mutation replay (Linux)` job, which
+the round-sixteen handoff described as failing on any survivor, could not
+have failed on a Linux survivor for any of the 88 rows Windows had once
+caught. At `92e028e` its log shows no `(here: SURVIVED)` line, so no current
+row was masked; the mechanism was.
+
+Decision:
+`derive_verdict` returns SURVIVED when any host result is SURVIVED with zero
+skipped tests, before it counts catches. A host that ran every test and did
+not catch the mutant has observed a survivor, and no other record can soften
+that. "Caught elsewhere" remains the label only for a local survivor under a
+skipped test, and `replay()` discloses those rows on a separate summary line
+so a reader sees what this host did not observe. M97 holds the branch.
+
+Because:
+The other host's record answers a different question, on a different host,
+usually at a different commit. Merging it before deciding made the summary
+describe the matrix's past rather than the tree under test.
+
+Consequences:
+Linux runs every test, so every Linux survivor now fails the replay and the
+CI job. Windows skips the symlink test on every row, so a Windows-only
+survivor under that skip still rests on the Linux record; the disclosure line
+names it. M37, M46, and M48 keep "caught elsewhere". No current row changes
+verdict. The round-sixteen handoff's claim that CI "fails on any survivor"
+was false until this decision and is true now for the required Linux host.
+
+Revisit when:
+A result records its commit, so a stale foreign record can be recognized
+directly rather than by skip count; or a second replay host without skips is
+added.
+
+## D-096: A parallel replay requires a clean coordinator tree
+
+Date: 2026-09-02
+Status: Confirmed
+Area: M3, R-053, D-068, D-084, `run_parallel`, `_verify_coordinator_sources`
+
+Context:
+Serial replay mutates and tests the working tree. Parallel replay clones the
+committed HEAD into each worker. The round-sixteen identity comparison proved
+the two agree at a clean commit, `f3d08a4`. The coordinator preflight froze
+only the matrix, the harness, and the active mutation targets against HEAD,
+so a dirty suite, policy, fixture, or an untracked `conftest.py` passed
+preflight while the clones tested something else.
+
+Measured: with one uncommitted edit renaming
+`test_only_the_run_store_is_excluded_from_the_binding` in `test_receipt.py`,
+a file no row mutates, `replay.py M57 --jobs 1` reported `19 passed` and
+SURVIVED here, and `replay.py M57 --jobs 2` reported `1 failed, 19 passed`
+and caught. Both exited 0 (D-095 covers the exit), both recorded commit
+`92e028e`, and neither report said the tree differed from it.
+
+Decision:
+`_verify_coordinator_sources` first requires `git status --porcelain` to be
+empty in the coordinator. Any tracked modification or untracked file makes
+every active row inconclusive with `working tree differs from HEAD`, before a
+clone or worker exists. Serial replay is unchanged: it replays the disk by
+design, and `--write` remains serial-only. M98 holds the refusal.
+
+Because:
+A parallel verdict describes HEAD. Refusing a tree that is not HEAD is the
+only way the report's `commit` field can be read literally. Freezing more
+files would chase the suite's input set, which includes the policy, the
+capability catalog, the fixtures, and any future `conftest.py`.
+
+Consequences:
+CI is unaffected: the job runs on a fresh checkout and already refuses a
+dirty tree after the run. A developer must commit before a parallel replay,
+the discipline D-068 already asks for. A Windows checkout made under
+`core.autocrlf=true` still fails the older frozen-source comparison, because
+its worktree bytes differ from the LF blobs; the workaround is a clone made
+with `core.autocrlf=false`, which is what `prepare_clone` uses for workers.
+That limitation is recorded here, not fixed.
+
+Revisit when:
+The report records the working-tree status and a reviewer prefers a labelled
+dirty run to a refusal; or serial replay gains the same refusal.

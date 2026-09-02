@@ -3133,6 +3133,57 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
             self.assertEqual(["MX"], [row["id"] for row in evidence["rows"]])
             self.assertEqual("serial", evidence["rows"][0]["worker"])
 
+    def test_an_unskipped_local_survivor_is_a_survivor_despite_a_foreign_record(self) -> None:
+        """D-095. A host that skipped nothing and saw the mutant survive found a gap.
+
+        The matrix stores one result per host and no commit per result. Before
+        this held, the local verdict was folded into the stored foreign results
+        first, so a stored "caught" from the other host turned a fresh local
+        survivor into "caught elsewhere", the not-caught list stayed empty, and
+        the run exited 0. The round-sixteen Linux replay that measured M92
+        surviving reported "0 not caught" for exactly this reason, and the
+        Linux CI job would have stayed green for any of the 88 rows Windows had
+        once caught.
+        """
+        harness = self._harness("adc_replay_unskipped_survivor")
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            source = root / "source.py"
+            source.write_text("before = True\n", encoding="utf-8")
+            harness.REPO_ROOT = root
+            harness.commit_identity = lambda repo_root: "commit-test"
+            harness.host_identity = lambda: {
+                "platform": "Windows", "release": "11", "python": "3",
+                "git": "git version test"}
+            foreign = {"platform": "Linux", "release": "1", "python": "3",
+                       "git": "git version test", "verdict": "caught",
+                       "pytest": "1 failed, 2 passed in 0.01s", "skipped": 0}
+
+            harness.run_suite = lambda paths, repo_root: (0, "3 passed in 0.01s", 0)
+            row = {**self._row(), "results": [dict(foreign)]}
+            self.assertEqual(1, harness.replay([row], write=False))
+            self.assertEqual("SURVIVED", row["verdict"])
+
+            # Under a skipped test this host observed nothing for the
+            # guarantee, and the foreign record legitimately holds the row.
+            harness.run_suite = lambda paths, repo_root: (
+                0, "2 passed, 1 skipped in 0.01s", 1)
+            row = {**self._row(), "results": [dict(foreign)]}
+            self.assertEqual(0, harness.replay([row], write=False))
+            self.assertEqual("caught elsewhere", row["verdict"])
+
+    def test_derive_verdict_lets_no_record_soften_an_unskipped_survivor(self) -> None:
+        harness = self._harness("adc_replay_derive_unskipped")
+        caught = {"platform": "Linux", "verdict": "caught", "skipped": 0}
+        survived = {"platform": "Windows", "verdict": "SURVIVED", "skipped": 0}
+        under_skip = {**survived, "skipped": 1}
+        self.assertEqual("SURVIVED", harness.derive_verdict([caught, survived]))
+        self.assertEqual("SURVIVED", harness.derive_verdict([survived, caught]))
+        self.assertEqual("caught elsewhere",
+                         harness.derive_verdict([caught, under_skip]))
+        self.assertEqual("caught", harness.derive_verdict(
+            [caught, {**caught, "platform": "Windows"}]))
+
 
 @unittest.skipUnless(shutil.which("git"), "git is required")
 class ReplayParallelCloneTests(unittest.TestCase):
@@ -3275,6 +3326,60 @@ class ReplayParallelCloneTests(unittest.TestCase):
         self.assertEqual("inconclusive", result[0]["status"])
         self.assertEqual(commit, result[0]["commit"])
         self.assertIn("source verification failed", result[0]["error"])
+
+    def test_parallel_refuses_an_unclean_tree_even_when_every_source_matches_head(self) -> None:
+        """D-096. Clones are built from HEAD; the serial path replays the disk.
+
+        The frozen-source check sees only mutation targets. Measured before
+        this held: one uncommitted edit to test_receipt.py, which no row
+        mutates, made M57 SURVIVED serially and caught in parallel, both exit
+        0, with nothing in either report saying the two runs described
+        different trees.
+        """
+        harness = self._harness("adc_replay_parallel_unclean_tree")
+        cases = (
+            ("tracked suite edit", lambda root: (root / "suite.py").write_text(
+                "# weakened\n", encoding="utf-8")),
+            ("untracked conftest", lambda root: (root / "conftest.py").write_text(
+                "# fixture\n", encoding="utf-8")),
+        )
+        for label, dirty in cases:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as raw_root:
+                root = Path(raw_root)
+                replay = root / "design" / "routing" / "mutants" / "replay.py"
+                replay.parent.mkdir(parents=True)
+                shutil.copyfile(REPO_ROOT / "design" / "routing" / "mutants" / "replay.py", replay)
+                matrix = replay.with_name("matrix.json")
+                matrix.write_text(json.dumps([self._row("M1")]), encoding="utf-8")
+                (root / "source.py").write_text("before = True\n", encoding="utf-8")
+                (root / "suite.py").write_text("# holds M1\n", encoding="utf-8")
+                self._git(root, "init", "-q", "-b", "main")
+                self._git(root, "config", "user.email", "parallel@test.invalid")
+                self._git(root, "config", "user.name", "Parallel Test")
+                self._git(root, "config", "core.autocrlf", "false")
+                self._git(root, "add", ".")
+                self._git(root, "commit", "-qm", "fixture")
+                commit = self._git(root, "rev-parse", "HEAD")
+                dirty(root)
+                harness.REPO_ROOT = root
+                harness.MATRIX = matrix
+                harness.__file__ = str(replay)
+
+                # A clone must never be attempted: under a preflight that lets
+                # the dirty tree through, the mocked pool would otherwise wait
+                # on a future that never completes.
+                with mock.patch.object(harness, "ProcessPoolExecutor") as pool, \
+                     mock.patch.object(harness, "prepare_clone",
+                                       side_effect=RuntimeError("must not clone")):
+                    result, cleanup = harness.run_parallel([self._row("M1")], 1, root)
+
+                pool.assert_not_called()
+                self.assertEqual([], cleanup)
+                self.assertEqual("inconclusive", result[0]["status"])
+                self.assertEqual(commit, result[0]["commit"])
+                self.assertIn("working tree differs from HEAD", result[0]["error"])
+                self.assertEqual("before = True\n",
+                                 (root / "source.py").read_text(encoding="utf-8"))
 
     def test_clone_partition_retires_a_clone_after_an_unrestored_row(self) -> None:
         harness = self._harness("adc_replay_parallel_retirement")
