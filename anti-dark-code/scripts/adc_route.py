@@ -725,7 +725,8 @@ _UNMAPPED = {
     "confidence": "unknown",
 }
 
-# One representative real path per self-grading class R-005 and R-021 name.
+# One representative real source path per self-grading class R-005 and R-021
+# name. The load guard derives the managed-install spelling from this record.
 # Measured, not assumed: with this repository's rules approved in memory, five
 # of these took ordinary routes. The router graded itself as Level 2 product
 # code, the capability catalog as a Level 2 schema, and a routing-owning pass
@@ -746,6 +747,19 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
     ("shared test support", "anti-dark-code/tests/test_adc.py"),
     ("skill policy", "anti-dark-code/SKILL.md"),
 )
+
+
+def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
+    """Source-tree paths plus the paths produced by the managed installer."""
+    paths: list[tuple[str, str]] = []
+    for label, path in SELF_GRADING_PATHS:
+        paths.append((label, path))
+        if path.startswith("anti-dark-code/"):
+            paths.append((
+                f"{label}, installed layout",
+                f".agents/skills/{path}",
+            ))
+    return tuple(paths)
 
 # What counts as grading a path as authority. `verification-authority` is the
 # effect the shipped force-full rule matches. `skill-policy` is the surface its
@@ -792,9 +806,13 @@ def _check_self_grading(
     The cross-product is small and the check is cheap next to the fingerprint
     the same command runs, so the guard enumerates it rather than sampling it.
     A guard that samples is a guard an adversary aims around.
+
+    Source and managed installed spellings are both checked. The installer
+    moves `anti-dark-code/...` beneath `.agents/skills/anti-dark-code/...`;
+    authority does not change when that prefix does. See D-082.
     """
     demoted: list[str] = []
-    for label, path in SELF_GRADING_PATHS:
+    for label, path in _self_grading_guard_paths():
         entries = _matching_classifications(path, classifier)
         if not entries:
             continue
