@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-001 read-only shadow routing
 
-Version: 1.0. Date: 2026-08-30. Status: Proposed.
+Version: 1.1. Date: 2026-09-02. Status: Done. The owner walkthrough was approved by Daniel Boyd on 2026-09-02 from a fresh default clone at `3e04422`; the record is `WALKTHROUGH-SLICE-001.md` at `4419538`.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md.
 
 One narrow, production-quality section. If it is not in here, it does not get built.
@@ -208,8 +208,8 @@ An agent's statement that the slice works is a claim. This list is the evidence.
 - [~] Current and forward EDD guardrails hold with no unlabeled shortcut inside the boundary. D-080 withdraws the unsupported historical per-change claim and anchors the forward review record at `ea8733c`; seven round-fifteen commits inside that forward range carry no trailer, as section 9 records.
 - [x] Under the shipped proposed-only policy, every authoritative route forces the full recipe. `gates --route` selects the canonical set by id, bypasses applicability globs, and refuses candidate data at both receipt and executable-selection boundaries.
 - [x] V21 and V22 were added exactly as D-016 records. Q-002 and Q-003 remain open and do not block this slice.
-- [x] Documents record the actual Task 13 command, receipt and refusal results, the 30-item closure ledger, the evidence qualifications, D-080 through D-104, and the owner walkthrough.
-- [ ] Human walkthrough completed and approved by Daniel Boyd.
+- [x] Documents record the actual Task 13 command, receipt and refusal results, the 30-item closure ledger, the evidence qualifications, D-080 through D-117, and the owner walkthrough.
+- [x] Human walkthrough completed and approved by Daniel Boyd on 2026-09-02, run as written from a fresh default clone at `3e04422`, all seven questions answered yes, with U-017 named as the accepted residual and D-107 option 2 as the follow-up; the record is `WALKTHROUGH-SLICE-001.md` at `4419538`.
 
 ## 12. What this unlocks
 
