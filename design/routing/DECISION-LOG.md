@@ -2970,9 +2970,10 @@ A clone-owned rootdir is not an isolation boundary while the caller can inject
 code before collection starts.
 
 Consequences:
-The serial path remains unchanged for now. M101 holds the worker environment
-boundary. A future required pytest plugin must be named explicitly and bound to
-the frozen replay source before workers may load it.
+M101 holds the worker environment boundary. D-104 later applied the same
+controlled environment to serial replay and added one explicit tracked outcome
+plugin. The coordinator freezes that plugin with the replay source before a
+parallel worker may load it.
 
 Revisit when:
 The replay suite requires a non-builtin plugin, or pytest changes the variables

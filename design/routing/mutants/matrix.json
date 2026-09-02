@@ -3435,7 +3435,7 @@
         "skipped": 1
       }
     ],
-    "note": "D-095. A host that skipped nothing and saw the mutant survive has observed a survivor; a stored catch from another host must not turn it into caught elsewhere, drop it from the not-caught list, or keep the exit at 0. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
+    "note": "D-095. A host that skipped nothing and saw the mutant survive has observed a survivor; a stored catch from another host must not turn it into caught elsewhere, drop it from the not-caught list, or keep the exit at 0. Caught on Windows in the round-seventeen serial oracle run at 4b24122 and on T540P in the round-eighteen full serial replay at c846660."
   },
   {
     "id": "M98",
@@ -3472,7 +3472,7 @@
         "skipped": 1
       }
     ],
-    "note": "D-096. Clones are built from HEAD while the serial path replays the disk, so a dirty coordinator makes the two modes describe different trees; the coordinator must refuse any difference before creating a worker. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
+    "note": "D-096. Clones are built from HEAD while the serial path replays the disk, so a dirty coordinator makes the two modes describe different trees; the coordinator must refuse any difference before creating a worker. Caught on Windows in the round-seventeen serial oracle run at 4b24122 and on T540P in the round-eighteen full serial replay at c846660."
   },
   {
     "id": "M99",
@@ -3509,7 +3509,7 @@
         "skipped": 1
       }
     ],
-    "note": "D-098. A worker's pytest must be rooted at its own clone; rooted anywhere above it, the collection tree can include a directory other processes churn, and collection dies on an entry that vanishes mid-scan. caught on Windows in the round-seventeen serial oracle run at 4b24122, agreeing with the full parallel replay; awaiting the T540P record."
+    "note": "D-098. A worker's pytest must be rooted at its own clone; rooted anywhere above it, the collection tree can include a directory other processes churn, and collection dies on an entry that vanishes mid-scan. Caught on Windows in the round-seventeen serial oracle run at 4b24122 and on T540P in the round-eighteen full serial replay at c846660."
   },
   {
     "id": "M100",
@@ -3574,7 +3574,7 @@
         ]
       }
     ],
-    "note": "D-100. Every shipped Python script is verification authority by location, so a dynamically constructed helper name or future loader cannot bypass the full route. Awaiting authoritative host records."
+    "note": "D-100. Every shipped Python script is verification authority by location, so a dynamically constructed helper name or future loader cannot bypass the full route. Caught on Windows and T540P in round eighteen."
   },
   {
     "id": "M101",
@@ -3617,7 +3617,7 @@
         ]
       }
     ],
-    "note": "D-101. A worker must reject caller pytest options and plugin paths; rootdir alone does not stop code outside the clone from changing collection or outcomes. Awaiting authoritative host records."
+    "note": "D-101. A worker must reject caller pytest options and plugin paths; rootdir alone does not stop code outside the clone from changing collection or outcomes. Caught on Windows and T540P in round eighteen."
   },
   {
     "id": "M102",
@@ -3660,7 +3660,7 @@
         ]
       }
     ],
-    "note": "D-102. An inconclusive worker diagnostic remains useful, but control and format characters must become visible escapes before the 2,000-character boundary reaches the console. Awaiting authoritative host records."
+    "note": "D-102. An inconclusive worker diagnostic remains useful, but control and format characters must become visible escapes before the 2,000-character boundary reaches the console. Caught on Windows and T540P in round eighteen."
   },
   {
     "id": "M103",
@@ -3703,7 +3703,7 @@
         ]
       }
     ],
-    "note": "D-103. Read-only serial replay may describe a dirty tree, but a dirty starting endpoint must refuse --write before any mutation row runs. Awaiting authoritative host records."
+    "note": "D-103. Read-only serial replay may describe a dirty tree, but a dirty starting endpoint must refuse --write before any mutation row runs. Caught on Windows and T540P in round eighteen."
   },
   {
     "id": "M104",
@@ -3746,7 +3746,7 @@
         ]
       }
     ],
-    "note": "D-103. A clean start cannot authorize publication if the tree changes while rows run; the final endpoint is checked immediately before the matrix write. Awaiting authoritative host records."
+    "note": "D-103. A clean start cannot authorize publication if the tree changes while rows run; the final endpoint is checked immediately before the matrix write. Caught on Windows and T540P in round eighteen."
   },
   {
     "id": "M105",
@@ -3789,7 +3789,7 @@
         ]
       }
     ],
-    "note": "D-104. A skipped survivor may rest on another host only when one exact skipped node id is an exact failed node id there; a count or unrelated skip cannot soften the finding. Awaiting authoritative host records."
+    "note": "D-104. A skipped survivor may rest on another host only when one exact skipped node id is an exact failed node id there; a count or unrelated skip cannot soften the finding. Caught on Windows and T540P in round eighteen."
   },
   {
     "id": "M106",
@@ -3834,6 +3834,6 @@
         ]
       }
     ],
-    "note": "D-104. Exact failed and skipped identities come from a tracked plugin loaded explicitly under disabled autoload; an absent collector makes the row inconclusive rather than silently falling back to counts. Awaiting authoritative host records."
+    "note": "D-104. Exact failed and skipped identities come from a tracked plugin loaded explicitly under disabled autoload; an absent collector makes the row inconclusive rather than silently falling back to counts. Caught on Windows and T540P in round eighteen."
   }
 ]
