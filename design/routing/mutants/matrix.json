@@ -983,8 +983,8 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "stat = path.lstat()",
     "new": "stat = path.stat()",
-    "verdict": "caught elsewhere",
-    "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.59s (0:01:10)",
+    "verdict": "SURVIVED",
+    "pytest": "312 passed, 1 skipped, 9 deselected, 16 subtests passed in 62.86s (0:01:02)",
     "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
     "results": [
       {
@@ -1002,8 +1002,12 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.59s (0:01:10)",
-        "skipped": 1
+        "pytest": "312 passed, 1 skipped, 9 deselected, 16 subtests passed in 62.86s (0:01:02)",
+        "skipped": 1,
+        "failed_nodeids": [],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
       }
     ]
   },
@@ -1246,8 +1250,8 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "        if stat_module.S_ISLNK(stat.st_mode):",
     "new": "        if False:",
-    "verdict": "caught elsewhere",
-    "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.83s (0:01:11)",
+    "verdict": "SURVIVED",
+    "pytest": "312 passed, 1 skipped, 9 deselected, 16 subtests passed in 60.16s (0:01:00)",
     "platform_evidence": "Caught by the existing symlink test under Ubuntu in WSL. Windows reports a survivor because that test skips without symlink privilege.",
     "results": [
       {
@@ -1265,8 +1269,12 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 71.83s (0:01:11)",
-        "skipped": 1
+        "pytest": "312 passed, 1 skipped, 9 deselected, 16 subtests passed in 60.16s (0:01:00)",
+        "skipped": 1,
+        "failed_nodeids": [],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
       }
     ]
   },
@@ -1306,8 +1314,8 @@
     "source": "anti-dark-code/scripts/adc_route.py",
     "old": "            entries.append((relative, size, mtime, f\"symlink:{target}:{topology}\"))",
     "new": "            entries.append((relative, size, mtime, f\"symlink:{topology}\"))",
-    "verdict": "caught elsewhere",
-    "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.55s (0:01:10)",
+    "verdict": "SURVIVED",
+    "pytest": "312 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.27s",
     "platform_evidence": "Also survived the existing symlink test under Ubuntu in WSL. The test checks the symlink marker but not the target text.",
     "note": "Codex reported this surviving under Ubuntu against the earlier symlink test, which asserted only the marker. That test now asserts the recorded target and retargets the link, so the Ubuntu result is stale. Unverified on a symlink-capable host.",
     "results": [
@@ -1326,8 +1334,12 @@
         "python": "3.14.2",
         "git": "git version 2.50.1.windows.1",
         "verdict": "SURVIVED",
-        "pytest": "300 passed, 1 skipped, 9 deselected, 14 subtests passed in 70.55s (0:01:10)",
-        "skipped": 1
+        "pytest": "312 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.27s",
+        "skipped": 1,
+        "failed_nodeids": [],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
       }
     ]
   },
@@ -2960,9 +2972,36 @@
     ],
     "old": "    (\"shipped script controls\", \"**/scripts/*.py\",",
     "new": "    (\"shipped script controls\", \"**/scripts/adc*.py\",",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "12 failed, 300 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.39s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "12 failed, 300 passed, 1 skipped, 9 deselected, 16 subtests passed in 58.39s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::CanonicalFullTests::test_force_full_runs_the_canonical_set_despite_include_globs",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_cheap_rule_that_fires_on_authority_is_refused",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_policy_grading_the_router_as_product_code_is_refused",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_a_rule_narrowed_to_the_probe_shape_is_refused",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_self_grading_path_class_forces_the_full_recipe",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shape_of_a_self_grading_change_forces_full",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_every_shipped_script_is_authority_by_location",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_shipped_policy_matches_the_canonical_authority_class_contract",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_source_only_authority_cannot_hide_the_installed_router",
+          "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_the_installed_policy_loads",
+          "anti-dark-code/tests/test_route.py::SubmoduleContractTests::test_so_the_route_forces_full"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-100. Every shipped Python script is verification authority by location, so a dynamically constructed helper name or future loader cannot bypass the full route. Awaiting authoritative host records."
   },
   {
@@ -2974,9 +3013,25 @@
     ],
     "old": "    for name in (\"PYTEST_ADDOPTS\", \"PYTEST_PLUGINS\", \"PYTEST_DEBUG\",\n                 \"PYTHONPATH\"):",
     "new": "    for name in (\"PYTEST_PLUGINS\", \"PYTEST_DEBUG\",\n                 \"PYTHONPATH\"):",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 57.98s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 57.98s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-101. A worker must reject caller pytest options and plugin paths; rootdir alone does not stop code outside the clone from changing collection or outcomes. Awaiting authoritative host records."
   },
   {
@@ -2988,9 +3043,25 @@
     ],
     "old": "        token = (character.encode(\"unicode_escape\").decode(\"ascii\")\n                 if category in {\"Cc\", \"Cf\", \"Zl\", \"Zp\"} else character)",
     "new": "        token = character",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.15s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.15s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_validator_renders_control_characters_before_truncating"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-102. An inconclusive worker diagnostic remains useful, but control and format characters must become visible escapes before the 2,000-character boundary reaches the console. Awaiting authoritative host records."
   },
   {
@@ -3002,9 +3073,25 @@
     ],
     "old": "    if jobs == 1 and write and serial_status_before:\n        # Read-only serial replay deliberately remains useful on a labelled\n        # dirty tree. Only matrix publication requires a clean endpoint.\n        print(f\"--write refused before serial replay: working tree differs from \"\n              f\"HEAD in {len(serial_status_before)} path(s)\")\n        outcome = 2",
     "new": "    if False:\n        # Read-only serial replay deliberately remains useful on a labelled\n        # dirty tree. Only matrix publication requires a clean endpoint.\n        print(f\"--write refused before serial replay: working tree differs from \"\n              f\"HEAD in {len(serial_status_before)} path(s)\")\n        outcome = 2",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.55s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.55s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_write_refuses_an_initially_dirty_tree_before_any_row"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-103. Read-only serial replay may describe a dirty tree, but a dirty starting endpoint must refuse --write before any mutation row runs. Awaiting authoritative host records."
   },
   {
@@ -3016,9 +3103,25 @@
     ],
     "old": "        dirty = worktree_status(repo_root)\n        if dirty:\n            # D-103: a clean start is not enough. Handoff edits can land while\n            # a serial run is mutating and restoring sources. Recheck after\n            # every row and before the matrix becomes the authoritative record.",
     "new": "        dirty = worktree_status(repo_root)\n        if False:\n            # D-103: a clean start is not enough. Handoff edits can land while\n            # a serial run is mutating and restoring sources. Recheck after\n            # every row and before the matrix becomes the authoritative record.",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.38s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.38s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_serial_write_refuses_new_dirt_before_matrix_publication"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-103. A clean start cannot authorize publication if the tree changes while rows run; the final endpoint is checked immediately before the matrix write. Awaiting authoritative host records."
   },
   {
@@ -3030,9 +3133,25 @@
     ],
     "old": "        if not result.get(\"skipped\") or not isinstance(skipped_nodeids, list) or \\\n                not skipped_nodeids or failed_elsewhere.isdisjoint(skipped_nodeids):\n            return \"SURVIVED\"",
     "new": "        if not result.get(\"skipped\"):\n            return \"SURVIVED\"",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.21s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "1 failed, 311 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.21s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_a_skipped_survivor_needs_exact_catching_test_attribution"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-104. A skipped survivor may rest on another host only when one exact skipped node id is an exact failed node id there; a count or unrelated skip cannot soften the finding. Awaiting authoritative host records."
   },
   {
@@ -3044,9 +3163,26 @@
     ],
     "old": "    return [sys.executable, \"-m\", \"pytest\", \"-p\", OUTCOME_PLUGIN_MODULE,\n            *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
     "new": "    return [sys.executable, \"-m\", \"pytest\",\n            *paths, \"-q\", \"-k\", INTEGRITY_FILTER]",
-    "verdict": "unverified",
-    "pytest": "not run",
-    "results": [],
+    "verdict": "caught",
+    "pytest": "2 failed, 310 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.56s",
+    "results": [
+      {
+        "platform": "Windows",
+        "release": "11",
+        "python": "3.14.2",
+        "git": "git version 2.50.1.windows.1",
+        "verdict": "caught",
+        "pytest": "2 failed, 310 passed, 1 skipped, 9 deselected, 16 subtests passed in 56.56s",
+        "skipped": 1,
+        "failed_nodeids": [
+          "anti-dark-code/tests/test_route.py::ReplayStructuredEvidenceTests::test_replay_collects_exact_failed_and_skipped_nodeids",
+          "anti-dark-code/tests/test_route.py::ReplayParallelCloneTests::test_worker_suite_refuses_pytest_code_injected_from_outside_its_clone"
+        ],
+        "skipped_nodeids": [
+          "anti-dark-code/tests/test_route.py::AcquisitionAgainstRealGitTests::test_a_symlink_is_identified_not_followed"
+        ]
+      }
+    ],
     "note": "D-104. Exact failed and skipped identities come from a tracked plugin loaded explicitly under disabled autoload; an absent collector makes the row inconclusive rather than silently falling back to counts. Awaiting authoritative host records."
   }
 ]
