@@ -4978,6 +4978,36 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         for _, path in self.route.SELF_GRADING_PATHS:
             self.assertTrue(self._route_for(path, policy).force_full, path)
 
+    # Scripts that adc.py loads by path at runtime. ENGINEERING section 12
+    # promises that a newly imported helper fails this table closed until
+    # reviewed, and the classifier reaches a helper only through the
+    # `**/scripts/adc*.py` name. Measured before D-097 with every rule
+    # approved: anti-dark-code/scripts/receipt_store.py, a name adc.py could
+    # load tomorrow, took the Level 2 product route in the source and installed
+    # spellings, and nothing derived the loaded set. A script named here is a
+    # reviewed standalone tool that adc.py must not load.
+    REVIEWED_STANDALONE_SCRIPTS = frozenset({"work_receipt.py"})
+
+    def test_every_script_adc_loads_is_authority_by_name(self) -> None:
+        scripts = SKILL_ROOT / "scripts"
+        adc_text = (scripts / "adc.py").read_text(encoding="utf-8")
+        self.assertIn("**/scripts/adc*.py",
+                      {glob for _, glob, *_ in self.route.AUTHORITY_CLASSIFIERS})
+        problems = []
+        for script in sorted(scripts.glob("*.py")):
+            name = script.name
+            if name.startswith("adc") and name.endswith(".py"):
+                continue
+            named = any(f"{quote}{token}{quote}" in adc_text
+                        for quote in ('"', "'") for token in (name, script.stem))
+            if name not in self.REVIEWED_STANDALONE_SCRIPTS:
+                problems.append(f"{name} is not authority by name and is not a "
+                                "reviewed standalone script")
+            elif named:
+                problems.append(f"{name} is a reviewed standalone script, "
+                                "but adc.py names it")
+        self.assertEqual([], problems, "; ".join(problems))
+
 
 class SubmoduleContractTests(unittest.TestCase):
     """R-017 and R-019 for gitlinks, against a real submodule.

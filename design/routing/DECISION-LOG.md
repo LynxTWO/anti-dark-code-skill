@@ -113,6 +113,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-094 | 2026-09-01 | A stronger guard supersedes a redundant mutation row | Confirmed | |
 | D-095 | 2026-09-02 | An unskipped local survivor is a survivor on every host | Confirmed | |
 | D-096 | 2026-09-02 | A parallel replay requires a clean coordinator tree | Confirmed | |
+| D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Confirmed | |
 
 ---
 
@@ -2773,3 +2774,48 @@ That limitation is recorded here, not fixed.
 Revisit when:
 The report records the working-tree status and a reviewer prefers a labelled
 dirty run to a refusal; or serial replay gains the same refusal.
+
+## D-097: A helper that adc.py loads is authority by its name
+
+Date: 2026-09-02
+Status: Confirmed
+Area: M3, R-005, R-021, D-093, ENGINEERING section 12
+
+Context:
+ENGINEERING section 12 names "any imported helper that can change collection,
+hashing, validation, selection, execution, installation, or distribution" as
+a self-grading class and promises that a newly imported helper not
+represented in the path table "makes the table test fail closed until
+reviewed". Nothing derived the loaded set. The classifier reaches helpers
+only through `**/scripts/adc*.py`, a naming convention, so the promise held
+for the three helpers that happen to carry that name.
+
+Measured with every rule approved in memory:
+`anti-dark-code/scripts/receipt_store.py`, a name adc.py could load tomorrow,
+routed as Level 2 product code with `force_full` false, in both the source
+and the `.claude` installed spelling. `work_receipt.py`, the one script
+outside the convention, is a standalone transcript summarizer that adc.py
+never names; it routes the same way and is not a self-grading class, which is
+why it had not been a hole.
+
+Decision:
+`test_every_script_adc_loads_is_authority_by_name` enumerates
+`anti-dark-code/scripts/*.py`. A script is either authority by name, matching
+`adc*.py`, or it is in `REVIEWED_STANDALONE_SCRIPTS` and adc.py must not
+name it. Any other script fails the table. The test also asserts that the
+canonical `**/scripts/adc*.py` classifier is present.
+
+Because:
+The naming convention is the only link between a loaded helper and the
+authority classifier. Making the convention executable is what turns the
+section 12 promise from prose into a gate.
+
+Consequences:
+A helper added under another name fails the suite in the commit that adds it,
+until it is renamed or reviewed into the standalone set. The standalone set
+can only hold scripts adc.py does not name. No route changes for any path in
+the current tree.
+
+Revisit when:
+adc.py gains an import mechanism the text scan cannot see, or a helper must
+carry a non-`adc` name for a reason a reviewer accepts.

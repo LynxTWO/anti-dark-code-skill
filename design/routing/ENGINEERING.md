@@ -373,7 +373,7 @@ Modes and standing rules per the core skill. The additions specific to this subs
 - `.github/workflows/**`, `.github/CODEOWNERS`, `.gitattributes`, `.gitignore`, `.gitmodules`, and any future Python project or lock file
 - `test_route.py`, shared test fixtures such as a future `conftest.py`, and any mutation, fuzz, or validator harness used to grade a router change
 
-The path table has one test per class. A newly imported helper or newly authoritative config that is not represented makes the table test fail closed until reviewed.
+The path table has one test per class. A newly imported helper or newly authoritative config that is not represented makes the table test fail closed until reviewed. The helper half of that sentence was prose until D-097: `test_every_script_adc_loads_is_authority_by_name` now requires every script under `anti-dark-code/scripts/` to be authority by its `adc*` name or a reviewed standalone script that `adc.py` never names.
 
 ## 13. Observability
 
