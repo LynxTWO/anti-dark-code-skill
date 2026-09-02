@@ -3819,12 +3819,13 @@ class ReplayParallelCloneTests(unittest.TestCase):
                 REPO_ROOT / "design/routing/mutants/exact_nodeid_plugin.py", plugin)
             site_marker = root / "usercustomize-ran.txt"
             pth_marker = root / "pth-ran.txt"
+            default_marker = root / "default-usercustomize-ran.txt"
             ini_marker = root / "ini-plugin-ran.txt"
             userbase = root / "userbase"
             import sysconfig
-            user_site = Path(sysconfig.get_path(
-                "purelib", scheme="nt_user" if os.name == "nt" else "posix_user",
-                vars={"userbase": str(userbase)}))
+            scheme = "nt_user" if os.name == "nt" else "posix_user"
+            user_site = Path(sysconfig.get_path("purelib", scheme=scheme,
+                                                vars={"userbase": str(userbase)}))
             user_site.mkdir(parents=True)
             (user_site / "usercustomize.py").write_text(
                 "import pathlib\n"
@@ -3833,6 +3834,20 @@ class ReplayParallelCloneTests(unittest.TestCase):
             (user_site / "zz_probe.pth").write_text(
                 "import pathlib; "
                 f"pathlib.Path({str(pth_marker)!r}).write_text('ran', encoding='utf-8')\n",
+                encoding="utf-8")
+            # The interpreter's *default* user base, which no variable names:
+            # %APPDATA%\Python on Windows and ~/.local elsewhere. Popping
+            # PYTHONUSERBASE cannot reach this one; only disabling the user
+            # site does. The profile is redirected into the fixture so the real
+            # one is never touched.
+            profile = root / "profile"
+            default_base = (profile / "Python") if os.name == "nt" else (profile / ".local")
+            default_site = Path(sysconfig.get_path("purelib", scheme=scheme,
+                                                   vars={"userbase": str(default_base)}))
+            default_site.mkdir(parents=True)
+            (default_site / "usercustomize.py").write_text(
+                "import pathlib\n"
+                f"pathlib.Path({str(default_marker)!r}).write_text('ran', encoding='utf-8')\n",
                 encoding="utf-8")
             (attacker / "external_adc_plugin.py").write_text(
                 "import pathlib\n"
@@ -3844,7 +3859,9 @@ class ReplayParallelCloneTests(unittest.TestCase):
 
             harness._WORKER_SUITE_CWD = coordinator
             harness._WORKER_TEMP_ROOT = private
-            with mock.patch.dict(os.environ, {"PYTHONUSERBASE": str(userbase)}):
+            redirected = {"PYTHONUSERBASE": str(userbase),
+                          "APPDATA": str(profile), "HOME": str(profile)}
+            with mock.patch.dict(os.environ, redirected):
                 os.environ.pop("PYTHONNOUSERSITE", None)
                 code, summary, skipped = harness.run_suite(("test_probe.py",), clone)
 
@@ -3853,6 +3870,8 @@ class ReplayParallelCloneTests(unittest.TestCase):
             self.assertRegex(summary, r"^1 passed in ")
             self.assertFalse(site_marker.exists(), "usercustomize.py ran inside the worker")
             self.assertFalse(pth_marker.exists(), "a .pth import line ran inside the worker")
+            self.assertFalse(default_marker.exists(),
+                             "the default user site's usercustomize.py ran inside the worker")
             self.assertFalse(ini_marker.exists(),
                              "a plugin named by an ancestor pytest.ini ran inside the worker")
 
