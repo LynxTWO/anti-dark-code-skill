@@ -346,7 +346,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-050 | index-byte, linked-worktree index, hard-link, and symlink boundary mutation table | `test_route.py` |
 | R-051 | repository-wide object format plus real source-specific conflict grammar | named tests in `requirement-evidence.json`; M47 is caught and the plain raw conflict form is accepted |
 | R-052 | direct, replaced, built, copied, and hinted Route immutability table | named tests in `requirement-evidence.json`; mutable proxy backing is copied |
-| R-053 | data-driven replay of all 92 stored mutations | `mutants/`; 88 active and 4 superseded, with 85 caught on both recorded hosts and 3 caught on Linux where Windows skips; source restoration is hash-verified by D-068 |
+| R-053 | data-driven replay of all 95 stored mutations | `mutants/`; 91 active and 4 superseded. Full Windows replay at this head: 95 rows, 0 not caught. 83 active rows carry both hosts, 8 carry Windows only pending a T540P run, and 3 are caught on Linux where Windows skips the symlink test. Source restoration is hash-verified by D-068 |
 | R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
 
@@ -416,6 +416,8 @@ The path table has one test per class. A newly imported helper or newly authorit
 | U-014 | Per-call width inference or one status-side table disagrees with repository Git output | valid conflicts block or mixed repository identity is accepted | R-051 and D-044 | Open |
 | U-015 | A future round removes an id from the `untraced` list and maps it to a test that collects but does not exercise the clause | the traceability gate reports progress that did not happen, which is exactly how D-070 arose | the guard cannot check this; `REVIEWED_UNTRACED` in `test_route.py` is a review record, and shrinking it needs a named reviewer (D-071) | Open |
 | U-016 | A gate restores both the bytes and the timestamp of a file it changed while running | a gate result is accepted against content that is not in the tree | out of scope for before-and-after sampling; recorded in D-077 rather than claimed as covered | Open |
+| U-017 | The candidate-route copies of the union lines M02 through M05 and M40 hold are not covered by a mutation row | a shadow measurement is wrong without anything noticing | shadow-only by construction: a CandidateRoute reaches neither receipt authority nor executable gate selection (D-087) | Open |
+| U-018 | A repository configures a filter driver whose name defeats the `-c` override in a way `--get` also misreports | repository code runs during acquisition | the neutralization is verified against effective configuration rather than assumed, and the worktree comparison is skipped when any driver survives it (D-085) | Watching |
 | A-001 to A-003 | see section 4.2 | | | Open |
 
 ## 17. Definition of Done

@@ -2264,3 +2264,209 @@ M88 continues to hold the stale condition. A proposed gate that needs repository
 
 Revisit when:
 A real reviewed gate cannot avoid writing into its verification target and the owner is prepared to change R-018 rather than weaken it silently.
+## D-085: Filter neutralization is verified, not assumed
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, R-034, R-054, K-01, N-08, D-079
+
+Context:
+`_filter_overrides` neutralizes every content filter the repository declares by emitting `-c filter.<name>.clean=` and the smudge, process, and required companions. Git splits a `-c` argument on the **first** `=`. A driver named `a=b` therefore produced `-c filter.a=b.clean=`, which git read as the key `filter.a` with the value `b.clean=`, leaving `filter."a=b".clean` untouched.
+
+A repository reaches such a driver from its own `.gitattributes` with `*.txt filter=a=b`, and `git check-attr` resolves it: `payload.txt: filter: a=b`.
+
+Measured against the real `read_change_inputs`, with the payload writing outside the worktree so the acquisition boundary could not notice it:
+
+    driver 'plain'   program executed: False   complete=True   problems=()
+    driver 'a=b'     program executed: True    complete=True   problems=()
+
+So repository-controlled code executed during acquisition, and the snapshot still called itself complete with no problems, which means a selective route would also have been authorised. Both halves of R-034 and R-054 failed at once, and the boundary fingerprint did not backstop it because a payload writing anywhere outside the repository leaves no trace inside it.
+
+D-079 had just repaired the *test* that was supposed to hold this clause. The test was inert; the code underneath it was also wrong. Fixing the test is what made the code reachable to review.
+
+Decision:
+Verify the neutralization rather than assume it. After building the overrides, re-read each discovered driver's `clean`, `smudge`, and `process` keys with the overrides applied. Any key that still resolves to a non-empty value is reported, acquisition records `ADC-ROUTE-FILTER-UNNEUTRALIZED`, and **the worktree comparison is not run at all**.
+
+Skipping the comparison is the point. Refusing to route afterwards would already have started the program: the guarantee these requirements state is that no repository program starts, not merely that no shortcut is granted.
+
+The check uses `config --get`, not `--get-regexp`. A `-c` override does not replace a file's value, it adds one, and `--get-regexp` lists both, so the neutralized key came back carrying its original program beside the empty override and every ordinary driver read as live. `--get` returns the value git would actually use. The key travels as an ordinary argument rather than half of a `-c` pair, so a name containing `=` reaches it intact.
+
+Because:
+The bug was in a string built from an attacker-influenced name, and the class of such bugs is not closed by escaping one character. Asking git what it will actually do closes the class: any future spelling that defeats the override is reported by the same check, without anyone having to anticipate it.
+
+This is the third time a fixed list or a constructed string was the wrong shape here. `core.fsmonitor` was closed, then `diff.external`, then filters were discovered rather than listed. Discovery was right and its execution was still wrong.
+
+Consequences:
+A repository whose filter driver cannot be neutralized does not get a worktree comparison, so its snapshot is incomplete and the full recipe is forced. That is a real loss of routing precision for such a repository, and it is the correct trade: the alternative is executing its code.
+
+An ordinary driver such as git-lfs is unaffected, and `test_an_ordinary_filter_still_allows_a_complete_snapshot` holds that counterexample. M93 and M94 hold the refusal and the `--get` semantics.
+
+The cost was measured, not estimated. Acquisition went from a fixed number of git subprocesses to `1 + 3N` extra in the number of configured filter drivers: one discovery call, then a `config --get` for each driver's `clean`, `smudge` and `process`. On this repository, which has one globally configured driver, that is 12 git calls to 16 and 0.400s to 0.472s, a median increase of 18 percent. A synthetic repository with 25 drivers went from 0.225s to 1.771s. The growth is linear and the constant is a subprocess, so a repository with many drivers pays visibly. One `config --list` would answer in a single call and is the obvious optimisation if that ever matters.
+
+Revisit when:
+Git gains a way to disable content filters wholesale, which would replace discovery and override with one flag.
+
+## D-086: The self-grading guard covers every prefix the installer writes
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071, D-078, D-082
+
+Context:
+D-082 extended the self-grading guard from source-layout paths to the managed installed layout by deriving a second spelling under `.agents/skills/`. `adc.py` defines four such prefixes in `HOST_SKILL_TREE_PREFIXES`: `.agents/skills`, `.claude/skills`, `.gemini/skills`, and `.codex/skills`. `install_skill` writes instruction authority to `.claude/skills/anti-dark-code/SKILL.md` whenever hosts is `all` or the default `auto` and a `.claude` directory or `CLAUDE.md` exists.
+
+Measured: a policy that splits the shipped `**/SKILL.md` classifier entry into exactly the two spellings the guard probed **loaded clean**, and `.claude/skills/anti-dark-code/SKILL.md` then routed at Level 0 with `force_full` false in all 72 change shapes, including a delete.
+
+This is the fourth correction to this guard and the second of its exact kind: D-078 replaced one sampled fact shape with the whole cross-product, and the path set stayed a literal enumeration that the product's own installer already outran.
+
+Decision:
+`INSTALLED_SKILL_PREFIXES` names all four prefixes, and every source path under `anti-dark-code/` is probed under each. `test_the_guard_covers_every_installer_prefix` compares that tuple against `adc.HOST_SKILL_TREE_PREFIXES` and fails if they drift.
+
+`adc.py` is not imported by `adc_route.py`. The router is the thing the installer installs, and a dependency in that direction is a cycle. The list is therefore a deliberate copy with a test that makes the copy honest.
+
+Because:
+A guard whose coverage is a literal list needs something that fails when the list falls behind. Every previous correction to this guard added coverage; none added a way to notice the next gap. The drift test is the part that generalizes.
+
+Consequences:
+Nineteen probe paths become forty-three. The load-time cost is unchanged in kind and remains far below the fingerprint the same command runs.
+
+The residual is a fifth prefix. `TOOLING_PATH_PREFIXES` also names `.anti-dark-code/`, which holds calibration rather than a skill tree; the drift test covers only the skill-tree set, and a future host prefix added to `adc.py` will fail that test rather than pass silently.
+
+Revisit when:
+The installer supports a prefix that is not a skill tree, or the drift test fails.
+## D-087: A mutation target must match exactly one place
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, S-014, S-050, R-053, D-068
+
+Context:
+`replay.py` applies a row with `original.replace(old, new, 1)`. One occurrence is rewritten. The matrix integrity guard added in round ten checks that a row's original text is *present* in its source, and presence is not the same question.
+
+**Five** active rows matched two places each in a committed state. M02, M03, M04, M05 and M40 name lines that exist in `build_route` and again in `build_candidate_route` or `CandidateRoute.__post_init__`, which round twelve added. Each row mutated the `build_route` copy, left the candidate copy running, and reported `caught`. The matrix therefore recorded coverage of lines that nothing had tested.
+
+A sixth, M91, was ambiguous only inside this round. It was made so by this round's own commit `30c577c`, where `_live_filter_programs` copied the driver-discovery loop out of `_filter_overrides`. The first version of this decision said "one round earlier by this branch", which read as round fourteen's doing. It was round fifteen's, an hour before the guard that caught it, and replaying the uniqueness rule over `afdc2b4` and `57e941f` shows five ambiguous rows at both, not six.
+
+Decision:
+`test_every_mutant_target_occurs_exactly_once` fails on any active row whose text matches more than once. Superseded rows are exempt, because they describe a tree that no longer exists.
+
+The rows are repaired two different ways, according to why they were ambiguous:
+
+- M91's duplication was removed. `_filter_driver_names` is now the one discovery, called by both the override builder and the verification.
+- M02 through M05 and M40 are anchored to the `build_route` copy they were always testing, with enough surrounding text to be unique, and each note says so.
+
+Because:
+A guard that checks presence answers "can this row be applied" and reads as if it answered "does this row hold its line". The distance between those two questions is exactly where five rows sat. Removing a duplicate is better than anchoring around it, so the one case where deduplication was available took it.
+
+Anchoring is a documentation change, not a behavioural one. Applying the pre-anchor and post-anchor text of all five rows to the same source produces byte-identical mutants, because `build_route` and `Route.__post_init__` already preceded their candidate twins and `replace(old, new, 1)` was always rewriting them. What the anchoring buys is that the row now says which copy it tests, and the uniqueness guard can hold it there.
+
+Consequences:
+The candidate-route copies of those five lines are not held by a mutation row. They are shadow-only: a `CandidateRoute` cannot reach receipt authority or executable gate selection, so a defect there is a measurement error rather than a skipped check. That is recorded as U-017 rather than closed.
+
+This is the second guard on this branch that checked an adjacent property rather than the property. D-078 records the first.
+
+Revisit when:
+The candidate builder's union logic is unified with `build_route`, which would remove the duplication and let the original rows cover both paths again.
+## D-088: Neutralize through the environment, and refuse only what that cannot reach
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, R-034, R-054, D-085
+
+Context:
+D-085 stopped repository code executing during acquisition by verifying the neutralization and skipping the worktree comparison when any driver survived it. That is safe and it has a cost: a repository whose driver name the `-c` form cannot express never gets a worktree comparison, so unstaged paths never reach its receipt's `changed_files`.
+
+Measured, before this decision:
+
+    ordinary repository: complete=True   sources=['unstaged']
+    refused repository : complete=False  sources=[]
+
+Routing was unaffected, because an incomplete snapshot forces the full recipe either way. The record was poorer, and the only remedy available to that repository was renaming its driver.
+
+Three alternatives were measured rather than argued.
+
+No command can enumerate changed paths without converting content. `diff --raw`, `ls-files -m`, `status --porcelain` and `diff --name-only` all ran the filter; only `check-attr` did not. So there is no cheap stat-only fallback.
+
+A scoped pathspec exclusion does work: `check-attr` identifies which paths select the driver, and excluding them keeps records for everything else without executing anything. It was rejected. With a repository-wide `* filter=X` attribute it excludes everything and collapses back to refusing, and it trades an absolute guarantee, that the converting command is never run, for a conditional one, that the command was run but told to skip those paths.
+
+`GIT_CONFIG_COUNT` with numbered `GIT_CONFIG_KEY_n` and `GIT_CONFIG_VALUE_n` pairs carries the key and the value separately, so no name is inexpressible. Measured against a driver named `a=b`: the effective `filter.a=b.clean` becomes empty, the diff exits 0, and the program does not run.
+
+Decision:
+Neutralize through the environment when this module owns the runner. Verify the result with the same `--get` check D-085 introduced, and fall back to D-085's refusal when a driver is still live.
+
+A caller that injected its own runner gets the refusal instead. There is no way to add an environment to a runner this code did not build, and assuming it worked is exactly the assumption D-085 exists to remove.
+
+No git version check is made. Git before 2.31 ignores these variables, and the verification catches that with no help. A version test could disagree with the measurement about the thing the measurement already settled.
+
+Because:
+The refusal was a correct answer to a question that had a better one. Keeping it as the fallback means the guarantee never depends on the environment form being right, so this adds precision without moving the safety floor.
+
+Consequences:
+A repository whose driver name contains `=` now keeps its worktree comparison, and the record loss described above is gone.
+
+Acquisition costs `1 + 3N` extra git subprocesses in the number of configured drivers: one discovery call, then a `config --get` per driver for `clean`, `smudge` and `process`. Measured here, with one globally configured driver, 12 git calls became 16 and 0.400s became 0.472s. A synthetic repository with 25 drivers went from 0.225s to 1.771s. Growth is linear and the constant is a subprocess; one `config --list` would answer in a single call if that ever matters.
+
+`_live_filter_programs` treats an unreadable key as live. The runner reports any nonzero exit as `None`, which covers both "not set" and "git refused the command", and those are opposite answers.
+
+Revisit when:
+Git gains a way to disable content filters wholesale, or the per-driver cost shows up in a real repository.
+
+## D-089: Calibration is authority, and it lives outside the skill tree
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M3, R-005, R-021, D-071, D-078, D-082, D-086
+
+Context:
+D-086 extended the self-grading guard to the layouts the installer writes by deriving a spelling under each host prefix for every path starting `anti-dark-code/`. Two entries did not start that way. The gate configuration and the routing policy were already spelled `.agents/skills/anti-dark-code/calibration/...`, so the derivation never touched them, and calibration was probed in exactly one spelling of the five `adc.py` enumerates.
+
+`adc.calibration_dir()` returns `.anti-dark-code/calibration` whenever a managed install is absent, which is the ordinary case for a repository that has not installed the skill into a host tree.
+
+Measured: narrow the shipped `**/calibration/*.json` classifier entry to the one probed spelling, grade the others cheaply, and the policy loads. `.anti-dark-code/calibration/routing-policy.json` — the router's own policy file — then routes at Level 0 in all 36 measured shapes.
+
+Separately, the shipped calibration templates under `anti-dark-code/assets/templates/calibration/` were absent from the list entirely. `initialize_calibration` copies them into every fresh install, so they decide what an installing repository routes, and the same technique put them below the full recipe.
+
+D-086's own Consequences section named this residual and dismissed it: "TOOLING_PATH_PREFIXES also names `.anti-dark-code/`, which holds calibration rather than a skill tree". That distinction was the error. Calibration is the authority; where it lives is incidental.
+
+Decision:
+Derive spellings two ways, because a path can move for two independent reasons. A file inside the skill tree moves when the tree is installed under a host prefix. A calibration file moves when there is no managed install at all, independently of any host prefix. `CALIBRATION_ROOTS` covers `.anti-dark-code/calibration/` plus the four skill-tree calibration directories, and any probe path containing `/calibration/` is derived under each.
+
+The shipped calibration templates join `SELF_GRADING_PATHS`.
+
+Because:
+This is the fifth correction to this guard, and the first four each added coverage for the shape of the attack in front of them: classification instead of outcome, one sampled fact shape, one hardcoded prefix, then one prefix list. A rule that says how a path can move outlives the next attack in a way that a longer list does not.
+
+Consequences:
+Forty-three probe paths become more, and the load-time cost stays far below the fingerprint the same command runs.
+
+The residual, stated rather than dismissed this time: the derivation is keyed on the literal segment `/calibration/`. A future authority directory with a different name would need its own rule, and `test_the_guard_covers_every_installer_prefix` holds only the skill-tree half against `adc.HOST_SKILL_TREE_PREFIXES`.
+
+Revisit when:
+`calibration_dir()` gains another fallback, or authority moves into a directory this rule does not name.
+
+## D-090: A decision id cited in code must exist
+
+Date: 2026-08-31
+Status: Confirmed
+Area: M2, M3, D-088, D-089
+
+Context:
+D-088 and D-089 were referenced by four comments in `adc_route.py`, four in `test_route.py`, and three places in the round-sixteen handoff, while neither existed in the decision log. Codex found it as the first act of round sixteen, before any of the verification that round was handed.
+
+The round-sixteen handoff also told its reader to begin with `HANDOFF-BACK-ROUND-FIFTEEN.md`, which had never been written.
+
+A comment reading "See D-088" where there is no D-088 is worse than no comment. It asserts that a rationale was recorded and reviewed, and a reader who goes looking finds nothing and cannot tell whether the decision was lost, renamed, or never made.
+
+Nothing caught this. `RequirementTraceabilityTests` resolves R-ids and test node ids against real sources; no check resolved D-ids, and the suite passed at 436 with eight dangling references in it.
+
+Decision:
+`test_every_referenced_decision_exists` collects every `D-0\d\d` mentioned in the router sources, the tests, and the design documents, and fails on any that has no `## D-0xx` heading in `DECISION-LOG.md`.
+
+Because:
+The project's own rule is that a claim names its evidence. A decision id is a claim that evidence exists at a known address, and it is the cheapest kind to check.
+
+Consequences:
+A decision must be written before, or in the same change as, the first code that cites it. Writing the code first and the decision later is what happened here, and the gap survived a full suite, a validation run, a 95-row mutation replay, and a five-agent adversarial audit.
+
+Revisit when:
+Decision ids gain a second home, or a document deliberately references a decision from another repository.

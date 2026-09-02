@@ -354,6 +354,28 @@ _DIFF_FLAGS = (
 )
 
 
+def _filter_driver_names(run) -> tuple[str, ...]:
+    """Every filter driver name the repository can see, in one place.
+
+    Both the override builder and the verification read this. They read it from
+    one function rather than two copies because a copy is a second thing to
+    keep in step, and because two identical discovery loops made a mutation row
+    ambiguous: `replay.py` replaces the first occurrence only, so the row
+    mutated one copy, left the other running, and still reported caught. See
+    D-087.
+    """
+    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
+    if not payload:
+        return ()
+    names: set[str] = set()
+    for line in payload.decode("utf-8", "replace").splitlines():
+        key = line.split(" ", 1)[0]
+        parts = key.split(".")
+        if len(parts) >= 3 and parts[0] == "filter":
+            names.add(".".join(parts[1:-1]))
+    return tuple(sorted(names))
+
+
 def _filter_overrides(run) -> list[str]:
     """Neutralize every content filter this repository can see.
 
@@ -367,17 +389,8 @@ def _filter_overrides(run) -> list[str]:
     failed twice: core.fsmonitor was closed, then diff.external, and filters
     were still open. This enumerates what the repository actually declares.
     """
-    payload = run([*_GIT_ISOLATION, "config", "--get-regexp", r"^filter\."])
     overrides: list[str] = []
-    if not payload:
-        return overrides
-    names: set[str] = set()
-    for line in payload.decode("utf-8", "replace").splitlines():
-        key = line.split(" ", 1)[0]
-        parts = key.split(".")
-        if len(parts) >= 3 and parts[0] == "filter":
-            names.add(".".join(parts[1:-1]))
-    for name in sorted(names):
+    for name in _filter_driver_names(run):
         overrides.extend([
             "-c", f"filter.{name}.clean=",
             "-c", f"filter.{name}.smudge=",
@@ -385,6 +398,59 @@ def _filter_overrides(run) -> list[str]:
             "-c", f"filter.{name}.required=false",
         ])
     return overrides
+
+
+# Filter keys that name a program. `required` is a flag, not a command.
+_FILTER_PROGRAM_SUFFIXES = ("clean", "smudge", "process")
+
+
+def _live_filter_programs(run, overrides: Sequence[str]) -> tuple[str, ...]:
+    """Which filter programs are still configured once the overrides apply.
+
+    The overrides are built by interpolating a driver name into `-c key=value`,
+    and git splits that argument on the FIRST `=`. A driver named `a=b`
+    therefore produces `-c filter.a=b.clean=`, which git reads as the key
+    `filter.a` with the value `b.clean=`, leaving `filter."a=b".clean` live. A
+    repository reaches such a driver from `.gitattributes` with
+    `*.txt filter=a=b`, and git-check-attr resolves it.
+
+    Measured before this check existed: a driver named `a=b` executed during
+    acquisition while the snapshot reported `complete=True` with no problems,
+    so repository code ran and a selective route was still authorised.
+
+    The neutralization is therefore verified rather than assumed. Re-reading
+    the effective configuration with the overrides applied is the only check
+    that cannot be fooled by however a name is spelled, and it closes the whole
+    class rather than the one character that opened it. See D-085.
+    """
+    live: list[str] = []
+    for name in _filter_driver_names(run):
+        for suffix in _FILTER_PROGRAM_SUFFIXES:
+            key = f"filter.{name}.{suffix}"
+            # `--get`, not `--get-regexp`. A `-c` override does not replace the
+            # file's value, it adds one, and `--get-regexp` lists both: the
+            # neutralized key came back carrying its original program beside
+            # the empty override. `--get` returns the value git would actually
+            # use, which is the question being asked. The key is an argument
+            # here rather than part of a `-c` pair, so a name containing `=`
+            # reaches it intact.
+            value = run([*_GIT_ISOLATION, *overrides, "config", "--get", key])
+            if value is None:
+                # The runner reports any nonzero exit as None, which covers
+                # both "this key is not set" and "git refused the command".
+                # Those are opposite answers, and only one of them is safe.
+                # A driver name that makes the override itself malformed, such
+                # as one beginning with `=`, reaches here: git rejects the
+                # whole invocation, the key looks absent, and the check would
+                # report clean while the driver is still live. Today the same
+                # malformed override also aborts the diff before any
+                # conversion, so nothing executes, but that is the diff failing
+                # rather than this check working. Treat unreadable as live.
+                live.append(key)
+                continue
+            if value.decode("utf-8", "replace").strip():
+                live.append(key)
+    return tuple(sorted(set(live)))
 
 
 def _isolated(args: Sequence[str], extra: Sequence[str] = ()) -> list[str]:
@@ -518,11 +584,42 @@ class ChangeSnapshot:
         return self.base_resolved and not self.problems
 
 
-def _default_runner(repo: Path):
+def _filter_config_env(names: Sequence[str]) -> dict[str, str]:
+    """Neutralize every named driver through the environment.
+
+    `-c key=value` splits on the first `=`, so a driver whose name contains one
+    cannot be written that way at all. `GIT_CONFIG_COUNT` with numbered
+    `GIT_CONFIG_KEY_n` and `GIT_CONFIG_VALUE_n` pairs carries the key and the
+    value separately, so every name is expressible. Measured against a driver
+    named `a=b`: the effective `filter.a=b.clean` becomes empty and the program
+    does not run.
+
+    Git before 2.31 ignores these variables entirely. No version check is made,
+    because the caller verifies the result either way and falls back to
+    refusing the comparison when a driver is still live. A check that could
+    disagree with the measurement would be a second opinion about the thing
+    already being measured. See D-088.
+    """
+    environment: dict[str, str] = {}
+    index = 0
+    for name in names:
+        for suffix, value in (("clean", ""), ("smudge", ""),
+                              ("process", ""), ("required", "false")):
+            environment[f"GIT_CONFIG_KEY_{index}"] = f"filter.{name}.{suffix}"
+            environment[f"GIT_CONFIG_VALUE_{index}"] = value
+            index += 1
+    if index:
+        environment["GIT_CONFIG_COUNT"] = str(index)
+    return environment
+
+
+def _default_runner(repo: Path, extra_env: Mapping[str, str] | None = None):
     def run(args: list[str]) -> bytes | None:
         try:
             environment = dict(os.environ)
             environment["GIT_OPTIONAL_LOCKS"] = "0"
+            if extra_env:
+                environment.update(extra_env)
             # A partial clone fetches a missing object on demand, so a read can
             # reach the network and write an object. fetch.negotiationAlgorithm
             # only chooses a negotiation strategy and prevents nothing; this is
@@ -558,6 +655,28 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     # filter driver. The other three read objects or names and are safe by
     # construction; paying for discovery on them would be theatre.
     worktree_isolation = _filter_overrides(run)
+    # Checked here, before any command that converts content. A driver this
+    # cannot neutralize must never be run past, and refusing to route is not
+    # sufficient: the guarantee R-034 and R-054 state is that no repository
+    # program starts, not merely that no shortcut is granted. The worktree
+    # comparison is therefore skipped entirely rather than run defensively.
+    unneutralized = _live_filter_programs(run, worktree_isolation)
+    worktree_run = run
+    if unneutralized and runner is None:
+        # The `-c` form cannot express these names. Environment config can, so
+        # try it and measure the result rather than assuming it worked: an old
+        # git ignores the variables, and the same verification catches that.
+        #
+        # Only when this function owns the runner. A caller that injected one
+        # gets the refusal instead, because there is no way to add an
+        # environment to a runner this code did not build, and guessing would
+        # be the assumption D-085 exists to remove. See D-088.
+        environment_run = _default_runner(
+            repo, _filter_config_env(_filter_driver_names(run)))
+        if not _live_filter_programs(environment_run, ()):
+            worktree_run = environment_run
+            worktree_isolation = ()
+            unneutralized = ()
 
     # A zero exit is not proof of a usable base. Whitespace, an empty result,
     # or several ids all reached here as "resolved" with an empty or ambiguous
@@ -578,8 +697,8 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     snapshot_width: list[int | None] = [len(merge_base) if merge_base else None]
 
     def collect(args: list[str], source: str, unreadable_code: str,
-                extra: Sequence[str] = ()) -> None:
-        payload = run(_isolated(args, extra))
+                extra: Sequence[str] = (), using=None) -> None:
+        payload = (using or run)(_isolated(args, extra))
         if payload is None:
             problems.append(unreadable_code)
             return
@@ -602,9 +721,16 @@ def read_change_inputs(repo: Path, base: str, runner=None) -> ChangeSnapshot:
     # unstaged records together and count every staged change twice. This is
     # the one comparison that reads worktree bytes, so it carries the filter
     # overrides and refuses an external text converter.
-    collect(["diff", *_DIFF_FLAGS, "--no-textconv"],
-            "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE",
-            extra=worktree_isolation)
+    if unneutralized:
+        # Not run at all. Running it and reporting afterwards would already
+        # have started the program this exists to prevent, and the boundary
+        # fingerprint only notices a write inside the repository, so a payload
+        # writing anywhere else leaves no trace. See D-085.
+        problems.append("ADC-ROUTE-FILTER-UNNEUTRALIZED")
+    else:
+        collect(["diff", *_DIFF_FLAGS, "--no-textconv"],
+                "unstaged", "ADC-ROUTE-UNSTAGED-UNREADABLE",
+                extra=worktree_isolation, using=worktree_run)
 
     untracked = run(_isolated(["ls-files", "--others", "--exclude-standard", "-z"]))
     if untracked is None:
@@ -740,6 +866,10 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
      ".agents/skills/anti-dark-code/calibration/gates.json"),
     ("routing policy",
      ".agents/skills/anti-dark-code/calibration/routing-policy.json"),
+    ("shipped gate template",
+     "anti-dark-code/assets/templates/calibration/gates.json"),
+    ("shipped policy template",
+     "anti-dark-code/assets/templates/calibration/routing-policy.json"),
     ("routing-owning pass reference",
      "anti-dark-code/references/00-preflight.md"),
     ("continuous integration", ".github/workflows/tests.yml"),
@@ -749,16 +879,69 @@ SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
 )
 
 
+# Every repository-relative prefix the installer can write a skill tree to.
+# This must agree with HOST_SKILL_TREE_PREFIXES in adc.py, and
+# `test_the_guard_covers_every_installer_prefix` fails if it drifts. adc.py is
+# not imported here: the router is the thing the installer installs, and a
+# dependency in that direction is a cycle.
+#
+# One prefix was covered before D-086, `.agents/skills/`. The installer writes
+# instruction authority to `.claude/skills/anti-dark-code/SKILL.md` on its
+# default host selection, and that path was not probed, so a policy naming only
+# the two probed spellings loaded clean and routed a change to it at Level 0.
+INSTALLED_SKILL_PREFIXES = (
+    ".agents/skills/",
+    ".claude/skills/",
+    ".codex/skills/",
+    ".gemini/skills/",
+)
+
+
+# Where calibration can live. Not the same question as where a skill tree can
+# live, and getting that wrong is what D-089 records: `adc.calibration_dir()`
+# returns `.anti-dark-code/calibration` for any repository with no managed
+# install, so the router's own policy and gate files sit outside every skill
+# tree in exactly the common case.
+CALIBRATION_MARKER = "/calibration/"
+CALIBRATION_ROOTS = (
+    ".anti-dark-code/calibration/",
+    *(f"{prefix}anti-dark-code/calibration/"
+      for prefix in INSTALLED_SKILL_PREFIXES),
+)
+
+
 def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
-    """Source-tree paths plus the paths produced by the managed installer."""
+    """Every spelling of every self-grading path, in any supported layout.
+
+    Two derivations, because a path can move for two different reasons. A file
+    inside the skill tree moves when the tree is installed under a host prefix.
+    A calibration file moves independently of that: `calibration_dir()` falls
+    back to `.anti-dark-code/calibration` when no managed install exists.
+
+    D-086 derived only the first, and the two calibration entries already
+    carried a `.agents/skills/` spelling, so the loop never touched them.
+    Measured: a policy narrowing the calibration glob to that one probed
+    spelling loaded clean, and `.anti-dark-code/calibration/routing-policy.json`
+    then routed at Level 0 in every shape. That is the router's own policy file,
+    in the location most repositories will actually use. See D-089.
+    """
+    seen: set[str] = set()
     paths: list[tuple[str, str]] = []
+
+    def add(label: str, path: str) -> None:
+        if path not in seen:
+            seen.add(path)
+            paths.append((label, path))
+
     for label, path in SELF_GRADING_PATHS:
-        paths.append((label, path))
+        add(label, path)
         if path.startswith("anti-dark-code/"):
-            paths.append((
-                f"{label}, installed layout",
-                f".agents/skills/{path}",
-            ))
+            for prefix in INSTALLED_SKILL_PREFIXES:
+                add(f"{label}, installed under {prefix}", f"{prefix}{path}")
+        if CALIBRATION_MARKER in path:
+            leaf = path.rsplit(CALIBRATION_MARKER, 1)[1]
+            for root in CALIBRATION_ROOTS:
+                add(f"{label}, calibration under {root}", f"{root}{leaf}")
     return tuple(paths)
 
 # What counts as grading a path as authority. `verification-authority` is the

@@ -150,19 +150,21 @@ Per EDD section 5: ChangeInput, ChangeFact, Rule, Receipt, and Omission in full 
 - [x] `validate --skill anti-dark-code --mode universal` reported `VALID (universal): 0 errors, 1 warning(s)`. The warning lists generated `__pycache__` files and is expected.
 - [x] The clean distribution archive check passed in required run `33402328694` at `157f10a1b2f0bc1c65e3e1ea92ed49d37316c987`.
 - [x] The 30 K, L, and N findings have a per-id closure record below. Twelve retain direct passing-after verdicts, N-08 closes under D-079, and 17 name the successor finding and requirement that carries their substance.
-- [x] Every stored mutation is replayable from data. The matrix has 92 rows, 88 active and 4 superseded. Every active row has Linux and Windows results; none survives. The replay harness restored all five mutation source files to their exact pre-run hashes (D-068). M92 separately holds the managed-install portability correction.
+- [~] Every stored mutation is replayable from data. The matrix has 95 rows, 91 active and 4 superseded. A full Windows replay at this head reported `95 mutants, 0 not caught`, and the `Mutation replay (Linux)` job in the PR 25 CI run replays every row on Linux and fails on any survivor. The per-row record is not yet complete on both hosts: 83 active rows carry Windows and Linux verdicts, and 8 added or retargeted in round fifteen (M02 through M05, M40, M93 through M95) carry Windows only and await a T540P run. Three rows are `caught elsewhere`, held by a symlink test Windows skips. The harness restored every mutation source to its exact pre-run hash (D-068).
 
 ### K, L, and N closure ledger
 
 The old failing verdicts remain in their original handoffs. A successor row closes the substance without rewriting that historical verdict.
 
+One row does not close. K-01 asked for a guarantee wider than any requirement now states, and the ledger says so rather than citing the unqualified wording of R-054. Reading a row as "closed" when its successor narrowed the claim is the failure this ledger exists to prevent.
+
 | Finding | Failing-before record | Passing-after or successor closure |
 |---|---|---|
-| K-01 | `HANDOFF-BACK-PURE-LAYER.md` | L-01, then R-043 and R-054; D-060 supplies the real missing-promisor transport. |
+| K-01 | `HANDOFF-BACK-PURE-LAYER.md` | Narrowed, not closed as asked. K-01 expected that no repository-configured program starts; the requirement that carries it is **R-034**, which claims every *known* configured program. The lazy-fetch half went to L-01 and R-043, with D-060 supplying the real missing-promisor transport. D-085 closed one such unknown: a driver whose name contains `=` escaped the override and executed. U-009 stays open. |
 | K-02 | `HANDOFF-BACK-PURE-LAYER.md` | Round five reproduced it as closed. |
 | K-03 | `HANDOFF-BACK-PURE-LAYER.md` | L-04, then N-02 and R-049. |
-| K-04 | `HANDOFF-BACK-PURE-LAYER.md` | L-03, then N-01 and R-049. |
-| K-05 | `HANDOFF-BACK-PURE-LAYER.md` | L-06, then N-04 and R-051. |
+| K-04 | `HANDOFF-BACK-PURE-LAYER.md` | L-04, then N-02 and R-049; the Level 0 recipe case is held under R-036. |
+| K-05 | `HANDOFF-BACK-PURE-LAYER.md` | L-06, then N-04 and R-051; the score, mode and null-side cases are held under R-037 and R-046. |
 | K-06 | `HANDOFF-BACK-PURE-LAYER.md` | Round five reproduced it as closed. |
 | K-07 | `HANDOFF-BACK-PURE-LAYER.md` | Round five reproduced it as closed. |
 | K-08 | `HANDOFF-BACK-PURE-LAYER.md` | L-05, then R-047. |

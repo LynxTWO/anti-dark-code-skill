@@ -975,6 +975,88 @@ class AcquisitionAgainstRealGitTests(unittest.TestCase):
             sentinel.exists(),
             "a globally configured content filter ran during acquisition")
 
+    def test_a_filter_name_containing_an_equals_cannot_run(self) -> None:
+        """D-085. `-c key=value` splits on the FIRST `=`.
+
+        A driver named `a=b` made the override land on `filter.a`, leaving
+        `filter."a=b".clean` live. Measured before the fix: the program ran
+        during acquisition and the snapshot still reported complete with no
+        problems, so repository code executed and a selective route was still
+        authorised.
+        """
+        sentinel = self._install_filter("a=b")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        # Staging above legitimately ran the driver. Only acquisition is under
+        # test.
+        sentinel.unlink(missing_ok=True)
+
+        # Prove the fixture: git really does resolve this driver name.
+        resolved = subprocess.run(
+            ["git", "-C", str(self.repo), "check-attr", "filter", "payload.txt"],
+            capture_output=True, text=True, timeout=60).stdout
+        self.assertIn("filter: a=b", resolved,
+                      "the fixture did not configure the driver under test")
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(
+            sentinel.exists(),
+            "a filter whose name contains '=' ran during acquisition")
+        # D-088: the environment form expresses this name, so the comparison
+        # runs and the record is kept. Nothing is refused and nothing is lost.
+        self.assertNotIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
+        self.assertTrue(snap.complete, f"problems: {snap.problems}")
+        self.assertIn("unstaged", {row.source for row in snap.inputs})
+
+    def test_an_injected_runner_refuses_rather_than_guessing(self) -> None:
+        # D-088. The environment neutralization needs a runner this module
+        # built. A caller that injected one gets the D-085 refusal instead,
+        # because adding an environment to someone else's runner is not
+        # possible and assuming it worked is the thing D-085 removed.
+        sentinel = self._install_filter("x=y")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        sentinel.unlink(missing_ok=True)
+
+        injected = self.route._default_runner(self.repo)
+        snap = self.route.read_change_inputs(
+            self.repo, "base-ref", runner=injected)
+
+        self.assertFalse(sentinel.exists(),
+                         "the fallback let the driver run")
+        self.assertIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
+        self.assertFalse(snap.complete)
+
+    def test_the_environment_form_expresses_a_name_dash_c_cannot(self) -> None:
+        # The unit the fallback rests on, stated separately so a failure says
+        # which half broke.
+        env = self.route._filter_config_env(["a=b"])
+        self.assertEqual("4", env["GIT_CONFIG_COUNT"])
+        self.assertEqual("filter.a=b.clean", env["GIT_CONFIG_KEY_0"])
+        self.assertEqual("", env["GIT_CONFIG_VALUE_0"])
+        self.assertEqual({}, self.route._filter_config_env([]))
+
+    def test_an_ordinary_filter_still_allows_a_complete_snapshot(self) -> None:
+        # The counterexample. git-lfs installs filter.lfs.*, and a check that
+        # refused every repository with a filter would be useless.
+        sentinel = self._install_filter("ordinary")
+        (self.repo / "payload.txt").write_text("one\n", encoding="utf-8")
+        self._git("add", "payload.txt")
+        self._git("commit", "-qm", "payload")
+        (self.repo / "payload.txt").write_text("two\n", encoding="utf-8")
+        sentinel.unlink(missing_ok=True)
+
+        snap = self.route.read_change_inputs(self.repo, "base-ref")
+
+        self.assertFalse(sentinel.exists())
+        self.assertNotIn("ADC-ROUTE-FILTER-UNNEUTRALIZED", snap.problems)
+        self.assertTrue(snap.complete, f"problems: {snap.problems}")
+
     def test_a_boundary_violation_is_detected_and_reported(self) -> None:
         """The list of neutralized keys cannot be proven complete.
 
@@ -3304,6 +3386,97 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                         escaped.append(f"{path} as {kind}/{source}")
         self.assertEqual([], escaped, "; ".join(escaped[:8]))
 
+    def test_the_guard_covers_every_installer_prefix(self) -> None:
+        # D-086. The guard's prefix list is a copy of the installer's, and a
+        # copy drifts. This is what makes the drift fail rather than quietly
+        # leave a layout unprobed: the installer wrote instruction authority to
+        # .claude/skills/anti-dark-code/SKILL.md while the guard probed only
+        # .agents/skills/.
+        adc = load_adc()
+        installer = {"/".join(prefix) + "/"
+                     for prefix in adc.HOST_SKILL_TREE_PREFIXES}
+        guard = set(self.route.INSTALLED_SKILL_PREFIXES)
+        self.assertEqual(
+            installer, guard,
+            "the self-grading guard and the installer disagree about where a "
+            "skill tree can live")
+
+    def test_every_calibration_root_is_probed(self) -> None:
+        # D-089. Calibration moves for a different reason than the skill tree:
+        # adc.calibration_dir() falls back to .anti-dark-code/calibration when
+        # no managed install exists, which is the common case. D-086 derived
+        # only skill-tree spellings, and the two calibration entries already
+        # carried one, so they gained nothing.
+        probed = {path for _, path in self.route._self_grading_guard_paths()}
+        for root in self.route.CALIBRATION_ROOTS:
+            for leaf in ("gates.json", "routing-policy.json"):
+                self.assertIn(f"{root}{leaf}", probed)
+        self.assertIn(".anti-dark-code/calibration/routing-policy.json", probed)
+
+    def test_a_policy_naming_only_one_calibration_spelling_is_refused(self) -> None:
+        # Measured before D-089: this loaded, and
+        # .anti-dark-code/calibration/routing-policy.json -- the router's own
+        # policy file -- then routed at Level 0 in every shape.
+        data = json.loads(json.dumps(self.policy_source))
+        surfaces = []
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "**/calibration/*.json":
+                narrowed = dict(entry)
+                narrowed["glob"] = ".agents/skills/anti-dark-code/calibration/*.json"
+                surfaces.append(narrowed)
+            else:
+                surfaces.append(entry)
+        # Narrowing alone leaves the other spellings unmapped, and an unmapped
+        # path forces full on its own. The attack has to also grade them
+        # cheaply, which is what the shipped `**/calibration/*.json` entry was
+        # preventing for one spelling out of five.
+        surfaces.append({"glob": ".anti-dark-code/calibration/*.json",
+                         "surface": "docs", "effect": "prose",
+                         "breadth": "leaf"})
+        data["classifier"]["surfaces"] = surfaces
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn(".anti-dark-code/calibration/", str(caught.exception))
+
+    def test_the_shipped_calibration_templates_are_self_grading(self) -> None:
+        # initialize_calibration copies these into every fresh install, so they
+        # decide what an installing repository will route. They were absent
+        # from the list entirely.
+        probed = {path for _, path in self.route._self_grading_guard_paths()}
+        for leaf in ("gates.json", "routing-policy.json"):
+            path = f"anti-dark-code/assets/templates/calibration/{leaf}"
+            self.assertIn(path, probed)
+            self.assertTrue((REPO_ROOT / path).is_file())
+
+    def test_every_installed_spelling_of_skill_policy_is_probed(self) -> None:
+        probed = {path for _, path in self.route._self_grading_guard_paths()}
+        for prefix in self.route.INSTALLED_SKILL_PREFIXES:
+            self.assertIn(f"{prefix}anti-dark-code/SKILL.md", probed)
+
+    def test_a_policy_naming_only_one_installed_spelling_is_refused(self) -> None:
+        # Before D-086 this policy loaded, and a change to
+        # .claude/skills/anti-dark-code/SKILL.md then routed at Level 0 in all
+        # 72 shapes -- a file this repository's own installer writes.
+        data = json.loads(json.dumps(self.policy_source))
+        surfaces = []
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "**/SKILL.md":
+                for spelling in ("anti-dark-code/SKILL.md",
+                                 ".agents/skills/anti-dark-code/SKILL.md"):
+                    narrowed = dict(entry)
+                    narrowed["glob"] = spelling
+                    surfaces.append(narrowed)
+            else:
+                surfaces.append(entry)
+        data["classifier"]["surfaces"] = surfaces
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn(".claude/skills/", str(caught.exception))
+
     def test_an_unmapped_self_grading_path_is_not_a_load_failure(self) -> None:
         # Unmapped carries confidence unknown, which forces full already. The
         # guard exists for the path that is classified and classified cheaply,
@@ -3639,6 +3812,67 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
                     f"original text is absent from {row['source']}. Either the "
                     "row is stale, or that file is holding the mutant.")
         self.assertEqual([], missing, "; ".join(missing))
+
+    def test_every_referenced_decision_exists(self) -> None:
+        """D-090. A comment citing a decision asserts one was recorded.
+
+        D-088 and D-089 were cited by four comments in `adc_route.py`, four in
+        `test_route.py`, and three places in a handoff while neither existed.
+        The suite passed at 436, validation was clean, 95 mutation rows were
+        caught, and a five-agent audit ran, all with eight dangling references
+        in the tree. Nothing resolved a decision id, so nothing could notice.
+        """
+        log = (REPO_ROOT / "design" / "routing"
+               / "DECISION-LOG.md").read_text(encoding="utf-8")
+        recorded = set(re.findall(r"^## (D-\d{3})", log, re.M))
+        self.assertTrue(recorded, "the decision log has no decision headings")
+
+        sources = [
+            SKILL_ROOT / "scripts" / "adc_route.py",
+            SKILL_ROOT / "scripts" / "adc_receipt.py",
+            SKILL_ROOT / "scripts" / "adc.py",
+            SKILL_ROOT / "tests" / "test_route.py",
+            SKILL_ROOT / "tests" / "test_receipt.py",
+            SKILL_ROOT / "tests" / "test_route_cli.py",
+        ]
+        sources.extend(sorted((REPO_ROOT / "design" / "routing").glob("*.md")))
+
+        dangling: list[str] = []
+        for path in sources:
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            if path.name == "DECISION-LOG.md":
+                # Its own headings are the definitions, and a superseded entry
+                # may legitimately discuss an id it does not define.
+                continue
+            for cited in sorted(set(re.findall(r"\bD-\d{3}\b", text))):
+                if cited not in recorded:
+                    dangling.append(f"{path.name} cites {cited}")
+        self.assertEqual([], sorted(set(dangling)), "; ".join(sorted(set(dangling))))
+
+    def test_every_mutant_target_occurs_exactly_once(self) -> None:
+        """Presence is not enough: `replay.py` mutates the first site only.
+
+        `original.replace(old, new, 1)` rewrites one occurrence. A row whose
+        text appears twice therefore mutates one site, leaves the other
+        running, and still reports caught, so the matrix claims coverage of a
+        line nothing tested. Six active rows were in that state before D-087,
+        including one added the round before by a function that copied a loop.
+        """
+        ambiguous = []
+        for row in self.rows:
+            if row.get("superseded_by"):
+                continue
+            source = REPO_ROOT / row["source"]
+            if not source.is_file():
+                continue
+            found = source.read_text(encoding="utf-8").count(row["old"])
+            if found > 1:
+                ambiguous.append(
+                    f"{row['id']} ({row['name']}) matches {found} places in "
+                    f"{row['source']}; replay would mutate only the first")
+        self.assertEqual([], ambiguous, "; ".join(ambiguous))
 
     def test_no_row_records_a_mutant_as_the_current_source(self) -> None:
         """The narrower half, stated separately so a failure names the danger.
