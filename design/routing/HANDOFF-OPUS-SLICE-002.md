@@ -45,9 +45,9 @@ Every item that touches `adc.py`, `adc_route.py`, the workflow, or the calibrati
 - The definitions in the brief's sections 2 to 6 are the contract. Changing one silently is the self-grading defect this slice exists to prevent.
 - Stop at the end of M6 and write the handoff back. Do not start SLICE-003.
 
-## Ask the owner before M4
+## The owner's decisions, taken 2026-09-03
 
-Section 13's open decisions: N and D, the storage option, whether backfill may count, and the canary cadence. M1 to M3 do not depend on them; M4 to M6 do. Present the brief's option table and stop for the answer.
+Section 13 of the brief records them, so nothing in M4 to M6 waits on a question: the criterion is option 1, N of 30, A of 1, D of 30 days with two authors; storage is option A with the recomputing ingest; `docs-only` is not narrowed before counting, so the first canary records the expected miss and the narrowing is decided on that record; backfill informs and never counts toward N; one canary per class key. Build to them. Stop for the owner only if implementing one shows it wrong, and say what you measured.
 
 ## Left open by the design challenge
 
