@@ -4772,7 +4772,7 @@
     "verdict": "pending",
     "pytest": "",
     "results": [],
-    "note": "D-118. The canonical installed entry reaches every nested scripts directory of an installing repository again, which is the D-107 width, and the shipped policy no longer carries the canonical entry. Pending the next authoritative two-host replay."
+    "note": "D-118. The canonical installed entry reaches every nested scripts directory of an installing repository again, which is the D-107 width. Caught through the load-time contract: the shipped policy still carries the canonical entry, so load_policy refuses it and every self-grading test errors before routing; the width itself is held by test_nested_consumer_scripts_are_product_code_and_shipped_scripts_are_authority when a matching policy is supplied. Pending the next authoritative two-host replay."
   },
   {
     "id": "M116",
@@ -4786,6 +4786,34 @@
     "verdict": "pending",
     "pytest": "",
     "results": [],
-    "note": "D-118. The installed spelling must cover every prefix the installer writes (D-086), not one representative. Pending the next authoritative two-host replay."
+    "note": "D-118. The installed spelling must cover every prefix the installer writes (D-086), not one representative. Caught through the load-time contract, as M115 is; with a matching policy the D-086 prefix guard refuses the installed router under .claude/skills/ independently. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M117",
+    "name": "contract stops requiring the source scripts entry",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        in AUTHORITY_CLASSIFIERS\n        if (glob, surface, effect, breadth, sensitivity) not in actual\n    ]",
+    "new": "        in AUTHORITY_CLASSIFIERS\n        if (glob, surface, effect, breadth, sensitivity) not in actual\n        and label != \"shipped script controls, source\"\n    ]",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-118, found by the round-twenty-one challenger: this mutant survived the whole suite at 6930274, because the only test of its kind covered the installed half and the bare-glob assertion matched a substring of the installed glob. Under it the D-093 exact-representative policy loads and routes work_receipt.py as Level 2. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M118",
+    "name": "a case variant of an authority path is not a collision",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        if _authority_case_collision(fact.path) is not None:\n            # D-119",
+    "new": "        if False and _authority_case_collision(fact.path) is not None:\n            # D-119",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-119. ANTI-DARK-CODE/scripts/adc_route.py then routes as Level 2 product code again, the route a pull onto a case-insensitive checkout would grade the replaced router with. Pending the next authoritative two-host replay."
   }
 ]

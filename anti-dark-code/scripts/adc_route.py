@@ -1025,6 +1025,30 @@ AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
 )
 
 
+def _authority_case_collision(path: str) -> str | None:
+    """The canonical authority glob a case variant of `path` would match.
+
+    D-119. Classification is case-sensitive and stays so (R-040): the router
+    never rewrites a path. But a case-insensitive checkout writes
+    `ANTI-DARK-CODE/scripts/adc_route.py` over the genuine router, and the
+    D-118 authority globs name the directory, so that variant matched only
+    the cheap `**/scripts/*.py` product entry and routed as Level 2 product
+    code. Measured with real git: a commit carrying that path from a
+    case-sensitive host was graded product code and, pulled onto an NTFS
+    clone, replaced the router on disk. A path whose case-folded spelling
+    would match a canonical authority glob that the path itself does not
+    match is therefore a collision with that authority: the route forces
+    full and names the reason, and the facts stay exactly as classified.
+    """
+    folded = path.casefold()
+    for _label, glob, *_ in AUTHORITY_CLASSIFIERS:
+        if fnmatch.fnmatchcase(path, glob):
+            continue
+        if fnmatch.fnmatchcase(folded, glob.casefold()):
+            return glob
+    return None
+
+
 def _check_authority_classifier_contract(
     classifier: Mapping[str, Any], rules: Sequence["ValidatedRule"],
 ) -> None:
@@ -1356,6 +1380,12 @@ def build_route(
             unmapped.add(fact.path)
             unknowns.add("ADC-ROUTE-UNMAPPED-PATH")
             force_full = True
+        if _authority_case_collision(fact.path) is not None:
+            # D-119: a case variant of an authority path is routed as a
+            # collision with that authority. The facts stay as classified;
+            # only the route escalates, and the receipt names why.
+            unknowns.add("ADC-ROUTE-AUTHORITY-CASE-COLLISION")
+            force_full = True
         fired = False
         for rule in rules:
             if not _fact_matches(fact, rule.match_map()):
@@ -1427,6 +1457,10 @@ def build_candidate_route(
 
     for fact in facts:
         if fact.confidence == "unknown":
+            force_full = True
+        if _authority_case_collision(fact.path) is not None:
+            # Shadow side of D-119: a candidate must not measure a cheaper
+            # route for a collision than the real route refuses.
             force_full = True
         fired = False
         for rule in policy.rules:

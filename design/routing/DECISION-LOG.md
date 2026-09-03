@@ -135,6 +135,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-116 | 2026-09-02 | The harness line closes on a stopping rule, not on a quiet round | Open | |
 | D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
 | D-118 | 2026-09-02 | Verification authority for scripts is the shipped skill's own directory, in every spelling | Confirmed | |
+| D-119 | 2026-09-02 | A case variant of an authority path routes as a collision with it | Confirmed | |
 
 ---
 
@@ -3741,9 +3742,66 @@ An installing repository's own `scripts/*.py` files are product code unless
 its policy says otherwise. A copy of the skill installed under a directory
 not named `anti-dark-code` is outside both spellings; the installer never
 writes one and the self-grading guard does not probe one, so this narrows
-nothing the guard proves. This is a router change, so under D-116 it gets
-one verifying round, round twenty-one, after which the line stops again.
+nothing the guard proves. Two nuances the round-twenty-one challenger
+measured: a consumer file named `adc.py` or `adc_receipt.py` under any
+`scripts/` directory is still forced full by the template's two older
+name-based entries, and a file nested below `anti-dark-code/scripts/` is
+authority because `fnmatch` lets `*` cross a slash, which is wider than
+"directly under" and fail-closed. A case variant of the directory name was
+the real hole, and D-119 closes it. This is a router change, so under D-116
+it gets one verifying round, round twenty-one, after which the line stops
+again.
 
 Revisit when:
 The installer gains a configurable directory name, or a second shipped
 scripts directory appears.
+
+## D-119: A case variant of an authority path routes as a collision with it
+
+Date: 2026-09-02
+Status: Confirmed
+Area: R-040, D-093, D-116, D-118, `build_route`, `build_candidate_route`,
+M118
+
+Context:
+R-040 makes path classification case-sensitive without rewriting literal
+characters, so an upper-cased spelling of an authority path falls through
+the classifier. Before D-118 that cost nothing, because the wide
+`**/scripts/*.py` entry made `ANTI-DARK-CODE/scripts/adc_route.py`
+authority anyway. D-118's entries name the directory, so the round-twenty-one
+challenger measured that variant, and `.agents/skills/ANTI-DARK-CODE/...`,
+matching only the cheap `**/scripts/*.py` product entry and routing as
+Level 2 product code in all 36 change shapes, where the parent commit had
+forced full. With real git it then showed the consequence: a commit carrying
+`ANTI-DARK-CODE/scripts/adc_route.py` with replaced content, the shape a
+commit from a case-sensitive host takes, was graded product code by the
+router, and pulling it onto an NTFS clone wrote the replaced file over the
+genuine `anti-dark-code/scripts/adc_route.py` with `git status` showing the
+genuine path modified. The same shape reaches `.GITATTRIBUTES` and every
+other canonical class.
+
+Decision:
+Both route builders ask, for every fact, whether the path's case-folded
+spelling would match a canonical authority glob that the path itself does
+not match. If so, the route forces full and records
+`ADC-ROUTE-AUTHORITY-CASE-COLLISION`. The classifier is unchanged: no
+character is rewritten and no fact changes, so R-040 stands as written and
+the receipt names the reason. M118 disables the check.
+
+Because:
+A route may never be cheaper for a spelling that a checkout can write over
+the authority the spelling imitates. Folding case in the classifier would
+change every fact on every host; folding it in one escalating check changes
+nothing except that the cheap route is refused.
+
+Consequences:
+A case variant of any canonical authority path takes the full recipe with a
+named reason. Hosts whose filesystems are case-sensitive pay the same,
+because the route is computed before anyone knows where the commit will be
+checked out. A repository that legitimately carries two paths differing only
+in case inside an authority directory is forced full on the variant, which
+is the correct direction.
+
+Revisit when:
+Git gains collision protection the router can read, or the canonical globs
+gain characters whose case folding is not one-to-one.

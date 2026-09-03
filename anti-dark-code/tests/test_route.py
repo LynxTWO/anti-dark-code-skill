@@ -5271,7 +5271,11 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("anti-dark-code/scripts/*.py", str(caught.exception))
+        # The label, not the bare glob: the source glob is a substring of the
+        # installed one, so the bare glob could not tell the halves apart.
+        message = str(caught.exception)
+        self.assertIn("shipped script controls, source (anti-dark-code/scripts/*.py)", message)
+        self.assertIn("shipped script controls, installed (**/anti-dark-code/scripts/*.py)", message)
 
     def test_one_authority_reference_cannot_cover_two_cheap_ones(self) -> None:
         data = json.loads(json.dumps(self.policy_source))
@@ -5307,6 +5311,23 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
         self.assertIn("**/anti-dark-code/scripts/*.py", str(caught.exception))
+
+    def test_installed_only_authority_cannot_hide_the_source_router(self) -> None:
+        # D-118, the twin of the test above for the source half. The
+        # round-twenty-one challenger found a mutant that stopped the contract
+        # requiring the source entry surviving the whole suite: with only the
+        # installed entry required, the D-093 exact-representative policy
+        # loaded and routed work_receipt.py and adc_efficiency.py as Level 2.
+        data = json.loads(json.dumps(self.policy_source))
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "anti-dark-code/scripts/*.py":
+                entry["glob"] = "anti-dark-code/scripts/adc_route.py"
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn("shipped script controls, source (anti-dark-code/scripts/*.py)",
+                      str(caught.exception))
 
     def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
         # The classifier is untouched here, so a guard that checked only the
@@ -5569,6 +5590,45 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                 if not self._route_for(path, policy).force_full:
                     demoted.append(path)
         self.assertEqual([], demoted, "; ".join(demoted))
+
+    def test_a_case_variant_of_an_authority_path_forces_full(self) -> None:
+        """D-119. Classification stays case-sensitive (R-040); the route never gets cheaper.
+
+        Measured at 6930274 by the round-twenty-one challenger, with every
+        rule approved: ANTI-DARK-CODE/scripts/adc_route.py matched the cheap
+        **/scripts/*.py product entry and neither D-118 authority glob, so it
+        routed as Level 2 product code, where the old wide entry had made it
+        authority. With real git, a commit carrying that path from a
+        case-sensitive host was graded product code and, pulled onto an NTFS
+        clone, replaced the genuine router on disk.
+        """
+        policy = self._approved_policy()
+        variants = ("ANTI-DARK-CODE/scripts/adc_route.py",
+                    "Anti-Dark-Code/scripts/work_receipt.py",
+                    ".agents/skills/ANTI-DARK-CODE/scripts/adc_route.py",
+                    "ANTI-DARK-CODE/scripts/new_tool.py",
+                    ".GITATTRIBUTES",
+                    "anti-dark-code/TESTS/test_route.py")
+        for path in variants:
+            snapshot = self.route.ChangeSnapshot(
+                inputs=(self.route.ChangeInput(
+                    path=path, change_kind="modify", source="unstaged"),),
+                base="HEAD", base_resolved=True, problems=())
+            facts = self.route.collect_change_facts(snapshot, policy.classifier_map())
+            # R-040: the classifier never folds case, so no fact is authority.
+            self.assertFalse(
+                any(fact.effect == "verification-authority" for fact in facts), path)
+            route = self.route.build_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(route.force_full, path)
+            self.assertIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", route.unknowns, path)
+        # The genuine spelling is authority without the collision code, and an
+        # ordinary consumer script is neither.
+        genuine = self._route_for("anti-dark-code/scripts/adc_route.py", policy)
+        self.assertTrue(genuine.force_full)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", genuine.unknowns)
+        consumer = self._route_for("tools/scripts/build.py", policy)
+        self.assertFalse(consumer.force_full)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", consumer.unknowns)
 
 
 class SubmoduleContractTests(unittest.TestCase):
