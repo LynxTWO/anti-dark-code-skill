@@ -1,0 +1,506 @@
+{
+  "schema": "round-twenty-one-serial-evidence-v1",
+  "purpose": "The verifying round D-116 gives the D-118 router change: both hosts' records refreshed at the round-twenty-one head from two full serial --write replays, Windows and WSL2 Ubuntu, merged per platform, with the read-only Windows parallel replay at the same head",
+  "implementation_commit": "fe350e92ce4082f6c4c57813d37bead32cac2367",
+  "reopened_under": "D-116, condition (c): the router code changed (D-118); one round verifies the change and stops",
+  "measurements_at_6930274": {
+    "reading": "the round's first head, carrying D-118 before the fresh-context challenge; the challenger broke D-118 with a case variant of the directory name and found the source half of the contract unheld, so the head was superseded by the D-119 repair and these runs are measurements, not records",
+    "windows_parallel": {
+      "commit": "69302743231fea27f830ccc22ad68b267eb5f29f",
+      "exit_code": 0,
+      "summary": "116 mutants, 0 not caught: none",
+      "report_sha256": "c588eab2cf7afc251136e36a35547fd1f64228ce8bf6f6f897f1fb07c50764f7",
+      "wall_duration_seconds": 1050
+    },
+    "linux_serial_write": {
+      "commit": "69302743231fea27f830ccc22ad68b267eb5f29f",
+      "exit_code": 0,
+      "summary": "116 mutants, 0 not caught: none",
+      "report_sha256": "b651c7ebb9970e22b3caffdddcc5e23edfd40cad419eece52098391c5ae9f28c",
+      "wall_duration_seconds": 1314
+    },
+    "windows_serial_write": "stopped after the head went stale; no report"
+  },
+  "measurements_at_5872e92": {
+    "reading": "the round's second head, carrying D-119 and the source-half contract test; the second fresh-context challenger broke D-119's stated property with an NTFS short-name component and a case variant of a policy-declared authority entry, and found the candidate-side check untested, so the head was superseded by the D-120 repair and these runs are measurements, not records",
+    "windows_parallel": {
+      "commit": "5872e922fc6ff5bf4f7f3e879ffc50fb194871c1",
+      "exit_code": 0,
+      "summary": "118 mutants, 0 not caught: none",
+      "report_sha256": "fec709b61c9c5c8ea18e8fbbe6143f9f314ebc7175dee3c64ad41bcf7d027cf4",
+      "wall_duration_seconds": 1049
+    },
+    "linux_serial_write": {
+      "commit": "5872e922fc6ff5bf4f7f3e879ffc50fb194871c1",
+      "exit_code": 0,
+      "summary": "118 mutants, 0 not caught: none",
+      "report_sha256": "cb4951115137e8492a46d3478aa32c1f736790eb3619a7651ce96ba96d30e23d",
+      "wall_duration_seconds": 1341
+    },
+    "windows_serial_write": "stopped after the head went stale; no report"
+  },
+  "measurements_at_38cdff8": {
+    "reading": "the round's third head, carrying D-120; the third fresh-context challenger upheld D-120 on NTFS with real git and found the fold set's two edges and three surviving mutants of its own, so the head was superseded by the D-121 repair and these runs are measurements, not records",
+    "windows_parallel": {
+      "commit": "38cdff8e0d7b67843a4e08c0870651debf2db02f",
+      "exit_code": 0,
+      "summary": "122 mutants, 0 not caught: none",
+      "report_sha256": "be082e64b0cd892a8f8c2cc9f47c97c2caa4a4df5359d088115f537c645a81ca",
+      "wall_duration_seconds": 1074
+    },
+    "linux_serial_write": {
+      "commit": "38cdff8e0d7b67843a4e08c0870651debf2db02f",
+      "exit_code": 0,
+      "summary": "122 mutants, 0 not caught: none",
+      "report_sha256": "7e4e54e93c5f932ba57256dccd80357895763f75e224cfb6e6eda086defe1ca9",
+      "wall_duration_seconds": 1390
+    },
+    "windows_serial_write": "stopped after the head went stale; no report"
+  },
+  "parallel_a": {
+    "command": [
+      "python",
+      "design/routing/mutants/replay.py",
+      "--jobs",
+      "8",
+      "--report",
+      "<external>/r21-parallel-a.json"
+    ],
+    "commit": "fe350e92ce4082f6c4c57813d37bead32cac2367",
+    "exit_code": 0,
+    "summary": "126 mutants, 0 not caught: none",
+    "disclosure": "3 survived here under skipped tests and rest on another host's record: ['M37', 'M46', 'M48']",
+    "report_sha256": "baec909feb95c86000798e86a2f95fb0a60d6abe7f76f0c6df0e93f9318a15ef",
+    "wall_duration_seconds": 1105,
+    "verdicts": {
+      "caught": 117,
+      "SURVIVED": 3
+    },
+    "cleanup": [
+      {
+        "worker": "worker-0",
+        "clone": "worker-0",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-0-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-1",
+        "clone": "worker-1",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-1-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-2",
+        "clone": "worker-2",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-2-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-3",
+        "clone": "worker-3",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-3-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-4",
+        "clone": "worker-4",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-4-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-5",
+        "clone": "worker-5",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-5-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-6",
+        "clone": "worker-6",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-6-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      },
+      {
+        "worker": "worker-7",
+        "clone": "worker-7",
+        "removed": true,
+        "error": null,
+        "auxiliary": "worker-7-pytest",
+        "auxiliary_removed": true,
+        "auxiliary_error": null,
+        "owned_root_removed": true,
+        "owned_root_error": null
+      }
+    ]
+  },
+  "windows_serial_write": {
+    "command": [
+      "python",
+      "design/routing/mutants/replay.py",
+      "--write",
+      "--report",
+      "<external>/r21-serial-w.json"
+    ],
+    "commit": "fe350e92ce4082f6c4c57813d37bead32cac2367",
+    "exit_code": 0,
+    "summary": "126 mutants, 0 not caught: none",
+    "host": {
+      "platform": "Windows",
+      "release": "11",
+      "python": "3.14.2",
+      "git": "git version 2.50.1.windows.1"
+    },
+    "serial_worktree_status_before": [],
+    "serial_worktree_status_after": [
+      " M design/routing/mutants/matrix.json"
+    ],
+    "report_sha256": "583133fbe61743f57239c0923604e5bcdbfe123cf5c9d73e322da22137d4fc89",
+    "wall_duration_seconds": 5578,
+    "matrix_sha256_before": "de47a12ba790f993ab4d36690b23f2314f8c46d44c61f2238d6de84268ba53b0",
+    "matrix_sha256_after": "7fdacc9ee4f86788eed89db0c8609f521d24200d8515297aba1b3da06fa08745",
+    "verdicts": {
+      "caught": 117,
+      "SURVIVED": 3
+    },
+    "skipped_rows": [
+      "M01",
+      "M02",
+      "M03",
+      "M04",
+      "M05",
+      "M06",
+      "M07",
+      "M09",
+      "M10",
+      "M11",
+      "M12",
+      "M13",
+      "M14",
+      "M15",
+      "M16",
+      "M17",
+      "M18",
+      "M19",
+      "M20",
+      "M21",
+      "M22",
+      "M23",
+      "M24",
+      "M25",
+      "M27",
+      "M28",
+      "M29",
+      "M30",
+      "M31",
+      "M33",
+      "M36",
+      "M37",
+      "M38",
+      "M39",
+      "M40",
+      "M41",
+      "M42",
+      "M43",
+      "M44",
+      "M45",
+      "M46",
+      "M47",
+      "M48",
+      "M49",
+      "M50",
+      "M51",
+      "M52",
+      "M53",
+      "M61",
+      "M62",
+      "M63",
+      "M64",
+      "M65",
+      "M66",
+      "M67",
+      "M68",
+      "M69",
+      "M70",
+      "M71",
+      "M72",
+      "M77",
+      "M80",
+      "M88",
+      "M89",
+      "M90",
+      "M91",
+      "M93",
+      "M94",
+      "M95",
+      "M96",
+      "M97",
+      "M98",
+      "M99",
+      "M100",
+      "M101",
+      "M102",
+      "M103",
+      "M104",
+      "M105",
+      "M106",
+      "M107",
+      "M108",
+      "M109",
+      "M110",
+      "M111",
+      "M112",
+      "M113",
+      "M114",
+      "M115",
+      "M116",
+      "M117",
+      "M118",
+      "M119",
+      "M120",
+      "M121",
+      "M122",
+      "M123",
+      "M124",
+      "M125",
+      "M126"
+    ],
+    "changed_rows": [
+      {
+        "id": "M100",
+        "verdict": "caught",
+        "pytest": "15 failed, 306 passed, 1 skipped, 9 deselected, 19 subtests passed in 51.36s"
+      },
+      {
+        "id": "M115",
+        "verdict": "caught",
+        "pytest": "15 failed, 306 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.87s"
+      },
+      {
+        "id": "M116",
+        "verdict": "caught",
+        "pytest": "15 failed, 306 passed, 1 skipped, 9 deselected, 19 subtests passed in 50.99s"
+      },
+      {
+        "id": "M117",
+        "verdict": "caught",
+        "pytest": "2 failed, 319 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.54s"
+      },
+      {
+        "id": "M118",
+        "verdict": "caught",
+        "pytest": "2 failed, 319 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.36s"
+      },
+      {
+        "id": "M119",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.82s"
+      },
+      {
+        "id": "M120",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.04s"
+      },
+      {
+        "id": "M121",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.81s"
+      },
+      {
+        "id": "M122",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.00s"
+      },
+      {
+        "id": "M123",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 48.96s"
+      },
+      {
+        "id": "M124",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.24s"
+      },
+      {
+        "id": "M125",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.58s"
+      },
+      {
+        "id": "M126",
+        "verdict": "caught",
+        "pytest": "1 failed, 320 passed, 1 skipped, 9 deselected, 19 subtests passed in 49.16s"
+      }
+    ]
+  },
+  "linux_serial_write": {
+    "command": [
+      "venv/bin/python",
+      "design/routing/mutants/replay.py",
+      "--write",
+      "--report",
+      "<external>/r21-wsl-report.json"
+    ],
+    "commit": "fe350e92ce4082f6c4c57813d37bead32cac2367",
+    "exit_code": 0,
+    "summary": "126 mutants, 0 not caught: none",
+    "host": {
+      "platform": "Linux",
+      "release": "6.18.33.2-microsoft-standard-WSL2",
+      "python": "3.12.3",
+      "git": "git version 2.43.0"
+    },
+    "serial_worktree_status_before": [],
+    "serial_worktree_status_after": [
+      " M design/routing/mutants/matrix.json"
+    ],
+    "report_sha256": "13c4c3a6dbdcf2018d1d43d285bf5b1225e8efa020bddbcfe3b74d1ebd9ca060",
+    "wall_duration_seconds": 1429,
+    "matrix_sha256_before": "de47a12ba790f993ab4d36690b23f2314f8c46d44c61f2238d6de84268ba53b0",
+    "matrix_sha256_after": "f483b228fe01dd15f963c3b8c7338dcc558cb0ae4131a3a8b816cf6a12eeb511",
+    "verdicts": {
+      "caught": 120
+    },
+    "skipped_rows": [],
+    "changed_rows": [
+      {
+        "id": "M100",
+        "verdict": "caught",
+        "pytest": "15 failed, 307 passed, 9 deselected, 19 subtests passed in 10.54s"
+      },
+      {
+        "id": "M115",
+        "verdict": "caught",
+        "pytest": "15 failed, 307 passed, 9 deselected, 19 subtests passed in 10.74s"
+      },
+      {
+        "id": "M116",
+        "verdict": "caught",
+        "pytest": "15 failed, 307 passed, 9 deselected, 19 subtests passed in 10.57s"
+      },
+      {
+        "id": "M117",
+        "verdict": "caught",
+        "pytest": "2 failed, 320 passed, 9 deselected, 19 subtests passed in 10.43s"
+      },
+      {
+        "id": "M118",
+        "verdict": "caught",
+        "pytest": "2 failed, 320 passed, 9 deselected, 19 subtests passed in 10.20s"
+      },
+      {
+        "id": "M119",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 12.11s"
+      },
+      {
+        "id": "M120",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 10.30s"
+      },
+      {
+        "id": "M121",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 10.19s"
+      },
+      {
+        "id": "M122",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 10.59s"
+      },
+      {
+        "id": "M123",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 10.41s"
+      },
+      {
+        "id": "M124",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 10.21s"
+      },
+      {
+        "id": "M125",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 10.29s"
+      },
+      {
+        "id": "M126",
+        "verdict": "caught",
+        "pytest": "1 failed, 321 passed, 9 deselected, 19 subtests passed in 11.99s"
+      }
+    ]
+  },
+  "merge": {
+    "rule": "for every active row, the Windows record is the Windows serial write's and the Linux record is the Linux serial write's; the row verdict is derive_verdict over the two; superseded rows carry no records",
+    "committed_matrix_sha256_before": "de47a12ba790f993ab4d36690b23f2314f8c46d44c61f2238d6de84268ba53b0",
+    "matrix_sha256_after": "3889850a775ea8d9c01294a87977f73261064e2ec65d4ab03a5d292c7e240a33",
+    "windows_records_changed": 120,
+    "linux_records_changed": 120,
+    "rows_recorded_for_the_first_time_at_this_head": [
+      "M100",
+      "M115",
+      "M116",
+      "M117",
+      "M118",
+      "M119",
+      "M120",
+      "M121",
+      "M122",
+      "M123",
+      "M124",
+      "M125",
+      "M126"
+    ],
+    "active_rows_recorded_on_both_hosts": 120,
+    "active_rows": 120,
+    "every_record_carries_exact_ids": true,
+    "agrees_with_parallel_a": true,
+    "cross_host_verdict_differences": []
+  },
+  "stopping_rule_condition_one": {
+    "decision": "D-116",
+    "holds_at": "fe350e92ce4082f6c4c57813d37bead32cac2367",
+    "holds": true
+  },
+  "boundaries": {
+    "routing_rule_approved": false,
+    "selective_execution_enabled": false,
+    "slice_001_marked_done": true,
+    "slice_001_done_note": "marked Done by the owner's walkthrough on 2026-09-02, before this round; this round changes no slice status",
+    "matrix_written_by": "the two full serial --write replays at the implementation head, merged per platform; the parallel report is read-only evidence",
+    "linux_records_refreshed_this_round": true
+  }
+}
