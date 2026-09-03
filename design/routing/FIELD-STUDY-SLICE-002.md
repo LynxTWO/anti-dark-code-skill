@@ -76,15 +76,21 @@ Over vite's last 216 merges, spanning 53 days:
 The median test matrix costs 23.6 machine minutes across its six legs. Lint
 costs 2.0 and always runs. The router's entire incremental contribution is
 lint, on the changes where lint is the only thing it can drop, and it comes to
-under five percent of what the hand-written filter already delivers.
+under five percent of what the hand-written filter already delivers. Two
+caveats the challenge of the revision named: the 1084 is 46 times a median,
+not a sum of anything that ran, and 76 of the 170 matrices that ran had a
+failed leg, so the median includes shortened runs; the median over the 94
+all-green matrices is 23.53, so the effect is nil.
 
 The reason is structural, and the blockers pass names it. Of 216 changes, 133
 touched something the policy calls verification authority, dominated by
 `playground/**` with 371 changed-file hits, `**/__tests__/**` with 271,
 `**/package.json` with 246 and `**/*.spec.ts` with 210. Vite's contributors
 ship tests with their changes. Only 16 changes were blocked by paths my policy
-failed to describe, so this is a property of the repository and not an artifact
-of a policy written from outside it.
+failed to describe. The constraint is therefore D-093's principle, that tests,
+manifests and lockfiles are verification authority, applied to a repository
+that ships tests with code; a policy could not lawfully say otherwise, so this
+is not an artifact of a policy written from outside the project.
 
 ## The third finding: the class the campaign wants to approve is unmeasurable
 
@@ -111,15 +117,25 @@ the class would be eligible for approval.
 
 It would be wrong.
 
-Lint failed on **zero** of the 216 merges. Across a sample of vite's
-pull-request CI runs, lint concluded `failure` 53 times, and 87 of 151 pull
-requests (57%) had at least one failing CI run before they landed. Those
-failures are the job doing its work, not the runner failing: of 60 failing
-lint jobs examined, the failing step was `Check formatting` in 22, `Typecheck`
-in 13, `Lint` in 11, `Build` in 3, `Test docs` in 3 and `Check workflow files`
-in 1. Only 7 failed at `Install deps`. Vite's contributors run into this job
-constantly. Main never records it, because a pull request that fails it is
-fixed before it merges.
+Lint failed on **zero** of the 216 push runs for those merges. In vite's
+pull-request CI runs it failed in 57 of 309. The first draft of this document
+put that as "53 times in the runs behind them, and 87 of 151 pull requests";
+the challenge of the design revision re-derived it and those figures were not
+like for like: the 53 was a job count over the first 120 of 159 failing runs,
+the 151 were mostly branch names, and the pull-request runs the listing
+returns span a later window than the merges, so nothing joined them. The
+comparison that holds is 0 of 216 push runs against 57 of 309 pull-request
+runs. What a pull-request backfill would record of those 57 is smaller than
+the headline and still decisive: 36 co-occur with a matrix failure and read
+inconclusive, one is unmeasurable, and of the 20 miss-shaped runs 19 force
+full under the study policy and one, run 33323484002 with a failed type
+check, is a routed miss for exactly the route the merges showed twelve clean
+records for. Those failures are the job doing its work, not the runner
+failing: of 60 failing lint jobs examined, the failing step was `Check
+formatting` in 22, `Typecheck` in 13, `Lint` in 11, `Build` in 3, `Test docs`
+in 3 and `Check workflow files` in 1. Only 7 failed at `Install deps`. Vite's
+contributors run into this job constantly. Main never records it, because a
+pull request that fails it is fixed before it merges.
 
 It is also worth naming what the `product-code` candidate would actually drop.
 The job called lint runs formatting, type checking, linting, a build and the
