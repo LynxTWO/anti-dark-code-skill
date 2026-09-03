@@ -362,9 +362,9 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-058 | record-level status table over decided, absent, and undecided outcomes, plus class-key equality under prose edits and inequality under a router change, unit and end to end | `test_route.py`, `test_route_cli.py` |
 | R-059 | workflow contract check on the required aggregator's needs and the shadow job's conditions, plus a jobs-payload table over renamed jobs, missing steps, failed legs, and cancelled legs | `test_route.py` |
 | R-060 | backfill of a real merge in a fixture repository, and of a merge with no run | `test_route_cli.py` |
-| R-061 | backfill of a fixture pull request with several run attempts, one failing | proposed under D-128; `test_route_cli.py` when M5 is rebuilt |
+| R-061 | backfill of a fixture pull request landed as a merge commit with three run attempts, one failing, plus a missing head, a head that already has a live record, and the same commit measured against a clean and a dirty tree | `test_route_cli.py`; M141 to M144 |
 | R-062 | classifier check on a routing markdown change under the repository calibration, at both depths and on the canary's own filename, plus the glob spelling itself | `test_route.py`; M139 and M140 |
-| R-063 | summary count over a pull request with many clean records, and with one miss | proposed under D-128; `test_route_cli.py` when M4 lands |
+| R-063 | summary count over a pull request with eight clean records, with one miss, and with one inconclusive, plus canaries never counted, keys never merged, byte-identical regeneration, and ingest's refusals including outcomes re-read from the run | `test_route_cli.py`; M145 to M148 |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 

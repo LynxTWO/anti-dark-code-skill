@@ -453,10 +453,14 @@
       ]
     },
     "R-061": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-128: The backfill grades a pull request's own run history, never the merge that survived it"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_backfilled_change_uses_todays_router_and_its_own_run",
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_the_base_the_old_rule_would_have_used_is_the_head_itself",
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_every_attempt_is_recorded_and_a_failing_one_is_a_miss",
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_head_whose_commit_is_gone_is_recorded_and_not_dropped",
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_head_and_attempt_with_a_live_record_is_not_backfilled",
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_the_working_tree_is_not_part_of_a_historical_change"
+      ]
     },
     "R-062": {
       "tests": [
@@ -467,10 +471,16 @@
       ]
     },
     "R-063": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-128: The backfill grades a pull request's own run history, never the merge that survived it"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_the_summary_counts_pull_requests_not_records",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_canary_is_never_counted_as_evidence",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_two_class_keys_are_never_merged",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_the_summary_is_byte_identical_when_regenerated",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_record_whose_id_does_not_digest_it_is_refused",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_canary_that_landed_is_refused",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_ingest_is_idempotent",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_outcomes_are_re_read_from_the_run_and_not_believed"
+      ]
     }
   }
 }

@@ -5659,5 +5659,61 @@
     "pytest": "",
     "results": [],
     "note": "D-128. A backfill measures a commit, and a commit has no index, no worktree and no untracked files. Reading them puts today's uncommitted edits, and the records the run is itself writing, into a record about the past; the first real run of this backfill did exactly that on all thirty-three records. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M145",
+    "name": "the summary counts records instead of pull requests",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            if status == STATUS_CLEAN:\n                entry[\"_live_clean\"].add(pull_key)",
+    "new": "            if status == STATUS_CLEAN:\n                entry[\"_live_clean\"].add(pull_key + str(record.get(\"run\", {}).get(\"run_attempt\")))",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128. One pull request can run eight times, and eight readings of one change are not eight units of evidence. Counting records reaches the criterion's N eight times too fast. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M146",
+    "name": "a miss on a later attempt no longer takes the class",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        counted = sorted(clean - missed)",
+    "new": "        counted = sorted(clean)",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128 and section 2's rule that a miss is never removed. A pull request whose first attempt was clean and whose second missed would still advance N, which is the reading that makes a caught defect disappear. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M147",
+    "name": "a canary counts as evidence for the class it demonstrates",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        if provenance == \"canary\":",
+    "new": "        if provenance == \"canary\" and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "G8. A canary is a deliberate break that proves the comparator sees failures; counting it as a miss would condemn the class it exists to make measurable, and counting it as clean would be worse. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M148",
+    "name": "ingest believes the outcomes a pull request uploaded",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if recomputed != recorded:",
+    "new": "    if recomputed != recorded and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "G10. The record is built by the pull request's own workflow, so a pull request that edits the workflow could upload any outcomes it liked. Re-reading them from the API is what makes an uploaded record more than a claim. Pending the next authoritative two-host replay."
   }
 ]

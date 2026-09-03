@@ -26,6 +26,15 @@ REPO_ROOT = SKILL_ROOT.parent
 ADC = SKILL_ROOT / "scripts" / "adc.py"
 TEMPLATE = SKILL_ROOT / "assets" / "templates" / "calibration" / "routing-policy.json"
 
+
+def _load_shadow():
+    """The shadow helper as a module, for the pure counting functions."""
+    path = SKILL_ROOT / "scripts" / "adc_shadow.py"
+    spec = importlib.util.spec_from_file_location("adc_shadow_cli", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 GATES = {
     "schema_version": 1,
     "execution_policy": {"owner_confirmed_safe_to_execute": True},
@@ -664,6 +673,227 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
         self.assertFalse(record["measurable"])
         self.assertEqual("not_measurable", record["status"])
         self.assertIn("unresolved", record["not_measurable_reason"])
+
+
+class ShadowLedgerCliTests(_RoutedGateCliFixture):
+    """S-056, S-057, S-059, S-061, S-065. Ingest refuses; the summary counts.
+
+    The summary counts pull requests, not records, per class: D-128, because
+    one pull request can run eight times and eight readings of one change are
+    not eight units of evidence.
+    """
+
+    def _shadow(self, *args: str):
+        return subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", *args],
+            capture_output=True, text=True, timeout=900)
+
+    def _record(self, **overrides):
+        shadow = _load_shadow()
+        record = {
+            "schema_version": 2, "schema": "shadow-record-v2",
+            "provenance": "live", "head_ref": "refs/heads/topic",
+            "status": "clean", "measurable": True,
+            "not_measurable_reason": None, "inconclusive_reason": None,
+            "commits": {"base": "b" * 40, "merge": "m" * 40, "head": "h" * 40},
+            "base_reconstructed": False,
+            "run": {"pull_request": 1, "run_id": "1", "run_attempt": 1},
+            "class_key": "K1", "class": {
+                "matched_rule_ids": ["docs-only"], "selected_gate_ids": ["validate-core"],
+                "omitted_gate_ids": ["full-suite"], "router_blob_sha256": "r",
+                "terms_sha256": "t"},
+            "audit": {"policy_bytes_sha256": "p", "policy_terms_sha256": "p",
+                      "gates_terms_sha256": "g", "route_force_full": False,
+                      "route_minimum_level": 0, "route_unknowns": []},
+            "gate_outcomes": {"validate-core": "pass", "full-suite": "pass"},
+            "base_gate_outcomes": None,
+            "shadow": {"routing_miss": False, "missed_gate_ids": [],
+                       "selected_all_passed": True},
+        }
+        record.update(overrides)
+        body = {k: v for k, v in record.items() if k != "record_id"}
+        record["record_id"] = shadow.digest(body)
+        return record
+
+    def _write(self, directory: Path, records) -> Path:
+        directory.mkdir(parents=True, exist_ok=True)
+        for index, record in enumerate(records):
+            (directory / f"shadow-{index}.json").write_text(
+                json.dumps(record), encoding="utf-8")
+        return directory
+
+    def _ingest(self, source: Path, ledger: Path, *extra: str):
+        return self._shadow(
+            "ingest", "--repo", str(self.repo),
+            "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+            "--source", str(source), "--ledger", str(ledger),
+            "--month", "2026-09", "--offline", *extra)
+
+    def test_a_record_whose_id_does_not_digest_it_is_refused(self) -> None:
+        """S-056. The artifact is written by the pull request's own workflow,
+        so a record is a claim until something checks it."""
+        forged = self._record()
+        forged["status"] = "miss"  # after the id was computed
+        source = self._write(Path(self.tmp.name) / "inbox", [forged])
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger)
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("record_id does not digest", done.stdout)
+        self.assertFalse(list(ledger.glob("*.jsonl")))
+
+    def test_a_canary_that_landed_is_refused(self) -> None:
+        """S-059. A canary is a branch that is never merged; one that has
+        landed is an ordinary change wearing a canary's name."""
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        canary = self._record(provenance="canary",
+                              head_ref="refs/heads/canary/docs-only/2026-09-03",
+                              commits={"base": "b" * 40, "merge": "m" * 40,
+                                       "head": head})
+        source = self._write(Path(self.tmp.name) / "inbox", [canary])
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger, "--main", "main")
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("is an ancestor of", done.stdout)
+
+    def test_ingest_is_idempotent(self) -> None:
+        source = self._write(Path(self.tmp.name) / "inbox", [self._record()])
+        ledger = Path(self.tmp.name) / "ledger"
+        self.assertEqual(0, self._ingest(source, ledger).returncode)
+        again = self._ingest(source, ledger)
+        self.assertEqual(0, again.returncode)
+        self.assertIn("INGEST 0 record(s)", again.stdout)
+        lines = (ledger / "2026-09.jsonl").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(1, len(lines))
+
+    def test_the_summary_counts_pull_requests_not_records(self) -> None:
+        """S-065 and R-063. Eight clean records from one pull request are one
+        unit of evidence; one miss among them takes the class, and an
+        inconclusive attempt neither adds nor removes."""
+        shadow = _load_shadow()
+        clean = [self._record(run={"pull_request": 1, "run_id": "1",
+                                   "run_attempt": attempt})
+                 for attempt in range(1, 9)]
+        summary = shadow.summarise(clean)
+        entry = summary["classes"][0]
+        self.assertEqual(1, entry["criterion"]["pull_requests_counted"])
+
+        with_miss = clean + [self._record(
+            status="miss", run={"pull_request": 1, "run_id": "1", "run_attempt": 9})]
+        entry = shadow.summarise(with_miss)["classes"][0]
+        self.assertEqual(0, entry["criterion"]["pull_requests_counted"])
+        self.assertEqual(["1"], entry["criterion"]["pull_requests_with_a_miss"])
+
+        with_inconclusive = clean + [self._record(
+            status="inconclusive",
+            run={"pull_request": 1, "run_id": "1", "run_attempt": 9})]
+        entry = shadow.summarise(with_inconclusive)["classes"][0]
+        self.assertEqual(1, entry["criterion"]["pull_requests_counted"])
+
+    def test_a_canary_is_never_counted_as_evidence(self) -> None:
+        shadow = _load_shadow()
+        summary = shadow.summarise([
+            self._record(provenance="canary", status="miss"),
+            self._record(provenance="backfill", status="clean"),
+        ])
+        entry = summary["classes"][0]
+        self.assertEqual(0, entry["criterion"]["pull_requests_counted"])
+        self.assertEqual([], entry["criterion"]["pull_requests_with_a_miss"])
+        self.assertEqual(1, entry["criterion"]["canaries"])
+
+    def test_two_class_keys_are_never_merged(self) -> None:
+        """S-061. A router change changes what a candidate is."""
+        shadow = _load_shadow()
+        summary = shadow.summarise([
+            self._record(class_key="K1"),
+            self._record(class_key="K2", run={"pull_request": 2, "run_id": "2",
+                                              "run_attempt": 1}),
+        ])
+        self.assertEqual(2, len(summary["classes"]))
+        self.assertEqual(["K1", "K2"],
+                         [entry["class_key"] for entry in summary["classes"]])
+
+    def test_outcomes_are_re_read_from_the_run_and_not_believed(self) -> None:
+        """G10, and the reason the artifact is an inbox rather than a ledger.
+
+        The record is built by the pull request's own workflow, so a pull
+        request that edits that workflow could upload whatever outcomes it
+        liked. Ingest re-reads them for the recorded run and attempt. The API
+        is stubbed here because the check is the comparison, not the network.
+        """
+        shadow = _load_shadow()
+        gate_map = json.loads(
+            (REPO_ROOT / ".github" / "shadow-gate-map.json").read_text(encoding="utf-8"))
+        # Every canonical gate, because a record that names fewer is already
+        # refused as unmeasurable before this check is reached.
+        record = self._record(
+            gate_outcomes={"validate-core": "pass", "full-suite": "pass",
+                           "distribution": "pass", "hostile-environment": "pass",
+                           "mutation-replay": "pass"},
+            run={"pull_request": 1, "run_id": "77", "run_attempt": 1})
+
+        rest = [
+            {"name": "Clean distribution archive", "conclusion": "success"},
+            {"name": "Hostile environment (C locale)", "conclusion": "success"},
+            {"name": "Hostile environment (international paths)", "conclusion": "success"},
+            {"name": "Mutation replay (Linux)", "conclusion": "success"},
+        ]
+        honest = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+             "steps": [{"name": "Validate the core before anything writes to the tree",
+                        "conclusion": "success"}]},
+        ] + rest
+        lying = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "failure",
+             "steps": [{"name": "Validate the core before anything writes to the tree",
+                        "conclusion": "failure"}]},
+        ] + rest
+
+        def verify(jobs):
+            calls = []
+
+            def fake(args):
+                calls.append(args)
+                return {"jobs": jobs}
+
+            original = shadow._gh_json
+            shadow._gh_json = fake
+            try:
+                problems = shadow.verify_record(
+                    record, repo=self.repo, gate_map=gate_map,
+                    slug="owner/name", main_ref="main", offline=False)
+            finally:
+                shadow._gh_json = original
+            self.assertTrue(any("/actions/runs/77/attempts/1/" in "".join(call)
+                                for call in calls),
+                            "the recorded run and attempt were not the ones read")
+            return problems
+
+        agreeing = verify(honest)
+        self.assertEqual(
+            [], [p for p in agreeing if "outcomes disagree" in p], agreeing)
+
+        disagreeing = verify(lying)
+        self.assertTrue(any("outcomes disagree with the run" in p
+                            for p in disagreeing), disagreeing)
+        self.assertTrue(any("validate-core" in p for p in disagreeing),
+                        disagreeing)
+
+    def test_the_summary_is_byte_identical_when_regenerated(self) -> None:
+        """S-057. A summary that moves cannot be reviewed."""
+        source = self._write(Path(self.tmp.name) / "inbox",
+                             [self._record(),
+                              self._record(run={"pull_request": 2, "run_id": "2",
+                                                "run_attempt": 1})])
+        ledger = Path(self.tmp.name) / "ledger"
+        self.assertEqual(0, self._ingest(source, ledger).returncode)
+        out = Path(self.tmp.name) / "summary.json"
+        for _ in range(2):
+            done = self._shadow("summary", "--ledger", str(ledger),
+                                "--out", str(out))
+            self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+            if not hasattr(self, "_first"):
+                self._first = out.read_bytes()
+        self.assertEqual(self._first, out.read_bytes())
 
 
 class RouteLevelCliTests(_RoutedGateCliFixture):

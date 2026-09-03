@@ -19,6 +19,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -869,6 +870,294 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
     return 0
 
 
+def _ledger_paths(ledger_dir: Path) -> list[Path]:
+    return sorted(ledger_dir.glob("*.jsonl"))
+
+
+def read_ledger(ledger_dir: Path) -> list[dict[str, Any]]:
+    """Every record the ledger holds, in file then line order."""
+    records: list[dict[str, Any]] = []
+    for path in _ledger_paths(ledger_dir):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                records.append(json.loads(line))
+    return records
+
+
+def _is_ancestor(repo: Path, commit: str, of: str) -> bool:
+    done = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", commit, of],
+        capture_output=True, text=True, timeout=120)
+    return done.returncode == 0
+
+
+def verify_record(record: Mapping[str, Any], *, repo: Path,
+                  gate_map: Mapping[str, Any], slug: str | None,
+                  main_ref: str, offline: bool) -> list[str]:
+    """Why this record must not enter the ledger, or an empty list.
+
+    G10: the record was built by the pull request's own workflow, so a pull
+    request that edits the workflow could upload anything. The outcomes are
+    therefore re-read from the API for the recorded run and attempt and
+    compared, rather than believed. The class is not recomputed against
+    today's policy: the classifier legitimately changes, D-129 changed it,
+    and a record from before that change is not forged for saying so.
+    """
+    problems = list(validate_record(record))
+    if problems:
+        return problems
+
+    body = {k: v for k, v in record.items() if k != "record_id"}
+    if record.get("record_id") != digest(body):
+        problems.append("record_id does not digest the record")
+
+    provenance = str(record.get("provenance"))
+    head = str(record.get("commits", {}).get("head", ""))
+    if provenance == "canary":
+        # G8: a canary is a branch that is never merged. One that has landed
+        # is an ordinary change wearing a canary's name.
+        if head and _commit_present(repo, head) and _is_ancestor(repo, head, main_ref):
+            problems.append(f"canary head {head[:12]} is an ancestor of {main_ref}")
+
+    if offline or not slug:
+        return problems
+
+    run_id = str(record.get("run", {}).get("run_id", ""))
+    attempt = int(record.get("run", {}).get("run_attempt", 0) or 0)
+    if not run_id or not attempt:
+        return problems
+    try:
+        jobs = _gh_json([f"/repos/{slug}/actions/runs/{run_id}/attempts/{attempt}"
+                         f"/jobs?per_page=100"]).get("jobs", [])
+    except ShadowError as error:
+        problems.append(f"outcomes could not be re-read: {error}")
+        return problems
+    recomputed = gate_outcomes_from_jobs(jobs, gate_map) if jobs else {}
+    recorded = {str(k): str(v) for k, v in (record.get("gate_outcomes") or {}).items()}
+    if recomputed != recorded:
+        differing = sorted(
+            set(recorded) | set(recomputed),
+            key=lambda gate: gate)
+        detail = ", ".join(
+            f"{gate}: recorded {recorded.get(gate)!r} but the run says "
+            f"{recomputed.get(gate)!r}"
+            for gate in differing
+            if recorded.get(gate) != recomputed.get(gate))
+        problems.append(f"outcomes disagree with the run: {detail}")
+    return problems
+
+
+def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
+    """Move verified records into the committed ledger.
+
+    The artifact is an inbox, never the ledger: it is written by the pull
+    request's own workflow. Everything that reaches the ledger has had its
+    outcomes re-read from the API and its structure refused on disagreement.
+    """
+    repo = Path(args.repo).resolve()
+    gate_map = json.loads(Path(args.map).read_text(encoding="utf-8"))
+    ledger_dir = Path(args.ledger)
+    ledger_dir.mkdir(parents=True, exist_ok=True)
+
+    slug: str | None = args.repository
+    if slug is None and not args.offline:
+        try:
+            slug = repository_slug(repo)
+        except ShadowError:
+            slug = None
+
+    known = {str(record.get("record_id")) for record in read_ledger(ledger_dir)}
+    incoming: list[tuple[Path, dict[str, Any]]] = []
+    for directory in args.source:
+        for path in sorted(Path(directory).glob("*.json")):
+            try:
+                incoming.append((path, json.loads(path.read_text(encoding="utf-8"))))
+            except (OSError, json.JSONDecodeError) as error:
+                print(f"  REFUSED {path.name}: unreadable: {error}")
+                if not args.keep_going:
+                    return 2
+
+    accepted: list[dict[str, Any]] = []
+    refused = 0
+    for path, record in incoming:
+        if str(record.get("record_id")) in known:
+            continue
+        problems = verify_record(record, repo=repo, gate_map=gate_map, slug=slug,
+                                 main_ref=args.main, offline=args.offline)
+        if problems:
+            refused += 1
+            print(f"  REFUSED {path.name}: " + "; ".join(problems))
+            if not args.keep_going:
+                return 2
+            continue
+        accepted.append(record)
+        known.add(str(record.get("record_id")))
+
+    # One file per month of the run that produced the record, so the ledger
+    # grows by append and a month's bytes never move once written.
+    by_month: dict[str, list[dict[str, Any]]] = {}
+    for record in accepted:
+        by_month.setdefault(args.month, []).append(record)
+    written = 0
+    for month, records in sorted(by_month.items()):
+        target = ledger_dir / f"{month}.jsonl"
+        existing = target.read_text(encoding="utf-8") if target.exists() else ""
+        lines = [canonical_json(record) for record in
+                 sorted(records, key=lambda item: str(item.get("record_id")))]
+        target.write_text(existing + "\n".join(lines) + "\n", encoding="utf-8",
+                          newline="\n")
+        written += len(lines)
+
+    if args.write_pull_requests:
+        # The criterion counts pull requests, over days, by distinct authors,
+        # and a record carries none of that: it is deliberately timeless so
+        # the summary is byte-reproducible. The join lives beside the ledger
+        # rather than inside a record, so no record changes when it is
+        # refreshed. The author is the pull request's own, not the commit's,
+        # because every commit here is authored by one account.
+        path = Path(args.write_pull_requests)
+        existing: dict[str, Any] = {}
+        if path.exists():
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        numbers = sorted({str(record.get("run", {}).get("pull_request"))
+                          for record in read_ledger(ledger_dir)
+                          if record.get("run", {}).get("pull_request") is not None})
+        for number in numbers:
+            if number in existing or not slug:
+                continue
+            try:
+                pull = _gh_json([f"/repos/{slug}/pulls/{number}"])
+            except ShadowError:
+                continue
+            existing[number] = {
+                "author": str((pull.get("user") or {}).get("login") or ""),
+                "merged_at": str(pull.get("merged_at") or ""),
+                "title": str(pull.get("title") or "")[:120],
+            }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(existing, indent=2, sort_keys=True) + "\n",
+                        encoding="utf-8", newline="\n")
+        print(f"  pull request metadata for {len(existing)} pull request(s)")
+
+    print(f"INGEST {written} record(s) into {ledger_dir}"
+          + (f", {refused} refused" if refused else ""))
+    return 0 if not refused or args.keep_going else 2
+
+
+def summarise(records: Sequence[Mapping[str, Any]],
+              pulls: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """The campaign's counts, per class, from the ledger bytes alone.
+
+    D-128: N counts pull requests, not records. In one class a pull request
+    advances N when it has at least one clean live record there and no miss;
+    an inconclusive record neither adds nor removes; a miss on any attempt is
+    the class's miss and is never removed. N is therefore a count that can
+    fall when a later attempt misses, not a clock.
+    """
+    pulls = pulls or {}
+    classes: dict[str, dict[str, Any]] = {}
+    for record in records:
+        key = str(record.get("class_key"))
+        entry = classes.setdefault(key, {
+            "class_key": key,
+            "matched_rule_ids": list(record.get("class", {}).get("matched_rule_ids", [])),
+            "omitted_gate_ids": list(record.get("class", {}).get("omitted_gate_ids", [])),
+            "router_blob_sha256": str(record.get("class", {}).get("router_blob_sha256", "")),
+            "records": {"live": 0, "backfill": 0, "canary": 0},
+            "status": {},
+            "_live_clean": set(),
+            "_live_miss": set(),
+            "_backfill_miss": set(),
+            "canary_record_ids": [],
+        })
+        provenance = str(record.get("provenance"))
+        status = str(record.get("status"))
+        if provenance in entry["records"]:
+            entry["records"][provenance] += 1
+        entry["status"][status] = entry["status"].get(status, 0) + 1
+        pull = record.get("run", {}).get("pull_request")
+        pull_key = str(pull) if pull is not None else None
+        if provenance == "canary":
+            # G8: a canary is what shows the comparator sees failures. It is
+            # never evidence for or against the class it demonstrates.
+            entry["canary_record_ids"].append(str(record.get("record_id")))
+        elif provenance == "live" and pull_key:
+            if status == STATUS_CLEAN:
+                entry["_live_clean"].add(pull_key)
+            elif status == STATUS_MISS:
+                entry["_live_miss"].add(pull_key)
+        elif provenance == "backfill" and pull_key and status == STATUS_MISS:
+            entry["_backfill_miss"].add(pull_key)
+
+    out: list[dict[str, Any]] = []
+    for key in sorted(classes):
+        entry = classes[key]
+        clean = entry.pop("_live_clean")
+        missed = entry.pop("_live_miss")
+        backfill_missed = entry.pop("_backfill_miss")
+        counted = sorted(clean - missed)
+        authors = sorted({str(pulls.get(pull, {}).get("author", ""))
+                          for pull in counted} - {""})
+        landed = sorted(str(pulls.get(pull, {}).get("merged_at", ""))
+                        for pull in counted)
+        landed = [stamp for stamp in landed if stamp]
+        span_days = None
+        if len(landed) >= 2:
+            fmt = "%Y-%m-%dT%H:%M:%SZ"
+            span_days = (datetime.strptime(landed[-1], fmt)
+                         - datetime.strptime(landed[0], fmt)).days
+        entry.update({
+            "status": dict(sorted(entry["status"].items())),
+            "criterion": {
+                "pull_requests_counted": len(counted),
+                "pull_requests": counted,
+                "pull_requests_with_a_miss": sorted(missed),
+                "distinct_authors": len(authors),
+                "authors": authors,
+                "span_days": span_days,
+                "backfill_pull_requests_with_a_miss": sorted(backfill_missed),
+                "canaries": len(entry["canary_record_ids"]),
+            },
+            "canary_record_ids": sorted(entry["canary_record_ids"]),
+        })
+        out.append(entry)
+
+    totals: dict[str, int] = {}
+    for record in records:
+        totals[str(record.get("provenance"))] = (
+            totals.get(str(record.get("provenance")), 0) + 1)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "records": len(records),
+        "records_by_provenance": dict(sorted(totals.items())),
+        "classes": out,
+    }
+
+
+def command_summary(args: argparse.Namespace, adc_module=None) -> int:
+    """Regenerate the summary from the ledger bytes. Deterministic by design."""
+    ledger_dir = Path(args.ledger)
+    records = read_ledger(ledger_dir)
+    pulls: dict[str, Any] = {}
+    if args.pull_requests and Path(args.pull_requests).exists():
+        pulls = json.loads(Path(args.pull_requests).read_text(encoding="utf-8"))
+    payload = summarise(records, pulls)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                   encoding="utf-8", newline="\n")
+    print(f"SUMMARY {len(records)} record(s), {len(payload['classes'])} class(es) "
+          f"in {out}")
+    for entry in payload["classes"]:
+        criterion = entry["criterion"]
+        print(f"  {entry['class_key'][:12]} "
+              f"omits={','.join(entry['omitted_gate_ids']) or '-':28} "
+              f"N={criterion['pull_requests_counted']} "
+              f"misses={len(criterion['pull_requests_with_a_miss'])} "
+              f"canaries={criterion['canaries']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="adc.py shadow",
@@ -927,6 +1216,36 @@ def build_parser() -> argparse.ArgumentParser:
                         "what tells an inherited failure from a miss")
     p.add_argument("--out-dir", required=True)
     p.set_defaults(func=command_backfill)
+
+    p = sub.add_parser("ingest",
+                       help="Verify records and append them to the ledger")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--map", required=True)
+    p.add_argument("--source", action="append", required=True,
+                   help="A directory of records; repeatable")
+    p.add_argument("--ledger", default="metrics/shadow/ledger")
+    p.add_argument("--month", required=True,
+                   help="Ledger file to append to, as yyyy-mm")
+    p.add_argument("--main", default="origin/main",
+                   help="Ref a canary head must not be an ancestor of")
+    p.add_argument("--repository", help="owner/name; defaults to the origin remote")
+    p.add_argument("--offline", action="store_true",
+                   help="Skip re-reading outcomes from the API, which is the "
+                        "check that makes an uploaded record more than a claim")
+    p.add_argument("--keep-going", action="store_true",
+                   help="Report every refusal instead of stopping at the first")
+    p.add_argument("--write-pull-requests",
+                   help="Refresh the pull request author and merge date the "
+                        "criterion needs, beside the ledger")
+    p.set_defaults(func=command_ingest)
+
+    p = sub.add_parser("summary", help="Regenerate the campaign summary")
+    p.add_argument("--ledger", default="metrics/shadow/ledger")
+    p.add_argument("--pull-requests",
+                   help="JSON map from pull request number to author and "
+                        "merged_at, which the criterion's authors and span need")
+    p.add_argument("--out", default="metrics/shadow/summary.json")
+    p.set_defaults(func=command_summary)
     return parser
 
 

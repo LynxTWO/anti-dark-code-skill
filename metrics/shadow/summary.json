@@ -1,0 +1,219 @@
+{
+  "classes": [
+    {
+      "canary_record_ids": [],
+      "class_key": "0d0ee37f853d0230168368d898186460ae13da76e7461d4969ac85c130766cf1",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "product-code",
+        "schema-contract",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 15,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 15
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "178984860655a331fb44ef65c86de4c81a146c7353be0a85479cfbf8a0964fff",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "product-code"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 0,
+        "canary": 0,
+        "live": 1
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 1
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "2208f6b666faabc585343cde083d785482758d4b4c06902b8dbfa45922d6a0ef",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 6,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 6
+      }
+    },
+    {
+      "canary_record_ids": [
+        "72111be5bc02efbe95125ffc227935869074a4cbc5d88dddb6e833a41af5fad1"
+      ],
+      "class_key": "43dd098f71a31d952639334dfd15e54ba74b708a5769960e6bfe6437688fc3a3",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 1,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only"
+      ],
+      "omitted_gate_ids": [
+        "distribution",
+        "full-suite",
+        "hostile-environment",
+        "mutation-replay"
+      ],
+      "records": {
+        "backfill": 0,
+        "canary": 1,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "miss": 1
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "6a6b05ababcabfdea7bcfcb36459b014bfdd82ca5681c590eb250ac9f41a9b0d",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "product-code",
+        "schema-contract",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 0,
+        "canary": 0,
+        "live": 4
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 4
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "product-code",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 10,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 10
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "fac413c95af473686448b4dce55a6985207cb0652d6ea477472ee5fbdf87e578",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "schema-contract",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 2,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 2
+      }
+    }
+  ],
+  "records": 39,
+  "records_by_provenance": {
+    "backfill": 33,
+    "canary": 1,
+    "live": 5
+  },
+  "schema_version": 2
+}
