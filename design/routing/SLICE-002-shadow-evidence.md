@@ -1,6 +1,6 @@
 # Assurance Router Slice Brief: SLICE-002 shadow evidence campaign
 
-Version: 0.2. Date: 2026-09-03. Status: Proposed, design only, revised once after the fresh-context challenge recorded in `CHALLENGE-SLICE-002-DESIGN.md`. Designed by Claude Fable 5.1 per the owner's model sequence; to be implemented by Opus 5 from `HANDOFF-OPUS-SLICE-002.md`; the campaign's summaries by Sonnet 5; the approval review by the top tier.
+Version: 0.4. Date: 2026-09-03. Status: Proposed, design only, revised once after the fresh-context challenge recorded in `CHALLENGE-SLICE-002-DESIGN.md`, once after the field study recorded in `FIELD-STUDY-SLICE-002.md` under D-128 to D-130, and once more after the challenge of that revision recorded in `CHALLENGE-SLICE-002-R2.md`. Designed by Claude Fable 5.1 per the owner's model sequence; implemented by Opus 5 from `HANDOFF-OPUS-SLICE-002.md` and, for the revision, `HANDOFF-OPUS-SLICE-002-R2.md`; the campaign's summaries by Sonnet 5; the approval review by the top tier.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, DECISION-LOG.md, SLICE-001-route-shadow.md.
 
 One narrow, production-quality measurement. If it is not in here, it does not get built. Nothing in this slice runs less verification than today.
@@ -70,19 +70,19 @@ Q-003 asked whether tallies live in `.anti-dark-code/runs/` or `metrics/`. The a
 - **Per change, in CI.** A new non-required job `shadow` in `tests.yml`, `needs` every gate job, `if: always()`, with `actions: read`. It checks out the merge ref with the base fetched, computes the route and candidate, reads the run's job and step conclusions for its own attempt, builds the record, validates it against the schema, and uploads `shadow-<head_sha>-<run_attempt>.json`. Fork pull requests carry a read-only token; whether their artifacts upload is one of the implementer's first measurements.
 - **Durably, in the repository.** `metrics/shadow/ledger/<yyyy-mm>.jsonl`, append-only, one record per line, with `metrics/schemas/shadow-record-v2.schema.json`, whose number continues `shadow_result`'s existing `schema_version` 2. A record's id is the SHA-256 of its canonical bytes without the id field. `adc.py shadow ingest` fetches artifacts newer than the ledger's last record, recomputes each per G10, and appends; `adc.py shadow summary` regenerates `metrics/shadow/summary.json`. Both are run by a person or by Sonnet 5 inside the artifact retention window, which is ninety days by default, and committed like any other change; a change under `metrics/shadow/` routes unmapped and forces full, so every ingest runs the full recipe.
 - **Option B, not recommended.** The workflow appends to a `shadow-ledger` branch itself with `contents: write`. The design challenge measured why not: a fork's read-only token gets no record, a same-repository pull request's own workflow could rewrite the branch, and the ledger becomes something no person committed.
-- **Backfill.** `adc.py shadow backfill --since <sha>` replays merged pull requests whose heads have a recorded run: today's router and today's policy over each historical change set, outcomes from the run that verified that head, keyed by today's digests. It is not a reconstruction at each head, because the candidate builder did not exist at PRs #21 and #22 and the policy blob differed across the stack, so per-head keys would be classes of one. Records carry `provenance: backfill`; heads older than the workflow, which landed 2026-08-22, are not measurable. The summary reports live and backfill counts separately.
+- **Backfill.** `adc.py shadow backfill` enumerates merged pull requests and replays every run attempt of the CI workflow each produced under the `pull_request` event, superseded heads and attempts included: today's router and today's policy over the pull request's head against its merge base with the first parent of the commit that landed it, `merge-base(head, landing^1)`, outcomes from that attempt, one record per head and attempt, keyed exactly as the live artifacts are. The runs are found through the runs listing joined on head repository and branch, with `/commits/{sha}/pulls` for the rest, because a merged branch's runs no longer name their pull request; a head whose commit is gone is recorded `not_measurable` with reason `head-unavailable`; a head and attempt with a live record is never backfilled. It is not a reconstruction at each head, because the candidate builder did not exist at PRs #21 and #22 and the policy blob differed across the stack, so per-head keys would be classes of one. The merge that survived a pull request is never the population: the field study measured it as survivorship, and the challenge of the revision re-derived it like for like, since on vitejs/vite lint failed on none of 216 push runs for merges and in 57 of 309 pull-request runs, one of them a routed miss for the very route the merges showed twelve clean records for (D-128). The merge commit a run checked out is not recoverable later, so a backfill record carries `base_reconstructed: true`, and the base's own push run supplies its `base_outcomes`. Sections 2, G2 and G10 describe live records; a backfill record's commits come from the API and the landing commit, and ingest verifies it by recomputation against its recorded head and base. Records carry `provenance: backfill`; heads older than the workflow, which landed 2026-08-22, are not measurable. The summary reports live and backfill counts separately, and backfill never counts toward N.
 
 ## 6. The approval criterion, as a proposal
 
 Per class key, all of the following, evaluated by the summary and read by a person:
 
-1. at least N live clean records;
+1. at least N pull requests that, in this class, have at least one clean live record and no miss, a pull request counting once however many times it ran; an inconclusive record neither adds nor removes, and N is a count that can fall when a later attempt misses, not a clock (D-128);
 2. zero unadjudicated misses, and at most A adjudicated misses, each naming a passing rerun at the same head and a recorded unknown by id;
 3. one canary miss recorded for the class, section 4;
 4. records spanning at least D days and at least two distinct authors, which the summary reports, so a burst by one author in one week does not stand for a season;
 5. no change to the class key since the oldest counted record, which the key enforces.
 
-ENGINEERING's rule of three gives the perspective; the design challenge checked it against the exact bound at zero misses: 30 records bound the miss rate near 10 percent, 100 near 3 percent, 300 near 1 percent. The cost column is this repository's measured rate, not a guess: of the 45 first-parent changes on `main` since 2026-08-06, 35 force full and 10 route `docs-only`, and only one of those, PR #31, has a run under the workflow that landed on 2026-08-22. Of the eleven round pull requests, one is `docs-only`. At that rate no option is reached in months; the campaign's early product is the class mix, the canaries, and the machinery, and approval waits on traffic.
+ENGINEERING's rule of three gives the perspective; the design challenge checked it against the exact bound at zero misses: 30 records bound the miss rate near 10 percent, 100 near 3 percent, 300 near 1 percent. The cost column is this repository's measured rate, not a guess: of the 45 first-parent changes on `main` since 2026-08-06, 35 force full and 10 route `docs-only`, and only one of those, PR #31, has a run under the workflow that landed on 2026-08-22. Of the eleven round pull requests, one is `docs-only`. That mix was measured over merges, a population D-128 retires; the pull-request mix replaces it once M5 is rebuilt. At that rate no option is reached in months; the campaign's early product is the class mix, the canaries, and the machinery, and approval waits on traffic.
 
 | Option | N | A | D | What zero misses bounds | This repository's rate |
 | --- | --- | --- | --- | --- | --- |
@@ -90,7 +90,7 @@ ENGINEERING's rule of three gives the perspective; the design challenge checked 
 | 2 | 100 | 1 | 60 days | about 3 percent | several years |
 | 3 | 300 | 0 | 90 days | about 1 percent | not reachable at today's rate |
 
-The recommendation is option 1 for `docs-only` as a milestone, with SLICE-003's automatic escalation on any miss as the real safety net, and with one caveat the design challenge found: `design/routing/*.md` routes `docs-only` today, and the suite's decision guard reads those files, so a design document citing an unrecorded decision id is a real `routing_miss` for the class. The first canary is expected to be that miss. Until the policy's classifier stops grading prose the suite reads as `docs`, the `docs-only` class cannot meet criterion 2 honestly, and narrowing that entry is an owner decision to record before the campaign counts anything, in the shape D-107 took. Meeting the criterion approves nothing; it makes the approval review possible.
+The recommendation is option 1 for `docs-only` as a milestone, with SLICE-003's automatic escalation on any miss as the real safety net. The caveat the design challenge found was measured by the canary: `design/routing/*.md` routed `docs-only`, the suite's decision guard reads those files, and PR #35, a design document citing an unrecorded decision id, recorded the miss. The owner then narrowed the classifier on that record: `design/routing/**/*.md` is verification authority in this repository's calibration (D-129), so the class can meet criterion 2 honestly, and every class key restarted while no record worth keeping existed. Two further facts from the field study bound what the criterion can conclude. N counts pull requests, not records, because one pull request can run eight times (D-128). And this repository has one author, so criterion 4 is never met from its own history; the class mix here is the campaign's early product, and conclusions come from repositories with two or more authors, measured read-only (D-130). Meeting the criterion approves nothing; it makes the approval review possible.
 
 ## 7. In scope, with build order
 
@@ -99,9 +99,10 @@ The recommendation is option 1 for `docs-only` as a milestone, with SLICE-003's 
 | M1 | The run store ignores itself; a rule that names no obligation is refused at load; `metrics/shadow/**` and `metrics/schemas/*.json` get `eol=lf` | tests, mutation rows, decisions |
 | M2 | `adc.py shadow record --repo --base --merge --head --pr --run --attempt --outcomes <json> --out <path>`: measurability check, route, candidate, class key, record id, schema `shadow-record-v2` | tests for S-052 to S-055; rows for the miss condition, the measurability check, and the class key |
 | M3 | Workflow job `shadow`, non-required, `if: always()`, `actions: read`, merge-ref checkout with the base fetched, API read with `filter=all`, gate-to-job mapping as data, artifact named by head and attempt | workflow contract tests for S-058 and the mapping; the D-011 check that `required` is unchanged; the fork-token measurement |
-| M4 | `adc.py shadow ingest` with recomputation and refusals, `adc.py shadow summary`, `metrics/shadow/`, the adjudications file's shape | tests for S-056, S-057, S-059, S-061 |
-| M5 | `adc.py shadow backfill --since` with today's router and policy; a real backfill of every merged pull request with a run, committed | test on a fixture; S-060 |
+| M4 | `adc.py shadow ingest` with recomputation and refusals, `adc.py shadow summary` counting pull requests per class, `metrics/shadow/`, the adjudications file's shape; built after M5 is rebuilt, by the owner's ninth decision | tests for S-056, S-057, S-059, S-061, S-065 |
+| M5 | `adc.py shadow backfill` over merged pull requests' run history: runs found through the listing joined on head repository and branch; one record per head and attempt, superseded attempts included; base `merge-base(head, landing^1)`; `base_reconstructed: true` in the record, the schema and the validator together; `base_outcomes` from the base's push run; `head-unavailable` recorded, not dropped; a head and attempt with a live record skipped; the merge-commit replay retired; a real backfill of this repository's pull requests, committed | test on a fixture with several attempts, one failing, on a merge-commit history; S-060, S-063; D-128 |
 | M6 | The canary procedure and one canary per class the backfill shows, on `canary/` branches, never merged | the canary records; S-062 |
+| M7 | `design/routing/*.md` classified verification authority in the repository calibration, the glob being `*` because the router's `fnmatchcase` crosses `/` and `**/*` would miss the top-level files; the `docs-only` canary re-run under the new class key, on a `canary/` branch that changes prose no gate reads | the classifier test on a top-level file; S-064; D-129; the new canary record |
 
 Each item cites the decision the implementer records for it; none cites a decision that does not yet exist.
 
@@ -109,8 +110,9 @@ Each item cites the decision the implementer records for it; none cites a decisi
 
 - Any selective execution, local or CI, per D-011 and SLICE-003.
 - Approving a rule, changing the `required` aggregator, or changing the canonical set.
-- Narrowing the `docs-only` classifier; that is the owner's decision, recorded before the campaign counts.
-- Measuring consumer repositories; this campaign measures this repository's own changes.
+- Narrowing any classifier entry other than the one D-129 names.
+- Installing anything in a consumer repository. Read-only field studies of other repositories are how the campaign is checked against traffic it cannot generate; their results live in `FIELD-STUDY-SLICE-002.md`.
+- Sampled full runs (D-130); they are SLICE-003's precondition, and nothing here executes selectively.
 - Measuring pushes to `main` separately from the pull requests that produced them.
 
 ## 9. Acceptance criteria
@@ -128,6 +130,9 @@ Each item cites the decision the implementer records for it; none cites a decisi
 | S-060 | Given a backfilled pull request, when recorded, then its route is computed by today's router and policy over its historical change set, and its outcomes are the run that verified its head. |
 | S-061 | Given two records whose class keys differ only in the router blob sha, when the summary runs, then they are never counted into one class; given two whose policies differ only in a `_note`, they are. |
 | S-062 | Given a rule with no obligations, when the policy loads, then it is refused. |
+| S-063 | Given a merged pull request on a merge-commit history with three run attempts, one of which failed an omitted gate, when backfilled, then three records exist, keyed by head and attempt, each carrying `provenance: backfill` and `base_reconstructed: true`, each with a non-empty change set taken against `merge-base(head, landing^1)`, and the failing attempt's record is a miss; given a head whose commit no longer exists, then its record is `not_measurable` with reason `head-unavailable`. |
+| S-064 | Given a change to `design/routing/DECISION-LOG.md` alone, a top-level file, and separately to a file one directory below, when routed under this repository's calibration, then each emits a fact with effect `verification-authority` and the route forces full. |
+| S-065 | Given one pull request with eight clean measurable records in a class, when the summary counts N, then the class advances by one; given the same pull request with one miss among them, then the class has a miss and N does not advance; given one inconclusive record among them, then N advances by one and nothing is a miss. |
 
 ## 10. Agent guardrails for this build
 
@@ -138,24 +143,35 @@ Each item cites the decision the implementer records for it; none cites a decisi
 
 ## 11. Slice definition of done
 
-- [ ] M1 through M6 landed with their tests, rows, and decisions, on main.
+- [ ] M1 through M7 landed with their tests, rows, and decisions, on main.
 - [ ] The backfill of every merged pull request with a run is in the ledger, with the class mix recorded in the handoff.
 - [ ] One canary per class present in the backfill is recorded, and the `docs-only` canary's result is recorded whichever way it went.
 - [ ] The first live record exists, from a pull request opened after the workflow landed.
 - [ ] The summary is reproducible and reviewed by a person.
 - [ ] A fresh-context challenge of the implementation held or was repaired under the cap.
 - [x] The owner has chosen N, A, and D, the storage option, and whether to narrow `docs-only` before counting: section 13, 2026-09-03.
+- [ ] The backfill has been re-run over pull-request run history and the merge-commit records are retired (D-128).
+- [ ] The `docs-only` canary under the narrowed classifier is recorded (D-129).
+- [x] The owner has decided the backfill population, the narrowing, the campaign's product, M4's timing, and PR #34's disposition: section 13, items 6 to 10, 2026-09-03.
 
 ## 12. What this unlocks
 
-SLICE-003, selective local execution for the first class that meets the criterion, with automatic escalation on any miss, after the top-tier approval review. Selective CI stays behind both, per D-011.
+SLICE-003, selective local execution for the first class that meets the criterion, with automatic escalation on any miss, after the top-tier approval review. Selective CI stays behind both, per D-011. SLICE-003 inherits D-130 before it inherits selective execution: a rate in the policy named `sample_every`, a sample chosen after routing as a deterministic function of the class key and the pull request number and recorded in the run, a `sampled` provenance the deterministic step derives from that record and never from a label, and the rule that a class without sampled records after execution starts has a stopped clock. None of that exists in SLICE-002, not even the enum value. The field study's reason is plain: the moment a skip is taken, the measurement that justified it goes blind unless something keeps running the full recipe on purpose.
 
 ## 13. Decisions taken by the owner
 
 Daniel Boyd took these on 2026-09-03, on the recommendations the design's author made after the challenge. Each is a decision the implementer records in the log with the item it lands in, citing this section.
 
-1. **The criterion is option 1 as a milestone, not a certification.** N is 30 live clean records, A is at most one adjudicated miss, D is 30 days with at least two authors. Zero misses at that size bounds the class's miss rate near 10 percent; SLICE-003's automatic escalation on any miss is the safety net, and the number can be raised once a class reaches it.
+1. **The criterion is option 1 as a milestone, not a certification.** N is 30 live clean records, restated by item 6 as 30 pull requests each counted once, A is at most one adjudicated miss, D is 30 days with at least two authors. Zero misses at that size bounds the class's miss rate near 10 percent; SLICE-003's automatic escalation on any miss is the safety net, and the number can be raised once a class reaches it.
 2. **Storage is option A.** Each run uploads its record as an artifact; `shadow ingest`, run by a person or by Sonnet 5 inside the artifact retention window, recomputes every record from the merge commit and the API before appending it to the committed ledger under `metrics/shadow/`. Option B is not built.
 3. **`docs-only` is not narrowed before counting.** The first canary for the class records the expected miss, a design document citing an unrecorded decision id, as evidence; the narrowing of the classifier is then decided on that record, in the shape D-107 took, not on prediction.
 4. **Backfilled records never count toward N.** They inform the class mix and catch design errors on the first day, and the summary reports them beside the live count, never inside it.
 5. **One canary per class key.** The key already changes when the rule's terms, the classifier, the canonical set, or the router change, which is exactly when the comparator could have gone blind for that class; a policy edit that leaves the key unchanged needs no new canary.
+
+Daniel Boyd took these later the same day, after the field study in `FIELD-STUDY-SLICE-002.md`, again on the author's recommendations with the alternatives stated.
+
+6. **The backfill grades pull-request run history, superseded attempts included.** A merge commit is survivorship: on vite, lint failed on none of 216 push runs for merges and in 57 of 309 pull-request runs, one of them a routed miss. The merge-commit replay is retired; D-128.
+7. **`docs-only` is narrowed now.** `design/routing/*.md` is verification authority in this repository's calibration, on the canary's evidence; every class key restarts while that costs nothing; the class gets a new canary under its new key; D-129.
+8. **Routing's product is audit, not speed, and a skipped class keeps a sampled full run.** Four repositories showed the safe skips already taken by hand and the remaining saving to be a lint job; what the router has that a path filter lacks is the graded record. SLICE-003 inherits the sampling rate and the `sampled` provenance before selective execution; D-130.
+9. **M4 waits.** The ledger and summary are built after D-128's backfill and its pull-request count exist, so they are built once.
+10. **PR #34 merges as it stands; design changes stack on it.** PR #35 stays open and unmerged as the old class's canary.

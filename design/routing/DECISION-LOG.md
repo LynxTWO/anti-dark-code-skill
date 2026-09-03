@@ -143,7 +143,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-124 | 2026-09-03 | The shadow ledger keeps LF on every checkout | Confirmed | |
 | D-125 | 2026-09-03 | A shadow record is silent unless every canonical gate decided | Confirmed | |
 | D-126 | 2026-09-03 | A gate no job carries is unresolved, not passed | Confirmed | |
-| D-127 | 2026-09-03 | The backfill replays today's router, and says so | Confirmed | |
+| D-127 | 2026-09-03 | The backfill replays today's router, and says so | Amended | D-128 |
+| D-128 | 2026-09-03 | The backfill grades a pull request's own run history, never the merge that survived it | Confirmed | |
+| D-129 | 2026-09-03 | Routing markdown the suite reads is verification authority | Confirmed | |
+| D-130 | 2026-09-03 | The campaign's product is the audit of a skip, and a skipped class keeps a sampled full run | Confirmed | |
 
 ---
 
@@ -4181,7 +4184,7 @@ gains a second run of the same gate whose result should not be unioned.
 ## D-127: The backfill replays today's router, and says so
 
 Date: 2026-09-03
-Status: Confirmed
+Status: Amended by D-128
 Area: D-125, SLICE-002 section 5, `adc_shadow.py`, R-060, M138
 
 Context:
@@ -4218,3 +4221,193 @@ succeeds, so the repository is left as it was found.
 Revisit when:
 A historical head needs its own router, which would mean the campaign has
 started comparing routers rather than rules.
+
+## D-128: The backfill grades a pull request's own run history, never the merge that survived it
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-125, D-127, SLICE-002 sections 2, 5, 6 and 13, `adc_shadow.py`, R-061, R-063, `FIELD-STUDY-SLICE-002.md`
+
+Context:
+D-127 replayed today's router over merge commits. The field study measured
+what that population contains, and the challenge of this revision re-derived
+it like for like. On vitejs/vite, lint concluded failure on none of 216 push
+runs for merges and in 57 of 309 pull-request CI runs. Of the 57, 36
+co-occur with a matrix failure and would be inconclusive under section 2,
+one is unmeasurable, and of the 20 miss-shaped runs 19 force full under the
+study policy and one, run 33323484002 with a failed type check, is a routed
+miss the merge population could not show, against the twelve clean records
+it did show for the same route. A merge is a change whose pull-request run
+passed the checks that gated it. Grading a candidate against it cannot see
+what those checks caught, and the better a gate is at catching things, the
+cleaner its record on main and the stronger the false case for removing it.
+
+Decision:
+`adc.py shadow backfill` enumerates merged pull requests and, for each,
+every run attempt of the CI workflow under the `pull_request` event,
+superseded heads and attempts included, and writes one record per head and
+attempt, keyed exactly as the live job keys its artifacts. The merge-commit
+replay is retired. The runs are found through the runs listing filtered to
+that event and joined to the pull request on head repository and branch,
+with `/commits/{sha}/pulls` for a run the listing cannot name, because a
+run's `pull_requests` field empties once the branch is merged and the pull
+request's own commit list holds only its final head. A head whose commit no
+longer exists is recorded `not_measurable` with reason `head-unavailable`,
+never dropped, as D-127 did for a head with no run.
+
+A backfill record's change set is the pull request's head against its merge
+base with the first parent of the commit that landed it, `merge-base(head,
+landing^1)`, which is the base branch as it stood at the merge for a
+merge-commit landing and for a squash alike. Its merge base with the base
+branch as it stands today is the head itself on a merge-commit history, so
+that definition would have written an empty change set for every pull
+request of this repository. The merge commit the run itself checked out is
+still not recoverable, and the record says so with `base_reconstructed:
+true`. The base's own push run supplies `base_outcomes`, so section 2's
+inherited-failure rule applies to a backfill record as it does to a live
+one. A head and attempt that already has a live record is never backfilled;
+the live record was built on the tree CI verified and wins.
+
+The criterion counts pull requests, not records, per class: a pull request
+advances N by one when, in that class, it has at least one clean record and
+no miss; an inconclusive record neither adds nor removes; a miss on any
+attempt is the class's miss, never removed, per section 2. N is a count that
+can fall when a later attempt misses, not a clock; the class's D days are
+measured over its records. A miss on a superseded head has no same-head
+rerun for criterion 2's adjudication and stays, by design, and a backfill
+miss is reported beside the criterion, never inside it and never
+adjudicated. The summary implements that count, and M4 is not built until
+this backfill exists, by the owner's ninth decision.
+
+Because:
+The campaign's question is whether an omitted gate would have caught
+something. The place a gate catches things is the pull request, before
+anyone fixes it. Measuring there is the only way the historical half of the
+campaign can see a miss at all, and it is the population the live half
+already measures, so the two halves finally grade the same thing.
+
+Consequences:
+The backfill costs one API read per run attempt rather than per merge, plus
+the joins. Backfill records already never count toward N by the owner's
+fourth decision; with the change set reconstructed they carry one more
+stated reason. The class mix D-127 reported for this repository is
+superseded by the pull-request mix once M5 is rebuilt. D-127's worktree
+replay stays in the log as what was measured and why it was wrong. Sections
+2, G2 and G10 of the brief describe live records; a backfill record's
+commits come from the API and the landing commit, and ingest verifies it by
+recomputation against its recorded head and base rather than against a
+checked-out merge commit. The schema, `validate_record`,
+`RECORD_REQUIRED_KEYS` and `build_record` move together for
+`base_reconstructed`, because a test holds them equal.
+
+Revisit when:
+The workflow records the merge commit it verified inside the record and the
+API keeps it, at which point `base_reconstructed` can be false for
+historical runs too.
+
+## D-129: Routing markdown the suite reads is verification authority
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-090, D-093, D-107, SLICE-002 sections 6, 7 and 13, the repository calibration, R-062, the `docs-only` canary
+
+Context:
+The owner's third decision of 2026-09-03 kept `docs-only` unnarrowed until
+the canary produced evidence. It did: PR #35, a design document citing an
+unrecorded decision id, recorded `status: miss` for the class, because
+`test_every_referenced_decision_exists` reads `design/routing/**/*.md` and a
+route that skipped the suite would have skipped the guard. A file a gate
+reads is not inert prose, whatever its extension.
+
+Decision:
+This repository's calibration classifies `design/routing/*.md` as surface
+`docs`, effect `verification-authority`, breadth `repository`. The glob is
+`*`, not `**/*`: the router matches with `fnmatch.fnmatchcase`, whose `*`
+crosses `/`, so `design/routing/*.md` reaches the top-level documents and
+every depth below, while `design/routing/**/*.md` reaches only the nested
+ones and would have left `DECISION-LOG.md` and the canary's own file routed
+`docs-only`. The challenge of this revision measured both. The `docs-only`
+rule is unchanged; such a change no longer matches it alone, and the
+self-grading rule forces the full recipe. The shipped template is unchanged,
+because the entry names a directory of this repository, and
+`AUTHORITY_CLASSIFIERS` is unchanged, because the collision guard folds a
+calibration's authority globs in on its own. The narrowing is taken now, on
+the canary's record, in the shape D-107 took, and before any class holds a
+record worth keeping.
+
+Because:
+Every class key includes the classifier, so this edit restarts every clock.
+Today that costs nothing: no ledger exists yet, and the five records GitHub
+holds as artifacts are four live `no_omission` records for PR #34 and the
+canary's miss for PR #35, none of them clean. In three months it would cost
+the campaign. D-093's principle, that what a gate reads is authority,
+already says where the line is.
+
+Consequences:
+Every class key changes; D-127's keys and the field study's are historical.
+One canary per class key, by the owner's fifth decision, means `docs-only`
+needs a new canary under the new key, one that changes prose no gate reads
+and deliberately breaks an omitted gate some other way. PR #35 stays open
+and unmerged as the record of the old class. `docs-only` can now meet
+criterion 2 honestly, which is what makes the milestone reachable at all.
+
+Revisit when:
+A second gate starts reading a directory the classifier calls prose, which
+the canary for that class finds, not prediction.
+
+## D-130: The campaign's product is the audit of a skip, and a skipped class keeps a sampled full run
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-011, D-064, SLICE-002 sections 6, 8, 12 and 13, SLICE-003, `FIELD-STUDY-SLICE-002.md`
+
+Context:
+Four repositories measured the same thing. Where a skip saves real minutes,
+the maintainers already skip by hand: vite's ten-line `changed-files`
+filter takes out 1084 machine-minutes across 216 merges and the router adds
+51, all of it lint. Where the router is safe, it saves a lint job. And the
+class a hand filter skips is unmeasurable by that filter's own doing: all 36
+of vite's `docs-only` records read `ci-test=skipped`. The blind spot is not
+vite's. It is what any selective execution does to the measurement that
+justified it, and SLICE-003 would do it here on the first day.
+
+Decision:
+Routing's product is the graded record of why a gate was not run: a
+monotonic policy, a self-grading guard, a class key, a canary, and a ledger
+a person can read. Speed is what a path filter gives; proof is what this
+gives. From this decision, any selective execution, in SLICE-003 or in a
+consumer repository, keeps the campaign sighted by running the full recipe
+anyway on a sampled fraction of the skipped class, at a rate the policy
+names `sample_every`, and recording those runs with `provenance: sampled`.
+The sample is chosen after routing, by the workflow, as a deterministic
+function of the class key and the pull request number, so that a re-push
+cannot move a change out of the sample and no one holds a counter to steer
+it; the decision is recorded in the run, and the deterministic step derives
+`sampled` from that record exactly as it derives `canary` from the branch
+name, never from a label, per G8. A sampled record is the authoritative
+outcome for a skipped class and counts as live evidence; a class with no
+sampled records after execution starts is a class whose clock has stopped. This repository's own
+history has one author, so criterion 4 cannot be met from it alone;
+conclusions come from repositories with two or more, and read-only field
+studies are how the campaign is checked against traffic it does not
+generate.
+
+Because:
+A campaign that can only measure gates nobody skips has nothing to say
+about the gates people do skip. The sampled run is the mutation-row
+principle again: the comparator must be shown to see failures after the
+shortcut is taken, not only before.
+
+Consequences:
+SLICE-003's definition gains `sample_every`, the sampling step, and the
+`sampled` provenance together, before it gains selective execution. The
+skill's offer to a consumer repository changes from faster CI to an audited
+skip, including the audit of the filter it already has. Nothing in SLICE-002
+executes selectively, per D-011, so nothing is built for this here, not even
+the enum value: a provenance no deterministic step derives is the label G8
+forbids, so the value arrives with the step that derives it.
+
+Revisit when:
+A repository with expensive, separable CI and heterogeneous changes is
+measured and the router finds a safe skip a path filter did not already
+take. None of the five examined did.
