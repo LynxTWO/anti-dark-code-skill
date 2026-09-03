@@ -138,6 +138,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-119 | 2026-09-02 | A case variant of an authority path routes as a collision with it | Amended | D-120 |
 | D-120 | 2026-09-02 | A spelling a checkout can alias to an authority path routes as that authority | Amended | D-121 |
 | D-121 | 2026-09-02 | The fold set is every approved requirement, keyed once per route | Confirmed | |
+| D-122 | 2026-09-03 | The run store's ignore file ignores itself | Confirmed | |
+| D-123 | 2026-09-03 | A rule that names no obligation cannot load | Confirmed | |
+| D-124 | 2026-09-03 | The shadow ledger keeps LF on every checkout | Confirmed | |
+| D-125 | 2026-09-03 | A shadow record is silent unless every canonical gate decided | Confirmed | |
 
 ---
 
@@ -3926,3 +3930,197 @@ filesystems no host here can measure, stays a limit under D-116.
 Revisit when:
 A rule gains a requirement kind the empty-route comparison does not see, or
 a host this repository targets measures an alias the key does not fold.
+
+## D-122: The run store's ignore file ignores itself
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-089, SLICE-002 sections 4 and 9, `ensure_run_gitignore`, R-056, M127
+
+Context:
+`ensure_run_gitignore` writes `.anti-dark-code/.gitignore` naming `runs/`,
+`efficiency/`, and `flowback/`. It did not name the file it was writing, and
+this repository's own ignore file covers only `.anti-dark-code/runs/`, so the
+one path under the store that git still reported was the ignore file itself.
+Measured on a pristine clone by the SLICE-002 design challenger: after
+`route --write` on a clean tree the receipt's `changed_files` held
+`.anti-dark-code/.gitignore` as an untracked add, its fact carried
+`confidence: unknown`, and the route recorded `ADC-ROUTE-UNMAPPED-PATH` and
+`ADC-ROUTE-UNROUTED-FACT` and forced full. Every written receipt in this
+repository was therefore full because of a file the tool had just created,
+and a shadow campaign built on such receipts would have measured nothing,
+because every candidate would have been full too.
+
+Decision:
+The store's ignore file names `.gitignore` as a fourth entry, so it ignores
+itself. Existing stores gain the entry the next time the function runs, by
+the append path it already had.
+
+Because:
+The two alternatives were measured and are worse. Ignoring
+`.anti-dark-code/` in the repository's own ignore file also hides a real
+change to `.anti-dark-code/calibration/`, which is where an installed policy
+and gate configuration live, and that is the blindness D-089 exists to
+prevent. Excluding the store inside the router would put the same blindness
+in the acquisition path, where D-010 refuses it.
+
+Consequences:
+A local receipt on a clean tree now routes at Level 0 rather than full, so
+the shadow record for such a change is measurable. A change under
+`.anti-dark-code/calibration/` is still collected and still forces full,
+which `test_a_real_calibration_change_under_the_store_is_still_seen` holds.
+`test_the_run_store_is_not_a_change_of_its_own` asserted the opposite
+property until this decision; it recorded the defect as behaviour, which is
+why the test changed in the same commit as the code.
+
+A repository that had committed the store's ignore file gains the fourth
+entry the first time the tool runs, and that one write modifies a tracked
+file, which the router reports as a change because it is one. Measured here:
+two CLI tests failed on exactly that, because their fixture committed the
+pre-decision shape, and the routed level rose from 2 to 3 for a reason those
+tests are not about. The migration is one write per repository and the store
+is silent afterwards, which
+`test_a_tracked_store_ignore_gains_the_entry_once_and_then_is_stable` holds.
+Refusing to touch a tracked ignore file instead would leave such a
+repository with the defect for good.
+
+Revisit when:
+The store gains a directory a person is meant to edit, which would need to be
+visible rather than ignored.
+
+## D-123: A rule that names no obligation cannot load
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-016, D-064, SLICE-002 section 2, `load_policy`, R-057, M128
+
+Context:
+A rule's obligations are what bind capabilities to gate ids, and
+`CandidateRoute.selected_gate_ids` is the union of the obligations of the
+rules that fired. `load_policy` required each named capability to carry a
+nonempty gate list but never required a rule to name any capability at all.
+Measured by the SLICE-002 design challenger: `docs-only` with
+`"obligations": {}` loads, its candidate selects `[]`, and with every gate
+failing the record reads `routing_miss=False`, while with every gate passing
+it meets the campaign's definition of a clean record for a rule that would
+have run nothing.
+
+Decision:
+Every rule must name at least one obligation, or the policy is refused at
+load. A rule that forces full is not exempt: the shipped policy's two
+force-full rules both name their obligations already, and exempting them
+would leave the shape available to a policy that adds one.
+
+Because:
+A route that selects nothing is not a cheap route, it is no verification at
+all, and a shadow ledger cannot tell it from a clean one. Refusing it at load
+is where D-064's reading applies: an unread policy must not be able to make a
+route cheaper, and the cheapest possible route is the empty one.
+
+Consequences:
+A consumer policy must state which gates satisfy which capability for every
+rule, including force-full rules, where the statement is redundant with the
+full recipe and harmless. The shipped policy and template load unchanged.
+
+Revisit when:
+A rule kind appears whose meaning is to add no obligation, which would need
+its own reviewed shape rather than an empty mapping.
+
+## D-124: The shadow ledger keeps LF on every checkout
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-114, SLICE-002 sections 4 and 5, `.gitattributes`, M129
+
+Context:
+D-114 declared the evidence JSON under `design/routing/` `text eol=lf` after
+a default Windows clone rewrote the matrix's line endings and a check that
+hashed the checkout disagreed with the recorded blob digest. SLICE-002's
+summary is regenerated from the ledger's bytes and compared byte for byte,
+so the same failure would return. Measured by the design challenger:
+`check-attr` on `metrics/shadow/ledger/2026-09.jsonl`,
+`metrics/shadow/summary.json`, and `metrics/schemas/*.json` returned nothing,
+and an `autocrlf=true` checkout of an LF commit of a ledger file came back
+with two carriage returns and a different digest.
+
+Decision:
+`metrics/shadow/**` and `metrics/schemas/*.json` are declared `text eol=lf`,
+before the first record exists.
+
+Because:
+An attribute added after the first record would leave every earlier record's
+bytes ambiguous, and the campaign's first product is a comparison of bytes.
+
+Consequences:
+The ledger, the summary, the adjudications file, and the schemas read the
+same on every host. Existing clones re-normalize on the next checkout of
+those paths, of which there are none yet.
+
+Revisit when:
+A ledger artifact needs CRLF, which none does.
+
+## D-125: A shadow record is silent unless every canonical gate decided
+
+Date: 2026-09-03
+Status: Confirmed
+Area: SLICE-002 sections 2 to 6, `adc_shadow.py`, `shadow_result`, R-058,
+M130 to M133
+
+Context:
+`shadow_result` compares a candidate's omissions with the outcomes it is
+handed. It counts any non-pass omitted outcome as missed and, because it
+builds its omission set from the keys present, it counts an absent gate as
+clean. The SLICE-002 design challenge measured both: a docs-only candidate
+given only `{"validate-core": "pass"}` returned `measurable=True`,
+`routing_miss=False`, `omitted_gate_results={}`, and a `not-run` omitted gate
+returned `routing_miss=True`. A campaign that read either as evidence would
+be counting silence.
+
+Decision:
+The record is built by `adc.py shadow record`, which decides measurability
+before it calls the comparator. Every gate in the canonical full set must be
+present with `pass` or `fail`; anything else, and a candidate the router
+could not build from an incomplete snapshot, leaves the record
+`not_measurable` with the reason named and no verdict. A measurable record
+carries exactly one status: `miss` when an omitted gate failed and every
+selected gate passed, `inconclusive` when a selected gate failed or when the
+base's own run already failed the same gate, `clean` when every gate passed
+and at least one was omitted, `no_omission` when the candidate forces full,
+and `selects_nothing` when it selects no gate at all, which D-123 refuses at
+load and this records rather than assumes. Only `clean` and `miss` are
+evidence.
+
+The class key digests the matched rules' `match`, `requires`, and
+`obligations` with `_`-prefixed keys stripped, the classifier, the canonical
+full set, the router, and the omitted gate ids. `review_status` is excluded
+by construction, so approving one rule does not reset another class's clock.
+Provenance is derived from the head ref, never passed as a label. The record
+id digests the record without the id.
+
+One deviation from the brief's wording, recorded rather than made silently:
+the brief says the key carries "the blob sha of `adc_route.py` at the head",
+and the implementation carries the SHA-256 of the router file this process
+loaded. Measured: a consumer-shaped fixture has no `anti-dark-code/` at all,
+so hashing a path inside the measured repository failed outright, and the
+property the key needs is which router produced the candidate, which the
+loaded file states exactly. The backfill replays today's router over a
+historical change set, and this spelling says so.
+
+Because:
+A measurement that cannot tell silence from success is the self-grading
+defect this slice exists to prevent, one layer out from the router. Putting
+the check in front of the comparator, rather than teaching the comparator to
+refuse, keeps `shadow_result` the one thing it already is and leaves its
+existing tests meaning what they meant.
+
+Consequences:
+A run with a cancelled, skipped, or still-running gate produces a record that
+counts toward nothing, and the summary can report how often that happens,
+which is the number that says whether the campaign is working. The schema
+`metrics/schemas/shadow-record-v2.schema.json` documents the shape, and a
+test holds the schema's required keys and the validator's in agreement, so
+neither can drift into decoration.
+
+Revisit when:
+The canonical full set gains a gate whose CI evidence cannot be reduced to
+pass or fail, or a second comparator appears.

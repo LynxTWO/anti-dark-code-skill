@@ -5406,5 +5406,118 @@
       }
     ],
     "note": "D-121. anti-d~1/scripts/adc_route.py then routes as Level 2 product code, and real git checkout -f, reset --hard, and a fresh clone wrote that spelling over the genuine router on a volume with 8.3 names. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M127",
+    "name": "the run store's ignore file does not ignore itself",
+    "source": "anti-dark-code/scripts/adc.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py",
+      "anti-dark-code/tests/test_adc.py"
+    ],
+    "old": "    required_entries = (\"runs/\", \"efficiency/\", \"flowback/\", \".gitignore\")",
+    "new": "    required_entries = (\"runs/\", \"efficiency/\", \"flowback/\")",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-122. Every written receipt then carries the ignore file the tool just created as an untracked unmapped fact and forces full, which is what the SLICE-002 design challenger measured on a pristine clone and what would have made every shadow record unmeasurable. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M128",
+    "name": "a rule that names no obligation still loads",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        if not rule.get(\"obligations\"):\n            # D-123.",
+    "new": "        if False and not rule.get(\"obligations\"):\n            # D-123.",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-123. Such a rule's candidate selects no gate, so a change matching only it routes to nothing while a shadow record reads clean; measured with docs-only carrying an empty obligations map. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M129",
+    "name": "the shadow ledger carries no line-ending attribute",
+    "source": ".gitattributes",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "metrics/shadow/** text eol=lf",
+    "new": "metrics/shadow/**.unused text eol=lf",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-124. A default Windows checkout then rewrites the ledger's line endings and the summary regenerated from its bytes differs by host, which is D-114's failure in the campaign's own artifacts. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M130",
+    "name": "an absent gate outcome reads as clean",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    absent = sorted(gate for gate in gates if gate not in outcomes)",
+    "new": "    absent = []",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-125. shadow_result builds its omission set from the keys it is handed, so a canonical gate nobody reported becomes a clean record; the SLICE-002 design challenger measured a docs-only candidate given one outcome returning measurable with no omissions. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M131",
+    "name": "an undecided outcome counts as evidence",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "DECIDED_OUTCOMES = frozenset({\"pass\", \"fail\"})",
+    "new": "DECIDED_OUTCOMES = frozenset({\"pass\", \"fail\", \"not-run\", \"skipped\", \"stale\"})",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-125. A cancelled or skipped gate then reaches the comparator, which counts every non-pass omitted outcome as missed, so infrastructure noise becomes a routing miss and a rerun becomes a second verdict. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M132",
+    "name": "the class key ignores which router ran",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        \"router_blob_sha256\": router_blob_sha256,\n        \"omitted_gate_ids\": sorted(omitted_gate_ids),",
+    "new": "        \"omitted_gate_ids\": sorted(omitted_gate_ids),",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-125, G5. Records from either side of a router change then count into one class, and D-119 to D-121 changed candidate building three times in one round. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M133",
+    "name": "the class key follows the policy file's prose",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        rules[str(rule[\"id\"])] = strip_underscored({",
+    "new": "        rules[str(rule[\"id\"])] = dict({",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-125, G6. A comment edit on a rule then starts a new class and resets its clock, which is what keying on the policy's bytes did in the design's first draft. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M134",
+    "name": "the class key follows the classifier's prose",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        \"classifier\": strip_underscored(policy_source.get(\"classifier\", {})),",
+    "new": "        \"classifier\": policy_source.get(\"classifier\", {}),",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-125, G6. A note added to a classifier entry then starts a new class, and the shipped template annotates most of its entries. Pending the next authoritative two-host replay."
   }
 ]

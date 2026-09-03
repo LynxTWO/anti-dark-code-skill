@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/LynxTWO/anti-dark-code-skill/metrics/schemas/shadow-record-v2.schema.json",
+  "title": "Shadow evidence record",
+  "description": "One record says, for one change CI verified in full, what the proposed routing rules would have skipped and whether anything they skipped failed. Defined by design/routing/SLICE-002-shadow-evidence.md sections 2 to 6 and D-125. The schema documents the shape; adc_shadow.validate_record is what refuses a malformed record, and a test holds the two in agreement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "provenance",
+    "status",
+    "measurable",
+    "commits",
+    "run",
+    "class_key",
+    "class",
+    "audit",
+    "gate_outcomes"
+  ],
+  "properties": {
+    "schema_version": {"const": 2},
+    "schema": {"const": "shadow-record-v2"},
+    "record_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the record's canonical bytes without this field."
+    },
+    "provenance": {
+      "enum": ["live", "backfill", "canary"],
+      "description": "Derived from the head ref and the command, never asserted as a label (G8)."
+    },
+    "head_ref": {"type": "string"},
+    "status": {
+      "enum": ["miss", "clean", "inconclusive", "no_omission", "selects_nothing", "not_measurable"],
+      "description": "Only clean and miss are evidence for or against a class."
+    },
+    "measurable": {
+      "type": "boolean",
+      "description": "True only when every canonical gate carries pass or fail."
+    },
+    "not_measurable_reason": {"type": ["string", "null"]},
+    "inconclusive_reason": {"type": ["string", "null"]},
+    "commits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "merge", "head"],
+      "properties": {
+        "base": {"type": "string"},
+        "merge": {"type": "string", "description": "The tree CI verified, refs/pull/N/merge."},
+        "head": {"type": "string"}
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pull_request", "run_id", "run_attempt"],
+      "properties": {
+        "pull_request": {"type": ["integer", "null"]},
+        "run_id": {"type": "string"},
+        "run_attempt": {"type": "integer", "minimum": 0}
+      }
+    },
+    "class_key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["matched_rule_ids", "selected_gate_ids", "omitted_gate_ids", "router_blob_sha256", "terms_sha256"],
+      "properties": {
+        "matched_rule_ids": {"type": "array", "items": {"type": "string"}},
+        "selected_gate_ids": {"type": "array", "items": {"type": "string"}},
+        "omitted_gate_ids": {"type": "array", "items": {"type": "string"}},
+        "router_blob_sha256": {"type": "string"},
+        "terms_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_bytes_sha256", "policy_terms_sha256", "gates_terms_sha256", "route_force_full", "route_minimum_level", "route_unknowns"],
+      "properties": {
+        "policy_bytes_sha256": {"type": "string"},
+        "policy_terms_sha256": {"type": "string"},
+        "gates_terms_sha256": {"type": "string"},
+        "route_force_full": {"type": "boolean"},
+        "route_minimum_level": {"type": "integer"},
+        "route_unknowns": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "gate_outcomes": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Canonical gate id to the CI conclusion for this run attempt."
+    },
+    "base_gate_outcomes": {"type": ["object", "null"]},
+    "shadow": {
+      "type": ["object", "null"],
+      "description": "The comparator's own output, present only for a measurable record with an omission."
+    }
+  }
+}

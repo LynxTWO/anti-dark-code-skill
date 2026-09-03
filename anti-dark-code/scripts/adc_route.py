@@ -1994,6 +1994,17 @@ def load_policy(
         _check_requires(where, requires)
         _check_obligations(where, rule.get("obligations", {}), usable,
                            known_capabilities)
+        if not rule.get("obligations"):
+            # D-123. A rule that names no obligation selects no gate, so a
+            # change it alone matched would take a route that runs nothing
+            # while every gate the run happened to execute still passed, which
+            # a shadow record cannot tell from a clean route. Every shipped
+            # rule names its obligations, including the two that force full.
+            raise PolicyError(
+                f"{where}: a rule must name at least one obligation. A rule "
+                "that names none selects no gate, so a change matching only "
+                "it would route to nothing at all"
+            )
         rules.append(ValidatedRule(
             id=rule_id,
             approved=str(rule.get("review_status", "")).lower() == "approved",

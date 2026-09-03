@@ -97,6 +97,9 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-053 | Every stored authority mutation is replayable and caught by its configured suite | given each active row, when replay applies it alone, then its suite fails and the source is restored; a superseded row names its replacement |
 | R-054 | Real configured programs and a real missing promisor object cannot execute or fetch during acquisition | given global filters and a blobless clone missing a required blob, when acquisition runs, then no program or lazy fetch starts |
 | R-055 | Cost evidence names time, byte units, storage sharing, and represented state | given a cost record, when it is used for an architecture decision, then its command, repeated wall times, logical and allocated byte units, sharing mode, and represented state are explicit |
+| R-056 | The tool's own run store is never a change the router must route | given a clean tree, when a receipt is written, then no emitted fact's path lies under `.anti-dark-code/`, and a real change under `.anti-dark-code/calibration/` is still collected |
+| R-057 | Every routing rule names at least one obligation | given a rule with no obligations, when the policy loads, then it is refused, so no matched rule can select an empty gate set |
+| R-058 | A shadow record is evidence only when every canonical gate decided, and its class follows the rules' terms and the router | given outcomes missing a gate or carrying an undecided one, when a record is built, then it is not measurable and carries no verdict; given two policies differing only in prose, then the class key is the same, and given a different router, then it is not |
 
 ### 4.2 Assumed requirements
 
@@ -349,6 +352,9 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-053 | data-driven replay of all 126 stored mutations | `mutants/`; 120 active and 6 superseded under D-094 and D-113. Round Twenty-One's two full serial `--write` replays at `fe350e9`, one on Windows and one on WSL2 Ubuntu, each processed all 126 rows with 0 not caught from a clean clone; their records were merged per platform, so every active row carries exact failed and skipped identities from both hosts at one commit (D-109); a read-only Windows parallel replay at the same head agrees with the Windows write row for row. M100 was re-anchored and M115 and M116 added under D-118, M117 and M118 under D-119, M119 to M122 under D-120, and M123 to M126 under D-121; all thirteen carry records from both hosts. M37, M46, and M48 are `caught elsewhere` only because the exact Windows skipped node is the exact Linux failed node (D-104). Source restoration is hash-verified by D-068 |
 | R-054 | real configured-program and missing-promisor-object tests | named tests in `requirement-evidence.json`; the blobless counterfactual proves the fixture reaches the network without the guard |
 | R-055 | repeatable cost record with wall time, byte units, storage sharing, and represented state | D-047 review evidence, linked in `requirement-evidence.json` |
+| R-056 | receipt-level check that the store's own ignore file is not a fact, plus a counterexample that a calibration change under the store still is | `test_route_cli.py` |
+| R-057 | load-time refusal of a rule with no obligations, including one that forces full | `test_route.py` |
+| R-058 | record-level status table over decided, absent, and undecided outcomes, plus class-key equality under prose edits and inequality under a router change, unit and end to end | `test_route.py`, `test_route_cli.py` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 
