@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import fnmatch
 import hashlib
 import importlib.util
 import io
@@ -5556,7 +5557,17 @@ class SelfGradingAuthorityTests(unittest.TestCase):
     def test_an_ordinary_documentation_path_does_not_force_full(self) -> None:
         # The counterexample. Without it, a policy that forced full on
         # everything would satisfy the test above and prove nothing.
-        route = self._route_for("design/routing/ARCHITECTURE.md",
+        #
+        # This used design/routing/ARCHITECTURE.md until D-129 made every
+        # design/routing document verification authority, because the suite's
+        # decision guard reads them. That is the decision, not a regression,
+        # so the counterexample moves to a documentation path no gate reads.
+        # It has to be a file that exists: a path the tree does not contain
+        # would keep passing after the classifier stopped calling it prose.
+        ordinary = REPO_ROOT / "docs" / "review" / "adversarial-pass.md"
+        self.assertTrue(ordinary.is_file(),
+                        "the counterexample must be a real documentation file")
+        route = self._route_for("docs/review/adversarial-pass.md",
                                 self._approved_policy())
         self.assertFalse(route.force_full)
         self.assertEqual(0, route.minimum_level)
@@ -6194,6 +6205,90 @@ class SubmoduleContractTests(unittest.TestCase):
         route = self.route.build_route(facts, policy, snapshot_ok=snapshot.complete)
         self.assertTrue(route.force_full)
         self.assertIn("ADC-ROUTE-SNAPSHOT-INCOMPLETE", route.unknowns)
+
+
+class RepositoryCalibrationTests(unittest.TestCase):
+    """This repository's own calibration, not a fixture.
+
+    D-129 is a statement about the policy this repository routes by, so a
+    fixture cannot hold it: the claim is that a change to a design document
+    the suite reads cannot take the docs-only route here.
+    """
+
+    CALIBRATION = (REPO_ROOT / ".agents" / "skills" / "anti-dark-code"
+                   / "calibration")
+
+    def setUp(self) -> None:
+        self.route = load_route()
+        self.policy = json.loads(
+            (self.CALIBRATION / "routing-policy.json").read_text(encoding="utf-8"))
+        self.gates = json.loads(
+            (self.CALIBRATION / "gates.json").read_text(encoding="utf-8"))
+        self.validated = self.route.load_policy(
+            self.policy, self.gates, CAPABILITY_IDS,
+            self.gates["canonical_full_set"])
+
+    def _route_for(self, path: str):
+        snapshot = self.route.ChangeSnapshot(
+            inputs=(self.route.ChangeInput(
+                path=path, change_kind="modify", source="committed"),),
+            base="abc", base_resolved=True)
+        facts = self.route.collect_change_facts(
+            snapshot, self.validated.classifier_map())
+        return facts, self.route.build_route(facts, self.validated)
+
+    def test_a_design_document_the_suite_reads_is_verification_authority(self) -> None:
+        # S-064, R-062, D-129. The guard reads design/routing/**/*.md through
+        # rglob, so both depths must carry authority. The canary's own file
+        # was top-level, which is the case `**/*.md` would have missed.
+        for path in ("design/routing/DECISION-LOG.md",
+                     "design/routing/SLICE-002-shadow-evidence.md",
+                     "design/routing/plans/anything.md"):
+            with self.subTest(path=path):
+                facts, route = self._route_for(path)
+                self.assertIn("verification-authority", {f.effect for f in facts},
+                              f"{path} carries no authority fact")
+                self.assertTrue(route.force_full, f"{path} did not force full")
+
+    def test_the_narrowing_reaches_the_file_the_canary_used(self) -> None:
+        # The canary that produced the miss changed exactly this shape of
+        # path. If the entry cannot reach it, the decision it rests on is
+        # unenforced.
+        facts, route = self._route_for(
+            "design/routing/CANARY-DOCS-ONLY-2026-09-03.md")
+        self.assertIn("verification-authority", {f.effect for f in facts})
+        self.assertTrue(route.force_full)
+
+    def test_the_narrowing_does_not_reach_beyond_its_directory(self) -> None:
+        # A glob whose `*` crosses `/` is easy to write too wide. What must
+        # not happen is authority spreading to prose elsewhere; whether such
+        # a path is prose or unmapped is a different entry's business, and
+        # `README.md` at the root is in fact unmapped, because `**/*.md`
+        # needs a directory to match.
+        for path in ("README.md", "docs/guide.md", "design/other/note.md",
+                     "design/routing.md", "designs/routing/x.md"):
+            with self.subTest(path=path):
+                facts, _ = self._route_for(path)
+                self.assertNotIn(
+                    "verification-authority", {f.effect for f in facts},
+                    f"{path} gained authority the narrowing did not intend")
+
+    def test_the_entry_is_written_with_a_glob_this_router_can_match(self) -> None:
+        # D-129 names `*` deliberately: fnmatchcase has no `**`, so the
+        # `**/*.md` spelling would match only nested paths. This holds the
+        # spelling itself, because the failure is silent.
+        entry = next(
+            e for e in self.policy["classifier"]["surfaces"]
+            if str(e.get("glob", "")).startswith("design/routing/")
+            and str(e.get("glob", "")).endswith(".md"))
+        self.assertEqual("design/routing/*.md", entry["glob"])
+        self.assertEqual("verification-authority", entry["effect"])
+        self.assertTrue(
+            fnmatch.fnmatchcase("design/routing/DECISION-LOG.md", entry["glob"]))
+        self.assertFalse(
+            fnmatch.fnmatchcase("design/routing/DECISION-LOG.md",
+                                "design/routing/**/*.md"),
+            "the ** spelling would silently miss every top-level document")
 
 
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"

@@ -147,6 +147,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-128 | 2026-09-03 | The backfill grades a pull request's own run history, never the merge that survived it | Confirmed | |
 | D-129 | 2026-09-03 | Routing markdown the suite reads is verification authority | Confirmed | |
 | D-130 | 2026-09-03 | The campaign's product is the audit of a skip, and a skipped class keeps a sampled full run | Confirmed | |
+| D-131 | 2026-09-03 | A record GitHub is about to drop is committed unread, as an inbox | Confirmed | |
 
 ---
 
@@ -4411,3 +4412,47 @@ Revisit when:
 A repository with expensive, separable CI and heterogeneous changes is
 measured and the router finds a safe skip a path filter did not already
 take. None of the five examined did.
+
+## D-131: A record GitHub is about to drop is committed unread, as an inbox
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-125, D-128, D-129, SLICE-002 section 5 and G10, `metrics/shadow/inbox/`
+
+Context:
+Every shadow record this repository has ever produced lives in a run
+artifact with a ninety-day window. The six that exist were created on
+2026-09-03 and expire on 2026-12-02. `shadow ingest`, which is what turns an
+artifact into a ledger entry, is M4, and the owner's ninth decision builds
+M4 after the backfill. The canary's miss is among the six, and D-129 makes
+it the only record of the class that existed before the narrowing.
+
+Decision:
+The artifacts are downloaded and committed verbatim under
+`metrics/shadow/inbox/`, named as uploaded, before anything else in this
+build. They are not ledger entries and are not counted: G10 says a record
+built by a pull request's own workflow is a hint until ingest recomputes it,
+and nothing here recomputes anything. Ingest, when it exists, reads the
+inbox as it reads a freshly downloaded artifact, and refuses any record
+whose recomputation disagrees. A record is never edited on its way in; the
+only normalisation is the LF that `.gitattributes` already pins for this
+tree under D-124.
+
+Because:
+The alternative is losing the evidence to a retention window while waiting
+for the tool that reads it. Committing bytes nobody has graded costs
+nothing and preserves the one canary miss the campaign owns; grading them
+early would be the self-grading defect this slice exists to avoid.
+
+Consequences:
+`metrics/shadow/inbox/` holds six records: four live `no_omission` records
+for PR #34, the canary `miss` for PR #35, and one live `no_omission` for
+PR #36. Their keys are from before D-129, so ingest will place them in
+classes no live record will ever join again; that is what a classifier
+change means and the keys say so. A change under `metrics/shadow/` routes
+unmapped and forces full, so committing them ran the full recipe.
+
+Revisit when:
+Ingest exists and the inbox is drained, at which point the directory is
+either removed or kept as the documented landing place for a downloaded
+artifact.

@@ -459,10 +459,12 @@
       }
     },
     "R-062": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-129: Routing markdown the suite reads is verification authority"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route.py::RepositoryCalibrationTests::test_a_design_document_the_suite_reads_is_verification_authority",
+        "anti-dark-code/tests/test_route.py::RepositoryCalibrationTests::test_the_narrowing_reaches_the_file_the_canary_used",
+        "anti-dark-code/tests/test_route.py::RepositoryCalibrationTests::test_the_narrowing_does_not_reach_beyond_its_directory",
+        "anti-dark-code/tests/test_route.py::RepositoryCalibrationTests::test_the_entry_is_written_with_a_glob_this_router_can_match"
+      ]
     },
     "R-063": {
       "review": {

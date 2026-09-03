@@ -363,7 +363,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-059 | workflow contract check on the required aggregator's needs and the shadow job's conditions, plus a jobs-payload table over renamed jobs, missing steps, failed legs, and cancelled legs | `test_route.py` |
 | R-060 | backfill of a real merge in a fixture repository, and of a merge with no run | `test_route_cli.py` |
 | R-061 | backfill of a fixture pull request with several run attempts, one failing | proposed under D-128; `test_route_cli.py` when M5 is rebuilt |
-| R-062 | classifier check on a routing markdown change under the repository calibration | proposed under D-129; `test_route.py` when M7 lands |
+| R-062 | classifier check on a routing markdown change under the repository calibration, at both depths and on the canary's own filename, plus the glob spelling itself | `test_route.py`; M139 and M140 |
 | R-063 | summary count over a pull request with many clean records, and with one miss | proposed under D-128; `test_route_cli.py` when M4 lands |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.

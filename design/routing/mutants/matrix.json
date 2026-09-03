@@ -5575,5 +5575,33 @@
     "pytest": "",
     "results": [],
     "note": "D-127. Replayed history then counts as live evidence toward the criterion's N, which the owner's decision of 2026-09-03 excludes. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M139",
+    "name": "the design documents the suite reads route as prose again",
+    "source": ".agents/skills/anti-dark-code/calibration/routing-policy.json",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "      \"glob\": \"design/routing/*.md\",",
+    "new": "      \"glob\": \"design/routing/NOTHING-MATCHES-THIS.md\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-129. Without this entry a change to a design document takes the docs-only route, which skips the suite whose decision guard reads that very document; the canary measured the miss. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M140",
+    "name": "the narrowing is spelled with a globstar this router cannot match",
+    "source": ".agents/skills/anti-dark-code/calibration/routing-policy.json",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "      \"glob\": \"design/routing/*.md\",",
+    "new": "      \"glob\": \"design/routing/**/*.md\",",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-129. The router matches with fnmatchcase, which has no `**`; the globstar spelling reaches only nested paths and silently leaves every top-level design document, including the canary's own file, on the docs-only route. The failure is invisible in the policy's text, which is why it is a row. Pending the next authoritative two-host replay."
   }
 ]
