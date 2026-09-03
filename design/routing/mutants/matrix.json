@@ -5519,5 +5519,47 @@
     "pytest": "",
     "results": [],
     "note": "D-125, G6. A note added to a classifier entry then starts a new class, and the shipped template annotates most of its entries. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M135",
+    "name": "a gate no job carries reads as passed",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "            outcomes[gate] = \"unresolved\"\n            continue",
+    "new": "            outcomes[gate] = \"pass\"\n            continue",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-126. A renamed or deleted CI job then reads as a passing gate, so every later record counts a gate nobody ran, which is the silence-as-success failure the campaign must not have. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M136",
+    "name": "an undecided job conclusion reads as passed",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "            outcomes[gate] = next(\n                conclusion for conclusion in conclusions if conclusion != \"success\")",
+    "new": "            outcomes[gate] = \"pass\"",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-126. A cancelled, skipped, or still-running leg then reads as a pass and the record becomes evidence for a run that did not finish. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M137",
+    "name": "the shadow measurement becomes a required gate",
+    "source": ".github/workflows/tests.yml",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    # exists. S-058 holds this list.\n    needs: [suite, distribution, hostile-environment, mutation-replay]",
+    "new": "    # exists. S-058 holds this list.\n    needs: [suite, distribution, hostile-environment, mutation-replay, shadow]",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-011 and D-126. The campaign's own measurement then blocks a merge, which is selective execution's shape arriving before its evidence. Pending the next authoritative two-host replay."
   }
 ]

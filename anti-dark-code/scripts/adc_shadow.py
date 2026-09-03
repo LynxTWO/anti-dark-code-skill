@@ -308,6 +308,108 @@ def validate_record(record: Mapping[str, Any]) -> list[str]:
     return errors
 
 
+def gate_outcomes_from_jobs(jobs: Sequence[Mapping[str, Any]],
+                            gate_map: Mapping[str, Any]) -> dict[str, str]:
+    """Reduce a run attempt's jobs to one conclusion per canonical gate.
+
+    A gate that resolves to no job at all reads `unresolved`, not `pass`. That
+    is the case a renamed or deleted job produces, and it is why the mapping
+    needs no separate contract test against the workflow's text: the record
+    for that run says it could not be measured, loudly, at the moment the
+    rename lands. See D-126.
+    """
+    outcomes: dict[str, str] = {}
+    for gate, spec in sorted(gate_map.get("gates", {}).items()):
+        names = [str(name) for name in spec.get("jobs", [])]
+        prefixes = [str(prefix) for prefix in spec.get("job_prefixes", [])]
+        step_name = spec.get("step")
+        matched = [job for job in jobs
+                   if str(job.get("name", "")) in names
+                   or any(str(job.get("name", "")).startswith(prefix)
+                          for prefix in prefixes)]
+        if not matched:
+            outcomes[gate] = "unresolved"
+            continue
+        conclusions: list[str] = []
+        for job in matched:
+            if step_name is None:
+                conclusions.append(str(job.get("conclusion") or "in-progress"))
+                continue
+            steps = [step for step in job.get("steps", [])
+                     if str(step.get("name", "")) == step_name]
+            if not steps:
+                conclusions.append("unresolved")
+                continue
+            conclusions.extend(
+                str(step.get("conclusion") or "in-progress") for step in steps)
+        if any(conclusion == "failure" for conclusion in conclusions):
+            outcomes[gate] = "fail"
+        elif all(conclusion == "success" for conclusion in conclusions):
+            outcomes[gate] = "pass"
+        else:
+            # Cancelled, skipped, timed out, still running, or a step the
+            # mapping named and the job does not have. Every one of these
+            # leaves the record unmeasurable rather than counting as evidence.
+            outcomes[gate] = next(
+                conclusion for conclusion in conclusions if conclusion != "success")
+    return outcomes
+
+
+def fetch_attempt_jobs(repository: str, run_id: str, attempt: int,
+                       token: str) -> list[dict[str, Any]]:
+    """The jobs of one run attempt, from the attempt's own endpoint.
+
+    The brief says `filter=all` so a rerun does not replace the attempt it
+    supersedes. The attempts endpoint states the same thing directly: it
+    returns the jobs of the attempt asked for and nothing else, so a later
+    rerun cannot overwrite what this record measured. D-126.
+    """
+    import urllib.request
+
+    jobs: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        url = (f"https://api.github.com/repos/{repository}/actions/runs/"
+               f"{run_id}/attempts/{attempt}/jobs?per_page=100&page={page}")
+        request = urllib.request.Request(url, headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "adc-shadow",
+        })
+        with urllib.request.urlopen(request, timeout=60) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        batch = payload.get("jobs", [])
+        jobs.extend(batch)
+        if len(batch) < 100:
+            return jobs
+        page += 1
+
+
+def command_outcomes(args: argparse.Namespace, adc_module=None) -> int:
+    gate_map = json.loads(Path(args.map).read_text(encoding="utf-8"))
+    if args.jobs:
+        jobs = json.loads(Path(args.jobs).read_text(encoding="utf-8"))
+        if isinstance(jobs, Mapping):
+            jobs = jobs.get("jobs", [])
+    else:
+        import os
+
+        token = os.environ.get("GITHUB_TOKEN", "")
+        repository = args.repository or os.environ.get("GITHUB_REPOSITORY", "")
+        if not token or not repository:
+            print("REFUSED: GITHUB_TOKEN and a repository are required to fetch")
+            return 2
+        jobs = fetch_attempt_jobs(repository, args.run, args.attempt, token)
+    outcomes = gate_outcomes_from_jobs(jobs, gate_map)
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.out).write_text(json.dumps(outcomes, indent=2, sort_keys=True) + "\n",
+                              encoding="utf-8", newline="\n")
+    for gate, outcome in sorted(outcomes.items()):
+        print(f"  {gate:22} {outcome}")
+    return 0
+
+
 def _load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -434,6 +536,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--backfill", action="store_true")
     p.add_argument("--out", required=True)
     p.set_defaults(func=command_record)
+
+    p = sub.add_parser("outcomes",
+                       help="Reduce a run attempt's jobs to one outcome per canonical gate")
+    p.add_argument("--map", required=True, help="Gate-to-job mapping file")
+    p.add_argument("--jobs", help="A saved jobs payload; omit to fetch from the API")
+    p.add_argument("--repository", help="owner/name; defaults to GITHUB_REPOSITORY")
+    p.add_argument("--run", help="Workflow run id")
+    p.add_argument("--attempt", type=int, default=1)
+    p.add_argument("--out", required=True)
+    p.set_defaults(func=command_outcomes)
     return parser
 
 

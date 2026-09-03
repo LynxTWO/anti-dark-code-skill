@@ -5090,6 +5090,81 @@ class ShadowLedgerContractTests(unittest.TestCase):
         self.assertIn("record_id does not digest the record",
                       self.shadow.validate_record(record))
 
+    def test_the_shadow_job_is_evidence_and_never_a_gate(self) -> None:
+        """S-058 and D-011. A measurement that can block a merge is a gate."""
+        workflow = (REPO_ROOT / ".github" / "workflows"
+                    / "tests.yml").read_text(encoding="utf-8")
+        self.assertIn("\n  shadow:\n", workflow, "no shadow job")
+        shadow_block = workflow.split("\n  shadow:\n", 1)[1].split("\n  required:", 1)[0]
+        self.assertIn("if: always()", shadow_block)
+        self.assertIn("actions: read", shadow_block)
+        self.assertIn("fetch-depth: 0", shadow_block)
+
+        required_block = workflow.split("\n  required:", 1)[1]
+        needs = next(line for line in required_block.splitlines()
+                     if line.strip().startswith("needs:"))
+        self.assertNotIn("shadow", needs,
+                         "the shadow job became a required gate")
+
+        gate_map = json.loads((REPO_ROOT / ".github" / "shadow-gate-map.json")
+                              .read_text(encoding="utf-8"))
+        canonical = set(self.shadow.canonical_gate_ids(self.gates))
+        self.assertEqual(canonical, set(gate_map["gates"]),
+                         "the mapping and the canonical full set disagree")
+
+    def test_a_gate_no_job_carries_is_unresolved_not_passed(self) -> None:
+        """D-126. A renamed job announces itself in the next record.
+
+        This is what replaces a text contract between the mapping and the
+        workflow: a gate that resolves to nothing reads `unresolved`, which
+        is not a decided outcome, so the record says it could not be measured.
+        """
+        gate_map = json.loads((REPO_ROOT / ".github" / "shadow-gate-map.json")
+                              .read_text(encoding="utf-8"))
+        jobs = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+             "steps": [{"name": "Validate the core before anything writes to the tree",
+                        "conclusion": "success"}]},
+            {"name": "Clean distribution archive", "conclusion": "success"},
+            {"name": "Hostile environment (C locale)", "conclusion": "success"},
+            {"name": "Hostile environment (international paths)", "conclusion": "success"},
+            {"name": "Mutation replay (Linux)", "conclusion": "success"},
+        ]
+        outcomes = self.shadow.gate_outcomes_from_jobs(jobs, gate_map)
+        self.assertEqual({"validate-core": "pass", "full-suite": "pass",
+                          "distribution": "pass", "hostile-environment": "pass",
+                          "mutation-replay": "pass"}, outcomes)
+
+        renamed = [dict(job) for job in jobs]
+        renamed[4]["name"] = "Mutation replay (Linux, sharded)"
+        after = self.shadow.gate_outcomes_from_jobs(renamed, gate_map)
+        self.assertEqual("unresolved", after["mutation-replay"])
+        record = self._record(after)
+        self.assertFalse(record["measurable"])
+        self.assertIn("mutation-replay=unresolved", record["not_measurable_reason"])
+
+        missing_step = [dict(job) for job in jobs]
+        missing_step[0] = dict(jobs[0], steps=[{"name": "Run the deterministic suite",
+                                                "conclusion": "success"}])
+        self.assertEqual("unresolved", self.shadow.gate_outcomes_from_jobs(
+            missing_step, gate_map)["validate-core"])
+
+    def test_one_failed_leg_fails_its_gate_and_a_cancelled_one_decides_nothing(self) -> None:
+        gate_map = json.loads((REPO_ROOT / ".github" / "shadow-gate-map.json")
+                              .read_text(encoding="utf-8"))
+        legs = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "success", "steps": []},
+            {"name": "windows-latest / Python 3.12", "conclusion": "failure", "steps": []},
+        ]
+        self.assertEqual("fail", self.shadow.gate_outcomes_from_jobs(
+            legs, gate_map)["full-suite"])
+        cancelled = [dict(legs[0]), dict(legs[1], conclusion="cancelled")]
+        self.assertEqual("cancelled", self.shadow.gate_outcomes_from_jobs(
+            cancelled, gate_map)["full-suite"])
+        running = [dict(legs[0]), dict(legs[1], conclusion=None)]
+        self.assertEqual("in-progress", self.shadow.gate_outcomes_from_jobs(
+            running, gate_map)["full-suite"])
+
     def test_the_schema_file_and_the_validator_require_the_same_keys(self) -> None:
         """A schema nobody enforces is decoration; a validator nobody wrote
         down is folklore. These two are the same statement."""

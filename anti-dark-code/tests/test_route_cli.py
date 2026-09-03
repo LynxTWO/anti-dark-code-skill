@@ -213,15 +213,23 @@ class RouteCommandTests(unittest.TestCase):
         self._git("add", "-f", ".anti-dark-code/.gitignore")
         self._git("commit", "-qm", "track the store ignore file")
 
+        # A receipt is named by its own digest, so the newest is not the last
+        # by name. Taking the one that appeared is exact; sorting was flaky.
+        def written(before: set) -> Path:
+            after = set((store / "runs").glob("*.json"))
+            new = sorted(after - before)
+            self.assertEqual(1, len(new), f"expected one new receipt, got {new}")
+            return new[0]
+
+        before = set((store / "runs").glob("*.json"))
         first = self._route("--base", "HEAD~1", "--write")
         self.assertEqual(0, first.returncode, first.stderr)
         self.assertEqual(
             ["runs/", "efficiency/", "flowback/", ".gitignore"],
             (store / ".gitignore").read_text(encoding="utf-8").splitlines())
-        receipts = sorted((store / "runs").glob("*.json"))
         first_changed = [
             row["path"] for row in json.loads(
-                receipts[-1].read_text(encoding="utf-8"))["authoritative"]["changed_files"]]
+                written(before).read_text(encoding="utf-8"))["authoritative"]["changed_files"]]
         self.assertIn(".anti-dark-code/.gitignore", first_changed)
 
         self._git("add", "-A")
@@ -229,12 +237,12 @@ class RouteCommandTests(unittest.TestCase):
         # Against HEAD, so the comparison is the working tree alone. Against an
         # earlier base the adopting commit is itself in the diff, which is a
         # committed change the router should report and this test is not about.
+        before = set((store / "runs").glob("*.json"))
         second = self._route("--base", "HEAD", "--write")
         self.assertEqual(0, second.returncode, second.stderr)
-        receipts = sorted((store / "runs").glob("*.json"))
         second_changed = [
             row["path"] for row in json.loads(
-                receipts[-1].read_text(encoding="utf-8"))["authoritative"]["changed_files"]]
+                written(before).read_text(encoding="utf-8"))["authoritative"]["changed_files"]]
         self.assertEqual([], [path for path in second_changed
                               if path.startswith(".anti-dark-code/")],
                          "; ".join(second_changed))
@@ -245,10 +253,13 @@ class RouteCommandTests(unittest.TestCase):
         store = self.repo / ".anti-dark-code" / "calibration"
         store.mkdir(parents=True, exist_ok=True)
         (store / "gates.json").write_text("{}\n", encoding="utf-8")
+        runs = self.repo / ".anti-dark-code" / "runs"
+        before = set(runs.glob("*.json")) if runs.is_dir() else set()
         done = self._route("--base", "HEAD~1", "--write")
         self.assertEqual(0, done.returncode, done.stderr)
-        written = sorted((self.repo / ".anti-dark-code" / "runs").glob("*.json"))
-        data = json.loads(written[-1].read_text(encoding="utf-8"))
+        appeared = sorted(set(runs.glob("*.json")) - before)
+        self.assertEqual(1, len(appeared), done.stdout)
+        data = json.loads(appeared[0].read_text(encoding="utf-8"))
         changed = [row["path"] for row in data["authoritative"]["changed_files"]]
         self.assertIn(".anti-dark-code/calibration/gates.json", changed)
 

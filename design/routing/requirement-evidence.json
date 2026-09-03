@@ -438,6 +438,13 @@
         "anti-dark-code/tests/test_route_cli.py::ShadowRecordCliTests::test_an_omitted_gate_that_failed_is_a_miss_end_to_end",
         "anti-dark-code/tests/test_route_cli.py::ShadowRecordCliTests::test_an_undecided_gate_leaves_no_verdict"
       ]
+    },
+    "R-059": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_the_shadow_job_is_evidence_and_never_a_gate",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_a_gate_no_job_carries_is_unresolved_not_passed",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_one_failed_leg_fails_its_gate_and_a_cancelled_one_decides_nothing"
+      ]
     }
   }
 }

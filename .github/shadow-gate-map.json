@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "_note": "Which CI jobs and steps carry each canonical gate, per SLICE-002 section 2 and D-126. A gate that resolves to no job in a run's jobs payload reads `unresolved`, which makes the record not measurable, so a renamed or deleted job announces itself in the next record instead of reading as a pass.",
+  "gates": {
+    "validate-core": {
+      "_note": "The validate step inside every suite job, not a job of its own.",
+      "job_prefixes": ["ubuntu-latest / Python", "windows-latest / Python", "macos-latest / Python"],
+      "step": "Validate the core before anything writes to the tree"
+    },
+    "full-suite": {
+      "job_prefixes": ["ubuntu-latest / Python", "windows-latest / Python", "macos-latest / Python"]
+    },
+    "distribution": {
+      "jobs": ["Clean distribution archive"]
+    },
+    "hostile-environment": {
+      "jobs": ["Hostile environment (C locale)", "Hostile environment (international paths)"]
+    },
+    "mutation-replay": {
+      "jobs": ["Mutation replay (Linux)"]
+    }
+  }
+}

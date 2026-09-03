@@ -233,10 +233,87 @@ jobs:
   # job that must pass. That is the point. It now lives beside the jobs it
   # governs, changes in the same commit, and shows up in review, instead of
   # sitting in a settings page no diff ever touches.
+  shadow:
+    # SLICE-002. Records what the proposed routing rules would have skipped on
+    # this change and whether anything they skipped failed. It is deliberately
+    # not in `required`'s needs and changes no other job: D-011 keeps selective
+    # execution behind evidence, and this job is how the evidence is gathered,
+    # not a gate. It runs on pull requests only, because a push to main after a
+    # merge is the same change measured twice (SLICE-002 section 2).
+    name: Shadow evidence record
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [suite, distribution, hostile-environment, mutation-replay]
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      # The workflow's `contents: read` sets every other scope to none, and the
+      # jobs endpoint this job reads needs its own scope.
+      actions: read
+
+    steps:
+      - name: Check out the tree CI verified
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          # The base must be reachable or the router reports
+          # ADC-ROUTE-BASE-UNREACHABLE and the record measures nothing. A
+          # shallow checkout is what made every record unmeasurable in the
+          # design challenge's measurement.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+
+      - name: Read what CI concluded for this attempt
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python -B anti-dark-code/scripts/adc.py shadow outcomes \
+            --map .github/shadow-gate-map.json \
+            --run "${GITHUB_RUN_ID}" --attempt "${GITHUB_RUN_ATTEMPT}" \
+            --out "${RUNNER_TEMP}/outcomes.json"
+
+      - name: Record what the proposed rules would have skipped
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Written outside the tree, so the record is not a change of its own.
+          python -B anti-dark-code/scripts/adc.py shadow record \
+            --repo . \
+            --base "${BASE_SHA}" --base-sha "${BASE_SHA}" \
+            --merge "${GITHUB_SHA}" --head "${HEAD_SHA}" \
+            --head-ref "${HEAD_REF}" --pr "${PR_NUMBER}" \
+            --run "${GITHUB_RUN_ID}" --attempt "${GITHUB_RUN_ATTEMPT}" \
+            --outcomes "${RUNNER_TEMP}/outcomes.json" \
+            --out "${RUNNER_TEMP}/shadow-${HEAD_SHA}-${GITHUB_RUN_ATTEMPT}.json"
+          git status --porcelain
+
+      - name: Upload the record
+        # actions/upload-artifact v4, resolved to its commit through the API.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: shadow-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/shadow-*.json
+          if-no-files-found: error
+          retention-days: 90
+
   required:
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # The shadow job is absent here on purpose. Adding it would make a
+    # measurement a gate, which is the shape D-011 refuses until the evidence
+    # exists. S-058 holds this list.
     needs: [suite, distribution, hostile-environment, mutation-replay]
     # always(), so this reports a verdict even when a dependency fails or is
     # skipped. That makes explicitly checking each result mandatory: without the

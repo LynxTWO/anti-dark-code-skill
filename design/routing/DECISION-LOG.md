@@ -142,6 +142,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-123 | 2026-09-03 | A rule that names no obligation cannot load | Confirmed | |
 | D-124 | 2026-09-03 | The shadow ledger keeps LF on every checkout | Confirmed | |
 | D-125 | 2026-09-03 | A shadow record is silent unless every canonical gate decided | Confirmed | |
+| D-126 | 2026-09-03 | A gate no job carries is unresolved, not passed | Confirmed | |
 
 ---
 
@@ -4124,3 +4125,54 @@ neither can drift into decoration.
 Revisit when:
 The canonical full set gains a gate whose CI evidence cannot be reduced to
 pass or fail, or a second comparator appears.
+
+## D-126: A gate no job carries is unresolved, not passed
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-011, D-064, D-125, SLICE-002 sections 2 and 5, `tests.yml`,
+`.github/shadow-gate-map.json`, M135 to M137
+
+Context:
+The record needs one conclusion per canonical gate, and CI reports jobs and
+steps. The brief requires the mapping between them to be data, with "a
+contract test that fails when a job or step it names disappears". A text
+contract between the mapping and the workflow cannot be written honestly
+without parsing YAML, which would be a new dependency, and the suite job
+names are matrix expansions that no literal list can hold.
+
+Decision:
+The mapping lives in `.github/shadow-gate-map.json` and matches jobs by exact
+name or by prefix, with an optional step name. A gate that resolves to no
+job, or whose named step is absent from a job that matched, reads
+`unresolved`. `unresolved` is not a decided outcome, so D-125 makes the whole
+record unmeasurable and names the gate. A renamed or deleted job therefore
+announces itself in the first record after the rename, rather than reading as
+a pass, and that is the contract, enforced at the moment it matters rather
+than by a test of the workflow's text.
+
+The job's outcomes come from the run attempt's own endpoint,
+`/actions/runs/{id}/attempts/{n}/jobs`, rather than the run's jobs with
+`filter=all`. Both keep a rerun from replacing the attempt it supersedes; the
+attempts endpoint states it directly, and the record carries the attempt it
+asked for.
+
+The `shadow` job is not in `required`'s needs, changes no other job, and runs
+only on pull requests. A measurement that can block a merge is a gate, which
+D-011 keeps behind the evidence this job exists to collect.
+
+Because:
+An outcome map that fails closed is worth more than a contract test that
+passes while the mapping has quietly stopped describing the workflow. The
+failure mode this campaign must not have is silence that reads as success.
+
+Consequences:
+Renaming a CI job costs one unmeasurable record and a line in the map. A gate
+whose evidence is a step inside another job, which `validate-core` is, is
+expressible without inventing a job for it. `unresolved` joins the vocabulary
+a record can carry, and the summary can count how often the mapping went
+stale.
+
+Revisit when:
+A gate's evidence stops being reducible to jobs and steps, or the workflow
+gains a second run of the same gate whose result should not be unioned.
