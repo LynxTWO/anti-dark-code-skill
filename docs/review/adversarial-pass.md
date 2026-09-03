@@ -167,3 +167,59 @@ site-packages, and the operating system; D-116 names them as the owner's
 environment rather than a harness repair. This review did not touch an
 approval-gated area and does not authorize a routing-policy rule. SLICE-001
 remains open for owner acceptance.
+
+# Adversarial review: round twenty-one
+
+Date: 2026-09-02 to 2026-09-03
+
+## Area reviewed
+
+This pass was the D-116 verifying round for the one router change the owner
+chose in the SLICE-001 walkthrough, D-107 option 2, implemented as D-118:
+the canonical scripts authority entry names the shipped skill's own
+directory in its source and installed spellings instead of every `scripts/`
+directory. Three fresh-context challengers attacked the change and its
+repairs at `6930274`, `5872e92`, and `38cdff8`; their reports are
+`design/routing/CHALLENGE-ROUND-TWENTY-ONE.md`. R-040, that path
+classification is case-sensitive without rewriting characters, was the
+requirement under the most pressure.
+
+## Direct challenge
+
+The first challenger measured, through the real router with every rule
+approved, that `ANTI-DARK-CODE/scripts/adc_route.py` matched the cheap
+`**/scripts/*.py` product entry and neither new authority glob, routing as
+Level 2 product code where the old wide entry had forced full; with real
+git it built the commit a case-sensitive host would produce and pulled it
+onto an NTFS clone, which wrote the replaced router over the genuine file.
+It also found a mutant that stops the contract requiring the source-spelling
+entry surviving the whole suite. The second challenger, against the case
+guard, showed an NTFS short-name component aliasing the genuine directory
+under `git reset --hard`, and a case variant of the template's own
+`**/scripts/adc.py` entry routing cheap because the guard read only the
+canonical globs; it found the candidate-side check untested. The third,
+against the widened guard, upheld it on NTFS with real git for every
+spelling in its battery, swept the Basic Multilingual Plane for code points
+NTFS equates to ASCII letters and found none, and found the fold set
+narrower than its property for approved rules that require review without
+forcing full, wider for proposed rules, and three of its own mutants
+surviving.
+
+## Coverage verdict
+
+D-118 stands, amended by D-119, D-120, and D-121, each with tests and
+mutation rows measured to fail, M115 through M126, and every row recorded on
+both hosts at `fe350e9` with zero not caught. R-040 stands as written: the
+classifier still folds nothing; the route escalates for a spelling a
+checkout can alias to an authority path, and the receipt names why. A
+fourth challenge was declined under the cap the owner asked for: a challenger
+runs once per change, and a repair is held by tests, rows, and the two-host
+replay rather than by re-challenging the repair.
+
+## Risks and protected areas
+
+No risk moved up. Aliasing the router does not model, macOS and ext4
+casefold code points outside the format category and git older than 2.24.1,
+is recorded as the owner's environment under D-116, not as a guarantee. No
+routing rule was approved, selective execution stays disabled, and SLICE-001
+was already Done before this round; the round changed no slice status.

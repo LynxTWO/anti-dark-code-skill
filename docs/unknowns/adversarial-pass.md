@@ -27,6 +27,16 @@ operating system, are recorded in D-116 as the environment the owner
 provides, not as unknowns; a verdict that changed between two hosts because
 of one of them would reopen the harness line under that decision.
 
+Round twenty-one recorded one limit rather than an unknown. D-120 and D-121
+escalate every spelling of an authority path that NTFS can alias, measured
+with real git on this host, and the spelling key folds case, Unicode
+compatibility forms, and format characters. Aliasing the router does not
+model, ext4 casefold directories' default-ignorable code points outside the
+format category, macOS filesystems no host here can measure, and git older
+than 2.24.1 without the `invalid path` refusals, is the owner's environment
+under D-116. A verdict that differed between two hosts because of one of
+them would reopen the line; nothing here is claimed for those filesystems.
+
 Round eighteen's R-032 challenge created no open unknown. The first probe had
 an invalid enum fixture and was discarded. The corrected Windows and T540P
 probe completed with byte-identical output, and the repo-local mapped test
