@@ -1,0 +1,66 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "1db985beac5bb77c3a45632c435ec6fbd920645abc542db0be7ca26f5d0e8a27",
+    "policy_terms_sha256": "0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNMAPPED-PATH",
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "base_reconstructed": true,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only",
+      "product-code",
+      "verification-authority"
+    ],
+    "omitted_gate_ids": [],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay",
+      "validate-core"
+    ],
+    "terms_sha256": "e83d5401edacd7afa47dc25c2920396dd2fe57d4025fbfdf04dfb4f3b6c212a6"
+  },
+  "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
+  "commits": {
+    "base": "08d0576f1bd50a0d302bb6ac3d953733bed65899",
+    "head": "cbdc03ee22453d532c2477938e253adb5b2b4c5f",
+    "merge": "b1fb71754f6e393db66b0f334f75583e4238b297"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "head_ref": "claude/round-nineteen-verify",
+  "inconclusive_reason": null,
+  "measurable": true,
+  "not_measurable_reason": null,
+  "provenance": "backfill",
+  "record_id": "6edc85c98441330254d503d08a1168bf109694e0ed9ad84b2cb05ba6318ac37f",
+  "run": {
+    "pull_request": 29,
+    "run_attempt": 1,
+    "run_id": "33667329282"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": null,
+  "status": "no_omission"
+}

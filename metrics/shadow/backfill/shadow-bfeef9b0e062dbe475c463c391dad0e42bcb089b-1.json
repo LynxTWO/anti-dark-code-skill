@@ -1,0 +1,64 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "1db985beac5bb77c3a45632c435ec6fbd920645abc542db0be7ca26f5d0e8a27",
+    "policy_terms_sha256": "0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "base_reconstructed": true,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only",
+      "verification-authority"
+    ],
+    "omitted_gate_ids": [],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay",
+      "validate-core"
+    ],
+    "terms_sha256": "0b735d96288b094e58acbd6375f359d1a2545a0087bec5ee5acbc771bb8d6b64"
+  },
+  "class_key": "2208f6b666faabc585343cde083d785482758d4b4c06902b8dbfa45922d6a0ef",
+  "commits": {
+    "base": "c98ac2a056b907d7ac2d311dcf3560e3587e1a23",
+    "head": "bfeef9b0e062dbe475c463c391dad0e42bcb089b",
+    "merge": "6097aee388c87c8bcb46c8f8a0bbaf031d02019f"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "head_ref": "claude/slice-002-design",
+  "inconclusive_reason": null,
+  "measurable": true,
+  "not_measurable_reason": null,
+  "provenance": "backfill",
+  "record_id": "61cb4690b30fee5836e8cf3e8ef37845110f1a0d945b0b5ab978126793d27293",
+  "run": {
+    "pull_request": 33,
+    "run_attempt": 1,
+    "run_id": "33713399061"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": null,
+  "status": "no_omission"
+}
