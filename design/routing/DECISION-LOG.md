@@ -4256,10 +4256,14 @@ request's own commit list holds only its final head. A head whose commit no
 longer exists is recorded `not_measurable` with reason `head-unavailable`,
 never dropped, as D-127 did for a head with no run.
 
-A backfill record's change set is the pull request's head against its merge
-base with the first parent of the commit that landed it, `merge-base(head,
-landing^1)`, which is the base branch as it stood at the merge for a
-merge-commit landing and for a squash alike. Its merge base with the base
+A backfill record's change set is the pull request's head against
+`merge-base(head, landing^1)`: the fork point of the head and the first
+parent of the commit that landed it, for a merge-commit landing and for a
+squash alike. That is the commit a three-dot diff uses, and it is not
+`landing^1` itself whenever the base branch moved on after the branch was
+cut; on this repository the two differ for seven of the nine pull requests
+first measured, and the fork point is the one that yields the pull request's
+own changes. Its merge base with the base
 branch as it stands today is the head itself on a merge-commit history, so
 that definition would have written an empty change set for every pull
 request of this repository. The merge commit the run itself checked out is

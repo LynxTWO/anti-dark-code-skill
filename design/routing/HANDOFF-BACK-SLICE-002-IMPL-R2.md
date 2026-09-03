@@ -4,9 +4,11 @@ Date: 2026-09-03. From: Opus 5, which implemented `HANDOFF-OPUS-SLICE-002-R2.md`
 
 ## 1. Terminal outcome
 
-M0, M7's classifier, M5 and M4 are built, tested, and their data committed. The `docs-only` canary M7 also asks for is **not** built, and the reason is a finding rather than an omission: after D-129 there is no change in this repository that the classifier calls prose and that any omitted gate reads. Section 5 states it with the measurements and says what it costs. That is the one item of the handoff left undone, and it needs an owner decision because it changes what the owner would be approving.
+Every item of the handoff is built: M0, M7's classifier and its canary, M5, and M4. One definition was changed rather than made silently: D-131, which commits the run artifacts unread as an inbox, because they expire on 2026-12-02 and ingest is built after them.
 
-One definition was changed, and it is recorded rather than made silently: D-131, which commits the run artifacts unread as an inbox, because they expire on 2026-12-02 and ingest is built after them.
+**Section 5 of the first version of this document was wrong, and the correction is the most important thing in it.** It claimed no `docs-only` change in this repository could break an omitted gate after D-129, and it escalated a change to G8 to the owner on that basis. The fresh-context challenge of the implementation disproved it in one measurement, and found that this build had created the counterexample itself. The escalation is withdrawn, the canary is built, and G8 stands untouched. Section 5 now records what actually happened.
+
+The challenge found nine other defects, three of them serious. All are repaired here, held by tests and rows rather than by challenging the repair, per the cap. Section 6 lists them.
 
 ## 2. What was built
 
@@ -46,24 +48,39 @@ Two records are for superseded attempts, PR #29's second and PR #30's second. A 
 
 **A row that survived.** M148, which makes ingest believe the outcomes a pull request uploaded, passed its suite on first measurement: every ingest test ran `--offline`, so G10's central check had no test at all. The test that stubs the API was written, and M148 was then measured to fail. The row found a missing test, which is what rows are for.
 
-## 5. The canary, and why there is not one
+## 5. The canary, and the claim that was wrong
 
-M7 asks for a `docs-only` canary under the new class key: a change the classifier calls prose that deliberately breaks a gate the route omits. I could not construct one, and I believe none exists here now.
+M7 asks for a `docs-only` canary under the new class key. The first version of this document said none could be constructed, and reasoned as follows: the suite's only repository prose is `design/routing/**/*.md`, which D-129 has just made authority; the skill's own prose is already authority; and of the rest, only the calibration templates are read by a gate, where a personal absolute path fails `distribution` **and** `validate-core`, which is inconclusive rather than a miss. All of that is true and none of it is sufficient, because the enumeration was wrong.
 
-What the class omits is `full-suite`, `distribution`, `hostile-environment` and `mutation-replay`; it keeps `validate-core`. So a canary needs prose that one of those four reads and that `validate-core` does not.
+`docs/review/adversarial-pass.md` routes `docs-only` and the suite reads it. This build put it there: commit `2e84e40` moved the self-grading counterexample to that path and, in the same commit, added `self.assertTrue(ordinary.is_file())` so the counterexample could not rot into a vacuous pass. That assertion makes a `docs/` prose file something a gate reads. I then wrote that no gate reads the prose the class covers, and escalated a change to a self-grading guard on that basis. The challenge found it in one probe.
 
-- The suite reads exactly one class of repository prose: `design/routing/**/*.md`, through `decision_reference_sources`. D-129 has just made all of it verification authority, so such a change no longer routes `docs-only` at all. That was the point of the decision, and it closes the only construction the old canary used.
-- The skill's own prose is already authority through `**/references/*.md` and `**/SKILL.md`.
-- The remaining prose the class covers is `docs/`, `metrics/`, the calibration templates, `anti-dark-code/LICENSE.md` and `.github/pull_request_template.md`. Of these, only the templates are read by a gate, and I measured what happens: a personal absolute path added to `anti-dark-code/assets/templates/calibration/README.md` fails `distribution` **and** `validate-core`, because both run the same check on the skill tree. A selected gate that fails makes the record inconclusive, not a miss, so it is not a canary.
+The canary is `canary/docs-only/2026-09-03-b`, pull request #38, **never to be merged**. It deletes that file. Measured before pushing: `validate --mode universal` gives `VALID (universal): 0 errors`, and `SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full` fails. The selected gate passes, an omitted gate fails, and the record should read `status: miss` with `provenance: canary` derived from the branch name. **No change to G8 is needed and the escalation is withdrawn.**
 
-The honest reading is that the class is now inert: no gate reads the prose it covers. That is a stronger safety statement than a canary, and it is also the reason G8's canary cannot be produced. But G8 is a requirement, and I have not met it, so **the class cannot reach the criterion as the brief is written**. Two ways out, and the choice is the owner's:
-
-1. **Replace the canary for an inert class with a proof of inertness**: a test that enumerates the paths the class covers and asserts no gate reads any of them. Stronger than a canary and cheap to write, but it changes G8, which is a self-grading guard, and that is exactly the kind of change the brief tells the implementer not to make alone.
-2. **Keep G8 strict.** The class then cannot be approved, and the campaign's answer for `docs-only` in this repository is that it is safe and unapprovable. Nothing is lost except the milestone.
+Two things are worth keeping from the wrong answer. The class is much narrower than it was, which is what D-129 was for. And a file whose existence the suite asserts is a file a gate reads, so by D-129's own principle `docs/review/adversarial-pass.md` is arguably authority too; leaving it prose is what makes the canary possible, and that is a tension the next round should look at rather than settle here.
 
 PR #35 stays open and unmerged. Its record is in the ledger as the canary of the old class key, which is what D-129 said it would become.
 
-## 6. Open, and for whom
+## 6. What the implementation challenge found, and what was repaired
+
+One fresh-context challenge, per the cap; every repair is held by a test and a row, and the repair was not re-challenged.
+
+| Finding | Verdict | Repair |
+| --- | --- | --- |
+| A record could report an omitted gate's failure honestly and still call itself `clean`; it was accepted online against a real run and counted toward N | BROKEN | `verify_record` recomputes the verdict from the re-read outcomes and the record's own selected and omitted gates, through a pure `status_from` that needs no policy; M150 |
+| A canary could declare itself `live` and skip the ancestor check | BROKEN | Provenance re-derived from the head ref; M151 |
+| A canary whose head is absent was waved through | BROKEN | Refused: it cannot be shown not to have landed |
+| A record naming no run skipped the API read silently | BROKEN | Refused unless `--offline` says so |
+| `--keep-going` exited 0 with refusals | BROKEN | Exits 2; a refusal is a refusal |
+| The schema is never applied on the ingest path, so an extra key and a wrong `schema` value both passed | BROKEN | `validate_record` enforces the closed key set, the schema name, and `base_reconstructed` for backfills |
+| The isolation matched bare `ls-files`, which `_repo_fingerprint` also uses, so the acquisition boundary watched nothing while the snapshot called itself complete | PARTIAL | Matches `ls-files --others` only; a test compares the fingerprint under both runners; M149 |
+| `base_gate_outcomes` came from a `pull_request` run for 26 of 33 records | PARTIAL | `event=push` filter. No record was affected: every base run was green |
+| The backfill covered 9 of 35 pull requests with no stated window | BROKEN | `--since` is now optional and omitting it walks the whole branch; the committed backfill is 55 records over PRs #15 to #33 |
+| D-128, the brief and this handoff described the base as "the base branch as it stood at the merge"; the code computes the fork point | BROKEN, prose only | The code was right and the prose is corrected; the two differ on seven of nine pull requests |
+| The brief still spelled the D-129 glob `design/routing/**/*.md`, the exact mistake M140 exists to catch | BROKEN, prose only | Corrected |
+
+Two the challenge raised that are **not** repaired, and why. M139 repoints the glob rather than removing the entry, which the commit message described loosely; the row's effect on the classifier is what it claims and the name is now the only inaccuracy, so it is left rather than churned. And the summary's byte-determinism is conditional on records ingest accepts: for honestly built records the class key determines the class block, and the real ledger is byte-identical reversed, but two records sharing a key with different class blocks would order-depend. Recomputing the class at ingest is the fix, and it is blocked on the policy drift D-129 created; it belongs to the next round with the evidence in hand.
+
+## 7. Open, and for whom
 
 - **The owner.** The canary question in section 5. Nothing else in this build waits on anything.
 - **Measured, not assumed, and still open:** whether a fork pull request's read-only token can upload the artifact. Every run so far has been same-repository. Unchanged since the first handoff.
