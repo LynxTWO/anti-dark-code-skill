@@ -35,6 +35,15 @@ def _load_shadow():
     spec.loader.exec_module(module)
     return module
 
+
+def _load_route():
+    """The router as a module, for the acquisition boundary."""
+    path = SKILL_ROOT / "scripts" / "adc_route.py"
+    spec = importlib.util.spec_from_file_location("adc_route_cli", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 GATES = {
     "schema_version": 1,
     "execution_policy": {"owner_confirmed_safe_to_execute": True},
@@ -659,6 +668,33 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
                          dirty["audit"]["route_unknowns"])
         self.assertEqual(clean["record_id"], dirty["record_id"])
 
+    def test_the_isolation_does_not_blind_the_acquisition_boundary(self) -> None:
+        """Silencing the untracked scan must not silence the fingerprint.
+
+        `_repo_fingerprint` lists tracked files with `ls-files` too. Matching
+        on the bare subcommand would leave the boundary watching nothing:
+        ADC-ROUTE-BOUNDARY-VIOLATED could not fire for any write during
+        acquisition, while the snapshot still called itself complete. The
+        untracked scan is `ls-files --others`, and only that is silenced.
+        """
+        route = _load_route()
+        shadow = _load_shadow()
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        plain = route._default_runner(self.repo)
+        historical = shadow._historical_runner(route, self.repo, head)
+
+        tracked = route._repo_fingerprint(self.repo, plain)
+        through_history = route._repo_fingerprint(self.repo, historical)
+        self.assertTrue(tracked, "the fixture has no tracked files to watch")
+        self.assertEqual(tracked, through_history,
+                         "the historical runner blinded the boundary guard")
+
+        # The untracked scan is still silent, which is the point of it.
+        (self.repo / "left-behind.txt").write_text("x\n", encoding="utf-8")
+        self.assertEqual(
+            b"", historical(["git", "ls-files", "--others",
+                             "--exclude-standard", "-z"]))
+
     def test_a_change_with_no_run_is_recorded_as_unmeasurable(self) -> None:
         """Every change before the workflow existed has no outcomes at all.
         Dropping them would hide how much of the history cannot be measured."""
@@ -877,6 +913,135 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
                             for p in disagreeing), disagreeing)
         self.assertTrue(any("validate-core" in p for p in disagreeing),
                         disagreeing)
+
+    def test_a_true_outcome_cannot_be_laundered_into_a_clean_status(self) -> None:
+        """The hole the implementation challenge found.
+
+        Re-reading the outcomes is not enough on its own. A record can report
+        an omitted gate's failure perfectly honestly and still call itself
+        clean, and the summary would then count it toward N. The verdict is
+        recomputed from the outcomes and the gates the record says it
+        selected and omitted, which needs no policy and so survives a
+        classifier change.
+        """
+        shadow = _load_shadow()
+        gate_map = json.loads(
+            (REPO_ROOT / ".github" / "shadow-gate-map.json").read_text(encoding="utf-8"))
+        outcomes = {"validate-core": "pass", "full-suite": "pass",
+                    "distribution": "pass", "hostile-environment": "pass",
+                    "mutation-replay": "fail"}
+        jobs = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+             "steps": [{"name": "Validate the core before anything writes to the tree",
+                        "conclusion": "success"}]},
+            {"name": "Clean distribution archive", "conclusion": "success"},
+            {"name": "Hostile environment (C locale)", "conclusion": "success"},
+            {"name": "Hostile environment (international paths)", "conclusion": "success"},
+            {"name": "Mutation replay (Linux)", "conclusion": "failure"},
+        ]
+        laundered = self._record(
+            status="clean", gate_outcomes=outcomes,
+            **{"class": {"matched_rule_ids": ["docs-only"],
+                         "selected_gate_ids": ["validate-core"],
+                         "omitted_gate_ids": ["full-suite", "distribution",
+                                              "hostile-environment",
+                                              "mutation-replay"],
+                         "router_blob_sha256": "r", "terms_sha256": "t"}},
+            shadow={"routing_miss": False, "missed_gate_ids": [],
+                    "selected_all_passed": True})
+
+        original = shadow._gh_json
+        shadow._gh_json = lambda args: {"jobs": jobs}
+        try:
+            problems = shadow.verify_record(
+                laundered, repo=self.repo, gate_map=gate_map,
+                slug="owner/name", main_ref="main", offline=False)
+        finally:
+            shadow._gh_json = original
+        self.assertTrue(any("status does not follow from the run" in p
+                            for p in problems), problems)
+        self.assertTrue(any("'miss'" in p for p in problems), problems)
+
+        # The same shape with the honest status is accepted.
+        honest = self._record(
+            status="miss", gate_outcomes=outcomes,
+            **{"class": laundered["class"]},
+            shadow={"routing_miss": True, "missed_gate_ids": ["mutation-replay"],
+                    "selected_all_passed": True})
+        shadow._gh_json = lambda args: {"jobs": jobs}
+        try:
+            problems = shadow.verify_record(
+                honest, repo=self.repo, gate_map=gate_map,
+                slug="owner/name", main_ref="main", offline=False)
+        finally:
+            shadow._gh_json = original
+        self.assertEqual([], problems, problems)
+
+    def test_a_canary_cannot_call_itself_live_to_skip_the_canary_rules(self) -> None:
+        """G8: provenance is derived from the head ref, never asserted."""
+        record = self._record(
+            provenance="live",
+            head_ref="refs/heads/canary/docs-only/2026-09-03")
+        source = self._write(Path(self.tmp.name) / "inbox", [record])
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger)
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("is a canary branch but the record claims", done.stdout)
+
+    def test_a_canary_whose_head_is_absent_cannot_be_verified(self) -> None:
+        canary = self._record(
+            provenance="canary",
+            head_ref="refs/heads/canary/docs-only/2026-09-03",
+            commits={"base": "b" * 40, "merge": "m" * 40, "head": "0" * 40})
+        source = self._write(Path(self.tmp.name) / "inbox", [canary])
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger, "--main", "main")
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("cannot be shown not to have landed", done.stdout)
+
+    def test_an_unknown_key_or_a_wrong_schema_name_is_refused(self) -> None:
+        """The schema says additionalProperties false and nothing on this path
+        reads the schema, so the validator has to say it."""
+        shadow = _load_shadow()
+        extra = self._record()
+        extra["souvenir"] = "hello"
+        extra["record_id"] = shadow.digest(
+            {k: v for k, v in extra.items() if k != "record_id"})
+        self.assertIn("unknown key(s): souvenir",
+                      "; ".join(shadow.validate_record(extra)))
+
+        wrong = self._record(schema="something-else")
+        wrong["record_id"] = shadow.digest(
+            {k: v for k, v in wrong.items() if k != "record_id"})
+        self.assertIn("schema must be", "; ".join(shadow.validate_record(wrong)))
+
+        without = self._record()
+        del without["base_reconstructed"]
+        without["record_id"] = shadow.digest(
+            {k: v for k, v in without.items() if k != "record_id"})
+        self.assertIn("base_reconstructed",
+                      "; ".join(shadow.validate_record(without)))
+
+    def test_a_record_naming_no_run_is_refused_unless_offline(self) -> None:
+        shadow = _load_shadow()
+        gate_map = json.loads(
+            (REPO_ROOT / ".github" / "shadow-gate-map.json").read_text(encoding="utf-8"))
+        record = self._record(run={"pull_request": 1, "run_id": "", "run_attempt": 0})
+        problems = shadow.verify_record(
+            record, repo=self.repo, gate_map=gate_map, slug="owner/name",
+            main_ref="main", offline=False)
+        self.assertTrue(any("names no run and attempt" in p for p in problems),
+                        problems)
+
+    def test_keep_going_still_reports_failure(self) -> None:
+        """A refusal is a refusal whether or not the run continued past it."""
+        forged = self._record()
+        forged["status"] = "miss"
+        source = self._write(Path(self.tmp.name) / "inbox", [forged])
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger, "--keep-going")
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("1 refused", done.stdout)
 
     def test_the_summary_is_byte_identical_when_regenerated(self) -> None:
         """S-057. A summary that moves cannot be reviewed."""

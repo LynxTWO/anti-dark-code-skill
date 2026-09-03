@@ -45,6 +45,16 @@ STATUS_NOT_MEASURABLE = "not_measurable"
 # measure, which is the count that tells you whether the campaign is working.
 EVIDENCE_STATUSES = frozenset({STATUS_CLEAN, STATUS_MISS})
 
+# Every key a record carries, so an unknown one is refused rather than
+# ignored. The schema says `additionalProperties: false` and nothing on the
+# ingest path reads the schema, so the validator has to say it too.
+RECORD_KEYS = (
+    "schema_version", "schema", "record_id", "provenance", "head_ref",
+    "status", "measurable", "not_measurable_reason", "inconclusive_reason",
+    "commits", "base_reconstructed", "run", "class_key", "class", "audit",
+    "gate_outcomes", "base_gate_outcomes", "shadow",
+)
+
 RECORD_REQUIRED_KEYS = (
     "schema_version",
     "record_id",
@@ -300,6 +310,13 @@ def validate_record(record: Mapping[str, Any]) -> list[str]:
         return errors
     if record.get("schema_version") != SCHEMA_VERSION:
         errors.append(f"schema_version must be {SCHEMA_VERSION}")
+    if record.get("schema") != SCHEMA_NAME:
+        errors.append(f"schema must be {SCHEMA_NAME!r}")
+    unknown = sorted(set(record) - set(RECORD_KEYS))
+    if unknown:
+        errors.append(f"unknown key(s): {', '.join(unknown)}")
+    if not isinstance(record.get("base_reconstructed"), bool):
+        errors.append("base_reconstructed must be present and boolean")
     if record.get("status") not in {
             STATUS_MISS, STATUS_CLEAN, STATUS_INCONCLUSIVE, STATUS_NO_OMISSION,
             STATUS_SELECTS_NOTHING, STATUS_NOT_MEASURABLE}:
@@ -690,9 +707,16 @@ def _historical_runner(route_module, repo: Path, head: str):
     def runner(argv):
         tokens = [str(token) for token in argv]
         # The index (`--cached`), the worktree (`--no-textconv`), and the
-        # untracked scan. _DIFF_FLAGS carries none of these, so the committed
-        # comparison is never caught by them.
-        if "ls-files" in tokens or "--cached" in tokens or "--no-textconv" in tokens:
+        # untracked scan (`ls-files --others`). _DIFF_FLAGS carries none of
+        # these, so the committed comparison is never caught by them.
+        #
+        # The untracked test is `--others`, not `ls-files` alone, because
+        # `_repo_fingerprint` also lists tracked files with `ls-files`, and
+        # silencing that would leave the acquisition boundary watching
+        # nothing: no ADC-ROUTE-BOUNDARY-VIOLATED could then fire, while the
+        # snapshot still called itself complete.
+        if ("--cached" in tokens or "--no-textconv" in tokens
+                or ("ls-files" in tokens and "--others" in tokens)):
             return b""
         return base_runner([head if token == "HEAD" else token for token in tokens])
 
@@ -706,7 +730,12 @@ def _push_outcomes(slug: str, sha: str, gate_map: Mapping[str, Any],
     if sha in cache:
         return cache[sha]
     try:
-        payload = _gh_json([f"/repos/{slug}/actions/runs?head_sha={sha}&per_page=50"])
+        # event=push, because the base's own run is what tells an inherited
+        # failure from a miss. Without the filter a base that is another
+        # pull request's head returns that pull request's merge-ref run,
+        # which is a different change.
+        payload = _gh_json([f"/repos/{slug}/actions/runs"
+                            f"?head_sha={sha}&event=push&per_page=50"])
     except ShadowError:
         cache[sha] = None
         return None
@@ -891,17 +920,50 @@ def _is_ancestor(repo: Path, commit: str, of: str) -> bool:
     return done.returncode == 0
 
 
+def status_from(outcomes: Mapping[str, str], selected: Sequence[str],
+                omitted: Sequence[str],
+                base_outcomes: Mapping[str, str] | None) -> str:
+    """Section 2's verdict, from outcomes and what a route would have run.
+
+    Pure, and deliberately independent of any policy: it needs only which
+    gates a candidate selected, which it omitted, and what each concluded.
+    That is what lets ingest recompute a status across a classifier change
+    without recomputing a class, which D-129 makes a moving target.
+    """
+    outcomes = {str(k): str(v) for k, v in outcomes.items()}
+    gates = sorted(set(selected) | set(omitted))
+    if any(outcomes.get(gate) not in DECIDED_OUTCOMES for gate in gates):
+        return STATUS_NOT_MEASURABLE
+    if not omitted:
+        return STATUS_NO_OMISSION
+    if not selected:
+        return STATUS_SELECTS_NOTHING
+    missed = [gate for gate in omitted if outcomes.get(gate) == "fail"]
+    if missed:
+        inherited = [gate for gate in missed
+                     if base_outcomes and str(base_outcomes.get(gate)) == "fail"]
+        return STATUS_INCONCLUSIVE if inherited else STATUS_MISS
+    if all(outcomes.get(gate) == "pass" for gate in selected):
+        return STATUS_CLEAN
+    return STATUS_INCONCLUSIVE
+
+
 def verify_record(record: Mapping[str, Any], *, repo: Path,
                   gate_map: Mapping[str, Any], slug: str | None,
                   main_ref: str, offline: bool) -> list[str]:
     """Why this record must not enter the ledger, or an empty list.
 
     G10: the record was built by the pull request's own workflow, so a pull
-    request that edits the workflow could upload anything. The outcomes are
-    therefore re-read from the API for the recorded run and attempt and
-    compared, rather than believed. The class is not recomputed against
-    today's policy: the classifier legitimately changes, D-129 changed it,
-    and a record from before that change is not forged for saying so.
+    request that edits the workflow could upload anything. Two things are
+    therefore recomputed rather than believed. The outcomes are re-read from
+    the API for the run and attempt the record names. The verdict is then
+    recomputed from those outcomes and the gates the record says its
+    candidate selected and omitted, and a record whose status does not follow
+    is refused: without that, a record could report an omitted gate's failure
+    truthfully and still call itself clean, and the summary would count it
+    toward N. The class itself is not recomputed against today's policy,
+    because the classifier legitimately changes and a record from before
+    D-129 is not forged for saying so.
     """
     problems = list(validate_record(record))
     if problems:
@@ -913,10 +975,25 @@ def verify_record(record: Mapping[str, Any], *, repo: Path,
 
     provenance = str(record.get("provenance"))
     head = str(record.get("commits", {}).get("head", ""))
+
+    # G8 again: provenance is derived, never asserted, so a record cannot
+    # opt out of the canary rules by calling itself live.
+    derived = provenance_for(record.get("head_ref"), provenance == "backfill")
+    if derived == "canary" and provenance != "canary":
+        problems.append(
+            f"head_ref {record.get('head_ref')!r} is a canary branch but the "
+            f"record claims provenance {provenance!r}")
+        provenance = "canary"
     if provenance == "canary":
-        # G8: a canary is a branch that is never merged. One that has landed
-        # is an ordinary change wearing a canary's name.
-        if head and _commit_present(repo, head) and _is_ancestor(repo, head, main_ref):
+        # A canary is a branch that is never merged. One that has landed is
+        # an ordinary change wearing a canary's name. A head this repository
+        # does not have cannot be checked, so it is refused rather than
+        # waved through.
+        if not head or not _commit_present(repo, head):
+            problems.append(
+                f"canary head {head[:12] or '(none)'} is not present, so it "
+                f"cannot be shown not to have landed")
+        elif _is_ancestor(repo, head, main_ref):
             problems.append(f"canary head {head[:12]} is an ancestor of {main_ref}")
 
     if offline or not slug:
@@ -925,6 +1002,9 @@ def verify_record(record: Mapping[str, Any], *, repo: Path,
     run_id = str(record.get("run", {}).get("run_id", ""))
     attempt = int(record.get("run", {}).get("run_attempt", 0) or 0)
     if not run_id or not attempt:
+        problems.append(
+            "the record names no run and attempt, so its outcomes cannot be "
+            "re-read; ingest it with --offline if that is intended")
         return problems
     try:
         jobs = _gh_json([f"/repos/{slug}/actions/runs/{run_id}/attempts/{attempt}"
@@ -935,15 +1015,25 @@ def verify_record(record: Mapping[str, Any], *, repo: Path,
     recomputed = gate_outcomes_from_jobs(jobs, gate_map) if jobs else {}
     recorded = {str(k): str(v) for k, v in (record.get("gate_outcomes") or {}).items()}
     if recomputed != recorded:
-        differing = sorted(
-            set(recorded) | set(recomputed),
-            key=lambda gate: gate)
+        differing = sorted(set(recorded) | set(recomputed))
         detail = ", ".join(
             f"{gate}: recorded {recorded.get(gate)!r} but the run says "
             f"{recomputed.get(gate)!r}"
             for gate in differing
             if recorded.get(gate) != recomputed.get(gate))
         problems.append(f"outcomes disagree with the run: {detail}")
+        return problems
+
+    klass = record.get("class") or {}
+    expected = status_from(
+        recomputed,
+        [str(gate) for gate in klass.get("selected_gate_ids", ())],
+        [str(gate) for gate in klass.get("omitted_gate_ids", ())],
+        record.get("base_gate_outcomes"))
+    if expected != str(record.get("status")):
+        problems.append(
+            f"status does not follow from the run: the record says "
+            f"{record.get('status')!r} and these outcomes give {expected!r}")
     return problems
 
 
@@ -993,8 +1083,8 @@ def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
         accepted.append(record)
         known.add(str(record.get("record_id")))
 
-    # One file per month of the run that produced the record, so the ledger
-    # grows by append and a month's bytes never move once written.
+    # One file per ingest month, named by --month, so the ledger grows by
+    # append and a month's bytes never move once written.
     by_month: dict[str, list[dict[str, Any]]] = {}
     for record in accepted:
         by_month.setdefault(args.month, []).append(record)
@@ -1041,7 +1131,9 @@ def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
 
     print(f"INGEST {written} record(s) into {ledger_dir}"
           + (f", {refused} refused" if refused else ""))
-    return 0 if not refused or args.keep_going else 2
+    # A refusal is a refusal whether or not the run continued past it.
+    # --keep-going reports every one; it does not forgive them.
+    return 2 if refused else 0
 
 
 def summarise(records: Sequence[Mapping[str, Any]],

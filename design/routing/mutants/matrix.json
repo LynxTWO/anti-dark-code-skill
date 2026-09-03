@@ -5653,8 +5653,8 @@
     "suite": [
       "anti-dark-code/tests/test_route_cli.py"
     ],
-    "old": "        if \"ls-files\" in tokens or \"--cached\" in tokens or \"--no-textconv\" in tokens:\n            return b\"\"",
-    "new": "        if \"ls-files\" in tokens and \"--never-matches\" in tokens:\n            return b\"\"",
+    "old": "        if (\"--cached\" in tokens or \"--no-textconv\" in tokens\n                or (\"ls-files\" in tokens and \"--others\" in tokens)):\n            return b\"\"",
+    "new": "        if False:\n            return b\"\"",
     "verdict": "pending",
     "pytest": "",
     "results": [],
@@ -5715,5 +5715,47 @@
     "pytest": "",
     "results": [],
     "note": "G10. The record is built by the pull request's own workflow, so a pull request that edits the workflow could upload any outcomes it liked. Re-reading them from the API is what makes an uploaded record more than a claim. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M149",
+    "name": "the isolation is too broad and blinds the acquisition boundary",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        if (\"--cached\" in tokens or \"--no-textconv\" in tokens\n                or (\"ls-files\" in tokens and \"--others\" in tokens)):\n            return b\"\"",
+    "new": "        if (\"--cached\" in tokens or \"--no-textconv\" in tokens\n                or \"ls-files\" in tokens):\n            return b\"\"",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128 and D-085. _repo_fingerprint lists tracked files with ls-files too, so matching the bare subcommand leaves the acquisition boundary watching nothing: no ADC-ROUTE-BOUNDARY-VIOLATED can fire for any write during acquisition while the snapshot still calls itself complete. Only the untracked scan, ls-files --others, is silenced. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M150",
+    "name": "a true outcome is laundered into a clean status at ingest",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if expected != str(record.get(\"status\")):",
+    "new": "    if expected != str(record.get(\"status\")) and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "G10 and S-056. Re-reading the outcomes is not enough: a record can report an omitted gate's failure honestly and still call itself clean, and the summary would count it toward N. The implementation challenge built exactly that forgery against a real run and it was accepted online. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M151",
+    "name": "a canary declares itself live and skips the canary rules",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if derived == \"canary\" and provenance != \"canary\":",
+    "new": "    if derived == \"canary\" and provenance != \"canary\" and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "G8. Provenance is derived from the head ref, never asserted; a record that could claim `live` from a canary/ branch would skip the ancestor check entirely. Pending the next authoritative two-host replay."
   }
 ]
