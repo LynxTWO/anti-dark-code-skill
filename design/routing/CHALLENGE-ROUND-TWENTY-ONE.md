@@ -167,3 +167,77 @@ Fix: add the source-half twin of `test_source_only_authority_cannot_hide_the_ins
 
 - A filesystem symlink on this host (admin required). The index-level symlink is what git records and what the router reads, so the routing verdicts do not depend on it; the on-disk effect of a link was not observed.
 - Linux. Every number is Windows 11 at the target commit; W4's survival has no host-dependent branch (the one skip is the filesystem-symlink acquisition test), but a Linux replay is the round's authority, not this report.
+
+# Second challenge: D-119 and the repaired contract at `5872e92`
+
+Challenger: a second fresh-context agent, dispatched on 2026-09-02 against commit `5872e922fc6ff5bf4f7f3e879ffc50fb194871c1`, the head carrying D-119 and the source-half contract test, in its own clones under `J:\TEMP\claude\r21-challenger-2\`: `head`, `parent` (`6930274`), `mut` (mutant replay), and `cli` (item 5, carrying a scratch commit that approves every rule). Windows 11, git 2.50.1, Python 3.14.2; 8.3 short-name generation is off on J: and on for C:, so the 8.3 measurements used two short-lived directories under the user's temp folder on C:. Nothing under `C:\DEV` was touched; no fixes were written. The report is reproduced below with the author's framing note: the two BROKEN verdicts and the two surviving mutants are repaired by D-120 in the commit that follows.
+
+## Verdicts
+
+| Item | Verdict | One line |
+|---|---|---|
+| 1. Spellings | **BROKEN** (two spellings) | `ANTI-D~1/scripts/adc_route.py` routes cheap L2 with no code at HEAD and parent, and on C: `git reset --hard` / `git checkout -f` of that commit wrote the replaced content over `anti-dark-code/scripts/adc_route.py`. `tools/scripts/ADC.py` routes cheap L2 and a plain `git pull` overwrites `tools/scripts/adc.py`, which the shipped template classifies as verification authority (`**/scripts/adc.py`, non-canonical). Trailing-dot `anti-dark-code./scripts/adc_route.py` is cheap L2 and NTFS resolves it to the genuine directory, but git 2.50.1 for Windows refuses it in all five operations. Every Unicode case variant either records the collision (Kelvin sign, long s, ligatures) or is a distinct name on NTFS (dotless ı, dotted İ, fullwidth, Cyrillic, ZWNJ/ZWJ, combining marks); macOS not measured. |
+| 2. Policy | UPHELD | Exact cheap entries, an extra product surface, an approved L0 `paths` rule, dropping `**/scripts/*.py`, and the all-proposed template all keep L3 `force_full` with the code; hints cannot write `unknowns` (HintError) and `force_full: False` is ignored. |
+| 3. Candidate | UPHELD at HEAD | `build_candidate_route` is `force_full` for every collision; on the real receipt `_candidate_shadow_context` + `shadow_result` omit no gate. But no test holds it, see item 6. |
+| 4. False positives | recorded | Under the shipped template with rules approved, six paths move from below full to full: `docs/skill.md`, `docs/Skill.md`, `guides/References/intro.md`, `guides/REFERENCES/intro.md`, `app/assets/Verification-Capabilities.json`, `vendor/Anti-Dark-Code/scripts/tool.py`. 30 more gain the code while already full via UNMAPPED. With a consumer `**/*` product entry, 25 paths move. |
+| 5. Receipt | UPHELD | Read-only `route` on a staged `ANTI-DARK-CODE/scripts/adc_route.py`: `force_full=true rules=product-code`; `--write` receipt has `route.unknowns = ['ADC-ROUTE-AUTHORITY-CASE-COLLISION', 'ADC-ROUTE-UNMAPPED-PATH']`; `--verify` says FRESH. |
+| 6. Rows | Rows UPHELD; own mutants **BROKEN** | M117 caught (2 behavioural + 2 integrity), M118 caught (1 + 2). WA (fold last segment only) and WB (scripts globs only) each caught by exactly one test. **WC (candidate-side check disabled) survives: 329 passed**, and under it the shadow record reads the collision commit as a cheap L2 candidate that omitted three gates. WD (`lower()` for `casefold()`) survives; marginal. |
+
+## Item 1: spellings, the measured lab
+
+Attacker commits were built with `git mktree` and `commit-tree`, the shape a commit from a case-sensitive host takes, and routed through the real `parse_raw_z` of `git diff --raw -z -M -C --find-copies-harder`, then applied to a fresh default clone by five operations. The 8.3 branch on C:
+
+```text
+[pull --ff-only] rc=1 ... error: The following untracked working tree files would be overwritten by merge: | ANTI-D~1/scripts/adc_route.py
+[fresh clone -b attack-8] rc=0 GENUINE_CHANGED=none extra_files=["'ANTI-D~1/scripts/adc_route.py'"]
+[fetch + reset --hard FETCH_HEAD] rc=0 HEAD==attack=True GENUINE_CHANGED=["anti-dark-code/scripts/adc_route.py='# replaced\\n'"] status=["' M anti-dark-code/scripts/adc_route.py'"]
+[fetch + checkout -f FETCH_HEAD]  rc=0 HEAD==attack=True GENUINE_CHANGED=["anti-dark-code/scripts/adc_route.py='# replaced\\n'"] status=["' M anti-dark-code/scripts/adc_route.py'"]
+[fetch + checkout FETCH_HEAD] rc=1 ... untracked working tree files would be overwritten by checkout
+route HEAD  : CHEAP L2 ff=False rules=['product-code'] unknowns=[] cand_ff=False
+route PARENT: CHEAP L2 ff=False rules=['product-code'] unknowns=[] cand_ff=False
+```
+
+`git reset --hard` and `git checkout -f` are what git's own refusal message leads a developer to. The `~1` suffix must match the alias NTFS assigned, but nothing stops a commit from carrying `ANTI-D~1` through `ANTI-D~4`. The template's non-canonical entries are worse: `tools/scripts/ADC.py` needs no special operation, a plain pull overwrites the file. Both cases violate D-119's stated reason; the 8.3 case is outside its literal "case-folded" claim, the second outside its "canonical" scope.
+
+Other spellings, all measured through the real classifier and both builders with every rule approved: `ANTI-DARK-CODE/…`, `.agents/skills/ANTI-DARK-CODE/…`, `./ANTI-DARK-CODE/…`, the Kelvin sign `anti-darK-code`, the long s `ſcripts`, and the ligatures record the collision at HEAD and were cheap at the parent; dotless ı, dotted İ, fullwidth, Cyrillic, ZWNJ, ZWJ, and combining marks route cheap without the code but are distinct names on NTFS; trailing space, backslashes, and mixed separators are unmapped or refused by git; `anti-dark-code/SCRIPTS/…`, `.GITATTRIBUTES`, `.GitHub/workflows/tests.yml`, `anti-dark-code/TESTS/…` are unmapped, full, and carry the code, and pulls of `.GITATTRIBUTES` and `src/Tests/test_y.py` overwrote the genuine files while already routed full.
+
+Fix stated by the challenger: force full with a named code for any component shaped like an NTFS short name, `^[^./]{1,6}~[0-9]+(\.[^./]{1,3})?$`, and run the collision check against the loaded policy's verification-authority globs and force-full rules' paths as well as the canonical set.
+
+## Item 2: turning the check off from a policy
+
+Exact cheap entries for the variant, an extra `ANTI-DARK-CODE/**` product surface, an approved Level 0 rule with `paths=[ANTI-DARK-CODE/**]`, dropping `**/scripts/*.py`, and the shipped all-proposed template all keep `L3 ff=True` with the code. Hints `{'minimum_level': 0}`, `{'force_full': False}`, and `{'passes': []}` leave the route at L3 with the code; `{'unknowns': []}` and `{'unmapped_paths': []}` raise `HintError`. `dataclasses.replace(route, unknowns=frozenset(), force_full=False)` forges a route, which any caller with code access could do and no policy path reaches.
+
+## Item 5: the receipt
+
+In the `cli` clone, after a scratch commit approving every rule and `git update-index --add --cacheinfo 100644,<blob '# replaced router'>,ANTI-DARK-CODE/scripts/adc_route.py`:
+
+```text
+$ adc.py route --repo <cli> --base HEAD    ROUTE level=3 passes=07,10,11,14 gates=distribution,full-suite,hostile-environment,mutation-replay,validate-core rules=product-code force_full=true complete=true
+$ adc.py route --repo <cli> --base HEAD --write
+receipt: route.minimum_level=3 force_full=True matched_rule_ids=['product-code']
+         route.unknowns=['ADC-ROUTE-AUTHORITY-CASE-COLLISION', 'ADC-ROUTE-UNMAPPED-PATH']
+$ adc.py route --repo <cli> --verify <receipt>    FRESH 73299f1e0918
+```
+
+The read-only run isolates the collision as the sole reason for full. The `ADC-ROUTE-UNMAPPED-PATH` in the written receipt is the run store's own `.gitignore`, pre-existing behaviour.
+
+## Item 6: the rows and four own mutants
+
+| Mutant | Suite | Failing tests |
+|---|---|---|
+| baseline | 329 passed, 1 skipped | – |
+| M117 | 4 failed | `test_a_policy_grading_the_router_as_product_code_is_refused`, `test_installed_only_authority_cannot_hide_the_source_router`, two integrity tests |
+| M118 | 3 failed | `test_a_case_variant_of_an_authority_path_forces_full`, two integrity tests |
+| WA: fold the last segment only | 1 failed | `test_a_case_variant_of_an_authority_path_forces_full` |
+| WB: scripts globs only | 1 failed | same |
+| **WC: candidate-side check disabled** | **329 passed, 0 failed** | none |
+| WD: `lower()` for `casefold()` | 329 passed, 0 failed | none |
+
+Under WC, with the real `adc.shadow_result`, the shadow record for `ANTI-DARK-CODE/scripts/adc_route.py` read `route_class={'matched_rule_ids': ['product-code'], 'force_full': False} omitted=['distribution', 'hostile-environment', 'mutation-replay'] routing_miss=False`, which is the measurement the candidate side exists to refuse. WD survives because every test variant is ASCII; `'ſ'.lower()` is `'ſ'` while `casefold()` gives `'s'`.
+
+## Not measured
+
+- macOS: APFS case folding of U+0131 and HFS+'s ignorable code points, the only remaining Unicode spellings that route cheap without the code; on NTFS all of them are distinct names.
+- Linux ext4 casefold directories, which would fold the long s and ligatures the check already catches.
+- Git for Windows before 2.24.1, which lacked the `invalid path` refusal that stopped the trailing-dot spelling here.
+- The 8.3 alias of the installed prefix, `AGENTS~1/skills/ANTI-D~1/…`, the same mechanism as the measured source spelling.

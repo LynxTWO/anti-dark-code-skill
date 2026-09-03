@@ -135,7 +135,8 @@ The documents state what is true. This log preserves why, what else was consider
 | D-116 | 2026-09-02 | The harness line closes on a stopping rule, not on a quiet round | Open | |
 | D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
 | D-118 | 2026-09-02 | Verification authority for scripts is the shipped skill's own directory, in every spelling | Confirmed | |
-| D-119 | 2026-09-02 | A case variant of an authority path routes as a collision with it | Confirmed | |
+| D-119 | 2026-09-02 | A case variant of an authority path routes as a collision with it | Amended | D-120 |
+| D-120 | 2026-09-02 | A spelling a checkout can alias to an authority path routes as that authority | Confirmed | |
 
 ---
 
@@ -3759,7 +3760,7 @@ scripts directory appears.
 ## D-119: A case variant of an authority path routes as a collision with it
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-120
 Area: R-040, D-093, D-116, D-118, `build_route`, `build_candidate_route`,
 M118
 
@@ -3805,3 +3806,64 @@ is the correct direction.
 Revisit when:
 Git gains collision protection the router can read, or the canonical globs
 gain characters whose case folding is not one-to-one.
+
+## D-120: A spelling a checkout can alias to an authority path routes as that authority
+
+Date: 2026-09-02
+Status: Confirmed
+Area: R-040, D-118, D-119, `build_route`, `build_candidate_route`, the
+shipped template's name-based entries, M118 to M122
+
+Context:
+D-119 argued from a property, that a route may never be cheaper for a
+spelling a checkout can write over the authority it imitates, and
+implemented a narrower rule: case folding against the canonical globs. A
+second fresh-context challenger at `5872e92` measured the gap. On a volume
+that generates NTFS short names, `ANTI-D~1/scripts/adc_route.py` is an alias
+of `anti-dark-code/scripts/`, routed as Level 2 product code with no code,
+and `git reset --hard` or `git checkout -f` of a commit carrying it wrote the
+replaced router over the genuine file; git's own refusal message for the
+pull points a developer at exactly those commands. `tools/scripts/ADC.py`
+routed as product code while the template's `**/scripts/adc.py` entry makes
+`tools/scripts/adc.py` verification authority, and a plain pull overwrote
+it, because the check read only the canonical globs. A trailing-dot
+component resolves to the genuine directory on NTFS; git for Windows from
+2.24.1 refuses it, and the router cannot know the checkout's git. Two of
+the challenger's own mutants survived: the candidate-side check disabled,
+under which the shadow record read the router-replacing commit as a cheap
+candidate that omitted three gates; and `lower()` for `casefold()`, because
+every test variant was ASCII.
+
+Decision:
+The fold set is the canonical globs, every classifier entry the loaded
+policy declares with effect `verification-authority`, and the path globs of
+every force-full rule. The spelling key strips format characters, applies
+NFKC normalization, and case-folds, so fullwidth letters, ligatures, the
+long s, and zero-width joiners fold with case. A component shaped like an
+NTFS short name, or ending in a dot or a space, is an ambiguous spelling:
+the route forces full with `ADC-ROUTE-AMBIGUOUS-SPELLING`, because the
+router cannot resolve what such a component aliases. Both route builders
+apply both checks. The test holds ten collision spellings, five ambiguous
+ones, and both builders; M118 is re-anchored, M119 disables the candidate
+side, M120 the ambiguity rule, M121 the policy-declared globs, and M122 the
+normalization.
+
+Because:
+The property is the decision, and the implementation must reach every
+spelling the property names that the router can recognize. What it cannot
+recognize, aliasing rules of filesystems it has not measured, stays a
+recorded limit rather than an implied guarantee.
+
+Consequences:
+Consumer paths that fold onto an authority glob now force full: a
+`docs/skill.md`, a `References/` directory, a `Verification-Capabilities.json`,
+a directory named `Anti-Dark-Code`, and any component shaped like `ANTI-D~1`
+or ending in a dot or space. All movement is toward the full recipe and each
+receipt names the reason. Aliasing the router does not model, APFS and HFS+
+ignorable code points beyond the format category, ext4 casefold directories,
+and git older than 2.24.1, is recorded in the round's handoff as the
+owner's environment under D-116, not as a guarantee.
+
+Revisit when:
+A filesystem alias the router does not model is measured on a host this
+repository targets, or git gains collision protection the router can read.

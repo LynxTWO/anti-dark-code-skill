@@ -4809,11 +4809,67 @@
     "suite": [
       "anti-dark-code/tests/test_route.py"
     ],
-    "old": "        if _authority_case_collision(fact.path) is not None:\n            # D-119",
-    "new": "        if False and _authority_case_collision(fact.path) is not None:\n            # D-119",
+    "old": "        if collision is not None:\n            # D-119 and D-120",
+    "new": "        if False and collision is not None:\n            # D-119 and D-120",
     "verdict": "pending",
     "pytest": "",
     "results": [],
-    "note": "D-119. ANTI-DARK-CODE/scripts/adc_route.py then routes as Level 2 product code again, the route a pull onto a case-insensitive checkout would grade the replaced router with. Pending the next authoritative two-host replay."
+    "note": "D-119, re-anchored under D-120. ANTI-DARK-CODE/scripts/adc_route.py then routes as Level 2 product code again, the route a pull onto a case-insensitive checkout would grade the replaced router with. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M119",
+    "name": "the candidate builder ignores a spelling collision",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "        if collision is not None:\n            # Shadow side of D-119 and D-120",
+    "new": "        if False and collision is not None:\n            # Shadow side of D-119 and D-120",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-120, found by the second round-twenty-one challenger: with the candidate-side check disabled, the whole suite passed and the shadow record read the commit that replaces the router as a cheap Level 2 candidate that omitted three gates. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M120",
+    "name": "a short-name or trailing-dot component is not ambiguous",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    for component in path.split(\"/\"):\n        if component.endswith((\".\", \" \")) or _SHORT_NAME_COMPONENT.match(component):",
+    "new": "    for component in ():\n        if component.endswith((\".\", \" \")) or _SHORT_NAME_COMPONENT.match(component):",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-120. ANTI-D~1/scripts/adc_route.py then routes as Level 2 product code; on a volume with 8.3 names, git reset --hard of such a commit wrote the replaced router over the genuine file. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M121",
+    "name": "policy-declared authority is not in the fold set",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    for entry in policy.classifier_map().get(\"surfaces\", []):",
+    "new": "    for entry in ():",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-120. tools/scripts/ADC.py then routes as Level 2 product code while the template's **/scripts/adc.py makes tools/scripts/adc.py authority, and a plain pull overwrites it. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M122",
+    "name": "the spelling key folds case only",
+    "source": "anti-dark-code/scripts/adc_route.py",
+    "suite": [
+      "anti-dark-code/tests/test_route.py"
+    ],
+    "old": "    return unicodedata.normalize(\"NFKC\", stripped).casefold()",
+    "new": "    return text.lower()",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-120. A fullwidth or format-character spelling, and the long s that lower() leaves alone, then escape the fold; the second challenger's lower() mutant survived the ASCII-only test. Pending the next authoritative two-host replay."
   }
 ]

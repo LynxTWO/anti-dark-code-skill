@@ -24,6 +24,7 @@ import re
 import os
 import stat as stat_module
 import subprocess
+import unicodedata
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from pathlib import Path
@@ -1025,27 +1026,79 @@ AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
 )
 
 
-def _authority_case_collision(path: str) -> str | None:
-    """The canonical authority glob a case variant of `path` would match.
+# NTFS generates a short name for every long component on a volume with 8.3
+# names on, so `ANTI-D~1` aliases `anti-dark-code` there, and NTFS strips a
+# trailing dot or space from a component. The router cannot resolve either
+# from a path alone. See D-120.
+_SHORT_NAME_COMPONENT = re.compile(r"^[^./]{1,6}~[0-9]+(\.[^./]{1,3})?$")
 
-    D-119. Classification is case-sensitive and stays so (R-040): the router
-    never rewrites a path. But a case-insensitive checkout writes
-    `ANTI-DARK-CODE/scripts/adc_route.py` over the genuine router, and the
-    D-118 authority globs name the directory, so that variant matched only
-    the cheap `**/scripts/*.py` product entry and routed as Level 2 product
-    code. Measured with real git: a commit carrying that path from a
-    case-sensitive host was graded product code and, pulled onto an NTFS
-    clone, replaced the router on disk. A path whose case-folded spelling
-    would match a canonical authority glob that the path itself does not
-    match is therefore a collision with that authority: the route forces
-    full and names the reason, and the facts stay exactly as classified.
+
+def _spelling_key(text: str) -> str:
+    """The spelling a case- and normalization-insensitive checkout compares.
+
+    Format characters such as zero-width joiners are dropped, compatibility
+    forms such as fullwidth letters and ligatures are normalized, and case
+    is folded, so `ａnti-dark-code`, `anti-dark-code/ſcripts`, and
+    `ANTI-DARK-CODE` all key to the genuine spelling. See D-119 and D-120.
     """
-    folded = path.casefold()
-    for _label, glob, *_ in AUTHORITY_CLASSIFIERS:
+    stripped = "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
+    return unicodedata.normalize("NFKC", stripped).casefold()
+
+
+def _ambiguous_component(path: str) -> bool:
+    """Whether any component is an NTFS short name or ends in a dot or space."""
+    for component in path.split("/"):
+        if component.endswith((".", " ")) or _SHORT_NAME_COMPONENT.match(component):
+            return True
+    return False
+
+
+def _authority_globs(policy: "ValidatedPolicy") -> tuple[str, ...]:
+    """Every glob whose spelling a collision must not be cheaper than.
+
+    The canonical classes, every classifier entry the loaded policy declares
+    as verification authority, and the path globs of every force-full rule.
+    The template's name-based `**/scripts/adc.py` is the measured case: it
+    is not canonical, and `tools/scripts/ADC.py` routed cheap while a pull
+    overwrote `tools/scripts/adc.py`. See D-120.
+    """
+    globs = [glob for _label, glob, *_ in AUTHORITY_CLASSIFIERS]
+    for entry in policy.classifier_map().get("surfaces", []):
+        if entry.get("effect") == "verification-authority" and entry.get("glob"):
+            globs.append(str(entry["glob"]))
+    for rule in policy.rules:
+        if rule.force_full:
+            globs.extend(str(glob) for glob in rule.match_map().get("paths", ()))
+    return tuple(dict.fromkeys(globs))
+
+
+def _authority_spelling_collision(
+    path: str, authority_globs: Sequence[str]
+) -> str | None:
+    """The unknown code a spelling collision earns, or None.
+
+    D-119 and D-120. Classification is case-sensitive and stays so (R-040):
+    the router never rewrites a path and no fact changes. But a
+    case-insensitive checkout writes `ANTI-DARK-CODE/scripts/adc_route.py`
+    over the genuine router, a volume with 8.3 names resolves `ANTI-D~1` to
+    the same directory, and the D-118 authority globs name the directory, so
+    such spellings matched only the cheap `**/scripts/*.py` product entry and
+    routed as Level 2 product code. Measured with real git: commits carrying
+    them, the shape a commit from a case-sensitive host takes, were graded
+    product code and, pulled or reset onto an NTFS clone, replaced the router
+    on disk. A path whose spelling key would match an authority glob that the
+    path itself does not match is a collision with that authority, and a
+    path with an ambiguous component is one the router cannot resolve at all;
+    either forces full and names the reason.
+    """
+    if _ambiguous_component(path):
+        return "ADC-ROUTE-AMBIGUOUS-SPELLING"
+    key = _spelling_key(path)
+    for glob in authority_globs:
         if fnmatch.fnmatchcase(path, glob):
             continue
-        if fnmatch.fnmatchcase(folded, glob.casefold()):
-            return glob
+        if fnmatch.fnmatchcase(key, _spelling_key(glob)):
+            return "ADC-ROUTE-AUTHORITY-CASE-COLLISION"
     return None
 
 
@@ -1372,6 +1425,7 @@ def build_route(
         unknowns.add("ADC-ROUTE-SNAPSHOT-INCOMPLETE")
 
     rules = [rule for rule in policy.rules if rule.approved]
+    authority_globs = _authority_globs(policy)
 
     for fact in facts:
         if fact.confidence == "unknown":
@@ -1380,11 +1434,13 @@ def build_route(
             unmapped.add(fact.path)
             unknowns.add("ADC-ROUTE-UNMAPPED-PATH")
             force_full = True
-        if _authority_case_collision(fact.path) is not None:
-            # D-119: a case variant of an authority path is routed as a
-            # collision with that authority. The facts stay as classified;
-            # only the route escalates, and the receipt names why.
-            unknowns.add("ADC-ROUTE-AUTHORITY-CASE-COLLISION")
+        collision = _authority_spelling_collision(fact.path, authority_globs)
+        if collision is not None:
+            # D-119 and D-120: a spelling a checkout can alias to an
+            # authority path is routed as a collision with that authority.
+            # The facts stay as classified; only the route escalates, and
+            # the receipt names why.
+            unknowns.add(collision)
             force_full = True
         fired = False
         for rule in rules:
@@ -1454,13 +1510,15 @@ def build_candidate_route(
     matched: set[str] = set()
     force_full = False
     considered = {rule.id for rule in policy.rules if not rule.approved}
+    authority_globs = _authority_globs(policy)
 
     for fact in facts:
         if fact.confidence == "unknown":
             force_full = True
-        if _authority_case_collision(fact.path) is not None:
-            # Shadow side of D-119: a candidate must not measure a cheaper
-            # route for a collision than the real route refuses.
+        collision = _authority_spelling_collision(fact.path, authority_globs)
+        if collision is not None:
+            # Shadow side of D-119 and D-120: a candidate must not measure a
+            # cheaper route for a collision than the real route refuses.
             force_full = True
         fired = False
         for rule in policy.rules:

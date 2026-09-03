@@ -5603,32 +5603,69 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         clone, replaced the genuine router on disk.
         """
         policy = self._approved_policy()
-        variants = ("ANTI-DARK-CODE/scripts/adc_route.py",
-                    "Anti-Dark-Code/scripts/work_receipt.py",
-                    ".agents/skills/ANTI-DARK-CODE/scripts/adc_route.py",
-                    "ANTI-DARK-CODE/scripts/new_tool.py",
-                    ".GITATTRIBUTES",
-                    "anti-dark-code/TESTS/test_route.py")
-        for path in variants:
+
+        def facts_for(path):
             snapshot = self.route.ChangeSnapshot(
                 inputs=(self.route.ChangeInput(
                     path=path, change_kind="modify", source="unstaged"),),
                 base="HEAD", base_resolved=True, problems=())
-            facts = self.route.collect_change_facts(snapshot, policy.classifier_map())
+            return self.route.collect_change_facts(snapshot, policy.classifier_map())
+
+        # D-120 widened the fold: policy-declared authority (the template's
+        # `**/scripts/adc.py`), Unicode compatibility forms, and format
+        # characters, after the second challenger measured
+        # tools/scripts/ADC.py routing cheap and a `lower()` mutant surviving.
+        collisions = ("ANTI-DARK-CODE/scripts/adc_route.py",
+                      "Anti-Dark-Code/scripts/work_receipt.py",
+                      ".agents/skills/ANTI-DARK-CODE/scripts/adc_route.py",
+                      "ANTI-DARK-CODE/scripts/new_tool.py",
+                      ".GITATTRIBUTES",
+                      "anti-dark-code/TESTS/test_route.py",
+                      "tools/scripts/ADC.py",
+                      "anti-dark-code/ſcripts/adc_route.py",
+                      "ａnti-dark-code/scripts/adc_route.py",
+                      "anti‌-dark-code/scripts/adc_route.py")
+        for path in collisions:
+            facts = facts_for(path)
             # R-040: the classifier never folds case, so no fact is authority.
             self.assertFalse(
                 any(fact.effect == "verification-authority" for fact in facts), path)
             route = self.route.build_route(facts, policy, snapshot_ok=True)
             self.assertTrue(route.force_full, path)
             self.assertIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", route.unknowns, path)
-        # The genuine spelling is authority without the collision code, and an
-        # ordinary consumer script is neither.
-        genuine = self._route_for("anti-dark-code/scripts/adc_route.py", policy)
-        self.assertTrue(genuine.force_full)
-        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", genuine.unknowns)
-        consumer = self._route_for("tools/scripts/build.py", policy)
+            candidate = self.route.build_candidate_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(candidate.force_full, path)
+            self.assertEqual(policy.full_recipe.passes, candidate.passes, path)
+        # D-120: a component shaped like an NTFS short name aliases any
+        # directory on a volume that generates them, and a trailing dot or
+        # space is stripped by NTFS; the router cannot resolve either, so
+        # the spelling is ambiguous and forces full with its own code.
+        ambiguous = ("ANTI-D~1/scripts/adc_route.py",
+                     "AGENTS~1/skills/anti-dark-code/scripts/adc_route.py",
+                     "anti-dark-code./scripts/adc_route.py",
+                     "anti-dark-code /scripts/adc_route.py",
+                     "tools/scripts/build.py.")
+        for path in ambiguous:
+            facts = facts_for(path)
+            route = self.route.build_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(route.force_full, path)
+            self.assertIn("ADC-ROUTE-AMBIGUOUS-SPELLING", route.unknowns, path)
+            candidate = self.route.build_candidate_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(candidate.force_full, path)
+        # The genuine spellings are authority without either code, and an
+        # ordinary consumer script is neither, in both builders.
+        for path in ("anti-dark-code/scripts/adc_route.py", "tools/scripts/adc.py"):
+            genuine = self._route_for(path, policy)
+            self.assertTrue(genuine.force_full, path)
+            self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", genuine.unknowns, path)
+            self.assertNotIn("ADC-ROUTE-AMBIGUOUS-SPELLING", genuine.unknowns, path)
+        consumer_facts = facts_for("tools/scripts/build.py")
+        consumer = self.route.build_route(consumer_facts, policy, snapshot_ok=True)
         self.assertFalse(consumer.force_full)
         self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", consumer.unknowns)
+        self.assertNotIn("ADC-ROUTE-AMBIGUOUS-SPELLING", consumer.unknowns)
+        self.assertFalse(self.route.build_candidate_route(
+            consumer_facts, policy, snapshot_ok=True).force_full)
 
 
 class SubmoduleContractTests(unittest.TestCase):
