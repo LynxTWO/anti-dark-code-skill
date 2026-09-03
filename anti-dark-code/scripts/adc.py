@@ -2372,7 +2372,14 @@ def ensure_run_gitignore(repo: Path) -> None:
     require_no_symlink_components(root / "runs", repo, "run-artifact setup")
     root.mkdir(parents=True, exist_ok=True)
     path = root / ".gitignore"
-    required_entries = ("runs/", "efficiency/", "flowback/")
+    # D-122: the store's ignore file ignores itself. Without the fourth entry
+    # the file this function writes is the one path under the store that git
+    # still reports, so every written receipt carried it as an untracked,
+    # unmapped fact and forced full for a file the tool had just created.
+    # Ignoring `.anti-dark-code/` in the repository's own ignore file would
+    # have hidden a real change to `.anti-dark-code/calibration/` as well,
+    # and excluding the store inside the router would reopen D-089.
+    required_entries = ("runs/", "efficiency/", "flowback/", ".gitignore")
     desired = "".join(f"{entry}\n" for entry in required_entries)
     if not path.exists():
         write_text_atomic(path, desired)
@@ -4339,6 +4346,36 @@ def command_efficiency(args: argparse.Namespace) -> int:
     return int(load_efficiency_helper().main(forwarded, suppress_injected_identity_help=True))
 
 
+def load_shadow_helper() -> Any:
+    helper_path = Path(__file__).with_name("adc_shadow.py")
+    spec = importlib.util.spec_from_file_location("adc_shadow", helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"Could not load shadow helper: {helper_path}")
+    module = importlib.util.module_from_spec(spec)
+    previous_bytecode_setting = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous_bytecode_setting
+    return module
+
+
+def command_shadow(args: argparse.Namespace) -> int:
+    """Delegate to the shadow helper, handing it this module.
+
+    Passing the loaded module rather than letting the helper import adc.py by
+    path keeps one instance of the record's comparator, `shadow_result`, in
+    the process. Two loaded copies of it is exactly the second implementation
+    D-093 refuses elsewhere.
+    """
+    forwarded = list(args.shadow_args)
+    if not forwarded:
+        print("Usage: adc.py shadow {record} ...")
+        return 2
+    return int(load_shadow_helper().main(forwarded, adc_module=sys.modules[__name__]))
+
+
 def command_release_check(args: argparse.Namespace) -> int:
     findings = release_check(
         Path(args.repo).expanduser(),
@@ -4739,6 +4776,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("efficiency", help="Create opt-in local usage receipts and controlled token comparisons")
     p.add_argument("efficiency_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_efficiency)
+
+    p = sub.add_parser("shadow", help="Build and read shadow evidence records for the routing campaign")
+    p.add_argument("shadow_args", nargs=argparse.REMAINDER)
+    p.set_defaults(func=command_shadow)
 
     p = sub.add_parser("route", help="Route one change to the verification it needs, and bind the result to a receipt")
     p.add_argument("--repo", default=".")

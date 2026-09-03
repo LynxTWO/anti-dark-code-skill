@@ -154,14 +154,17 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             repo = Path(tmp)
             adc.ensure_run_gitignore(repo)
             ignore = repo / ".anti-dark-code" / ".gitignore"
+            # D-122: the fourth entry is the file itself. Without it the store
+            # reported the one path the tool had just created as an untracked,
+            # unmapped change, and every written receipt forced full for it.
             self.assertEqual(ignore.read_text(encoding="utf-8").splitlines(), [
-                "runs/", "efficiency/", "flowback/"
+                "runs/", "efficiency/", "flowback/", ".gitignore"
             ])
 
             ignore.write_text("custom/\nruns/\n", encoding="utf-8")
             adc.ensure_run_gitignore(repo)
             self.assertEqual(ignore.read_text(encoding="utf-8").splitlines(), [
-                "custom/", "runs/", "efficiency/", "flowback/"
+                "custom/", "runs/", "efficiency/", "flowback/", ".gitignore"
             ])
 
     def test_main_cli_supplies_current_skill_identity_to_efficiency_receipts(self) -> None:

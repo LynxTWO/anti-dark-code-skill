@@ -415,6 +415,42 @@
         "path": "design/routing/DECISION-LOG.md",
         "heading": "## D-047: Cost evidence names units and isolation properties"
       }
+    },
+    "R-056": {
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_the_run_store_is_not_a_change_of_its_own",
+        "anti-dark-code/tests/test_route_cli.py::RouteCommandTests::test_a_real_calibration_change_under_the_store_is_still_seen",
+        "anti-dark-code/tests/test_adc.py::AntiDarkCodeToolsTests::test_local_artifact_gitignore_covers_all_private_artifacts"
+      ]
+    },
+    "R-057": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::PolicyValidationTests::test_a_rule_that_names_no_obligation_is_refused"
+      ]
+    },
+    "R-058": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_an_omitted_gate_that_failed_is_a_routing_miss",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_a_failing_selected_gate_is_inconclusive_and_keeps_the_signal",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_a_clean_record_needs_every_gate_decided",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_the_class_key_follows_the_rule_not_the_file",
+        "anti-dark-code/tests/test_route_cli.py::ShadowRecordCliTests::test_the_command_measures_a_real_change",
+        "anti-dark-code/tests/test_route_cli.py::ShadowRecordCliTests::test_an_omitted_gate_that_failed_is_a_miss_end_to_end",
+        "anti-dark-code/tests/test_route_cli.py::ShadowRecordCliTests::test_an_undecided_gate_leaves_no_verdict"
+      ]
+    },
+    "R-059": {
+      "tests": [
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_the_shadow_job_is_evidence_and_never_a_gate",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_a_gate_no_job_carries_is_unresolved_not_passed",
+        "anti-dark-code/tests/test_route.py::ShadowLedgerContractTests::test_one_failed_leg_fails_its_gate_and_a_cancelled_one_decides_nothing"
+      ]
+    },
+    "R-060": {
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_backfilled_change_uses_todays_router_and_its_own_run",
+        "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_change_with_no_run_is_recorded_as_unmeasurable"
+      ]
     }
   }
 }

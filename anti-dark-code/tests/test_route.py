@@ -2206,6 +2206,32 @@ class PolicyValidationTests(unittest.TestCase):
         validated = self.route.load_policy(self._policy(), GATES, CAPABILITY_IDS, FULL_SET)
         self.assertEqual(validated.schema_version, 1)
 
+    def test_a_rule_that_names_no_obligation_is_refused(self) -> None:
+        """D-123. Such a rule selects no gate, so a change matching only it
+        would route to nothing while every gate that happened to run passed,
+        which a shadow record cannot tell from a clean route. Measured before
+        the refusal: the policy loaded and the candidate selected [].
+        """
+        for obligations in ({}, None):
+            rule = self._rule()
+            if obligations is None:
+                del rule["obligations"]
+            else:
+                rule["obligations"] = obligations
+            policy = self._policy()
+            policy["rules"] = [rule]
+            with self.assertRaises(self.route.PolicyError) as caught:
+                self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
+            self.assertIn("at least one obligation", str(caught.exception))
+        # A rule that forces full is not exempt: the shipped policy's two
+        # force-full rules both name their obligations already.
+        forcing = self._rule(requires={"minimum_level": 3, "force_full": True})
+        del forcing["obligations"]
+        policy = self._policy()
+        policy["rules"] = [forcing]
+        with self.assertRaises(self.route.PolicyError):
+            self.route.load_policy(policy, GATES, CAPABILITY_IDS, FULL_SET)
+
     def test_a_wrong_schema_version_is_rejected(self) -> None:
         with self.assertRaises(self.route.PolicyError):
             self.route.load_policy(self._policy(schema_version=2), GATES, CAPABILITY_IDS, FULL_SET)
@@ -4870,6 +4896,285 @@ class CandidateRouteTests(unittest.TestCase):
         self.assertTrue(result["selected_all_passed"])
         self.assertEqual(["full-suite"], result["missed_gate_ids"])
         self.assertTrue(result["routing_miss"])
+
+
+class ShadowLedgerContractTests(unittest.TestCase):
+    """SLICE-002's byte and record contracts, before any record exists.
+
+    The campaign's summary is regenerated from the ledger's bytes and compared
+    byte for byte, so a checkout that rewrote the ledger's line endings would
+    make the summary differ by host. D-114 records the same failure for the
+    evidence JSON under design/routing, found on a default Windows clone.
+    """
+
+    GATE_IDS = ("distribution", "full-suite", "hostile-environment",
+                "mutation-replay", "validate-core")
+
+    def setUp(self) -> None:
+        self.shadow = load_module(
+            "adc_shadow", SKILL_ROOT / "scripts" / "adc_shadow.py")
+        self.adc = load_adc()
+        self.policy = json.loads(
+            (INSTALLED_CALIBRATION / "routing-policy.json").read_text(encoding="utf-8"))
+        self.gates = json.loads(
+            (INSTALLED_CALIBRATION / "gates.json").read_text(encoding="utf-8"))
+
+    class _Candidate:
+        """The shape `build_candidate_route` returns, with nothing else."""
+
+        provenance = "candidate-shadow"
+
+        def __init__(self, selected, matched=("docs-only",), force_full=False):
+            self._selected = tuple(sorted(selected))
+            self.matched_rule_ids = frozenset(matched)
+            self.force_full = force_full
+
+        def selected_gate_ids(self):
+            return self._selected
+
+        def as_payload(self):
+            return {"provenance": self.provenance,
+                    "selected_gate_ids": list(self._selected),
+                    "matched_rule_ids": sorted(self.matched_rule_ids),
+                    "force_full": self.force_full}
+
+    class _Route:
+        force_full = False
+        minimum_level = 0
+        unknowns = frozenset()
+
+    def _record(self, outcomes, candidate=None, **over):
+        arguments = dict(
+            policy_source=self.policy,
+            gates_source=self.gates,
+            route=self._Route(),
+            candidate=candidate if candidate is not None else self._Candidate(
+                ["validate-core"]),
+            outcomes=outcomes,
+            base_outcomes=None,
+            commits={"base": "b" * 40, "merge": "m" * 40, "head": "h" * 40},
+            run={"pull_request": 31, "run_id": "1", "run_attempt": 1},
+            head_ref="refs/heads/topic",
+            backfill=False,
+            router_blob_sha256="0" * 40,
+            shadow_result=self.adc.shadow_result,
+        )
+        arguments.update(over)
+        return self.shadow.build_record(**arguments)
+
+    def _all(self, outcome, **over):
+        outcomes = {gate: outcome for gate in self.GATE_IDS}
+        outcomes.update(over)
+        return outcomes
+
+    def test_the_ledger_paths_keep_lf_on_every_checkout(self) -> None:
+        """D-124. The attribute is declared before the first record exists."""
+        attributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
+        declared = {
+            line.split(None, 1)[0]: line.split(None, 1)[1].strip()
+            for line in attributes.splitlines()
+            if line.strip() and not line.startswith("#")
+        }
+        for pattern in ("metrics/shadow/**", "metrics/schemas/*.json"):
+            self.assertIn(pattern, declared,
+                          f"{pattern} carries no line-ending attribute")
+            self.assertIn("eol=lf", declared[pattern], pattern)
+
+    def test_an_omitted_gate_that_failed_is_a_routing_miss(self) -> None:
+        """S-053. Targeted verification green while omitted verification failed."""
+        record = self._record(self._all("pass", **{"full-suite": "fail"}))
+        self.assertTrue(record["measurable"])
+        self.assertEqual("miss", record["status"])
+        self.assertEqual(["full-suite"], record["shadow"]["missed_gate_ids"])
+        self.assertEqual([], self.shadow.validate_record(record))
+
+    def test_a_failing_selected_gate_is_inconclusive_and_keeps_the_signal(self) -> None:
+        """S-054. The candidate would have caught it, so it is not a miss, and
+        the omitted failure is still recorded rather than dropped."""
+        record = self._record(self._all("pass", **{"validate-core": "fail",
+                                                   "full-suite": "fail"}))
+        self.assertEqual("inconclusive", record["status"])
+        self.assertFalse(record["shadow"]["routing_miss"])
+        self.assertIn("full-suite", record["shadow"]["missed_gate_ids"])
+
+    def test_a_clean_record_needs_every_gate_decided(self) -> None:
+        """S-055. Silence never reads as clean.
+
+        `shadow_result` alone counts an absent gate as clean and a `not-run`
+        omitted gate as missed, which is why the measurability check runs in
+        front of it. Both shapes are unmeasurable, and neither carries a
+        verdict.
+        """
+        clean = self._record(self._all("pass"))
+        self.assertEqual("clean", clean["status"])
+        self.assertTrue(clean["measurable"])
+
+        for outcomes in (
+                {gate: "pass" for gate in self.GATE_IDS if gate != "full-suite"},
+                self._all("pass", **{"full-suite": "not-run"}),
+                self._all("pass", **{"mutation-replay": "skipped"}),
+                self._all("pass", **{"distribution": "stale"}),
+        ):
+            record = self._record(outcomes)
+            self.assertEqual("not_measurable", record["status"], outcomes)
+            self.assertFalse(record["measurable"], outcomes)
+            self.assertIsNone(record["shadow"], outcomes)
+            self.assertTrue(record["not_measurable_reason"], outcomes)
+            self.assertEqual([], self.shadow.validate_record(record))
+
+    def test_a_candidate_that_omits_nothing_is_not_evidence(self) -> None:
+        forced = self._record(self._all("pass"), candidate=self._Candidate(
+            self.GATE_IDS, matched=["verification-authority"], force_full=True))
+        self.assertEqual("no_omission", forced["status"])
+        empty = self._record(self._all("pass"),
+                             candidate=self._Candidate([], matched=[]))
+        self.assertEqual("selects_nothing", empty["status"])
+
+    def test_a_failure_the_base_already_had_is_inconclusive(self) -> None:
+        record = self._record(self._all("pass", **{"full-suite": "fail"}),
+                              base_outcomes={"full-suite": "fail"})
+        self.assertEqual("inconclusive", record["status"])
+        self.assertIn("inherited-failure", record["inconclusive_reason"])
+
+    def test_the_class_key_follows_the_rule_not_the_file(self) -> None:
+        """S-061. A note edit or an approval is the same class; a router change
+        or a changed rule term is not."""
+        base = self._record(self._all("pass"))
+        noted = json.loads(json.dumps(self.policy))
+        noted["_note"] = "a comment a reader added"
+        for rule in noted["rules"]:
+            # Prose lives inside the terms as well as beside them: the shipped
+            # template already carries `_note` inside classifier entries, and a
+            # rule's requires and match are just as inviting to annotate.
+            rule["_note"] = "prose"
+            rule.setdefault("requires", {})["_note"] = "why this level"
+            rule.setdefault("match", {})["_note"] = "what this matches"
+            rule.setdefault("obligations", {})["_note"] = "which gates and why"
+        for entry in noted.get("classifier", {}).get("surfaces", []):
+            entry["_note"] = "a note a reader added to a classifier entry"
+        same = self._record(self._all("pass"), policy_source=noted)
+        self.assertEqual(base["class_key"], same["class_key"])
+
+        approved = json.loads(json.dumps(self.policy))
+        for rule in approved["rules"]:
+            if rule["id"] != "docs-only":
+                rule["review_status"] = "approved"
+        self.assertEqual(base["class_key"],
+                         self._record(self._all("pass"),
+                                      policy_source=approved)["class_key"])
+
+        moved = self._record(self._all("pass"), router_blob_sha256="1" * 40)
+        self.assertNotEqual(base["class_key"], moved["class_key"])
+
+        widened = json.loads(json.dumps(self.policy))
+        for rule in widened["rules"]:
+            if rule["id"] == "docs-only":
+                rule["requires"]["minimum_level"] = 2
+        self.assertNotEqual(base["class_key"],
+                            self._record(self._all("pass"),
+                                         policy_source=widened)["class_key"])
+
+    def test_provenance_is_derived_from_the_branch(self) -> None:
+        """S-059's first half, and G8: a canary is recognised, never labelled."""
+        self.assertEqual("live", self.shadow.provenance_for("refs/heads/topic", False))
+        self.assertEqual("canary", self.shadow.provenance_for(
+            "refs/heads/canary/docs-only/2026-09-03", False))
+        self.assertEqual("canary", self.shadow.provenance_for(
+            "canary/docs-only/2026-09-03", True))
+        self.assertEqual("backfill", self.shadow.provenance_for(None, True))
+
+    def test_the_record_id_digests_the_record(self) -> None:
+        record = self._record(self._all("pass"))
+        self.assertEqual([], self.shadow.validate_record(record))
+        record["gate_outcomes"]["full-suite"] = "fail"
+        self.assertIn("record_id does not digest the record",
+                      self.shadow.validate_record(record))
+
+    def test_the_shadow_job_is_evidence_and_never_a_gate(self) -> None:
+        """S-058 and D-011. A measurement that can block a merge is a gate."""
+        workflow = (REPO_ROOT / ".github" / "workflows"
+                    / "tests.yml").read_text(encoding="utf-8")
+        self.assertIn("\n  shadow:\n", workflow, "no shadow job")
+        shadow_block = workflow.split("\n  shadow:\n", 1)[1].split("\n  required:", 1)[0]
+        self.assertIn("if: always()", shadow_block)
+        self.assertIn("actions: read", shadow_block)
+        self.assertIn("fetch-depth: 0", shadow_block)
+
+        required_block = workflow.split("\n  required:", 1)[1]
+        needs = next(line for line in required_block.splitlines()
+                     if line.strip().startswith("needs:"))
+        self.assertNotIn("shadow", needs,
+                         "the shadow job became a required gate")
+
+        gate_map = json.loads((REPO_ROOT / ".github" / "shadow-gate-map.json")
+                              .read_text(encoding="utf-8"))
+        canonical = set(self.shadow.canonical_gate_ids(self.gates))
+        self.assertEqual(canonical, set(gate_map["gates"]),
+                         "the mapping and the canonical full set disagree")
+
+    def test_a_gate_no_job_carries_is_unresolved_not_passed(self) -> None:
+        """D-126. A renamed job announces itself in the next record.
+
+        This is what replaces a text contract between the mapping and the
+        workflow: a gate that resolves to nothing reads `unresolved`, which
+        is not a decided outcome, so the record says it could not be measured.
+        """
+        gate_map = json.loads((REPO_ROOT / ".github" / "shadow-gate-map.json")
+                              .read_text(encoding="utf-8"))
+        jobs = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+             "steps": [{"name": "Validate the core before anything writes to the tree",
+                        "conclusion": "success"}]},
+            {"name": "Clean distribution archive", "conclusion": "success"},
+            {"name": "Hostile environment (C locale)", "conclusion": "success"},
+            {"name": "Hostile environment (international paths)", "conclusion": "success"},
+            {"name": "Mutation replay (Linux)", "conclusion": "success"},
+        ]
+        outcomes = self.shadow.gate_outcomes_from_jobs(jobs, gate_map)
+        self.assertEqual({"validate-core": "pass", "full-suite": "pass",
+                          "distribution": "pass", "hostile-environment": "pass",
+                          "mutation-replay": "pass"}, outcomes)
+
+        renamed = [dict(job) for job in jobs]
+        renamed[4]["name"] = "Mutation replay (Linux, sharded)"
+        after = self.shadow.gate_outcomes_from_jobs(renamed, gate_map)
+        self.assertEqual("unresolved", after["mutation-replay"])
+        record = self._record(after)
+        self.assertFalse(record["measurable"])
+        self.assertIn("mutation-replay=unresolved", record["not_measurable_reason"])
+
+        missing_step = [dict(job) for job in jobs]
+        missing_step[0] = dict(jobs[0], steps=[{"name": "Run the deterministic suite",
+                                                "conclusion": "success"}])
+        self.assertEqual("unresolved", self.shadow.gate_outcomes_from_jobs(
+            missing_step, gate_map)["validate-core"])
+
+    def test_one_failed_leg_fails_its_gate_and_a_cancelled_one_decides_nothing(self) -> None:
+        gate_map = json.loads((REPO_ROOT / ".github" / "shadow-gate-map.json")
+                              .read_text(encoding="utf-8"))
+        legs = [
+            {"name": "ubuntu-latest / Python 3.12", "conclusion": "success", "steps": []},
+            {"name": "windows-latest / Python 3.12", "conclusion": "failure", "steps": []},
+        ]
+        self.assertEqual("fail", self.shadow.gate_outcomes_from_jobs(
+            legs, gate_map)["full-suite"])
+        cancelled = [dict(legs[0]), dict(legs[1], conclusion="cancelled")]
+        self.assertEqual("cancelled", self.shadow.gate_outcomes_from_jobs(
+            cancelled, gate_map)["full-suite"])
+        running = [dict(legs[0]), dict(legs[1], conclusion=None)]
+        self.assertEqual("in-progress", self.shadow.gate_outcomes_from_jobs(
+            running, gate_map)["full-suite"])
+
+    def test_the_schema_file_and_the_validator_require_the_same_keys(self) -> None:
+        """A schema nobody enforces is decoration; a validator nobody wrote
+        down is folklore. These two are the same statement."""
+        schema = json.loads(
+            (REPO_ROOT / "metrics" / "schemas"
+             / "shadow-record-v2.schema.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(schema["required"]),
+                         sorted(self.shadow.RECORD_REQUIRED_KEYS))
+        record = self._record(self._all("pass"))
+        self.assertEqual(sorted(schema["properties"]), sorted(record))
 
 
 @unittest.skipUnless(shutil.which("git"), "git is required")

@@ -22,6 +22,7 @@ from pathlib import Path
 tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = SKILL_ROOT.parent
 ADC = SKILL_ROOT / "scripts" / "adc.py"
 TEMPLATE = SKILL_ROOT / "assets" / "templates" / "calibration" / "routing-policy.json"
 
@@ -173,14 +174,95 @@ class RouteCommandTests(unittest.TestCase):
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
         self.assertIn("FRESH", done.stdout)
 
-    def test_first_receipt_write_acquires_the_run_store_ignore(self) -> None:
+    def test_the_run_store_is_not_a_change_of_its_own(self) -> None:
+        """S-052, D-122. This test asserted the opposite until SLICE-002.
+
+        Writing a receipt creates `.anti-dark-code/.gitignore`, and that file
+        was the one path under the store git still reported, so every written
+        receipt carried it as an untracked, unmapped fact and forced full for
+        a file the tool had just created. A shadow campaign built on such
+        receipts would have measured nothing: every candidate would be full.
+        The store's ignore file now ignores itself, and a real change under
+        `.anti-dark-code/calibration/` is still seen, which is why the
+        repository's own ignore file was not widened instead.
+        """
         receipt = self._written_receipt()
         data = json.loads(receipt.read_text(encoding="utf-8"))
-        changed = {
-            row["path"] for row in data["authoritative"]["changed_files"]}
-        self.assertIn(".anti-dark-code/.gitignore", changed)
+        changed = [row["path"] for row in data["authoritative"]["changed_files"]]
+        inside_store = [path for path in changed
+                        if path.startswith(".anti-dark-code/")]
+        self.assertEqual([], inside_store, "; ".join(changed))
+        facts = [row["path"] for row in data.get("emitted_facts", [])]
+        self.assertEqual([], [path for path in facts
+                              if path.startswith(".anti-dark-code/")],
+                         "; ".join(facts))
         done = self._route("--verify", str(receipt))
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+
+    def test_a_tracked_store_ignore_gains_the_entry_once_and_then_is_stable(self) -> None:
+        """D-122's migration, stated rather than discovered.
+
+        A repository that committed the store's ignore file before this
+        decision has a tracked file that now gains a line. The first write
+        modifies it, which the router reports as a change because it is one;
+        the second write leaves it alone and the store is silent again.
+        """
+        store = self.repo / ".anti-dark-code"
+        store.mkdir(exist_ok=True)
+        (store / ".gitignore").write_text(
+            "runs/\nefficiency/\nflowback/\n", encoding="utf-8")
+        self._git("add", "-f", ".anti-dark-code/.gitignore")
+        self._git("commit", "-qm", "track the store ignore file")
+
+        # A receipt is named by its own digest, so the newest is not the last
+        # by name. Taking the one that appeared is exact; sorting was flaky.
+        def written(before: set) -> Path:
+            after = set((store / "runs").glob("*.json"))
+            new = sorted(after - before)
+            self.assertEqual(1, len(new), f"expected one new receipt, got {new}")
+            return new[0]
+
+        before = set((store / "runs").glob("*.json"))
+        first = self._route("--base", "HEAD~1", "--write")
+        self.assertEqual(0, first.returncode, first.stderr)
+        self.assertEqual(
+            ["runs/", "efficiency/", "flowback/", ".gitignore"],
+            (store / ".gitignore").read_text(encoding="utf-8").splitlines())
+        first_changed = [
+            row["path"] for row in json.loads(
+                written(before).read_text(encoding="utf-8"))["authoritative"]["changed_files"]]
+        self.assertIn(".anti-dark-code/.gitignore", first_changed)
+
+        self._git("add", "-A")
+        self._git("commit", "-qm", "adopt the fourth entry")
+        # Against HEAD, so the comparison is the working tree alone. Against an
+        # earlier base the adopting commit is itself in the diff, which is a
+        # committed change the router should report and this test is not about.
+        before = set((store / "runs").glob("*.json"))
+        second = self._route("--base", "HEAD", "--write")
+        self.assertEqual(0, second.returncode, second.stderr)
+        second_changed = [
+            row["path"] for row in json.loads(
+                written(before).read_text(encoding="utf-8"))["authoritative"]["changed_files"]]
+        self.assertEqual([], [path for path in second_changed
+                              if path.startswith(".anti-dark-code/")],
+                         "; ".join(second_changed))
+
+    def test_a_real_calibration_change_under_the_store_is_still_seen(self) -> None:
+        """D-122's other half. Ignoring `.anti-dark-code/` wholesale would
+        have hidden this, which is the blindness D-089 records."""
+        store = self.repo / ".anti-dark-code" / "calibration"
+        store.mkdir(parents=True, exist_ok=True)
+        (store / "gates.json").write_text("{}\n", encoding="utf-8")
+        runs = self.repo / ".anti-dark-code" / "runs"
+        before = set(runs.glob("*.json")) if runs.is_dir() else set()
+        done = self._route("--base", "HEAD~1", "--write")
+        self.assertEqual(0, done.returncode, done.stderr)
+        appeared = sorted(set(runs.glob("*.json")) - before)
+        self.assertEqual(1, len(appeared), done.stdout)
+        data = json.loads(appeared[0].read_text(encoding="utf-8"))
+        changed = [row["path"] for row in data["authoritative"]["changed_files"]]
+        self.assertIn(".anti-dark-code/calibration/gates.json", changed)
 
     def test_a_changed_worktree_makes_the_receipt_stale_and_exits_two(self) -> None:
         receipt = self._written_receipt()
@@ -253,8 +335,12 @@ class _RoutedGateCliFixture(unittest.TestCase):
             json.dumps(policy, indent=2) + "\n", encoding="utf-8")
         (self.calibration / "gates.json").write_text(
             json.dumps(GATES, indent=2) + "\n", encoding="utf-8")
+        # D-122: the store's ignore file names itself. A fixture that commits
+        # the pre-D-122 shape makes the first receipt write modify a tracked
+        # file, which the router correctly reports as a change and which would
+        # make every route here full for a reason this fixture is not about.
         (self.repo / ".anti-dark-code" / ".gitignore").write_text(
-            "runs/\nefficiency/\nflowback/\n", encoding="utf-8")
+            "runs/\nefficiency/\nflowback/\n.gitignore\n", encoding="utf-8")
         adc = load_adc()
         assessment = adc.assess_repository_binding(self.repo, self.calibration)
         adc.write_repository_binding(
@@ -287,6 +373,150 @@ class _RoutedGateCliFixture(unittest.TestCase):
         return subprocess.run(
             [sys.executable, "-B", str(ADC), "gates", "--repo", str(self.repo),
              *args], capture_output=True, text=True, timeout=300)
+
+
+class ShadowRecordCliTests(_RoutedGateCliFixture):
+    """D-125 end to end, on a change the classifier actually maps.
+
+    The candidate here selects two gates and omits three, which is the shape
+    the campaign exists to measure. A record on a repository where every path
+    is unmapped is `no_omission` and says nothing, which is why this uses the
+    routed fixture rather than the consumer-shaped one.
+    """
+
+    ALL_PASS = {"validate-core": "pass", "full-suite": "pass",
+                "distribution": "pass", "hostile-environment": "pass",
+                "mutation-replay": "pass"}
+
+    def _shadow(self, outcomes: dict, *extra: str):
+        outcomes_path = Path(self.tmp.name) / "outcomes.json"
+        outcomes_path.write_text(json.dumps(outcomes), encoding="utf-8")
+        out = Path(self.tmp.name) / "record.json"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "record",
+             "--repo", str(self.repo), "--calibration", str(self.calibration),
+             "--base", "HEAD~1", "--base-sha", "b" * 40, "--head", "h" * 40,
+             "--pr", "31", "--run", "123", "--attempt", "1",
+             "--outcomes", str(outcomes_path), "--out", str(out), *extra],
+            capture_output=True, text=True, timeout=300)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        return done, json.loads(out.read_text(encoding="utf-8"))
+
+    def test_the_command_measures_a_real_change(self) -> None:
+        done, record = self._shadow(self.ALL_PASS, "--head-ref", "refs/heads/topic")
+        self.assertIn("SHADOW clean", done.stdout)
+        self.assertEqual(2, record["schema_version"])
+        self.assertEqual("live", record["provenance"])
+        self.assertTrue(record["measurable"], record)
+        self.assertEqual("clean", record["status"], record)
+        self.assertIn("product-code", record["class"]["matched_rule_ids"])
+        self.assertEqual(["full-suite", "validate-core"],
+                         record["class"]["selected_gate_ids"])
+        self.assertEqual(["distribution", "hostile-environment", "mutation-replay"],
+                         record["class"]["omitted_gate_ids"])
+        self.assertEqual(64, len(record["record_id"]))
+        self.assertEqual("123", record["run"]["run_id"])
+
+    def test_an_omitted_gate_that_failed_is_a_miss_end_to_end(self) -> None:
+        outcomes = dict(self.ALL_PASS, **{"mutation-replay": "fail"})
+        done, record = self._shadow(outcomes)
+        self.assertIn("SHADOW miss", done.stdout)
+        self.assertEqual("miss", record["status"])
+        self.assertEqual(["mutation-replay"], record["shadow"]["missed_gate_ids"])
+
+    def test_an_undecided_gate_leaves_no_verdict(self) -> None:
+        outcomes = dict(self.ALL_PASS, **{"distribution": "cancelled"})
+        done, record = self._shadow(outcomes)
+        self.assertFalse(record["measurable"])
+        self.assertEqual("not_measurable", record["status"])
+        self.assertIn("distribution=cancelled", record["not_measurable_reason"])
+        self.assertIsNone(record["shadow"])
+
+    def test_a_canary_branch_is_recognised_not_labelled(self) -> None:
+        outcomes = dict(self.ALL_PASS, **{"mutation-replay": "fail"})
+        _, record = self._shadow(
+            outcomes, "--head-ref", "refs/heads/canary/product-code/2026-09-03")
+        self.assertEqual("canary", record["provenance"])
+        self.assertEqual("miss", record["status"])
+
+
+class ShadowBackfillCliTests(_RoutedGateCliFixture):
+    """S-060. Today's router over a historical change set, keyed by today.
+
+    Not a reconstruction at each head: the candidate builder did not exist at
+    the earliest heads in this repository's own history, so per-head keys
+    would be classes of one. The record says `backfill` and the summary keeps
+    those counts apart from the live ones.
+    """
+
+    def test_a_backfilled_change_uses_todays_router_and_its_own_run(self) -> None:
+        self._git("checkout", "-q", "-b", "topic")
+        self.source.write_text("four\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "four")
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("checkout", "-q", "main")
+        base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("merge", "-q", "--no-ff", "-m", "Merge PR #7: topic", "topic")
+        merge = self._git("rev-parse", "HEAD").stdout.strip()
+
+        changes = Path(self.tmp.name) / "changes.json"
+        changes.write_text(json.dumps([{
+            "pull_request": 7, "base": base, "head": head, "merge": merge,
+            "run_id": "99", "run_attempt": 1,
+            "jobs": [
+                {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+                 "steps": [{"name": "Validate the core before anything writes to the tree",
+                            "conclusion": "success"}]},
+                {"name": "Clean distribution archive", "conclusion": "success"},
+                {"name": "Hostile environment (C locale)", "conclusion": "success"},
+                {"name": "Hostile environment (international paths)", "conclusion": "success"},
+                {"name": "Mutation replay (Linux)", "conclusion": "success"},
+            ],
+        }]), encoding="utf-8")
+        out_dir = Path(self.tmp.name) / "records"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "backfill",
+             "--repo", str(self.repo), "--calibration", str(self.calibration),
+             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+             "--changes", str(changes), "--out-dir", str(out_dir)],
+            capture_output=True, text=True, timeout=600)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        written = sorted(out_dir.glob("*.json"))
+        self.assertEqual(1, len(written), done.stdout)
+        record = json.loads(written[0].read_text(encoding="utf-8"))
+        self.assertEqual("backfill", record["provenance"])
+        self.assertEqual(7, record["run"]["pull_request"])
+        self.assertEqual(head, record["commits"]["head"])
+        self.assertTrue(record["measurable"], record)
+        self.assertEqual("clean", record["status"], record)
+        self.assertIn("product-code", record["class"]["matched_rule_ids"])
+        # The repository is left as it was found: a backfill checks each head
+        # out in a temporary worktree and removes it.
+        self.assertEqual("", self._git("worktree", "list", "--porcelain").stdout
+                         .count("prunable") * "x")
+
+    def test_a_change_with_no_run_is_recorded_as_unmeasurable(self) -> None:
+        """Every change before the workflow existed has no outcomes at all.
+        Dropping them would hide how much of the history cannot be measured."""
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        base = self._git("rev-parse", "HEAD~1").stdout.strip()
+        changes = Path(self.tmp.name) / "changes.json"
+        changes.write_text(json.dumps([{
+            "pull_request": None, "base": base, "head": head, "merge": head,
+            "run_id": None, "run_attempt": None, "jobs": None}]), encoding="utf-8")
+        out_dir = Path(self.tmp.name) / "records"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "backfill",
+             "--repo", str(self.repo), "--calibration", str(self.calibration),
+             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+             "--changes", str(changes), "--out-dir", str(out_dir)],
+            capture_output=True, text=True, timeout=600)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        record = json.loads(sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+        self.assertFalse(record["measurable"])
+        self.assertEqual("not_measurable", record["status"])
+        self.assertIn("unresolved", record["not_measurable_reason"])
 
 
 class RouteLevelCliTests(_RoutedGateCliFixture):
