@@ -5561,5 +5561,19 @@
     "pytest": "",
     "results": [],
     "note": "D-011 and D-126. The campaign's own measurement then blocks a merge, which is selective execution's shape arriving before its evidence. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M138",
+    "name": "a backfilled record claims to be live",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            head_ref=entry.get(\"head_ref\"), backfill=True,",
+    "new": "            head_ref=entry.get(\"head_ref\"), backfill=False,",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-127. Replayed history then counts as live evidence toward the criterion's N, which the owner's decision of 2026-09-03 excludes. Pending the next authoritative two-host replay."
   }
 ]

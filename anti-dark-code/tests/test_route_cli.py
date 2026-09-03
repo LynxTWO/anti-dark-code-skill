@@ -22,6 +22,7 @@ from pathlib import Path
 tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = SKILL_ROOT.parent
 ADC = SKILL_ROOT / "scripts" / "adc.py"
 TEMPLATE = SKILL_ROOT / "assets" / "templates" / "calibration" / "routing-policy.json"
 
@@ -437,6 +438,85 @@ class ShadowRecordCliTests(_RoutedGateCliFixture):
             outcomes, "--head-ref", "refs/heads/canary/product-code/2026-09-03")
         self.assertEqual("canary", record["provenance"])
         self.assertEqual("miss", record["status"])
+
+
+class ShadowBackfillCliTests(_RoutedGateCliFixture):
+    """S-060. Today's router over a historical change set, keyed by today.
+
+    Not a reconstruction at each head: the candidate builder did not exist at
+    the earliest heads in this repository's own history, so per-head keys
+    would be classes of one. The record says `backfill` and the summary keeps
+    those counts apart from the live ones.
+    """
+
+    def test_a_backfilled_change_uses_todays_router_and_its_own_run(self) -> None:
+        self._git("checkout", "-q", "-b", "topic")
+        self.source.write_text("four\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "four")
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("checkout", "-q", "main")
+        base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("merge", "-q", "--no-ff", "-m", "Merge PR #7: topic", "topic")
+        merge = self._git("rev-parse", "HEAD").stdout.strip()
+
+        changes = Path(self.tmp.name) / "changes.json"
+        changes.write_text(json.dumps([{
+            "pull_request": 7, "base": base, "head": head, "merge": merge,
+            "run_id": "99", "run_attempt": 1,
+            "jobs": [
+                {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+                 "steps": [{"name": "Validate the core before anything writes to the tree",
+                            "conclusion": "success"}]},
+                {"name": "Clean distribution archive", "conclusion": "success"},
+                {"name": "Hostile environment (C locale)", "conclusion": "success"},
+                {"name": "Hostile environment (international paths)", "conclusion": "success"},
+                {"name": "Mutation replay (Linux)", "conclusion": "success"},
+            ],
+        }]), encoding="utf-8")
+        out_dir = Path(self.tmp.name) / "records"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "backfill",
+             "--repo", str(self.repo), "--calibration", str(self.calibration),
+             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+             "--changes", str(changes), "--out-dir", str(out_dir)],
+            capture_output=True, text=True, timeout=600)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        written = sorted(out_dir.glob("*.json"))
+        self.assertEqual(1, len(written), done.stdout)
+        record = json.loads(written[0].read_text(encoding="utf-8"))
+        self.assertEqual("backfill", record["provenance"])
+        self.assertEqual(7, record["run"]["pull_request"])
+        self.assertEqual(head, record["commits"]["head"])
+        self.assertTrue(record["measurable"], record)
+        self.assertEqual("clean", record["status"], record)
+        self.assertIn("product-code", record["class"]["matched_rule_ids"])
+        # The repository is left as it was found: a backfill checks each head
+        # out in a temporary worktree and removes it.
+        self.assertEqual("", self._git("worktree", "list", "--porcelain").stdout
+                         .count("prunable") * "x")
+
+    def test_a_change_with_no_run_is_recorded_as_unmeasurable(self) -> None:
+        """Every change before the workflow existed has no outcomes at all.
+        Dropping them would hide how much of the history cannot be measured."""
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        base = self._git("rev-parse", "HEAD~1").stdout.strip()
+        changes = Path(self.tmp.name) / "changes.json"
+        changes.write_text(json.dumps([{
+            "pull_request": None, "base": base, "head": head, "merge": head,
+            "run_id": None, "run_attempt": None, "jobs": None}]), encoding="utf-8")
+        out_dir = Path(self.tmp.name) / "records"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "backfill",
+             "--repo", str(self.repo), "--calibration", str(self.calibration),
+             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+             "--changes", str(changes), "--out-dir", str(out_dir)],
+            capture_output=True, text=True, timeout=600)
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        record = json.loads(sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+        self.assertFalse(record["measurable"])
+        self.assertEqual("not_measurable", record["status"])
+        self.assertIn("unresolved", record["not_measurable_reason"])
 
 
 class RouteLevelCliTests(_RoutedGateCliFixture):

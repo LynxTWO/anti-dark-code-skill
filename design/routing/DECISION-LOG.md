@@ -143,6 +143,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-124 | 2026-09-03 | The shadow ledger keeps LF on every checkout | Confirmed | |
 | D-125 | 2026-09-03 | A shadow record is silent unless every canonical gate decided | Confirmed | |
 | D-126 | 2026-09-03 | A gate no job carries is unresolved, not passed | Confirmed | |
+| D-127 | 2026-09-03 | The backfill replays today's router, and says so | Confirmed | |
 
 ---
 
@@ -4176,3 +4177,44 @@ stale.
 Revisit when:
 A gate's evidence stops being reducible to jobs and steps, or the workflow
 gains a second run of the same gate whose result should not be unioned.
+
+## D-127: The backfill replays today's router, and says so
+
+Date: 2026-09-03
+Status: Confirmed
+Area: D-125, SLICE-002 section 5, `adc_shadow.py`, R-060, M138
+
+Context:
+The campaign's live rate is slow, so the first thing worth knowing is what
+this repository's changes actually look like. Reconstructing each historical
+head's own router was measured impossible in the design challenge: the
+candidate builder did not exist at the earliest heads on this branch's
+history, and the shipped policy's bytes differed four times across the
+round-robin stack, so per-head keys would have produced classes of one and
+answered nothing.
+
+Decision:
+`adc.py shadow backfill` checks each merge's head out in a temporary
+worktree, computes the route and the candidate with today's router and
+today's calibration over that historical change set, reads the outcomes from
+the run that verified that head, and writes a record carrying
+`provenance: backfill`. A merge with no run under the workflow, which every
+change before 2026-08-22 has, is recorded with every gate `unresolved` and
+therefore not measurable, rather than dropped.
+
+Because:
+The question a backfill answers is which classes this repository produces and
+how often, under the rules as they stand now. Answering it with four
+different routers would answer a different question. Recording the changes
+that cannot be measured is part of the answer: a campaign that silently
+skipped them would overstate its own coverage.
+
+Consequences:
+Backfilled records never count toward the criterion's N, by the owner's
+decision of 2026-09-03; they inform the class mix and the summary keeps them
+apart. The temporary worktrees are removed whether or not acquisition
+succeeds, so the repository is left as it was found.
+
+Revisit when:
+A historical head needs its own router, which would mean the campaign has
+started comparing routers rather than rules.

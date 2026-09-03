@@ -101,6 +101,7 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-057 | Every routing rule names at least one obligation | given a rule with no obligations, when the policy loads, then it is refused, so no matched rule can select an empty gate set |
 | R-058 | A shadow record is evidence only when every canonical gate decided, and its class follows the rules' terms and the router | given outcomes missing a gate or carrying an undecided one, when a record is built, then it is not measurable and carries no verdict; given two policies differing only in prose, then the class key is the same, and given a different router, then it is not |
 | R-059 | The shadow measurement is evidence, never a gate, and a gate no CI job carries is unresolved | given the workflow, then the shadow job is absent from the required aggregator's needs; given a jobs payload in which a mapped job was renamed, then that gate reads unresolved and the record is not measurable |
+| R-060 | A backfilled record replays today's router over a historical change set and says so | given a merge and its run, when backfilled, then the record carries provenance backfill and the class key of today's rules; given a merge with no run, then it is recorded as not measurable rather than dropped |
 
 ### 4.2 Assumed requirements
 
@@ -357,6 +358,7 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-057 | load-time refusal of a rule with no obligations, including one that forces full | `test_route.py` |
 | R-058 | record-level status table over decided, absent, and undecided outcomes, plus class-key equality under prose edits and inequality under a router change, unit and end to end | `test_route.py`, `test_route_cli.py` |
 | R-059 | workflow contract check on the required aggregator's needs and the shadow job's conditions, plus a jobs-payload table over renamed jobs, missing steps, failed legs, and cancelled legs | `test_route.py` |
+| R-060 | backfill of a real merge in a fixture repository, and of a merge with no run | `test_route_cli.py` |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 

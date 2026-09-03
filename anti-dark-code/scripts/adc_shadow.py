@@ -511,6 +511,172 @@ def command_record(args: argparse.Namespace, adc_module=None) -> int:
     return 0
 
 
+def _gh_json(args: Sequence[str]) -> Any:
+    """One read through the GitHub CLI, which discovery needs and records do not.
+
+    Kept behind this one function so the record path stays pure data: a record
+    is built from a change and a jobs payload, both of which a caller can
+    supply from a file. Only discovery needs the network.
+    """
+    done = subprocess.run(["gh", "api", *args], capture_output=True, text=True,
+                          timeout=120)
+    if done.returncode != 0:
+        raise ShadowError(f"gh api {' '.join(args)} failed: {done.stderr.strip()}")
+    return json.loads(done.stdout)
+
+
+def discover_changes(repo: Path, since: str, branch: str = "HEAD",
+                     workflow_name: str = "Tests") -> list[dict[str, Any]]:
+    """Every merge on the first-parent line since `since`, with its run.
+
+    A merge commit's first parent is the base the pull request was measured
+    against and its second is the head, which is what CI verified as
+    `refs/pull/N/merge`. A merge with no run under the workflow, which every
+    change before the workflow landed on 2026-08-22 has, is returned with no
+    run so the caller can record it as not measurable rather than drop it.
+    """
+    repository = _git(repo, "remote", "get-url", "origin")
+    repository = repository.rstrip("/").removesuffix(".git").split(":")[-1]
+    repository = "/".join(repository.split("/")[-2:])
+    log = _git(repo, "log", "--first-parent", "--merges", "--format=%H\x1f%P\x1f%s",
+               f"{since}..{branch}")
+    changes: list[dict[str, Any]] = []
+    for line in log.splitlines():
+        if not line.strip():
+            continue
+        merge, parents, subject = line.split("\x1f", 2)
+        parent_ids = parents.split()
+        if len(parent_ids) < 2:
+            continue
+        number = None
+        for token in subject.replace(":", " ").split():
+            if token.startswith("#") and token[1:].isdigit():
+                number = int(token[1:])
+                break
+        entry: dict[str, Any] = {
+            "pull_request": number,
+            "merge": merge,
+            "base": parent_ids[0],
+            "head": parent_ids[1],
+            "subject": subject,
+            "run_id": None,
+            "run_attempt": None,
+            "jobs": None,
+        }
+        runs = _gh_json([f"/repos/{repository}/actions/runs"
+                         f"?head_sha={entry['head']}&per_page=100"])
+        candidates = [run for run in runs.get("workflow_runs", [])
+                      if run.get("name") == workflow_name]
+        if candidates:
+            run = max(candidates, key=lambda item: item.get("run_attempt", 1))
+            entry["run_id"] = str(run["id"])
+            entry["run_attempt"] = int(run.get("run_attempt", 1))
+            entry["jobs"] = _gh_json([
+                f"/repos/{repository}/actions/runs/{run['id']}/attempts/"
+                f"{entry['run_attempt']}/jobs?per_page=100"]).get("jobs", [])
+        changes.append(entry)
+    return changes
+
+
+def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
+    """Replay today's router over historical change sets.
+
+    Not a reconstruction at each head: the candidate builder did not exist at
+    the earliest heads and the policy differed across the stack, so per-head
+    keys would be classes of one. Today's router and today's policy over the
+    historical change set, keyed by today's digests, is what the brief's
+    section 5 defines, and every record carries `provenance: backfill`.
+    """
+    import shutil
+    import tempfile
+
+    adc = _adc_module(adc_module)
+    route_module, _ = adc.load_router_helpers()
+    repo = Path(args.repo).resolve()
+    calibration = (Path(args.calibration).resolve() if args.calibration
+                   else repo / adc.ROUTE_CALIBRATION)
+    gate_map = json.loads(Path(args.map).read_text(encoding="utf-8"))
+
+    if args.changes:
+        changes = json.loads(Path(args.changes).read_text(encoding="utf-8"))
+    else:
+        if not args.since:
+            print("REFUSED: --since or --changes is required")
+            return 2
+        changes = discover_changes(repo, args.since, args.branch)
+    if args.save_changes:
+        Path(args.save_changes).write_text(
+            json.dumps(changes, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+    policy_source = json.loads(
+        (calibration / "routing-policy.json").read_text(encoding="utf-8"))
+    gates_source = json.loads(
+        (calibration / "gates.json").read_text(encoding="utf-8"))
+    catalog = json.loads((Path(__file__).resolve().parents[1] / "assets"
+                          / "verification-capabilities.json").read_text(encoding="utf-8"))
+    validated = route_module.load_policy(
+        policy_source, gates_source, [c["id"] for c in catalog["capabilities"]],
+        gates_source["canonical_full_set"])
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written = 0
+    for entry in changes:
+        head = str(entry["head"])
+        jobs = entry.get("jobs")
+        if isinstance(jobs, str):
+            jobs = json.loads(Path(jobs).read_text(encoding="utf-8"))
+        if isinstance(jobs, Mapping):
+            jobs = jobs.get("jobs", [])
+        outcomes = (gate_outcomes_from_jobs(jobs, gate_map) if jobs
+                    else {gate: "unresolved"
+                          for gate in canonical_gate_ids(gates_source)})
+
+        checkout = Path(tempfile.mkdtemp(prefix=f"adc-backfill-{head[:8]}-"))
+        try:
+            _git(repo, "worktree", "add", "--detach", "--force", str(checkout), head)
+            snapshot = route_module.read_change_inputs(checkout, str(entry["base"]))
+            facts = route_module.collect_change_facts(
+                snapshot, validated.classifier_map())
+            route = route_module.build_route(
+                facts, validated, snapshot_ok=snapshot.complete)
+            candidate = route_module.build_candidate_route(
+                facts, validated, snapshot_ok=snapshot.complete)
+        finally:
+            subprocess.run(["git", "-C", str(repo), "worktree", "remove",
+                            "--force", str(checkout)],
+                           capture_output=True, text=True, timeout=120)
+            shutil.rmtree(checkout, ignore_errors=True)
+
+        record = build_record(
+            policy_source=policy_source, gates_source=gates_source,
+            route=route, candidate=candidate, outcomes=outcomes,
+            base_outcomes=None,
+            commits={"base": str(entry["base"]), "merge": str(entry["merge"]),
+                     "head": head},
+            run={"pull_request": entry.get("pull_request"),
+                 "run_id": entry.get("run_id") or "",
+                 "run_attempt": entry.get("run_attempt") or 0},
+            head_ref=entry.get("head_ref"), backfill=True,
+            router_blob_sha256=router_digest(Path(route_module.__file__)),
+            shadow_result=adc.shadow_result,
+        )
+        errors = validate_record(record)
+        if errors:
+            print(f"REFUSED {head[:12]}: " + "; ".join(errors))
+            return 2
+        (out_dir / f"shadow-backfill-{head}.json").write_text(
+            json.dumps(record, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8", newline="\n")
+        written += 1
+        print(f"  #{str(entry.get('pull_request') or '-'):>4} {head[:12]} "
+              f"{record['status']:16} class={record['class_key'][:12]} "
+              f"rules={','.join(record['class']['matched_rule_ids']) or '-'} "
+              f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'}")
+    print(f"BACKFILL {written} record(s) in {out_dir}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="adc.py shadow",
@@ -546,6 +712,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--attempt", type=int, default=1)
     p.add_argument("--out", required=True)
     p.set_defaults(func=command_outcomes)
+
+    p = sub.add_parser("backfill",
+                       help="Replay today's router over historical change sets")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--calibration")
+    p.add_argument("--map", required=True)
+    p.add_argument("--since", help="Replay merges after this commit")
+    p.add_argument("--branch", default="HEAD")
+    p.add_argument("--changes", help="A saved discovery file; skips the network")
+    p.add_argument("--save-changes", help="Write what discovery found")
+    p.add_argument("--out-dir", required=True)
+    p.set_defaults(func=command_backfill)
     return parser
 
 
