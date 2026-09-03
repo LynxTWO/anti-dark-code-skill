@@ -92,6 +92,26 @@ Windows 11, Python 3.14.2, Git 2.50.1 for the Windows runs, each in a fresh `cor
 - No fourth challenge at `fe350e9`, by the cap in section 6. M123 to M126 were applied to the repaired tree before the commit; each fails the suite, and M118 to M122 still do.
 - The owner walkthrough at the documentation head, and that head's exact CI run, are recorded in section 4a by the receipt commit that follows it.
 
+## 4a. Receipt at the documentation head
+
+The documentation head is `1ba6026`. Required run [`33712448096`](https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/33712448096) at exactly that commit passed every job on its first attempt; the mutation job ran 13m20s and ended `126 mutants, 0 not caught: none`.
+
+| Job | Result | Duration |
+| --- | --- | ---: |
+| Ubuntu / Python 3.12 | success | 32s |
+| Ubuntu / Python 3.13 | success | 33s |
+| Windows / Python 3.12 | success | 1m41s |
+| macOS / Python 3.12 | success | 36s |
+| Hostile environment (C locale) | success | 31s |
+| Hostile environment (international paths) | success | 34s |
+| Clean distribution archive | success | 8s |
+| Mutation replay (Linux) | success | 13m20s |
+| Aggregate `Tests` | success | 3s |
+
+The owner walkthrough was run as written, in PowerShell, on a fresh default clone, `core.autocrlf=true`, detached at `1ba6026`. Every stated expectation held: the six proposed rules; `False` and `[]`; `3 passed`; the `ROUTE` line with `level=3`, `passes=07,10,11,14`, the five gates, `force_full=true`, `complete=true`, and `rules=-`; `FRESH`, then `STALE` with `ADC-STALE-004 worktree_identity`, then `FRESH`; `507 passed, 14 skipped, 67 subtests passed`; `VALID (universal): 0 errors, 1 warning(s)`; `rows 126 | active 120 | recorded on both hosts 120` with nothing awaiting; the Round Sixteen through Round Twenty-One artifact checks, `True` for every blob comparison, including the round-twenty-one check against the matrix blob at the evidence commit `1322eb1`; every required PR check `pass`, the mutation job having been pending during the run and re-checked once it passed; D-080 and section 9 printed; thirty-seven decision sections in step 5. The run store was the only untracked path afterwards. The owner's own answers and record from 2026-09-02 stay in section 6 of the walkthrough untouched; this run re-verified the script's expectations at the new head and checked no box.
+
+This receipt commit follows `1ba6026` and therefore triggers one more exact-head run; its receipt belongs on PR #32.
+
 ## 5. Round twenty-one's own defects
 
 - **D-118 opened a hole its own measurement did not reach.** Round twenty measured option 2 against consumer paths and the guard's probe set, none of which is a case variant of a shipped path. The variant was found by the challenger at the round's first head, `6930274`, before anything landed, and D-119 closes it; the evidence at that head is kept as a measurement, not as a record.
@@ -101,12 +121,11 @@ Windows 11, Python 3.14.2, Git 2.50.1 for the Windows runs, each in a fresh `cor
 - **D-119 implemented a narrower rule than the property it argued from.** The second challenger measured the gap at `5872e92`, section 3, and D-120 closes it; the parallel replay and the WSL write at that head are measurements too, and its Windows serial write was stopped after about nine minutes.
 - **D-120 stated its fold set narrower than its property in one direction and wider in another**, and its test held only upper-case short names. The third challenger measured both at `38cdff8`, and D-121 closes them; that head's runs are measurements, and its Windows serial write was stopped after about twenty minutes.
 
-
 ## 6. The D-116 conditions at this head
 
 1. Both hosts' full serial writes report zero not caught with exact-identity records on every active row. At `fe350e9`: it holds. Both writes report `126 mutants, 0 not caught: none`, all 120 active rows carry exact identities from both hosts, and the parallel replay agrees row for row; it also held at each of the three superseded heads for the rows that existed there.
 2. A fresh-context challenger finds only channels the harness cannot own, or reproductions of closed decisions. At `fe350e9`: it holds as measured at `38cdff8` by the third challenger, whose real-git battery upheld the spelling rule on NTFS. D-121's repairs of the two edges and three test gaps it found are held by tests and by M123 to M126, measured to fail when applied, and were not re-challenged, by the cap below. What no host here can measure, macOS and ext4 casefold aliasing, is the owner's environment under D-116.
-3. The owner walkthrough passes literally on a fresh default clone. At `the documentation head`: to be run on a fresh default clone after this document is committed; the receipt commit records the result in section 4a.
+3. The owner walkthrough passes literally on a fresh default clone. At `1ba6026`: it holds, as measured by the agent. Every stated expectation matched on a fresh default clone with `core.autocrlf=true`, section 4a; the owner's own record from 2026-09-02 stands untouched, and no box was checked.
 
 The line stops here. It reopens only on the triggers D-116 names.
 
@@ -131,6 +150,6 @@ About 5h30m from the owner's "let's do it" to this round's receipt commit. The a
 | WSL2 Linux full serial write at `fe350e9`, alongside it | 23m49s |
 | Windows full serial write at `fe350e9` | 1h32m58s |
 | fresh-context challengers at `6930274`, `5872e92`, and `38cdff8` | about 21m, 24m, and 36m, each concurrent with the replays |
-| owner walkthrough at the documentation head | recorded in section 4a by the receipt commit |
+| owner walkthrough at `1ba6026`, on a fresh default clone | about 7m |
 
 The gap between the replays and the elapsed time was D-118 with its test and rows, the first challenge, D-119 and the source-half test after it, and the documents.
