@@ -19,82 +19,199 @@
     "gate_outcomes"
   ],
   "properties": {
-    "schema_version": {"const": 2},
-    "schema": {"const": "shadow-record-v2"},
+    "schema_version": {
+      "const": 2
+    },
+    "schema": {
+      "const": "shadow-record-v2"
+    },
     "record_id": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$",
       "description": "SHA-256 of the record's canonical bytes without this field."
     },
     "provenance": {
-      "enum": ["live", "backfill", "canary"],
+      "enum": [
+        "live",
+        "backfill",
+        "canary"
+      ],
       "description": "Derived from the head ref and the command, never asserted as a label (G8)."
     },
-    "head_ref": {"type": "string"},
+    "head_ref": {
+      "type": "string"
+    },
     "status": {
-      "enum": ["miss", "clean", "inconclusive", "no_omission", "selects_nothing", "not_measurable"],
+      "enum": [
+        "miss",
+        "clean",
+        "inconclusive",
+        "no_omission",
+        "selects_nothing",
+        "not_measurable"
+      ],
       "description": "Only clean and miss are evidence for or against a class."
     },
     "measurable": {
       "type": "boolean",
       "description": "True only when every canonical gate carries pass or fail."
     },
-    "not_measurable_reason": {"type": ["string", "null"]},
-    "inconclusive_reason": {"type": ["string", "null"]},
+    "not_measurable_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "inconclusive_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "commits": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["base", "merge", "head"],
+      "required": [
+        "base",
+        "merge",
+        "head"
+      ],
       "properties": {
-        "base": {"type": "string"},
-        "merge": {"type": "string", "description": "The tree CI verified, refs/pull/N/merge."},
-        "head": {"type": "string"}
+        "base": {
+          "type": "string"
+        },
+        "merge": {
+          "type": "string",
+          "description": "The tree CI verified, refs/pull/N/merge."
+        },
+        "head": {
+          "type": "string"
+        }
       }
+    },
+    "base_reconstructed": {
+      "type": "boolean",
+      "description": "True when commits.base was computed after the fact from the commit that landed the pull request, rather than taken from the event payload. Backfilled records are reconstructed; live records are not. See D-128."
     },
     "run": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["pull_request", "run_id", "run_attempt"],
+      "required": [
+        "pull_request",
+        "run_id",
+        "run_attempt"
+      ],
       "properties": {
-        "pull_request": {"type": ["integer", "null"]},
-        "run_id": {"type": "string"},
-        "run_attempt": {"type": "integer", "minimum": 0}
+        "pull_request": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "run_attempt": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
-    "class_key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "class_key": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "class": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["matched_rule_ids", "selected_gate_ids", "omitted_gate_ids", "router_blob_sha256", "terms_sha256"],
+      "required": [
+        "matched_rule_ids",
+        "selected_gate_ids",
+        "omitted_gate_ids",
+        "router_blob_sha256",
+        "terms_sha256"
+      ],
       "properties": {
-        "matched_rule_ids": {"type": "array", "items": {"type": "string"}},
-        "selected_gate_ids": {"type": "array", "items": {"type": "string"}},
-        "omitted_gate_ids": {"type": "array", "items": {"type": "string"}},
-        "router_blob_sha256": {"type": "string"},
-        "terms_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        "matched_rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "selected_gate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "omitted_gate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "router_blob_sha256": {
+          "type": "string"
+        },
+        "terms_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "audit": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["policy_bytes_sha256", "policy_terms_sha256", "gates_terms_sha256", "route_force_full", "route_minimum_level", "route_unknowns"],
+      "required": [
+        "policy_bytes_sha256",
+        "policy_terms_sha256",
+        "gates_terms_sha256",
+        "route_force_full",
+        "route_minimum_level",
+        "route_unknowns"
+      ],
       "properties": {
-        "policy_bytes_sha256": {"type": "string"},
-        "policy_terms_sha256": {"type": "string"},
-        "gates_terms_sha256": {"type": "string"},
-        "route_force_full": {"type": "boolean"},
-        "route_minimum_level": {"type": "integer"},
-        "route_unknowns": {"type": "array", "items": {"type": "string"}}
+        "policy_bytes_sha256": {
+          "type": "string"
+        },
+        "policy_terms_sha256": {
+          "type": "string"
+        },
+        "gates_terms_sha256": {
+          "type": "string"
+        },
+        "route_force_full": {
+          "type": "boolean"
+        },
+        "route_minimum_level": {
+          "type": "integer"
+        },
+        "route_unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "gate_outcomes": {
       "type": "object",
-      "additionalProperties": {"type": "string"},
+      "additionalProperties": {
+        "type": "string"
+      },
       "description": "Canonical gate id to the CI conclusion for this run attempt."
     },
-    "base_gate_outcomes": {"type": ["object", "null"]},
+    "base_gate_outcomes": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
     "shadow": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "The comparator's own output, present only for a measurable record with an omission."
     }
   }

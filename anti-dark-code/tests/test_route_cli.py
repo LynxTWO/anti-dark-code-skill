@@ -441,49 +441,76 @@ class ShadowRecordCliTests(_RoutedGateCliFixture):
 
 
 class ShadowBackfillCliTests(_RoutedGateCliFixture):
-    """S-060. Today's router over a historical change set, keyed by today.
+    """S-060 and S-063. Today's router over a pull request's own run history.
 
     Not a reconstruction at each head: the candidate builder did not exist at
     the earliest heads in this repository's own history, so per-head keys
     would be classes of one. The record says `backfill` and the summary keeps
     those counts apart from the live ones.
+
+    The population is the pull request's runs, every attempt, never the merge
+    that survived them. D-128: a merge is a change whose run already passed
+    the checks that gated it, so grading a candidate against it cannot see
+    what those checks caught. These fixtures land on a merge commit, which is
+    how this repository lands everything, and which is exactly the history
+    where the merge base with the base branch is the head itself.
     """
 
-    def test_a_backfilled_change_uses_todays_router_and_its_own_run(self) -> None:
-        self._git("checkout", "-q", "-b", "topic")
-        self.source.write_text("four\n", encoding="utf-8")
+    GREEN = [
+        {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
+         "steps": [{"name": "Validate the core before anything writes to the tree",
+                    "conclusion": "success"}]},
+        {"name": "Clean distribution archive", "conclusion": "success"},
+        {"name": "Hostile environment (C locale)", "conclusion": "success"},
+        {"name": "Hostile environment (international paths)", "conclusion": "success"},
+        {"name": "Mutation replay (Linux)", "conclusion": "success"},
+    ]
+
+    def _jobs(self, **failed: str) -> list:
+        jobs = json.loads(json.dumps(self.GREEN))
+        for job in jobs:
+            if job["name"] in failed:
+                job["conclusion"] = failed[job["name"]]
+        return jobs
+
+    def _land(self, number: int, body: str) -> tuple[str, str]:
+        """One pull request, landed as a merge commit. Returns head and landing."""
+        branch = f"topic{number}"
+        self._git("checkout", "-q", "-b", branch)
+        self.source.write_text(body, encoding="utf-8")
         self._git("add", "-A")
-        self._git("commit", "-qm", "four")
+        self._git("commit", "-qm", body.strip())
         head = self._git("rev-parse", "HEAD").stdout.strip()
         self._git("checkout", "-q", "main")
-        base = self._git("rev-parse", "HEAD").stdout.strip()
-        self._git("merge", "-q", "--no-ff", "-m", "Merge PR #7: topic", "topic")
-        merge = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("merge", "-q", "--no-ff", "-m",
+                  f"Merge PR #{number}: {branch}", branch)
+        landing = self._git("rev-parse", "HEAD").stdout.strip()
+        return head, landing
 
-        changes = Path(self.tmp.name) / "changes.json"
-        changes.write_text(json.dumps([{
-            "pull_request": 7, "base": base, "head": head, "merge": merge,
-            "run_id": "99", "run_attempt": 1,
-            "jobs": [
-                {"name": "ubuntu-latest / Python 3.12", "conclusion": "success",
-                 "steps": [{"name": "Validate the core before anything writes to the tree",
-                            "conclusion": "success"}]},
-                {"name": "Clean distribution archive", "conclusion": "success"},
-                {"name": "Hostile environment (C locale)", "conclusion": "success"},
-                {"name": "Hostile environment (international paths)", "conclusion": "success"},
-                {"name": "Mutation replay (Linux)", "conclusion": "success"},
-            ],
-        }]), encoding="utf-8")
+    def _backfill(self, changes: list, *extra: str):
+        path = Path(self.tmp.name) / "changes.json"
+        path.write_text(json.dumps(changes), encoding="utf-8")
         out_dir = Path(self.tmp.name) / "records"
         done = subprocess.run(
             [sys.executable, "-B", str(ADC), "shadow", "backfill",
              "--repo", str(self.repo), "--calibration", str(self.calibration),
              "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
-             "--changes", str(changes), "--out-dir", str(out_dir)],
-            capture_output=True, text=True, timeout=600)
+             "--changes", str(path), "--out-dir", str(out_dir), *extra],
+            capture_output=True, text=True, timeout=900)
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        return done, out_dir
+
+    def test_a_backfilled_change_uses_todays_router_and_its_own_run(self) -> None:
+        head, landing = self._land(7, "four\n")
+        first_parent = self._git("rev-parse", f"{landing}^1").stdout.strip()
+        expected_base = self._git("merge-base", head, first_parent).stdout.strip()
+
+        _, out_dir = self._backfill([{
+            "pull_request": 7, "head": head, "landing": landing,
+            "landing_first_parent": first_parent, "head_ref": "topic7",
+            "run_id": "99", "run_attempt": 1, "jobs": self.GREEN}])
         written = sorted(out_dir.glob("*.json"))
-        self.assertEqual(1, len(written), done.stdout)
+        self.assertEqual(1, len(written))
         record = json.loads(written[0].read_text(encoding="utf-8"))
         self.assertEqual("backfill", record["provenance"])
         self.assertEqual(7, record["run"]["pull_request"])
@@ -491,29 +518,149 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
         self.assertTrue(record["measurable"], record)
         self.assertEqual("clean", record["status"], record)
         self.assertIn("product-code", record["class"]["matched_rule_ids"])
-        # The repository is left as it was found: a backfill checks each head
-        # out in a temporary worktree and removes it.
-        self.assertEqual("", self._git("worktree", "list", "--porcelain").stdout
-                         .count("prunable") * "x")
+        # D-128. The base is the landing commit's first parent side, not the
+        # branch as it stands: on this history merge-base(head, main) is the
+        # head itself, and the change set would be empty.
+        self.assertTrue(record["base_reconstructed"])
+        self.assertEqual(expected_base, record["commits"]["base"])
+        self.assertNotEqual(head, record["commits"]["base"])
+        self.assertEqual(f"shadow-{head}-1.json", written[0].name)
+
+    def test_the_base_the_old_rule_would_have_used_is_the_head_itself(self) -> None:
+        """The defect D-128 closes, held so it cannot come back.
+
+        A merged head is an ancestor of its base branch, so its merge base
+        with that branch is itself and the change set is empty. This asserts
+        the shape of the history, which is what made the earlier definition
+        write nothing countable.
+        """
+        head, _ = self._land(11, "eleven\n")
+        self.assertEqual(
+            head, self._git("merge-base", head, "main").stdout.strip(),
+            "the fixture no longer reproduces a merge-commit landing")
+
+    def test_every_attempt_is_recorded_and_a_failing_one_is_a_miss(self) -> None:
+        """S-063. A rerun does not replace the attempt it supersedes."""
+        head, landing = self._land(8, "eight\n")
+        first_parent = self._git("rev-parse", f"{landing}^1").stdout.strip()
+        entry = {"pull_request": 8, "head": head, "landing": landing,
+                 "landing_first_parent": first_parent, "head_ref": "topic8",
+                 "run_id": "101"}
+        _, out_dir = self._backfill([
+            {**entry, "run_attempt": 1,
+             "jobs": self._jobs(**{"Clean distribution archive": "failure"})},
+            {**entry, "run_attempt": 2, "jobs": self.GREEN},
+            {**entry, "run_attempt": 3, "jobs": self.GREEN},
+        ])
+        written = sorted(out_dir.glob("*.json"))
+        self.assertEqual(3, len(written))
+        by_attempt = {}
+        for path in written:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            by_attempt[record["run"]["run_attempt"]] = record
+        self.assertEqual({1, 2, 3}, set(by_attempt))
+        self.assertEqual("miss", by_attempt[1]["status"], by_attempt[1])
+        self.assertIn("distribution", by_attempt[1]["shadow"]["missed_gate_ids"])
+        self.assertEqual("clean", by_attempt[2]["status"])
+        self.assertEqual("clean", by_attempt[3]["status"])
+        for record in by_attempt.values():
+            self.assertTrue(record["base_reconstructed"])
+
+    def test_a_head_whose_commit_is_gone_is_recorded_and_not_dropped(self) -> None:
+        """A force-pushed or deleted-fork head has no object to diff. D-127
+        recorded a change with no run rather than dropping it; the same rule
+        holds for a change with no commit, or the campaign overstates its own
+        coverage."""
+        _, landing = self._land(9, "nine\n")
+        first_parent = self._git("rev-parse", f"{landing}^1").stdout.strip()
+        missing = "0" * 40
+        _, out_dir = self._backfill([{
+            "pull_request": 9, "head": missing, "landing": landing,
+            "landing_first_parent": first_parent, "head_ref": "topic9",
+            "run_id": "102", "run_attempt": 1, "jobs": self.GREEN}])
+        record = json.loads(
+            sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+        self.assertFalse(record["measurable"])
+        self.assertEqual("not_measurable", record["status"])
+        self.assertEqual("head-unavailable", record["not_measurable_reason"])
+        self.assertEqual(missing, record["commits"]["head"])
+
+    def test_a_head_and_attempt_with_a_live_record_is_not_backfilled(self) -> None:
+        """The live record was built on the tree CI verified; this one would
+        be built on a reconstructed base. Two records for one attempt would be
+        two readings of one event."""
+        head, landing = self._land(10, "ten\n")
+        first_parent = self._git("rev-parse", f"{landing}^1").stdout.strip()
+        live_dir = Path(self.tmp.name) / "live"
+        live_dir.mkdir()
+        (live_dir / f"shadow-{head}-1.json").write_text(json.dumps({
+            "provenance": "live", "commits": {"head": head},
+            "run": {"run_attempt": 1}}), encoding="utf-8")
+        entry = {"pull_request": 10, "head": head, "landing": landing,
+                 "landing_first_parent": first_parent, "head_ref": "topic10",
+                 "run_id": "103"}
+        done, out_dir = self._backfill(
+            [{**entry, "run_attempt": 1, "jobs": self.GREEN},
+             {**entry, "run_attempt": 2, "jobs": self.GREEN}],
+            "--live-records", str(live_dir))
+        written = sorted(out_dir.glob("*.json"))
+        self.assertEqual(1, len(written), done.stdout)
+        record = json.loads(written[0].read_text(encoding="utf-8"))
+        self.assertEqual(2, record["run"]["run_attempt"])
+        self.assertIn("already live", done.stdout)
+
+    def test_the_working_tree_is_not_part_of_a_historical_change(self) -> None:
+        """A backfill measures a commit, and a commit has no working tree.
+
+        The first real run of this backfill read four files the build had not
+        yet committed, and the records the run was itself writing into the
+        repository, so every record was a reading of the present wearing a
+        historical head. The record must not move when the tree does.
+        """
+        head, landing = self._land(13, "thirteen\n")
+        first_parent = self._git("rev-parse", f"{landing}^1").stdout.strip()
+        entry = {"pull_request": 13, "head": head, "landing": landing,
+                 "landing_first_parent": first_parent, "head_ref": "topic13",
+                 "run_id": "104", "run_attempt": 1, "jobs": self.GREEN}
+
+        _, clean_dir = self._backfill([entry])
+        clean = json.loads(
+            sorted(clean_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+
+        # Now dirty the tree in all three ways acquisition can see: an
+        # unstaged edit to an authority file, a staged one, and an untracked
+        # file of the kind a backfill's own output directory creates.
+        (self.repo / "anti-dark-code" / "scripts").mkdir(parents=True, exist_ok=True)
+        authority = self.repo / "anti-dark-code" / "scripts" / "adc_route.py"
+        authority.write_text("# edited after the fact\n", encoding="utf-8")
+        staged = self.repo / "staged.py"
+        staged.write_text("# staged\n", encoding="utf-8")
+        self._git("add", "staged.py")
+        (self.repo / "untracked-record.json").write_text("{}\n", encoding="utf-8")
+
+        _, dirty_dir = self._backfill([entry])
+        dirty = json.loads(
+            sorted(dirty_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+
+        self.assertEqual(clean["class_key"], dirty["class_key"])
+        self.assertEqual(clean["status"], dirty["status"])
+        self.assertEqual(clean["class"]["matched_rule_ids"],
+                         dirty["class"]["matched_rule_ids"])
+        self.assertEqual(clean["audit"]["route_unknowns"],
+                         dirty["audit"]["route_unknowns"])
+        self.assertEqual(clean["record_id"], dirty["record_id"])
 
     def test_a_change_with_no_run_is_recorded_as_unmeasurable(self) -> None:
         """Every change before the workflow existed has no outcomes at all.
         Dropping them would hide how much of the history cannot be measured."""
-        head = self._git("rev-parse", "HEAD").stdout.strip()
-        base = self._git("rev-parse", "HEAD~1").stdout.strip()
-        changes = Path(self.tmp.name) / "changes.json"
-        changes.write_text(json.dumps([{
-            "pull_request": None, "base": base, "head": head, "merge": head,
-            "run_id": None, "run_attempt": None, "jobs": None}]), encoding="utf-8")
-        out_dir = Path(self.tmp.name) / "records"
-        done = subprocess.run(
-            [sys.executable, "-B", str(ADC), "shadow", "backfill",
-             "--repo", str(self.repo), "--calibration", str(self.calibration),
-             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
-             "--changes", str(changes), "--out-dir", str(out_dir)],
-            capture_output=True, text=True, timeout=600)
-        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
-        record = json.loads(sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+        head, landing = self._land(12, "twelve\n")
+        first_parent = self._git("rev-parse", f"{landing}^1").stdout.strip()
+        _, out_dir = self._backfill([{
+            "pull_request": 12, "head": head, "landing": landing,
+            "landing_first_parent": first_parent, "head_ref": "topic12",
+            "run_id": None, "run_attempt": 0, "jobs": None}])
+        record = json.loads(
+            sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
         self.assertFalse(record["measurable"])
         self.assertEqual("not_measurable", record["status"])
         self.assertIn("unresolved", record["not_measurable_reason"])

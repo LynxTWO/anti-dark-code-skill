@@ -194,11 +194,17 @@ def build_record(
     backfill: bool,
     router_blob_sha256: str,
     shadow_result,
+    base_reconstructed: bool = False,
+    unmeasurable_reason: str | None = None,
 ) -> dict[str, Any]:
     """One record, in the order the brief defines it."""
     gates = canonical_gate_ids(gates_source)
     outcomes = {str(k): str(v) for k, v in outcomes.items()}
     measurable, reason = measurability(outcomes, gates, candidate)
+    if not measurable and unmeasurable_reason:
+        # D-128: a head whose commit no longer exists is not the same silence
+        # as a snapshot that would not read. The caller names which.
+        reason = unmeasurable_reason
 
     selected: tuple[str, ...] = ()
     omitted: list[str] = []
@@ -247,6 +253,11 @@ def build_record(
         "not_measurable_reason": reason if not measurable else None,
         "inconclusive_reason": reason if status == STATUS_INCONCLUSIVE else None,
         "commits": {key: str(commits.get(key, "")) for key in ("base", "merge", "head")},
+        # D-128. A backfilled record's base is computed now, from the commit
+        # that landed the pull request, because the merge commit CI checked
+        # out is not recoverable afterwards. A live record's base came from
+        # the event payload and is not reconstructed.
+        "base_reconstructed": bool(base_reconstructed),
         "run": {
             "pull_request": run.get("pull_request"),
             "run_id": str(run.get("run_id", "")),
@@ -525,71 +536,209 @@ def _gh_json(args: Sequence[str]) -> Any:
     return json.loads(done.stdout)
 
 
-def discover_changes(repo: Path, since: str, branch: str = "HEAD",
-                     workflow_name: str = "Tests") -> list[dict[str, Any]]:
-    """Every merge on the first-parent line since `since`, with its run.
+def repository_slug(repo: Path) -> str:
+    """owner/name for the origin remote."""
+    remote = _git(repo, "remote", "get-url", "origin")
+    remote = remote.rstrip("/").removesuffix(".git").split(":")[-1]
+    return "/".join(remote.split("/")[-2:])
 
-    A merge commit's first parent is the base the pull request was measured
-    against and its second is the head, which is what CI verified as
-    `refs/pull/N/merge`. A merge with no run under the workflow, which every
-    change before the workflow landed on 2026-08-22 has, is returned with no
-    run so the caller can record it as not measurable rather than drop it.
+
+def landing_commits(repo: Path, since: str, branch: str = "HEAD"
+                    ) -> dict[int, dict[str, str]]:
+    """Pull request number to the commit that landed it, and that commit's base.
+
+    First parent, whether the landing was a merge commit or a squash. The
+    first parent of a merge is the base branch as it stood at the merge, and
+    the parent of a squash is the same thing, which is why one rule serves
+    both and why D-128 takes the base from here rather than from the pull
+    request API, whose `base.sha` is where the branch pointed when the pull
+    request was opened.
     """
-    repository = _git(repo, "remote", "get-url", "origin")
-    repository = repository.rstrip("/").removesuffix(".git").split(":")[-1]
-    repository = "/".join(repository.split("/")[-2:])
-    log = _git(repo, "log", "--first-parent", "--merges", "--format=%H\x1f%P\x1f%s",
-               f"{since}..{branch}")
-    changes: list[dict[str, Any]] = []
+    log = _git(repo, "log", "--first-parent", "--format=%H\x1f%P\x1f%s",
+               f"{since}..{branch}" if since else branch)
+    landings: dict[int, dict[str, str]] = {}
     for line in log.splitlines():
         if not line.strip():
             continue
-        merge, parents, subject = line.split("\x1f", 2)
+        landing, parents, subject = line.split("\x1f", 2)
         parent_ids = parents.split()
-        if len(parent_ids) < 2:
+        if not parent_ids:
             continue
         number = None
-        for token in subject.replace(":", " ").split():
+        for token in subject.replace(":", " ").replace("(", " ").replace(")", " ").split():
             if token.startswith("#") and token[1:].isdigit():
                 number = int(token[1:])
                 break
-        entry: dict[str, Any] = {
-            "pull_request": number,
-            "merge": merge,
-            "base": parent_ids[0],
-            "head": parent_ids[1],
-            "subject": subject,
-            "run_id": None,
-            "run_attempt": None,
-            "jobs": None,
-        }
-        runs = _gh_json([f"/repos/{repository}/actions/runs"
-                         f"?head_sha={entry['head']}&per_page=100"])
-        candidates = [run for run in runs.get("workflow_runs", [])
-                      if run.get("name") == workflow_name]
-        if candidates:
-            run = max(candidates, key=lambda item: item.get("run_attempt", 1))
-            entry["run_id"] = str(run["id"])
-            entry["run_attempt"] = int(run.get("run_attempt", 1))
-            entry["jobs"] = _gh_json([
-                f"/repos/{repository}/actions/runs/{run['id']}/attempts/"
-                f"{entry['run_attempt']}/jobs?per_page=100"]).get("jobs", [])
-        changes.append(entry)
-    return changes
+        if number is None or number in landings:
+            continue
+        landings[number] = {"landing": landing, "first_parent": parent_ids[0],
+                            "subject": subject}
+    return landings
+
+
+def discover_pull_request_runs(
+    repo: Path, since: str, branch: str = "HEAD", workflow_name: str = "Tests",
+    repository: str | None = None, max_pages: int = 20,
+) -> list[dict[str, Any]]:
+    """Every `pull_request` run attempt of every merged pull request since `since`.
+
+    D-128: the population is the pull request's own runs, not the merge that
+    survived them, because a merge is a change whose run already passed the
+    checks that gated it and cannot show what they caught.
+
+    A run's `pull_requests` field empties once the branch is merged, so the
+    join is on head repository and branch, which the runs listing always
+    carries, and `/commits/{sha}/pulls` resolves whatever that leaves. Every
+    attempt is enumerated, not only the last, because a rerun does not
+    replace the attempt it supersedes.
+    """
+    slug = repository or repository_slug(repo)
+    landings = landing_commits(repo, since, branch)
+
+    runs: list[dict[str, Any]] = []
+    for page in range(1, max_pages + 1):
+        payload = _gh_json([f"/repos/{slug}/actions/runs"
+                            f"?event=pull_request&per_page=100&page={page}"])
+        batch = payload.get("workflow_runs", [])
+        runs.extend(run for run in batch if run.get("name") == workflow_name)
+        if len(batch) < 100:
+            break
+
+    # Head repository and branch name the pull request even after the merge.
+    by_branch: dict[tuple[str, str], int] = {}
+    for number in landings:
+        pull = _gh_json([f"/repos/{slug}/pulls/{number}"])
+        head = pull.get("head") or {}
+        head_repo = ((head.get("repo") or {}).get("full_name") or "")
+        by_branch[(str(head_repo), str(head.get("ref") or ""))] = number
+
+    entries: list[dict[str, Any]] = []
+    resolved: dict[str, int | None] = {}
+    for run in runs:
+        head_repo = str(((run.get("head_repository") or {}).get("full_name")) or "")
+        key = (head_repo, str(run.get("head_branch") or ""))
+        number = by_branch.get(key)
+        if number is None:
+            named = [p.get("number") for p in (run.get("pull_requests") or [])]
+            number = named[0] if named else None
+        if number is None:
+            head_sha = str(run.get("head_sha") or "")
+            if head_sha not in resolved:
+                try:
+                    pulls = _gh_json([f"/repos/{slug}/commits/{head_sha}/pulls"])
+                except ShadowError:
+                    pulls = []
+                resolved[head_sha] = (int(pulls[0]["number"]) if pulls else None)
+            number = resolved[head_sha]
+        if number is None or number not in landings:
+            continue
+
+        landing = landings[number]
+        head = str(run.get("head_sha") or "")
+        attempts = int(run.get("run_attempt", 1) or 1)
+        for attempt in range(1, attempts + 1):
+            try:
+                jobs = _gh_json([
+                    f"/repos/{slug}/actions/runs/{run['id']}/attempts/{attempt}"
+                    f"/jobs?per_page=100"]).get("jobs", [])
+            except ShadowError:
+                jobs = []
+            entries.append({
+                "pull_request": number,
+                "head": head,
+                "head_ref": run.get("head_branch") or "",
+                "landing": landing["landing"],
+                "landing_first_parent": landing["first_parent"],
+                "subject": landing["subject"],
+                "run_id": str(run["id"]),
+                "run_attempt": attempt,
+                "run_conclusion": run.get("conclusion"),
+                "jobs": jobs,
+            })
+    entries.sort(key=lambda item: (item["pull_request"], item["run_id"],
+                                   item["run_attempt"]))
+    return entries
+
+
+def _commit_present(repo: Path, sha: str) -> bool:
+    done = subprocess.run(["git", "-C", str(repo), "cat-file", "-e", f"{sha}^{{commit}}"],
+                          capture_output=True, text=True, timeout=120)
+    return done.returncode == 0
+
+
+def _historical_runner(route_module, repo: Path, head: str):
+    """The production acquisition, pointed at a commit instead of a checkout.
+
+    `read_change_inputs` reads `HEAD`, which a backfill would otherwise have
+    to check out: about forty-five seconds a change on a large tree, and
+    hours for a campaign. This substitutes the commit for the literal token,
+    so every git command, flag, parser, fingerprint and problem code stays
+    the production one.
+
+    It also answers the index, worktree and untracked sources with silence,
+    which is what they are for a commit. Those three describe the repository
+    now, and now is not the change being measured: the first run of this
+    backfill read four files this build had not yet committed and the
+    thirty-three records the run was itself writing, and every record it
+    produced was a reading of the present wearing a historical head. A fresh
+    detached checkout gives the same silence, which is why the field study,
+    which ran against a clean scratch clone, did not show it.
+    """
+    base_runner = route_module._default_runner(repo)
+
+    def runner(argv):
+        tokens = [str(token) for token in argv]
+        # The index (`--cached`), the worktree (`--no-textconv`), and the
+        # untracked scan. _DIFF_FLAGS carries none of these, so the committed
+        # comparison is never caught by them.
+        if "ls-files" in tokens or "--cached" in tokens or "--no-textconv" in tokens:
+            return b""
+        return base_runner([head if token == "HEAD" else token for token in tokens])
+
+    return runner
+
+
+def _push_outcomes(slug: str, sha: str, gate_map: Mapping[str, Any],
+                   workflow_name: str, cache: dict[str, dict[str, str] | None],
+                   ) -> dict[str, str] | None:
+    """The base commit's own run, so an inherited failure is not read as a miss."""
+    if sha in cache:
+        return cache[sha]
+    try:
+        payload = _gh_json([f"/repos/{slug}/actions/runs?head_sha={sha}&per_page=50"])
+    except ShadowError:
+        cache[sha] = None
+        return None
+    runs = [run for run in payload.get("workflow_runs", [])
+            if run.get("name") == workflow_name]
+    if not runs:
+        cache[sha] = None
+        return None
+    run = max(runs, key=lambda item: int(item.get("run_attempt", 1) or 1))
+    try:
+        jobs = _gh_json([
+            f"/repos/{slug}/actions/runs/{run['id']}/attempts/"
+            f"{int(run.get('run_attempt', 1) or 1)}/jobs?per_page=100"]).get("jobs", [])
+    except ShadowError:
+        cache[sha] = None
+        return None
+    cache[sha] = gate_outcomes_from_jobs(jobs, gate_map) if jobs else None
+    return cache[sha]
 
 
 def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
-    """Replay today's router over historical change sets.
+    """Replay today's router over a pull request's own run history.
 
     Not a reconstruction at each head: the candidate builder did not exist at
     the earliest heads and the policy differed across the stack, so per-head
     keys would be classes of one. Today's router and today's policy over the
     historical change set, keyed by today's digests, is what the brief's
     section 5 defines, and every record carries `provenance: backfill`.
-    """
-    import shutil
-    import tempfile
 
+    The population is the pull request's runs, every attempt, never the merge
+    that survived them: D-128, on the field study's measurement that a merge
+    is a change whose run already passed the checks that gated it.
+    """
     adc = _adc_module(adc_module)
     route_module, _ = adc.load_router_helpers()
     repo = Path(args.repo).resolve()
@@ -603,7 +752,8 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
         if not args.since:
             print("REFUSED: --since or --changes is required")
             return 2
-        changes = discover_changes(repo, args.since, args.branch)
+        changes = discover_pull_request_runs(
+            repo, args.since, args.branch, workflow_name=args.workflow)
     if args.save_changes:
         Path(args.save_changes).write_text(
             json.dumps(changes, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -617,12 +767,44 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
     validated = route_module.load_policy(
         policy_source, gates_source, [c["id"] for c in catalog["capabilities"]],
         gates_source["canonical_full_set"])
+    router_sha = router_digest(Path(route_module.__file__))
+
+    # A head and attempt CI already recorded live is never backfilled: the
+    # live record was built on the tree CI verified, and this one would be
+    # built on a reconstructed base. The live record wins.
+    already: set[tuple[str, str]] = set()
+    for directory in (args.live_records or []):
+        for path in sorted(Path(directory).glob("*.json")):
+            try:
+                existing = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if str(existing.get("provenance")) == "backfill":
+                continue
+            already.add((str(existing.get("commits", {}).get("head", "")),
+                         str(existing.get("run", {}).get("run_attempt", ""))))
+
+    # Resolved only if a base outcome is actually wanted. A saved discovery
+    # file needs no network at all, and a fixture repository has no remote;
+    # refusing there would make the offline path depend on the online one.
+    slug: str | None = args.repository
+    if slug is None:
+        try:
+            slug = repository_slug(repo)
+        except ShadowError:
+            slug = None
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    written = 0
+    base_cache: dict[str, dict[str, str] | None] = {}
+    written = skipped = 0
     for entry in changes:
         head = str(entry["head"])
+        attempt = int(entry.get("run_attempt") or 0)
+        if (head, str(attempt)) in already:
+            skipped += 1
+            continue
+
         jobs = entry.get("jobs")
         if isinstance(jobs, str):
             jobs = json.loads(Path(jobs).read_text(encoding="utf-8"))
@@ -632,48 +814,58 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
                     else {gate: "unresolved"
                           for gate in canonical_gate_ids(gates_source)})
 
-        checkout = Path(tempfile.mkdtemp(prefix=f"adc-backfill-{head[:8]}-"))
-        try:
-            _git(repo, "worktree", "add", "--detach", "--force", str(checkout), head)
-            snapshot = route_module.read_change_inputs(checkout, str(entry["base"]))
+        base = ""
+        route = candidate = None
+        unmeasurable_reason = None
+        if not _commit_present(repo, head):
+            # A force-pushed or deleted-fork head has no object to diff. That
+            # is recorded, not dropped: a campaign that silently skipped it
+            # would overstate its own coverage, as D-127 said of a missing run.
+            unmeasurable_reason = "head-unavailable"
+            base = str(entry.get("landing_first_parent") or "")
+        else:
+            first_parent = str(entry.get("landing_first_parent") or "")
+            base = _git(repo, "merge-base", head, first_parent) if first_parent else ""
+            snapshot = route_module.read_change_inputs(
+                repo, base, runner=_historical_runner(route_module, repo, head))
             facts = route_module.collect_change_facts(
                 snapshot, validated.classifier_map())
             route = route_module.build_route(
                 facts, validated, snapshot_ok=snapshot.complete)
             candidate = route_module.build_candidate_route(
                 facts, validated, snapshot_ok=snapshot.complete)
-        finally:
-            subprocess.run(["git", "-C", str(repo), "worktree", "remove",
-                            "--force", str(checkout)],
-                           capture_output=True, text=True, timeout=120)
-            shutil.rmtree(checkout, ignore_errors=True)
 
+        base_outcomes = (_push_outcomes(slug, base, gate_map, args.workflow,
+                                        base_cache)
+                         if base and slug and not args.no_base_outcomes else None)
         record = build_record(
             policy_source=policy_source, gates_source=gates_source,
             route=route, candidate=candidate, outcomes=outcomes,
-            base_outcomes=None,
-            commits={"base": str(entry["base"]), "merge": str(entry["merge"]),
+            base_outcomes=base_outcomes,
+            commits={"base": base or "unavailable",
+                     "merge": str(entry.get("landing") or head),
                      "head": head},
             run={"pull_request": entry.get("pull_request"),
                  "run_id": entry.get("run_id") or "",
-                 "run_attempt": entry.get("run_attempt") or 0},
+                 "run_attempt": attempt},
             head_ref=entry.get("head_ref"), backfill=True,
-            router_blob_sha256=router_digest(Path(route_module.__file__)),
-            shadow_result=adc.shadow_result,
+            router_blob_sha256=router_sha, shadow_result=adc.shadow_result,
+            base_reconstructed=True, unmeasurable_reason=unmeasurable_reason,
         )
         errors = validate_record(record)
         if errors:
             print(f"REFUSED {head[:12]}: " + "; ".join(errors))
             return 2
-        (out_dir / f"shadow-backfill-{head}.json").write_text(
+        (out_dir / f"shadow-{head}-{attempt}.json").write_text(
             json.dumps(record, indent=2, sort_keys=True) + "\n",
             encoding="utf-8", newline="\n")
         written += 1
-        print(f"  #{str(entry.get('pull_request') or '-'):>4} {head[:12]} "
+        print(f"  #{str(entry.get('pull_request') or '-'):>4} {head[:12]}/{attempt} "
               f"{record['status']:16} class={record['class_key'][:12]} "
               f"rules={','.join(record['class']['matched_rule_ids']) or '-'} "
               f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'}")
-    print(f"BACKFILL {written} record(s) in {out_dir}")
+    print(f"BACKFILL {written} record(s) in {out_dir}"
+          + (f", {skipped} already live" if skipped else ""))
     return 0
 
 
@@ -713,15 +905,26 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", required=True)
     p.set_defaults(func=command_outcomes)
 
-    p = sub.add_parser("backfill",
-                       help="Replay today's router over historical change sets")
+    p = sub.add_parser(
+        "backfill",
+        help="Replay today's router over merged pull requests' own run history")
     p.add_argument("--repo", default=".")
     p.add_argument("--calibration")
     p.add_argument("--map", required=True)
-    p.add_argument("--since", help="Replay merges after this commit")
+    p.add_argument("--since",
+                   help="Replay pull requests landed after this commit")
     p.add_argument("--branch", default="HEAD")
+    p.add_argument("--workflow", default="Tests",
+                   help="Workflow name whose runs carry the gates")
+    p.add_argument("--repository", help="owner/name; defaults to the origin remote")
     p.add_argument("--changes", help="A saved discovery file; skips the network")
     p.add_argument("--save-changes", help="Write what discovery found")
+    p.add_argument("--live-records", action="append", default=[],
+                   help="A directory of live records; their head and attempt "
+                        "are never backfilled")
+    p.add_argument("--no-base-outcomes", action="store_true",
+                   help="Skip reading each base commit's own run, which is "
+                        "what tells an inherited failure from a miss")
     p.add_argument("--out-dir", required=True)
     p.set_defaults(func=command_backfill)
     return parser

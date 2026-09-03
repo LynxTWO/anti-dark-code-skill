@@ -5603,5 +5603,61 @@
     "pytest": "",
     "results": [],
     "note": "D-129. The router matches with fnmatchcase, which has no `**`; the globstar spelling reaches only nested paths and silently leaves every top-level design document, including the canary's own file, on the docs-only route. The failure is invisible in the policy's text, which is why it is a row. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M141",
+    "name": "the backfill takes its base from the branch as it stands",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            base = _git(repo, \"merge-base\", head, first_parent) if first_parent else \"\"",
+    "new": "            base = _git(repo, \"merge-base\", head, \"HEAD\") if first_parent else \"\"",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128. A merged head is an ancestor of its base branch, so its merge base with that branch is the head itself and the change set is empty; every record then reads selects_nothing and the campaign counts nothing while appearing to work. The base must come from the landing commit's first parent. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M142",
+    "name": "a backfilled record does not admit its base was reconstructed",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            base_reconstructed=True, unmeasurable_reason=unmeasurable_reason,",
+    "new": "            base_reconstructed=False, unmeasurable_reason=unmeasurable_reason,",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128. The merge commit CI checked out is not recoverable afterwards, so a backfilled record's base is computed now. A record that hides that reads as though it were built on the tree CI verified. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M143",
+    "name": "a head whose commit is gone is silently treated as readable",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            unmeasurable_reason = \"head-unavailable\"",
+    "new": "            unmeasurable_reason = None",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128. A force-pushed or deleted-fork head has no object to diff. Without the reason the record still cannot be measured, but it no longer says why, and a campaign cannot tell an unreadable head from an unreadable snapshot. Pending the next authoritative two-host replay."
+  },
+  {
+    "id": "M144",
+    "name": "a historical record is built from the working tree as it is now",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        if \"ls-files\" in tokens or \"--cached\" in tokens or \"--no-textconv\" in tokens:\n            return b\"\"",
+    "new": "        if \"ls-files\" in tokens and \"--never-matches\" in tokens:\n            return b\"\"",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-128. A backfill measures a commit, and a commit has no index, no worktree and no untracked files. Reading them puts today's uncommitted edits, and the records the run is itself writing, into a record about the past; the first real run of this backfill did exactly that on all thirty-three records. Pending the next authoritative two-host replay."
   }
 ]
