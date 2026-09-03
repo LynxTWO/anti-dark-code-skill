@@ -116,14 +116,14 @@ The documents state what is true. This log preserves why, what else was consider
 | D-097 | 2026-09-02 | A helper that adc.py loads is authority by its name | Superseded | D-100 |
 | D-098 | 2026-09-02 | A worker's collection tree stays inside its clone | Amended | D-101 |
 | D-099 | 2026-09-02 | The coordinator reports a worker row's own reason | Amended | D-102 |
-| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Confirmed | D-107 |
+| D-100 | 2026-09-02 | Every shipped script is verification authority by location | Amended | D-118 |
 | D-101 | 2026-09-02 | A worker owns its pytest environment as well as its rootdir | Amended | D-105 |
 | D-102 | 2026-09-02 | A worker diagnostic is one bounded terminal-safe line | Amended | D-106 |
 | D-103 | 2026-09-02 | Serial evidence labels dirt, and serial writes require clean endpoints | Confirmed | |
 | D-104 | 2026-09-02 | A skipped survivor needs exact catching-test attribution | Confirmed | |
 | D-105 | 2026-09-02 | A worker owns its interpreter and its configuration, not only its pytest options | Confirmed | |
 | D-106 | 2026-09-02 | The serial console renders a diagnostic the same way the coordinator does | Amended | D-115 |
-| D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Open | |
+| D-107 | 2026-09-02 | D-100's contract reaches every scripts directory, and its statement does not say so | Decided | D-118 |
 | D-108 | 2026-09-02 | A walkthrough check compares committed bytes, not a checkout | Confirmed | |
 | D-109 | 2026-09-02 | A host record is current only at the commit that produced it | Confirmed | |
 | D-110 | 2026-09-02 | A survivor with no catching host is a survivor, not an unverified row | Confirmed | |
@@ -134,6 +134,10 @@ The documents state what is true. This log preserves why, what else was consider
 | D-115 | 2026-09-02 | Every console field from the matrix passes through the renderer | Confirmed | |
 | D-116 | 2026-09-02 | The harness line closes on a stopping rule, not on a quiet round | Open | |
 | D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
+| D-118 | 2026-09-02 | Verification authority for scripts is the shipped skill's own directory, in every spelling | Confirmed | |
+| D-119 | 2026-09-02 | A case variant of an authority path routes as a collision with it | Amended | D-120 |
+| D-120 | 2026-09-02 | A spelling a checkout can alias to an authority path routes as that authority | Amended | D-121 |
+| D-121 | 2026-09-02 | The fold set is every approved requirement, keyed once per route | Confirmed | |
 
 ---
 
@@ -2929,7 +2933,7 @@ Worker rows gain a structured failure field, or the report format changes.
 ## D-100: Every shipped script is verification authority by location
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-118
 Area: D-093, D-097, routing classifier, `anti-dark-code/scripts/`
 
 Context:
@@ -3188,7 +3192,7 @@ layer.
 ## D-107: D-100's contract reaches every scripts directory, and its statement does not say so
 
 Date: 2026-09-02
-Status: Open, owner decision
+Status: Decided by the owner on 2026-09-02, option 2; implemented by D-118
 Area: D-093, D-100, canonical authority classifiers, shipped policy template
 
 Context:
@@ -3695,3 +3699,230 @@ superseded by runs at the head that carries this repair.
 Revisit when:
 The suite stops running inside `run_suite` under replay, or a contract
 assertion is added without the inversion.
+
+## D-118: Verification authority for scripts is the shipped skill's own directory, in every spelling
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-093, D-100, D-107, D-116, canonical authority classifiers, shipped
+policy template, M100, M115, M116
+
+Context:
+D-100 said every Python file directly under `anti-dark-code/scripts/` is
+verification authority, and implemented it with the canonical
+`**/scripts/*.py` entry, which D-093 requires in every policy that pairs a
+nonempty classifier with a non-force-full rule and which the template ships
+to every installing repository. D-107 measured the gap: with every rule
+approved, `tools/scripts/build.py`, `packages/app/scripts/migrate.py`,
+`docs/scripts/render.py`, `ci/scripts/release.py`, and
+`src/scripts/__init__.py` in an installing repository routed as
+verification authority at Level 3 with `force_full`, wider than the
+statement. Round twenty measured the owner's three options, and the owner
+chose option 2 in the SLICE-001 walkthrough on 2026-09-02, as the named
+follow-up under its Question 6.
+
+Decision:
+The canonical scripts entry becomes two: `anti-dark-code/scripts/*.py`, the
+source spelling, and `**/anti-dark-code/scripts/*.py`, every installed
+spelling. The shipped template and this repository's installed policy carry
+both as verification authority. The cheap `**/scripts/*.py` product entry
+stays, because it is what returns a consumer's nested scripts to the product
+route. Measured after the change with every rule approved: every shipped
+script forces full in the source spelling and under each of the four
+installed prefixes, the five consumer paths route as product code at Level
+2, and a root-level `scripts/deploy.py` stays unmapped and full. M100 is
+re-anchored to the source entry; M115 widens the installed entry back to
+`**/scripts/*.py`; M116 narrows it to one host layout.
+
+Because:
+A universal contract should say what it does. D-100's statement was the
+right boundary; its implementation reached directories D-100 never named,
+and the cost fell on every installing repository.
+
+Consequences:
+An installing repository's own `scripts/*.py` files are product code unless
+its policy says otherwise. A copy of the skill installed under a directory
+not named `anti-dark-code` is outside both spellings; the installer never
+writes one and the self-grading guard does not probe one, so this narrows
+nothing the guard proves. Two nuances the round-twenty-one challenger
+measured: a consumer file named `adc.py` or `adc_receipt.py` under any
+`scripts/` directory is still forced full by the template's two older
+name-based entries, and a file nested below `anti-dark-code/scripts/` is
+authority because `fnmatch` lets `*` cross a slash, which is wider than
+"directly under" and fail-closed. A case variant of the directory name was
+the real hole, and D-119 closes it. This is a router change, so under D-116
+it gets one verifying round, round twenty-one, after which the line stops
+again.
+
+Revisit when:
+The installer gains a configurable directory name, or a second shipped
+scripts directory appears.
+
+## D-119: A case variant of an authority path routes as a collision with it
+
+Date: 2026-09-02
+Status: Amended by D-120
+Area: R-040, D-093, D-116, D-118, `build_route`, `build_candidate_route`,
+M118
+
+Context:
+R-040 makes path classification case-sensitive without rewriting literal
+characters, so an upper-cased spelling of an authority path falls through
+the classifier. Before D-118 that cost nothing, because the wide
+`**/scripts/*.py` entry made `ANTI-DARK-CODE/scripts/adc_route.py`
+authority anyway. D-118's entries name the directory, so the round-twenty-one
+challenger measured that variant, and `.agents/skills/ANTI-DARK-CODE/...`,
+matching only the cheap `**/scripts/*.py` product entry and routing as
+Level 2 product code in all 36 change shapes, where the parent commit had
+forced full. With real git it then showed the consequence: a commit carrying
+`ANTI-DARK-CODE/scripts/adc_route.py` with replaced content, the shape a
+commit from a case-sensitive host takes, was graded product code by the
+router, and pulling it onto an NTFS clone wrote the replaced file over the
+genuine `anti-dark-code/scripts/adc_route.py` with `git status` showing the
+genuine path modified. The same shape reaches `.GITATTRIBUTES` and every
+other canonical class.
+
+Decision:
+Both route builders ask, for every fact, whether the path's case-folded
+spelling would match a canonical authority glob that the path itself does
+not match. If so, the route forces full and records
+`ADC-ROUTE-AUTHORITY-CASE-COLLISION`. The classifier is unchanged: no
+character is rewritten and no fact changes, so R-040 stands as written and
+the receipt names the reason. M118 disables the check.
+
+Because:
+A route may never be cheaper for a spelling that a checkout can write over
+the authority the spelling imitates. Folding case in the classifier would
+change every fact on every host; folding it in one escalating check changes
+nothing except that the cheap route is refused.
+
+Consequences:
+A case variant of any canonical authority path takes the full recipe with a
+named reason. Hosts whose filesystems are case-sensitive pay the same,
+because the route is computed before anyone knows where the commit will be
+checked out. A repository that legitimately carries two paths differing only
+in case inside an authority directory is forced full on the variant, which
+is the correct direction.
+
+Revisit when:
+Git gains collision protection the router can read, or the canonical globs
+gain characters whose case folding is not one-to-one.
+
+## D-120: A spelling a checkout can alias to an authority path routes as that authority
+
+Date: 2026-09-02
+Status: Amended by D-121
+Area: R-040, D-118, D-119, `build_route`, `build_candidate_route`, the
+shipped template's name-based entries, M118 to M122
+
+Context:
+D-119 argued from a property, that a route may never be cheaper for a
+spelling a checkout can write over the authority it imitates, and
+implemented a narrower rule: case folding against the canonical globs. A
+second fresh-context challenger at `5872e92` measured the gap. On a volume
+that generates NTFS short names, `ANTI-D~1/scripts/adc_route.py` is an alias
+of `anti-dark-code/scripts/`, routed as Level 2 product code with no code,
+and `git reset --hard` or `git checkout -f` of a commit carrying it wrote the
+replaced router over the genuine file; git's own refusal message for the
+pull points a developer at exactly those commands. `tools/scripts/ADC.py`
+routed as product code while the template's `**/scripts/adc.py` entry makes
+`tools/scripts/adc.py` verification authority, and a plain pull overwrote
+it, because the check read only the canonical globs. A trailing-dot
+component resolves to the genuine directory on NTFS; git for Windows from
+2.24.1 refuses it, and the router cannot know the checkout's git. Two of
+the challenger's own mutants survived: the candidate-side check disabled,
+under which the shadow record read the router-replacing commit as a cheap
+candidate that omitted three gates; and `lower()` for `casefold()`, because
+every test variant was ASCII.
+
+Decision:
+The fold set is the canonical globs, every classifier entry the loaded
+policy declares with effect `verification-authority`, and the path globs of
+every force-full rule. The spelling key strips format characters, applies
+NFKC normalization, and case-folds, so fullwidth letters, ligatures, the
+long s, and zero-width joiners fold with case. A component shaped like an
+NTFS short name, or ending in a dot or a space, is an ambiguous spelling:
+the route forces full with `ADC-ROUTE-AMBIGUOUS-SPELLING`, because the
+router cannot resolve what such a component aliases. Both route builders
+apply both checks. The test holds ten collision spellings, five ambiguous
+ones, and both builders; M118 is re-anchored, M119 disables the candidate
+side, M120 the ambiguity rule, M121 the policy-declared globs, and M122 the
+normalization.
+
+Because:
+The property is the decision, and the implementation must reach every
+spelling the property names that the router can recognize. What it cannot
+recognize, aliasing rules of filesystems it has not measured, stays a
+recorded limit rather than an implied guarantee.
+
+Consequences:
+Consumer paths that fold onto an authority glob now force full: a
+`docs/skill.md`, a `References/` directory, a `Verification-Capabilities.json`,
+a directory named `Anti-Dark-Code`, and any component shaped like `ANTI-D~1`
+or ending in a dot or space. All movement is toward the full recipe and each
+receipt names the reason. Aliasing the router does not model, APFS and HFS+
+ignorable code points beyond the format category, ext4 casefold directories,
+and git older than 2.24.1, is recorded in the round's handoff as the
+owner's environment under D-116, not as a guarantee.
+
+Revisit when:
+A filesystem alias the router does not model is measured on a host this
+repository targets, or git gains collision protection the router can read.
+
+## D-121: The fold set is every approved requirement, keyed once per route
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-022, D-120, `_authority_globs`, `_authority_spelling_collision`,
+M123 to M126
+
+Context:
+A third fresh-context challenger attacked D-120 at `38cdff8`. On NTFS it
+upheld the rule with real git: every spelling git wrote over a genuine
+authority file was forced full with a code, every spelling that routed
+cheap was refused by git or written as a distinct name, and a sweep of the
+Basic Multilingual Plane found no code point NTFS equates to an ASCII
+letter. It found the fold set narrower than D-120's property in one
+direction and wider in another. An approved rule with `paths` that raises
+the level, adds passes or obligations, or requires review without forcing
+full was outside the set, so `Secrets/notes.md` routed at Level 0 without
+review while `secrets/notes.md` was Level 3 with it. A proposed force-full
+rule's paths were inside it, so an unreviewed rule changed routes, against
+D-022. Three of its own mutants survived: the short-name pattern restricted
+to upper case, under which real git wrote `anti-d~1/scripts/adc_route.py`
+over the router; force-full rule paths dropped from the set, which no test
+built a policy to notice; and the glob compared unfolded, under which
+`docs/skill.md` routed as prose while `docs/SKILL.md` is skill policy. It
+also measured the check at three times the parent's cost for a 5,000-fact
+route, because every glob's key was recomputed for every fact.
+
+Decision:
+The fold set is the canonical globs, every classifier entry the loaded
+policy declares as verification authority, and the path globs of every
+approved rule that requires anything beyond the empty route; a proposed
+rule contributes nothing. Each glob's spelling key is computed once per
+route. The test adds the lower-case short name, four lower-case spellings
+of upper-case globs, and a policy with an approved review-requiring path
+rule beside its proposed twin. M123 lets proposed rules in, M124 keeps only
+force-full rules, M125 compares the glob unfolded, and M126 restricts the
+short-name pattern to upper case.
+
+Because:
+A requirement a reviewed rule attaches to a path is what a spelling
+collision must not undercut, whether or not that requirement is the full
+recipe; and a rule nobody has reviewed must not route anything, in either
+direction.
+
+Consequences:
+An approved path rule now protects its paths' case variants as it protects
+the paths. The receipt path cannot isolate a collision in this repository
+by itself, because every written receipt also carries the run store's own
+untracked `.gitignore` as an unmapped fact and is full for that reason
+alone; that is the repository's ignore file, recorded for the owner, not
+the router. What the router does not model, ext4 casefold directories'
+default-ignorable code points outside the format category and macOS
+filesystems no host here can measure, stays a limit under D-116.
+
+Revisit when:
+A rule gains a requirement kind the empty-route comparison does not see, or
+a host this repository targets measures an alias the key does not fold.

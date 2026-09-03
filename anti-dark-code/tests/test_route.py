@@ -5151,7 +5151,10 @@ class SelfGradingAuthorityTests(unittest.TestCase):
 
     def test_shipped_policy_matches_the_canonical_authority_class_contract(self) -> None:
         expected = (
-            ("shipped script controls", "**/scripts/*.py",
+            ("shipped script controls, source", "anti-dark-code/scripts/*.py",
+             "product", "verification-authority", "repository", "normal"),
+            ("shipped script controls, installed",
+             "**/anti-dark-code/scripts/*.py",
              "product", "verification-authority", "repository", "normal"),
             ("tests and shared fixtures", "**/tests/*.py", "tests",
              "verification-authority", "repository", "normal"),
@@ -5268,7 +5271,11 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("**/scripts/*.py", str(caught.exception))
+        # The label, not the bare glob: the source glob is a substring of the
+        # installed one, so the bare glob could not tell the halves apart.
+        message = str(caught.exception)
+        self.assertIn("shipped script controls, source (anti-dark-code/scripts/*.py)", message)
+        self.assertIn("shipped script controls, installed (**/anti-dark-code/scripts/*.py)", message)
 
     def test_one_authority_reference_cannot_cover_two_cheap_ones(self) -> None:
         data = json.loads(json.dumps(self.policy_source))
@@ -5296,13 +5303,31 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # the installed router as ordinary code.
         data = json.loads(json.dumps(self.policy_source))
         for entry in data["classifier"]["surfaces"]:
-            if entry.get("glob") == "**/scripts/*.py":
+            if entry.get("glob") in ("anti-dark-code/scripts/*.py",
+                                     "**/anti-dark-code/scripts/*.py"):
                 entry["glob"] = "anti-dark-code/scripts/adc_route.py"
         with self.assertRaises(self.route.PolicyError) as caught:
             self.route.load_policy(
                 data, self.gates_source, sorted(CAPABILITY_IDS),
                 self.gates_source["canonical_full_set"])
-        self.assertIn("**/scripts/*.py", str(caught.exception))
+        self.assertIn("**/anti-dark-code/scripts/*.py", str(caught.exception))
+
+    def test_installed_only_authority_cannot_hide_the_source_router(self) -> None:
+        # D-118, the twin of the test above for the source half. The
+        # round-twenty-one challenger found a mutant that stopped the contract
+        # requiring the source entry surviving the whole suite: with only the
+        # installed entry required, the D-093 exact-representative policy
+        # loaded and routed work_receipt.py and adc_efficiency.py as Level 2.
+        data = json.loads(json.dumps(self.policy_source))
+        for entry in data["classifier"]["surfaces"]:
+            if entry.get("glob") == "anti-dark-code/scripts/*.py":
+                entry["glob"] = "anti-dark-code/scripts/adc_route.py"
+        with self.assertRaises(self.route.PolicyError) as caught:
+            self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+        self.assertIn("shipped script controls, source (anti-dark-code/scripts/*.py)",
+                      str(caught.exception))
 
     def test_a_cheap_rule_that_fires_on_authority_is_refused(self) -> None:
         # The classifier is untouched here, so a guard that checked only the
@@ -5519,10 +5544,11 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.assertTrue(self._route_for(path, policy).force_full, path)
 
     def test_every_shipped_script_is_authority_by_location(self) -> None:
-        """D-100. Dynamic loader spellings cannot escape the script boundary."""
+        """D-100, amended by D-118. Dynamic loader spellings cannot escape the script boundary."""
         scripts = SKILL_ROOT / "scripts"
-        self.assertIn("**/scripts/*.py",
-                      {glob for _, glob, *_ in self.route.AUTHORITY_CLASSIFIERS})
+        globs = {glob for _, glob, *_ in self.route.AUTHORITY_CLASSIFIERS}
+        self.assertIn("anti-dark-code/scripts/*.py", globs)
+        self.assertIn("**/anti-dark-code/scripts/*.py", globs)
         policy = self._approved_policy()
         demoted = []
         for script in sorted(scripts.glob("*.py")):
@@ -5530,6 +5556,162 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             if not self._route_for(path, policy).force_full:
                 demoted.append(path)
         self.assertEqual([], demoted, "; ".join(demoted))
+
+    def test_nested_consumer_scripts_are_product_code_and_shipped_scripts_are_authority(self) -> None:
+        """D-118. The canonical scripts entry names the shipped skill's own directory.
+
+        Measured before D-118 with every rule approved: tools/scripts/build.py,
+        packages/app/scripts/migrate.py, docs/scripts/render.py,
+        ci/scripts/release.py, and src/scripts/__init__.py in an installing
+        repository routed as verification authority at Level 3 with
+        force_full under the `**/scripts/*.py` entry, wider than D-100's
+        statement (D-107). The cheap `**/scripts/*.py` product entry is what
+        returns them to the product route; removing it leaves them unmapped
+        and full, which is safe and was not the owner's choice.
+        """
+        policy = self._approved_policy()
+        consumer = ("tools/scripts/build.py", "packages/app/scripts/migrate.py",
+                    "docs/scripts/render.py", "ci/scripts/release.py",
+                    "src/scripts/__init__.py")
+        widened = [path for path in consumer
+                   if self._route_for(path, policy).force_full]
+        self.assertEqual([], widened, "; ".join(widened))
+        for path in consumer:
+            self.assertEqual(2, self._route_for(path, policy).minimum_level, path)
+        # A root-level scripts directory matches nothing and forces full, as
+        # it did before D-118.
+        self.assertTrue(self._route_for("scripts/deploy.py", policy).force_full)
+        demoted = []
+        for script in sorted((SKILL_ROOT / "scripts").glob("*.py")):
+            source = script.relative_to(REPO_ROOT).as_posix()
+            spellings = (source, *(f"{prefix}{source}"
+                                   for prefix in self.route.INSTALLED_SKILL_PREFIXES))
+            for path in spellings:
+                if not self._route_for(path, policy).force_full:
+                    demoted.append(path)
+        self.assertEqual([], demoted, "; ".join(demoted))
+
+    def test_a_case_variant_of_an_authority_path_forces_full(self) -> None:
+        """D-119. Classification stays case-sensitive (R-040); the route never gets cheaper.
+
+        Measured at 6930274 by the round-twenty-one challenger, with every
+        rule approved: ANTI-DARK-CODE/scripts/adc_route.py matched the cheap
+        **/scripts/*.py product entry and neither D-118 authority glob, so it
+        routed as Level 2 product code, where the old wide entry had made it
+        authority. With real git, a commit carrying that path from a
+        case-sensitive host was graded product code and, pulled onto an NTFS
+        clone, replaced the genuine router on disk.
+        """
+        policy = self._approved_policy()
+
+        def facts_for(path):
+            snapshot = self.route.ChangeSnapshot(
+                inputs=(self.route.ChangeInput(
+                    path=path, change_kind="modify", source="unstaged"),),
+                base="HEAD", base_resolved=True, problems=())
+            return self.route.collect_change_facts(snapshot, policy.classifier_map())
+
+        # D-120 widened the fold: policy-declared authority (the template's
+        # `**/scripts/adc.py`), Unicode compatibility forms, and format
+        # characters, after the second challenger measured
+        # tools/scripts/ADC.py routing cheap and a `lower()` mutant surviving.
+        collisions = ("ANTI-DARK-CODE/scripts/adc_route.py",
+                      "Anti-Dark-Code/scripts/work_receipt.py",
+                      ".agents/skills/ANTI-DARK-CODE/scripts/adc_route.py",
+                      "ANTI-DARK-CODE/scripts/new_tool.py",
+                      ".GITATTRIBUTES",
+                      "anti-dark-code/TESTS/test_route.py",
+                      "tools/scripts/ADC.py",
+                      "anti-dark-code/ſcripts/adc_route.py",
+                      "ａnti-dark-code/scripts/adc_route.py",
+                      "anti‌-dark-code/scripts/adc_route.py",
+                      # D-121: the glob's own case is folded too, or these
+                      # lower-case spellings of upper-case globs escape.
+                      "docs/skill.md",
+                      ".github/codeowners",
+                      "anti-dark-code/source-scope.json",
+                      "app/aßets/verification-capabilities.json")
+        for path in collisions:
+            facts = facts_for(path)
+            # R-040: the classifier never folds case, so no fact is authority.
+            self.assertFalse(
+                any(fact.effect == "verification-authority" for fact in facts), path)
+            route = self.route.build_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(route.force_full, path)
+            self.assertIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", route.unknowns, path)
+            candidate = self.route.build_candidate_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(candidate.force_full, path)
+            # The full recipe's passes are all present; a rule that also
+            # fires, such as docs-only on docs/skill.md, may add its own.
+            self.assertTrue(policy.full_recipe.passes <= candidate.passes, path)
+        # D-120: a component shaped like an NTFS short name aliases any
+        # directory on a volume that generates them, and a trailing dot or
+        # space is stripped by NTFS; the router cannot resolve either, so
+        # the spelling is ambiguous and forces full with its own code.
+        ambiguous = ("ANTI-D~1/scripts/adc_route.py",
+                     "anti-d~1/scripts/adc_route.py",
+                     "AGENTS~1/skills/anti-dark-code/scripts/adc_route.py",
+                     "anti-dark-code./scripts/adc_route.py",
+                     "anti-dark-code /scripts/adc_route.py",
+                     "tools/scripts/build.py.")
+        for path in ambiguous:
+            facts = facts_for(path)
+            route = self.route.build_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(route.force_full, path)
+            self.assertIn("ADC-ROUTE-AMBIGUOUS-SPELLING", route.unknowns, path)
+            candidate = self.route.build_candidate_route(facts, policy, snapshot_ok=True)
+            self.assertTrue(candidate.force_full, path)
+        # The genuine spellings are authority without either code, and an
+        # ordinary consumer script is neither, in both builders.
+        for path in ("anti-dark-code/scripts/adc_route.py", "tools/scripts/adc.py"):
+            genuine = self._route_for(path, policy)
+            self.assertTrue(genuine.force_full, path)
+            self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", genuine.unknowns, path)
+            self.assertNotIn("ADC-ROUTE-AMBIGUOUS-SPELLING", genuine.unknowns, path)
+        consumer_facts = facts_for("tools/scripts/build.py")
+        consumer = self.route.build_route(consumer_facts, policy, snapshot_ok=True)
+        self.assertFalse(consumer.force_full)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", consumer.unknowns)
+        self.assertNotIn("ADC-ROUTE-AMBIGUOUS-SPELLING", consumer.unknowns)
+        self.assertFalse(self.route.build_candidate_route(
+            consumer_facts, policy, snapshot_ok=True).force_full)
+
+    def test_an_approved_path_rule_protects_its_case_variants(self) -> None:
+        """D-121. A requirement a reviewed rule attaches to a path is what a
+        spelling collision must not undercut; a proposed rule attaches none.
+
+        Measured by the third round-twenty-one challenger at 38cdff8: with an
+        approved secrets/** rule raising the level and requiring review
+        without force_full, Secrets/notes.md routed at Level 0 without review
+        while secrets/notes.md was Level 3 with it; and a proposed force-full
+        rule's paths changed routes through the fold set, against D-022.
+        """
+        def policy_with(review_status, **requires):
+            data = json.loads(json.dumps(self.policy_source))
+            for rule in data["rules"]:
+                rule["review_status"] = "approved"
+            data["rules"].append({
+                "id": "sensitive", "review_status": review_status,
+                "match": {"paths": ["secrets/**"]},
+                "requires": {"minimum_level": 3, "passes": ["07", "14"], **requires},
+                "obligations": {"V09": ["validate-core"]}})
+            return self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+
+        approved = policy_with("approved", independent_review=True)
+        genuine = self._route_for("secrets/notes.md", approved)
+        self.assertTrue(genuine.independent_review)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", genuine.unknowns)
+        for path in ("Secrets/notes.md", "SECRETS/scripts/rotate.py"):
+            variant = self._route_for(path, approved)
+            self.assertTrue(variant.force_full, path)
+            self.assertIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", variant.unknowns, path)
+        # A proposed rule never matches (D-022), so it protects nothing, even
+        # one that would force full if it were approved.
+        proposed = policy_with("proposed", force_full=True)
+        variant = self._route_for("Secrets/notes.md", proposed)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", variant.unknowns)
 
 
 class SubmoduleContractTests(unittest.TestCase):

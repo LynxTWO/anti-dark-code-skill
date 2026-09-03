@@ -15,7 +15,7 @@ git log -1 --format="%h %s"
 git status --short
 ```
 
-Start from a fresh clone of `claude/round-twenty-verify`. The variable freezes
+Start from a fresh clone of `claude/round-twenty-one-verify`. The variable freezes
 the head that supplied this walkthrough, and `--detach` keeps every later
 command on that exact commit. Do not fetch or switch to a newer commit during
 the walkthrough.
@@ -124,13 +124,16 @@ python -c "import json,pathlib; rows=json.loads(pathlib.Path('design/routing/mut
 Expected:
 
 ```text
-rows 114 | active 108 | recorded on both hosts 108
+rows 126 | active 120 | recorded on both hosts 120
 awaiting host records: []
 ```
 
-Every record on both hosts was refreshed by Round Twenty's two full serial
-writes at `0ace58f`, one on Windows and one on WSL2 Ubuntu, so each
+Every record on both hosts was refreshed by Round Twenty-One's two full serial
+writes at `fe350e9`, one on Windows and one on WSL2 Ubuntu, so each
 carries exact failed and skipped test identities from one commit (D-109).
+M100 was re-anchored and M115 and M116 added under D-118, M117 and M118
+under D-119, M119 to M122 under D-120, and M123 to M126 under D-121; all
+thirteen have records from both hosts.
 M37, M46, and M48 are `caught elsewhere`: Windows skipped the exact test
 that failed for each mutant on Linux. M08 and M92 are two of six superseded
 rows: D-113 records why M114 replaces M08, whose catch on three hosts was
@@ -151,7 +154,7 @@ Expected: execution commit `4b24122a6051109461d4d82826af34a6a84fca68`, summary `
 
 ```powershell
 python -c "import hashlib,json,pathlib,subprocess; d=json.loads(pathlib.Path('design/routing/SERIAL-EVIDENCE-ROUND-EIGHTEEN.json').read_text()); x=d['t540p_full_write_replay']; h=hashlib.sha256(subprocess.run(['git','cat-file','blob','08d0576f1bd50a0d302bb6ac3d953733bed65899:design/routing/mutants/matrix.json'],capture_output=True,check=True).stdout).hexdigest(); print('round-eighteen matrix blob matches its artifact =', h==x['final_annotated_matrix_sha256']); print('execution commit =', d['linux_execution_commit']); print('rows/completed/superseded =', x['rows'], x['completed'], x['superseded']); print('not caught =', x['not_caught']); print('M97-M99 =', x['m97_m99']); print('boundaries =', d['boundaries'])"
-gh pr checks claude/round-twenty-verify
+gh pr checks claude/round-twenty-one-verify
 ```
 
 Expected from the first command: `True`, execution commit
@@ -188,6 +191,21 @@ writes ran in separate clean clones on two hosts and were merged per platform;
 the Windows parallel replay at the same head is read-only evidence that
 agrees with the Windows write row for row.
 
+```powershell
+python -c "import hashlib,json,pathlib,subprocess; d=json.loads(pathlib.Path('design/routing/SERIAL-EVIDENCE-ROUND-TWENTY-ONE.json').read_text()); w=d['windows_serial_write']; l=d['linux_serial_write']; m=d['merge']; h=hashlib.sha256(subprocess.run(['git','cat-file','blob','1322eb1e721bdf938330c651511e96789d6a450a:design/routing/mutants/matrix.json'],capture_output=True,check=True).stdout).hexdigest(); print('implementation_commit =', d['implementation_commit']); print('reopened_under =', d['reopened_under']); print('windows =', w['summary'], '|', w['report_sha256']); print('linux =', l['summary'], '|', l['report_sha256']); print('both hosts =', m['active_rows_recorded_on_both_hosts'], 'of', m['active_rows'], '| exact ids =', m['every_record_carries_exact_ids']); print('matrix blob at the evidence commit matches the merged write =', h == m['matrix_sha256_after']); print('D-116 condition 1 =', d['stopping_rule_condition_one']); print('boundaries =', d['boundaries'])"
+```
+
+Expected: implementation commit `fe350e92ce4082f6c4c57813d37bead32cac2367`, reopened under
+D-116 condition (c) for D-118, Windows
+`118 mutants, 0 not caught: none` with report SHA-256
+`TBD_SW_SHA`, Linux
+`118 mutants, 0 not caught: none` with report SHA-256
+`13c4c3a6dbdcf2018d1d43d285bf5b1225e8efa020bddbcfe3b74d1ebd9ca060`, `120 of 120` with exact ids
+`True`, `True` for the matrix blob at `1322eb1`, the commit that carried the
+merge, condition 1 of D-116 holding at the implementation commit, and boundaries
+with every flag `False` except the Linux refresh and the statement that
+SLICE-001 was marked Done by the owner before this round.
+
 **Do not run `design/routing/mutants/replay.py` here.** It rewrites tracked source files and restores them; a replay belongs in a disposable clone.
 
 Read the two qualifications you are being asked to accept, rather than taking this document's word for them:
@@ -201,10 +219,10 @@ The first prints D-080, which withdraws the claim that every historical commit s
 
 > **Question 3.** Are those two qualifications the honest boundary — platform coverage named to the run that proves it rather than claimed for every commit, and the historical per-change claim withdrawn rather than ticked? **yes**
 
-## 5. Read the decisions Rounds Sixteen through Twenty verified or amended (8 minutes)
+## 5. Read the decisions Rounds Sixteen through Twenty-One verified or amended (8 minutes)
 
 ```powershell
-python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094','D-095','D-096','D-097','D-098','D-099','D-100','D-101','D-102','D-103','D-104','D-105','D-106','D-107','D-108','D-109','D-110','D-111','D-112','D-113','D-114','D-115','D-116','D-117')]"
+python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').read_text(encoding='utf-8'); [print(re.search(r'## '+d+r'.*?(?=\n## D-|\Z)', t, re.S).group(0)) for d in ('D-085','D-086','D-087','D-088','D-089','D-090','D-091','D-092','D-093','D-094','D-095','D-096','D-097','D-098','D-099','D-100','D-101','D-102','D-103','D-104','D-105','D-106','D-107','D-108','D-109','D-110','D-111','D-112','D-113','D-114','D-115','D-116','D-117','D-118','D-119','D-120','D-121')]"
 ```
 
 - **D-085** stops repository code executing during acquisition. A content filter whose name contains `=` escaped the neutralization and ran; the neutralization is now verified against effective configuration instead of assumed.
@@ -227,7 +245,7 @@ python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').r
 - **D-104** requires an exact skipped-node and failed-node intersection before another host can carry a skipped survivor.
 - **D-105** closes the two layers beneath D-101: the interpreter's user site, where a caller's `PYTHONUSERBASE` executed code inside a worker, and pytest's configuration search, where an ancestor `pytest.ini` reached a worker. Every suite run now disables the user site and pins an empty run-owned configuration file.
 - **D-106** applies D-102's renderer to the serial console, which had printed a forged replay line from a broken suite's text.
-- **D-107** is yours to decide: D-100's canonical entry forces the full route for every nested `scripts/*.py` in any installing repository, wider than its own statement. Three options are recorded.
+- **D-107** was yours to decide, and you chose option 2 in this walkthrough on 2026-09-02; D-118 implements it.
 - **D-108** makes this walkthrough's Round Eighteen check hash the committed blob; hashing the checkout failed on a default Windows clone.
 - **D-109** records that 91 Windows records predated D-100 through D-104 and refreshes every Windows record from a full serial write at this round's implementation head.
 - **D-110** landed in round twenty: a row no host caught is `SURVIVED` under skips, with the skipped tests named, and the `unverified` label is retired.
@@ -238,6 +256,10 @@ python -c "import pathlib,re; t=pathlib.Path('design/routing/DECISION-LOG.md').r
 - **D-115** amends D-106: every console field that comes from `matrix.json` passes through the renderer, after a row name forged a coloured summary line.
 - **D-116** is yours to decide: the stopping rule for the harness line. It names three conditions at one commit under which no further agent round opens, and what reopens the line. This round's evidence says whether they hold at its head.
 - **D-117** makes a contract assertion install the state the harness must replace before asserting. The suite runs inside the harness under replay, so the `PYTHONNOUSERSITE` assertion passed on the inherited value and M107 survived on WSL2 at `2f86f14` while Windows caught it, which is D-116's first reopen condition observed in the round that proposed it.
+- **D-118** narrows the canonical scripts authority entry to the shipped skill's own directory in both spellings, `anti-dark-code/scripts/*.py` and `**/anti-dark-code/scripts/*.py`, after D-107 measured `**/scripts/*.py` reaching every nested scripts directory of an installing repository. Every shipped script still forces full in every layout; a consumer's nested scripts route as product code. This is the router change that opened round twenty-one under D-116.
+- **D-119** routes a case variant of any authority path, such as `ANTI-DARK-CODE/scripts/adc_route.py`, as a collision that forces full with `ADC-ROUTE-AUTHORITY-CASE-COLLISION`, after the round-twenty-one challenger showed such a commit graded as product code and, pulled onto a case-insensitive checkout, replacing the router on disk. The classifier stays case-sensitive as R-040 states.
+- **D-120** widens D-119 to the property it argued from, after a second challenger showed an NTFS short-name component such as `ANTI-D~1` aliasing the genuine directory under `git reset --hard`, and a case variant of the template's own `**/scripts/adc.py` entry routing cheap: the fold set now includes the policy's authority entries and force-full rule paths, normalizes Unicode compatibility forms, and treats short-name, trailing-dot, and trailing-space components as ambiguous spellings that force full with `ADC-ROUTE-AMBIGUOUS-SPELLING`. Aliasing the router does not model is recorded as your environment under D-116.
+- **D-121** makes the fold set every approved rule's paths that require anything beyond the empty route, so a case variant of a path a reviewed rule protects with a level or a review cannot undercut it, excludes proposed rules per D-022, and folds each glob once per route, after a third challenger upheld D-120 on NTFS with real git and found those two edges and the cost.
 
 > **Question 4.** D-085 refuses to compare the worktree at all when a filter cannot be neutralized, so such a repository always takes the full recipe. Is refusing the right trade against executing its code? **yes**
 >

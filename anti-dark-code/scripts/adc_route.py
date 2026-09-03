@@ -24,6 +24,7 @@ import re
 import os
 import stat as stat_module
 import subprocess
+import unicodedata
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from pathlib import Path
@@ -959,7 +960,12 @@ def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
 # separate, exact classifier contract prevents replacing a class entry with a
 # protected representative plus cheap exact exceptions.  See D-093.
 AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
-    ("shipped script controls", "**/scripts/*.py",
+    # D-118: the shipped skill's own scripts, in the source spelling and in
+    # every installed spelling. The earlier `**/scripts/*.py` entry reached
+    # every nested scripts directory of an installing repository (D-107).
+    ("shipped script controls, source", "anti-dark-code/scripts/*.py",
+     "product", "verification-authority", "repository", "normal"),
+    ("shipped script controls, installed", "**/anti-dark-code/scripts/*.py",
      "product", "verification-authority", "repository", "normal"),
     ("tests and shared fixtures", "**/tests/*.py", "tests",
      "verification-authority", "repository", "normal"),
@@ -1018,6 +1024,93 @@ AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
     ("nested tox.ini", "**/tox.ini", "schema", "verification-authority",
      "repository", "normal"),
 )
+
+
+# NTFS generates a short name for every long component on a volume with 8.3
+# names on, so `ANTI-D~1` aliases `anti-dark-code` there, and NTFS strips a
+# trailing dot or space from a component. The router cannot resolve either
+# from a path alone. See D-120.
+_SHORT_NAME_COMPONENT = re.compile(r"^[^./]{1,6}~[0-9]+(\.[^./]{1,3})?$")
+
+
+def _spelling_key(text: str) -> str:
+    """The spelling a case- and normalization-insensitive checkout compares.
+
+    Format characters such as zero-width joiners are dropped, compatibility
+    forms such as fullwidth letters and ligatures are normalized, and case
+    is folded, so `ａnti-dark-code`, `anti-dark-code/ſcripts`, and
+    `ANTI-DARK-CODE` all key to the genuine spelling. See D-119 and D-120.
+    """
+    stripped = "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
+    return unicodedata.normalize("NFKC", stripped).casefold()
+
+
+def _ambiguous_component(path: str) -> bool:
+    """Whether any component is an NTFS short name or ends in a dot or space."""
+    for component in path.split("/"):
+        if component.endswith((".", " ")) or _SHORT_NAME_COMPONENT.match(component):
+            return True
+    return False
+
+
+def _authority_globs(policy: "ValidatedPolicy") -> tuple[tuple[str, str], ...]:
+    """Every glob a collision must not be cheaper than, with its spelling key.
+
+    The canonical classes, every classifier entry the loaded policy declares
+    as verification authority, and the path globs of every approved rule that
+    requires anything beyond the empty route: a level, a pass, an obligation,
+    independent review, or the full recipe. A proposed rule never matches
+    (D-022), so its paths are not authority. The template's name-based
+    `**/scripts/adc.py` is the measured case for the classifier half, and an
+    approved `secrets/**` rule that raised the level and required review
+    without forcing full is the measured case for the rule half:
+    `Secrets/notes.md` routed at Level 0 without review while
+    `secrets/notes.md` was Level 3 with it. See D-120 and D-121.
+    """
+    globs = [glob for _label, glob, *_ in AUTHORITY_CLASSIFIERS]
+    for entry in policy.classifier_map().get("surfaces", []):
+        if entry.get("effect") == "verification-authority" and entry.get("glob"):
+            globs.append(str(entry["glob"]))
+    for rule in policy.rules:
+        if not rule.approved:
+            continue
+        if (rule.force_full or rule.minimum_level or rule.passes
+                or rule.obligation_map() or rule.independent_review):
+            globs.extend(str(glob) for glob in rule.match_map().get("paths", ()))
+    # The key is folded once per route, not once per fact: the third
+    # round-twenty-one challenger measured 165,000 key computations for a
+    # 5,000-fact route, three times the parent's cost.
+    return tuple((glob, _spelling_key(glob)) for glob in dict.fromkeys(globs))
+
+
+def _authority_spelling_collision(
+    path: str, authority_globs: Sequence[tuple[str, str]]
+) -> str | None:
+    """The unknown code a spelling collision earns, or None.
+
+    D-119 and D-120. Classification is case-sensitive and stays so (R-040):
+    the router never rewrites a path and no fact changes. But a
+    case-insensitive checkout writes `ANTI-DARK-CODE/scripts/adc_route.py`
+    over the genuine router, a volume with 8.3 names resolves `ANTI-D~1` to
+    the same directory, and the D-118 authority globs name the directory, so
+    such spellings matched only the cheap `**/scripts/*.py` product entry and
+    routed as Level 2 product code. Measured with real git: commits carrying
+    them, the shape a commit from a case-sensitive host takes, were graded
+    product code and, pulled or reset onto an NTFS clone, replaced the router
+    on disk. A path whose spelling key would match an authority glob that the
+    path itself does not match is a collision with that authority, and a
+    path with an ambiguous component is one the router cannot resolve at all;
+    either forces full and names the reason.
+    """
+    if _ambiguous_component(path):
+        return "ADC-ROUTE-AMBIGUOUS-SPELLING"
+    key = _spelling_key(path)
+    for glob, glob_key in authority_globs:
+        if fnmatch.fnmatchcase(path, glob):
+            continue
+        if fnmatch.fnmatchcase(key, glob_key):
+            return "ADC-ROUTE-AUTHORITY-CASE-COLLISION"
+    return None
 
 
 def _check_authority_classifier_contract(
@@ -1343,6 +1436,7 @@ def build_route(
         unknowns.add("ADC-ROUTE-SNAPSHOT-INCOMPLETE")
 
     rules = [rule for rule in policy.rules if rule.approved]
+    authority_globs = _authority_globs(policy)
 
     for fact in facts:
         if fact.confidence == "unknown":
@@ -1350,6 +1444,14 @@ def build_route(
             # has not been earned.
             unmapped.add(fact.path)
             unknowns.add("ADC-ROUTE-UNMAPPED-PATH")
+            force_full = True
+        collision = _authority_spelling_collision(fact.path, authority_globs)
+        if collision is not None:
+            # D-119 and D-120: a spelling a checkout can alias to an
+            # authority path is routed as a collision with that authority.
+            # The facts stay as classified; only the route escalates, and
+            # the receipt names why.
+            unknowns.add(collision)
             force_full = True
         fired = False
         for rule in rules:
@@ -1419,9 +1521,15 @@ def build_candidate_route(
     matched: set[str] = set()
     force_full = False
     considered = {rule.id for rule in policy.rules if not rule.approved}
+    authority_globs = _authority_globs(policy)
 
     for fact in facts:
         if fact.confidence == "unknown":
+            force_full = True
+        collision = _authority_spelling_collision(fact.path, authority_globs)
+        if collision is not None:
+            # Shadow side of D-119 and D-120: a candidate must not measure a
+            # cheaper route for a collision than the real route refuses.
             force_full = True
         fired = False
         for rule in policy.rules:
