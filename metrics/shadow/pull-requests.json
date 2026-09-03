@@ -1,4 +1,54 @@
 {
+  "15": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T20:29:38Z",
+    "title": "Run the suite on Linux, macOS, and Windows"
+  },
+  "16": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T21:34:28Z",
+    "title": "Recover the mutation-harness and fuzz work stranded off main"
+  },
+  "17": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T21:34:43Z",
+    "title": "Give branch protection one stable context instead of five brittle ones"
+  },
+  "18": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T22:25:34Z",
+    "title": "Decode git output as UTF-8, and test where the platform is unhelpful"
+  },
+  "19": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T23:41:39Z",
+    "title": "Judge source dirtiness by what an install actually carries"
+  },
+  "20": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-29T02:15:10Z",
+    "title": "Distill three consuming-repository lessons into the references"
+  },
+  "21": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:15:54Z",
+    "title": "Audit and harden the assurance router through round ten"
+  },
+  "22": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:16:48Z",
+    "title": "Round eleven: close M3 by contract, and repair the M4 plan"
+  },
+  "23": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:17:14Z",
+    "title": "Round thirteen: hold R-018 to its clause, and fix two tests that proved nothing"
+  },
+  "24": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:17:38Z",
+    "title": "Round fourteen: converge SLICE-001 for owner walkthrough"
+  },
   "25": {
     "author": "LynxTWO",
     "merged_at": "2026-09-02T23:18:00Z",

@@ -10,7 +10,13 @@
       "ADC-ROUTE-UNROUTED-FACT"
     ]
   },
-  "base_gate_outcomes": null,
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "unresolved",
+    "mutation-replay": "unresolved",
+    "validate-core": "pass"
+  },
   "base_reconstructed": true,
   "class": {
     "matched_rule_ids": [
@@ -31,30 +37,30 @@
   },
   "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
   "commits": {
-    "base": "08d0576f1bd50a0d302bb6ac3d953733bed65899",
-    "head": "c0b14971e26619e16f568f1478c3b6e469b0767e",
-    "merge": "b1fb71754f6e393db66b0f334f75583e4238b297"
+    "base": "a34dcb46512b7f63f3f07dbc0c87f8224cb3906d",
+    "head": "a5d61d64de637f48e3790d2684f30ac24044f409",
+    "merge": "9361ada4098a540a5dfa50a0e578bb886669bb64"
   },
   "gate_outcomes": {
     "distribution": "pass",
-    "full-suite": "pass",
-    "hostile-environment": "pass",
-    "mutation-replay": "pass",
+    "full-suite": "fail",
+    "hostile-environment": "unresolved",
+    "mutation-replay": "unresolved",
     "validate-core": "pass"
   },
-  "head_ref": "claude/round-nineteen-verify",
+  "head_ref": "recover/mutation-fuzz-stack",
   "inconclusive_reason": null,
-  "measurable": true,
-  "not_measurable_reason": null,
+  "measurable": false,
+  "not_measurable_reason": "gates without a decided outcome: hostile-environment=unresolved, mutation-replay=unresolved",
   "provenance": "backfill",
-  "record_id": "b0f6da62e8d24c8d89d71f0aa0af01f1dfb231a479d63a431e1e6f1cc0794bba",
+  "record_id": "d5e079f3023b86770821e2a51631578c2b3bad7dd2abc2824753c360b877b2eb",
   "run": {
-    "pull_request": 29,
+    "pull_request": 16,
     "run_attempt": 1,
-    "run_id": "33665998028"
+    "run_id": "32597122161"
   },
   "schema": "shadow-record-v2",
   "schema_version": 2,
   "shadow": null,
-  "status": "no_omission"
+  "status": "not_measurable"
 }

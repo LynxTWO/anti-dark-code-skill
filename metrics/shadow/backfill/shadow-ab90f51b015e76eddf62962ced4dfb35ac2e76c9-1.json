@@ -31,9 +31,9 @@
   },
   "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
   "commits": {
-    "base": "08d0576f1bd50a0d302bb6ac3d953733bed65899",
-    "head": "c0b14971e26619e16f568f1478c3b6e469b0767e",
-    "merge": "b1fb71754f6e393db66b0f334f75583e4238b297"
+    "base": "8f46a766a0e088cc4b199f51e3e106a8ff00a4ab",
+    "head": "ab90f51b015e76eddf62962ced4dfb35ac2e76c9",
+    "merge": "93e53962403163b5e900254900efd4bb58feae53"
   },
   "gate_outcomes": {
     "distribution": "pass",
@@ -42,16 +42,16 @@
     "mutation-replay": "pass",
     "validate-core": "pass"
   },
-  "head_ref": "claude/round-nineteen-verify",
+  "head_ref": "claude/round-thirteen-audit",
   "inconclusive_reason": null,
   "measurable": true,
   "not_measurable_reason": null,
   "provenance": "backfill",
-  "record_id": "b0f6da62e8d24c8d89d71f0aa0af01f1dfb231a479d63a431e1e6f1cc0794bba",
+  "record_id": "2c14490a836297a6ea4f26210ffba6f30254512b1c6596208843c2bd0eb4721f",
   "run": {
-    "pull_request": 29,
+    "pull_request": 23,
     "run_attempt": 1,
-    "run_id": "33665998028"
+    "run_id": "33401038643"
   },
   "schema": "shadow-record-v2",
   "schema_version": 2,

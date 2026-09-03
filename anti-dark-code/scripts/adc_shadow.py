@@ -315,8 +315,17 @@ def validate_record(record: Mapping[str, Any]) -> list[str]:
     unknown = sorted(set(record) - set(RECORD_KEYS))
     if unknown:
         errors.append(f"unknown key(s): {', '.join(unknown)}")
-    if not isinstance(record.get("base_reconstructed"), bool):
-        errors.append("base_reconstructed must be present and boolean")
+    if "base_reconstructed" in record:
+        if not isinstance(record.get("base_reconstructed"), bool):
+            errors.append("base_reconstructed must be boolean")
+    elif str(record.get("provenance")) == "backfill":
+        # Required of a backfill, whose base is computed after the fact and
+        # must say so. A record without the key at all predates it, which
+        # only the live and canary records CI wrote before D-128 do, and a
+        # live record's base came from the event payload and was never
+        # reconstructed. Absent is therefore unambiguous for those, and a
+        # silent false for a backfill would be a lie.
+        errors.append("a backfilled record must carry base_reconstructed")
     if record.get("status") not in {
             STATUS_MISS, STATUS_CLEAN, STATUS_INCONCLUSIVE, STATUS_NO_OMISSION,
             STATUS_SELECTS_NOTHING, STATUS_NOT_MEASURABLE}:
@@ -779,11 +788,12 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
     if args.changes:
         changes = json.loads(Path(args.changes).read_text(encoding="utf-8"))
     else:
-        if not args.since:
-            print("REFUSED: --since or --changes is required")
-            return 2
+        # No --since means the whole branch. The window is an option, not a
+        # requirement: making it mandatory is how the first run of this
+        # backfill covered nine of thirty-five pull requests without saying
+        # so, which the implementation challenge found.
         changes = discover_pull_request_runs(
-            repo, args.since, args.branch, workflow_name=args.workflow)
+            repo, args.since or "", args.branch, workflow_name=args.workflow)
     if args.save_changes:
         Path(args.save_changes).write_text(
             json.dumps(changes, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -1293,7 +1303,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--calibration")
     p.add_argument("--map", required=True)
     p.add_argument("--since",
-                   help="Replay pull requests landed after this commit")
+                   help="Replay pull requests landed after this commit; "
+                        "omit for the whole branch, which is the honest default")
     p.add_argument("--branch", default="HEAD")
     p.add_argument("--workflow", default="Tests",
                    help="Workflow name whose runs carry the gates")

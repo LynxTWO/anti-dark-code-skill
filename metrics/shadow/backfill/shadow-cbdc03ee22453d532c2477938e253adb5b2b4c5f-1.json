@@ -10,13 +10,7 @@
       "ADC-ROUTE-UNROUTED-FACT"
     ]
   },
-  "base_gate_outcomes": {
-    "distribution": "pass",
-    "full-suite": "pass",
-    "hostile-environment": "pass",
-    "mutation-replay": "pass",
-    "validate-core": "pass"
-  },
+  "base_gate_outcomes": null,
   "base_reconstructed": true,
   "class": {
     "matched_rule_ids": [
@@ -53,7 +47,7 @@
   "measurable": true,
   "not_measurable_reason": null,
   "provenance": "backfill",
-  "record_id": "6edc85c98441330254d503d08a1168bf109694e0ed9ad84b2cb05ba6318ac37f",
+  "record_id": "e0e0d4dbf442080f55c69d3874cf0e53c22e10776694f63a42e262e97c5d16d8",
   "run": {
     "pull_request": 29,
     "run_attempt": 1,

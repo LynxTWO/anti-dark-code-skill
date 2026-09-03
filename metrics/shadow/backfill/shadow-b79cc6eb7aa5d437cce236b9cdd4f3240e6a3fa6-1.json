@@ -6,16 +6,19 @@
     "route_force_full": true,
     "route_minimum_level": 3,
     "route_unknowns": [
-      "ADC-ROUTE-UNMAPPED-PATH",
       "ADC-ROUTE-UNROUTED-FACT"
     ]
   },
-  "base_gate_outcomes": null,
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "unresolved",
+    "mutation-replay": "unresolved",
+    "validate-core": "pass"
+  },
   "base_reconstructed": true,
   "class": {
     "matched_rule_ids": [
-      "docs-only",
-      "product-code",
       "verification-authority"
     ],
     "omitted_gate_ids": [],
@@ -27,34 +30,34 @@
       "mutation-replay",
       "validate-core"
     ],
-    "terms_sha256": "e83d5401edacd7afa47dc25c2920396dd2fe57d4025fbfdf04dfb4f3b6c212a6"
+    "terms_sha256": "cd74fa9eff3758a87bd34b9bd68071ea43a169404f55782da5a15dfb21688776"
   },
-  "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
+  "class_key": "2cfaf2afc596cfb1a814a0b1bdd5cd26f4ba2061f01f398692de6cd9f5b90cd5",
   "commits": {
-    "base": "08d0576f1bd50a0d302bb6ac3d953733bed65899",
-    "head": "c0b14971e26619e16f568f1478c3b6e469b0767e",
-    "merge": "b1fb71754f6e393db66b0f334f75583e4238b297"
+    "base": "a34dcb46512b7f63f3f07dbc0c87f8224cb3906d",
+    "head": "b79cc6eb7aa5d437cce236b9cdd4f3240e6a3fa6",
+    "merge": "99a3eb08fc93d8fcaee88cb4932be27518517319"
   },
   "gate_outcomes": {
     "distribution": "pass",
     "full-suite": "pass",
-    "hostile-environment": "pass",
-    "mutation-replay": "pass",
+    "hostile-environment": "unresolved",
+    "mutation-replay": "unresolved",
     "validate-core": "pass"
   },
-  "head_ref": "claude/round-nineteen-verify",
+  "head_ref": "ci/single-required-gate",
   "inconclusive_reason": null,
-  "measurable": true,
-  "not_measurable_reason": null,
+  "measurable": false,
+  "not_measurable_reason": "gates without a decided outcome: hostile-environment=unresolved, mutation-replay=unresolved",
   "provenance": "backfill",
-  "record_id": "b0f6da62e8d24c8d89d71f0aa0af01f1dfb231a479d63a431e1e6f1cc0794bba",
+  "record_id": "2f445caf43a00f9715bd7559ad3e3449275f55e75248236d2bb64c40156d0ca7",
   "run": {
-    "pull_request": 29,
+    "pull_request": 17,
     "run_attempt": 1,
-    "run_id": "33665998028"
+    "run_id": "32599710619"
   },
   "schema": "shadow-record-v2",
   "schema_version": 2,
   "shadow": null,
-  "status": "no_omission"
+  "status": "not_measurable"
 }

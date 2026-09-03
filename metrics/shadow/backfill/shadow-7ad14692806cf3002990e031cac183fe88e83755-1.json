@@ -10,7 +10,13 @@
       "ADC-ROUTE-UNROUTED-FACT"
     ]
   },
-  "base_gate_outcomes": null,
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "unresolved",
+    "validate-core": "pass"
+  },
   "base_reconstructed": true,
   "class": {
     "matched_rule_ids": [
@@ -31,30 +37,30 @@
   },
   "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
   "commits": {
-    "base": "08d0576f1bd50a0d302bb6ac3d953733bed65899",
-    "head": "c0b14971e26619e16f568f1478c3b6e469b0767e",
-    "merge": "b1fb71754f6e393db66b0f334f75583e4238b297"
+    "base": "535fa12b2925d9c675acd010e66de246512d6fba",
+    "head": "7ad14692806cf3002990e031cac183fe88e83755",
+    "merge": "9899df5ef5c44d0667a2ba06a6e4a1e1c9947d01"
   },
   "gate_outcomes": {
     "distribution": "pass",
     "full-suite": "pass",
     "hostile-environment": "pass",
-    "mutation-replay": "pass",
+    "mutation-replay": "unresolved",
     "validate-core": "pass"
   },
-  "head_ref": "claude/round-nineteen-verify",
+  "head_ref": "lessons/publication-authorization-runner",
   "inconclusive_reason": null,
-  "measurable": true,
-  "not_measurable_reason": null,
+  "measurable": false,
+  "not_measurable_reason": "gates without a decided outcome: mutation-replay=unresolved",
   "provenance": "backfill",
-  "record_id": "b0f6da62e8d24c8d89d71f0aa0af01f1dfb231a479d63a431e1e6f1cc0794bba",
+  "record_id": "3e2939e01c098aa4551c3c3e68b88654d04fbc06652400b2e86fc433e033d336",
   "run": {
-    "pull_request": 29,
+    "pull_request": 20,
     "run_attempt": 1,
-    "run_id": "33665998028"
+    "run_id": "33196857292"
   },
   "schema": "shadow-record-v2",
   "schema_version": 2,
   "shadow": null,
-  "status": "no_omission"
+  "status": "not_measurable"
 }

@@ -21,13 +21,13 @@
       ],
       "omitted_gate_ids": [],
       "records": {
-        "backfill": 15,
+        "backfill": 20,
         "canary": 0,
         "live": 0
       },
       "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
       "status": {
-        "no_omission": 15
+        "no_omission": 20
       }
     },
     {
@@ -84,6 +84,33 @@
       "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
       "status": {
         "no_omission": 6
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "2cfaf2afc596cfb1a814a0b1bdd5cd26f4ba2061f01f398692de6cd9f5b90cd5",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 4,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "not_measurable": 4
       }
     },
     {
@@ -152,6 +179,34 @@
     },
     {
       "canary_record_ids": [],
+      "class_key": "9041c3f5bd63c021bc9407a9dca50bcb90c34966b409da85f64f159956a345a7",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "product-code",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 4,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "not_measurable": 4
+      }
+    },
+    {
+      "canary_record_ids": [],
       "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
       "criterion": {
         "authors": [],
@@ -170,13 +225,14 @@
       ],
       "omitted_gate_ids": [],
       "records": {
-        "backfill": 10,
+        "backfill": 19,
         "canary": 0,
         "live": 0
       },
       "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
       "status": {
-        "no_omission": 10
+        "no_omission": 14,
+        "not_measurable": 5
       }
     },
     {
@@ -209,9 +265,9 @@
       }
     }
   ],
-  "records": 39,
+  "records": 61,
   "records_by_provenance": {
-    "backfill": 33,
+    "backfill": 55,
     "canary": 1,
     "live": 5
   },

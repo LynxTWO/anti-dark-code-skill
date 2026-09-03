@@ -1015,12 +1015,22 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
             {k: v for k, v in wrong.items() if k != "record_id"})
         self.assertIn("schema must be", "; ".join(shadow.validate_record(wrong)))
 
-        without = self._record()
+        # A backfill must say whether its base was reconstructed. A live
+        # record written before the field existed may omit it, because a
+        # live base comes from the event payload and is never reconstructed;
+        # the six records CI wrote before D-128 are exactly that case.
+        without = self._record(provenance="backfill")
         del without["base_reconstructed"]
         without["record_id"] = shadow.digest(
             {k: v for k, v in without.items() if k != "record_id"})
         self.assertIn("base_reconstructed",
                       "; ".join(shadow.validate_record(without)))
+
+        live_without = self._record()
+        del live_without["base_reconstructed"]
+        live_without["record_id"] = shadow.digest(
+            {k: v for k, v in live_without.items() if k != "record_id"})
+        self.assertEqual([], shadow.validate_record(live_without))
 
     def test_a_record_naming_no_run_is_refused_unless_offline(self) -> None:
         shadow = _load_shadow()
