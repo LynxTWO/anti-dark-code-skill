@@ -451,6 +451,24 @@
         "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_backfilled_change_uses_todays_router_and_its_own_run",
         "anti-dark-code/tests/test_route_cli.py::ShadowBackfillCliTests::test_a_change_with_no_run_is_recorded_as_unmeasurable"
       ]
+    },
+    "R-061": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-128: The backfill grades a pull request's own run history, never the merge that survived it"
+      }
+    },
+    "R-062": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-129: Routing markdown the suite reads is verification authority"
+      }
+    },
+    "R-063": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-128: The backfill grades a pull request's own run history, never the merge that survived it"
+      }
     }
   }
 }

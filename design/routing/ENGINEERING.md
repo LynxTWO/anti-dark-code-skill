@@ -102,6 +102,9 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-058 | A shadow record is evidence only when every canonical gate decided, and its class follows the rules' terms and the router | given outcomes missing a gate or carrying an undecided one, when a record is built, then it is not measurable and carries no verdict; given two policies differing only in prose, then the class key is the same, and given a different router, then it is not |
 | R-059 | The shadow measurement is evidence, never a gate, and a gate no CI job carries is unresolved | given the workflow, then the shadow job is absent from the required aggregator's needs; given a jobs payload in which a mapped job was renamed, then that gate reads unresolved and the record is not measurable |
 | R-060 | A backfilled record replays today's router over a historical change set and says so | given a merge and its run, when backfilled, then the record carries provenance backfill and the class key of today's rules; given a merge with no run, then it is recorded as not measurable rather than dropped |
+| R-061 | A backfilled record grades a pull request's own run attempts, never the merge that survived them | given a merged pull request with several run attempts, one failing an omitted gate, when backfilled, then one record exists per head and attempt, each says its base was reconstructed, and the failing attempt is a miss |
+| R-062 | Routing markdown a gate reads is verification authority in this repository | given a change to `design/routing/<any>.md` alone, when routed under the repository calibration, then a verification-authority fact is emitted and the route forces full |
+| R-063 | The criterion counts pull requests, and a miss on any attempt is the class's miss | given one pull request with many clean records, when the summary counts, then N advances by one; given one miss among them, then the class has a miss |
 
 ### 4.2 Assumed requirements
 
@@ -359,6 +362,9 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-058 | record-level status table over decided, absent, and undecided outcomes, plus class-key equality under prose edits and inequality under a router change, unit and end to end | `test_route.py`, `test_route_cli.py` |
 | R-059 | workflow contract check on the required aggregator's needs and the shadow job's conditions, plus a jobs-payload table over renamed jobs, missing steps, failed legs, and cancelled legs | `test_route.py` |
 | R-060 | backfill of a real merge in a fixture repository, and of a merge with no run | `test_route_cli.py` |
+| R-061 | backfill of a fixture pull request with several run attempts, one failing | proposed under D-128; `test_route_cli.py` when M5 is rebuilt |
+| R-062 | classifier check on a routing markdown change under the repository calibration | proposed under D-129; `test_route.py` when M7 lands |
+| R-063 | summary count over a pull request with many clean records, and with one miss | proposed under D-128; `test_route_cli.py` when M4 lands |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.
 
