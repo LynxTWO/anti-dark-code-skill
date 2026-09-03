@@ -241,3 +241,72 @@ Under WC, with the real `adc.shadow_result`, the shadow record for `ANTI-DARK-CO
 - Linux ext4 casefold directories, which would fold the long s and ligatures the check already catches.
 - Git for Windows before 2.24.1, which lacked the `invalid path` refusal that stopped the trailing-dot spelling here.
 - The 8.3 alias of the installed prefix, `AGENTS~1/skills/ANTI-D~1/…`, the same mechanism as the measured source spelling.
+
+# Third challenge: D-120 at `38cdff8`
+
+Challenger: a third fresh-context agent, dispatched on 2026-09-02 against commit `38cdff8e0d7b67843a4e08c0870651debf2db02f`, the head carrying D-120, in its own clones under `J:\TEMP\claude\r21-challenger-3\`: `repo`, `mut`, `parent` (`5872e92`), and `cli`. Windows 11, git 2.50.1, Python 3.14.2; 8.3 short names on for C:, off for J:, so filesystem probes ran in the user's temp directory on C:. It disclosed one incident of its own: a probe script's default argument ran a removal against its own first clone, which it discarded and re-cloned; every number comes from pristine clones. Nothing under `C:\DEV` was touched; no fixes were written. The author's framing note: item 2's rule-half finding, the three surviving own mutants, and the cost are repaired by D-121 in the commit that follows; item 1's NTFS verdict is the first uphold of the spelling rule by real git.
+
+## Verdicts
+
+| Item | Verdict | One line |
+|---|---|---|
+| 1. Spellings | **UPHELD on NTFS; APFS/HFS+ NOT MEASURED** | Every spelling NTFS on C: resolved to a genuine authority path was forced full with a code, or is refused by git 2.50.1 at checkout, reset, pull and clone (`//`, `::$DATA`, tab, trailing dot, `.` component, backslash). Every spelling that still routes cheap without a code (`ANTI-DA~1`, `ANTI-D~`, leading space, NBSP, U+3000, dotless ı, İ, Cyrillic, Greek, U+034F) is a distinct name on NTFS: real git checked them out as new directories beside the genuine one. A sweep of every BMP code point found none that NTFS equates to an ASCII letter. HFS+'s ignorable set is entirely category Cf, so the key strips it; APFS was not measured. |
+| 2. Fold-set abuse | **UPHELD**, with one finding outside D-120's stated set | `**/*`, `**`, `*` as verification-authority and force-full `paths: ["**"]` never fire the collision check; they force full through the entry or rule itself. Two observations: a *proposed* force-full rule's paths enter the fold set and change routes; and an approved path rule that raises the level or requires review without `force_full` is outside the fold set, so `Secrets/notes.md` routes L0 without review while `secrets/notes.md` is L3 with review. |
+| 3. False positives | recorded | `notes~1.txt`, `a~1`, `v1~2.md`, `Makefile.`, `src/foo~1.c`, `build~10.log`, `backup~1/notes.md` carry `ADC-ROUTE-AMBIGUOUS-SPELLING`; only three paths in the corpus move from below full to full (`backup~1/notes.md`, `tools/scripts/Adc.py`, `tools/scripts/ADC_RECEIPT.py`). |
+| 4. Candidate side | **UPHELD** | Written receipt for staged `ANTI-DARK-CODE/scripts/adc_route.py`: `force_full=true`, `unknowns=["ADC-ROUTE-AUTHORITY-CASE-COLLISION"]`; verify FRESH; the shadow context gives a candidate with the full recipe's passes and gates, `omitted={}`. Under M119 committed in the clone the candidate is L2 with three gates omitted. No other path in `adc.py` computes a route. Observation: in this repository's default state every `route --write` also emits the run store's own untracked `.anti-dark-code/.gitignore` as an unmapped fact, so every written receipt is full for that reason alone. |
+| 5. Rows and own mutants | Rows UPHELD; own mutants **BROKEN** (three survive) | M118 to M122 each fail the collision test plus the two integrity tests. W1 (no format strip), W2a (lower-case-only regex), W5 (space not ambiguous) caught. **W2b (upper-case-only short-name regex) survives**, and `anti-d~1/scripts/adc_route.py` then routes cheap L2 while real git `checkout -f`, `reset --hard` and a fresh clone wrote it over the genuine router on C:. **W3 (force-full rule paths dropped from the fold set) survives.** **W8 (path key compared to the raw glob) survives**, and `docs/skill.md` routes L0 docs-only while `docs/SKILL.md` is force-full. W4 (`NFKC` + `lower()`) fails only an integrity test. |
+| 6. Performance | reported, not a finding | 5,000 facts: `build_route` 0.426 s at HEAD vs 0.138 s at the parent, **3.08×**; `build_candidate_route` 3.09×. The glob keys are recomputed per fact: 165,000 `_spelling_key` calls per route. |
+
+## Item 1: the real-git battery
+
+Attack trees were built byte-exact with `git hash-object -t tree -w --literally --stdin` so any spelling can be carried, then applied in fresh clones on C: by `fetch` + `checkout -f`, `fetch` + `reset --hard`, `pull --ff-only`, and `clone -b`:
+
+```text
+[empty component] anti-dark-code//scripts/adc_route.py      route CHEAP L2 no code; fsck: empty filename in tree entry; every operation rc=128; genuine intact
+[main data stream] …adc_route.py::$DATA                      route UNMAPPED full; checkout -f / reset --hard / clone: error: invalid path; pull refused; genuine intact
+[tab] anti-dark-code\t/scripts/adc_route.py                  route CHEAP L2 no code; every operation: error: invalid path
+[dotless i] antı-dark-code/scripts/adc_route.py             route CHEAP L2 no code; all four rc=0, a new directory beside the genuine one, router intact
+[leading space], [no-break space]                            route CHEAP L2 no code; all rc=0, new directory, router intact
+[short name] ANTI-D~1/… and [lower-case] anti-d~1/…          route CHEAP L3 AMBIG; checkout -f and reset --hard rc=0 router='# replaced', status=[' M anti-dark-code/scripts/adc_route.py']; pull refused; fresh clone of anti-d~1 warned "paths have collided" and left router='# replaced'
+[trailing dot], [dot component], [backslashes]               error: invalid path in every operation
+[case variant] ANTI-DARK-CODE/…                              route CHEAP L3 CASE; checkout -f, reset --hard, pull rc=0 router='# replaced'
+```
+
+NTFS short names assigned on C:: `anti-dark-code`→`ANTI-D~1`, `.agents`→`AGENTS~1`, `adc_route.py`→`ADC_RO~1.PY`, `.gitattributes`→`GITATT~1`, `verification-capabilities.json`→`VERIFI~1.JSO`, `test_route.py`→`TEST_R~1.PY`, `calibration`→`CALIBR~1`. Every spelling git wrote over the genuine file was forced full with a code; every spelling that routed cheap without a code was refused by git or written as a distinct name. An upcase sweep of U+0080 to U+FFFF against ASCII file names on C: found zero code points NTFS equates to an ASCII letter. HFS+'s lower-case table ignores exactly U+200C–U+200F, U+202A–U+202E, U+206A–U+206F and U+FEFF, all category Cf, which the key strips; ext4 casefold directories also strip default-ignorable code points outside Cf, which route cheap without the code, a recorded limit.
+
+## Item 2: the rule half
+
+With an approved rule `paths: ["secrets/**"]`, `minimum_level: 3`, `passes: ["07","14"]`, `independent_review: true` and no `force_full`:
+
+```text
+fold set contains 'secrets/**': False
+secrets/notes.md          CHEAP L3 ff=False rules=['docs-only','sensitive'] review=True  passes=['06','07','14']
+Secrets/notes.md          CHEAP L0 ff=False rules=['docs-only']             review=False passes=['06']
+secrets/scripts/rotate.py CHEAP L3 rules=['product-code','sensitive'] review=True passes=['07','10','11','14']
+Secrets/scripts/rotate.py CHEAP L2 rules=['product-code']             review=False passes=['10','11']
+```
+
+With `force_full: true` on the same rule both variants force full with the code. A proposed force-full rule `paths: ["Docs/**"]` put `docs/guide.md` at L3 with the code while `Docs/guide.md` itself stayed L0, because `_authority_globs` did not check `rule.approved`. Fix stated by the challenger: fold the `paths` of every approved rule whose requirements exceed the empty route, and skip proposed rules.
+
+## Item 5: own mutants
+
+| Mutant | Suite | Failing tests |
+|---|---|---|
+| M118, M119, M120, M121, M122 | 3 failed each | the collision test and the two integrity tests |
+| W1 `stripped = text` | 1 failed | the collision test (ZWNJ spelling) |
+| W2a lower-case-only regex | 1 failed | the collision test (`ANTI-D~1`) |
+| **W2b upper-case-only regex** | **329 passed** | none; `anti-d~1/scripts/adc_route.py` routes CHEAP L2 |
+| **W3 `for rule in ():`** | **329 passed** | none; `Secrets/notes.md` under a force-full `secrets/**` rule routes L0 |
+| W4 `.lower()` after NFKC | 1 failed | only the integrity test on M122's target text |
+| W5 `endswith(".")` only | 2 failed | the collision test (`anti-dark-code␣/…`) plus an integrity test |
+| **W8 `fnmatchcase(key, glob)`** | **329 passed** | none; `docs/skill.md` routes L0 while `docs/SKILL.md` is force-full |
+
+## Item 6: performance
+
+5,000 facts in five shapes, seven timings, minimum and median: HEAD `build_route` 0.426 s, parent 0.138 s, 3.08×; `build_candidate_route` 3.09×. Profile of one route: 165,000 `_spelling_key` calls, 1.128 s of 1.476 s, 2.7 million `unicodedata.category` calls.
+
+## Not measured
+
+- APFS and HFS+ on a real Mac; ext4 casefold directories on Linux; git for Windows before 2.24.1.
+- An NTFS volume where the assigned short name of `anti-dark-code` is not `ANTI-D~1`; the hash form and `~2` to `~4` were routed, all ambiguous, but not resolved.
+- `adc.py gates --route <receipt>` end to end; the shadow record was computed through the same functions `command_gates` calls, on the real written receipt.

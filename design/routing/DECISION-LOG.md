@@ -136,7 +136,8 @@ The documents state what is true. This log preserves why, what else was consider
 | D-117 | 2026-09-02 | A contract assertion first installs the state the harness must replace | Confirmed | |
 | D-118 | 2026-09-02 | Verification authority for scripts is the shipped skill's own directory, in every spelling | Confirmed | |
 | D-119 | 2026-09-02 | A case variant of an authority path routes as a collision with it | Amended | D-120 |
-| D-120 | 2026-09-02 | A spelling a checkout can alias to an authority path routes as that authority | Confirmed | |
+| D-120 | 2026-09-02 | A spelling a checkout can alias to an authority path routes as that authority | Amended | D-121 |
+| D-121 | 2026-09-02 | The fold set is every approved requirement, keyed once per route | Confirmed | |
 
 ---
 
@@ -3810,7 +3811,7 @@ gain characters whose case folding is not one-to-one.
 ## D-120: A spelling a checkout can alias to an authority path routes as that authority
 
 Date: 2026-09-02
-Status: Confirmed
+Status: Amended by D-121
 Area: R-040, D-118, D-119, `build_route`, `build_candidate_route`, the
 shipped template's name-based entries, M118 to M122
 
@@ -3867,3 +3868,61 @@ owner's environment under D-116, not as a guarantee.
 Revisit when:
 A filesystem alias the router does not model is measured on a host this
 repository targets, or git gains collision protection the router can read.
+
+## D-121: The fold set is every approved requirement, keyed once per route
+
+Date: 2026-09-02
+Status: Confirmed
+Area: D-022, D-120, `_authority_globs`, `_authority_spelling_collision`,
+M123 to M126
+
+Context:
+A third fresh-context challenger attacked D-120 at `38cdff8`. On NTFS it
+upheld the rule with real git: every spelling git wrote over a genuine
+authority file was forced full with a code, every spelling that routed
+cheap was refused by git or written as a distinct name, and a sweep of the
+Basic Multilingual Plane found no code point NTFS equates to an ASCII
+letter. It found the fold set narrower than D-120's property in one
+direction and wider in another. An approved rule with `paths` that raises
+the level, adds passes or obligations, or requires review without forcing
+full was outside the set, so `Secrets/notes.md` routed at Level 0 without
+review while `secrets/notes.md` was Level 3 with it. A proposed force-full
+rule's paths were inside it, so an unreviewed rule changed routes, against
+D-022. Three of its own mutants survived: the short-name pattern restricted
+to upper case, under which real git wrote `anti-d~1/scripts/adc_route.py`
+over the router; force-full rule paths dropped from the set, which no test
+built a policy to notice; and the glob compared unfolded, under which
+`docs/skill.md` routed as prose while `docs/SKILL.md` is skill policy. It
+also measured the check at three times the parent's cost for a 5,000-fact
+route, because every glob's key was recomputed for every fact.
+
+Decision:
+The fold set is the canonical globs, every classifier entry the loaded
+policy declares as verification authority, and the path globs of every
+approved rule that requires anything beyond the empty route; a proposed
+rule contributes nothing. Each glob's spelling key is computed once per
+route. The test adds the lower-case short name, four lower-case spellings
+of upper-case globs, and a policy with an approved review-requiring path
+rule beside its proposed twin. M123 lets proposed rules in, M124 keeps only
+force-full rules, M125 compares the glob unfolded, and M126 restricts the
+short-name pattern to upper case.
+
+Because:
+A requirement a reviewed rule attaches to a path is what a spelling
+collision must not undercut, whether or not that requirement is the full
+recipe; and a rule nobody has reviewed must not route anything, in either
+direction.
+
+Consequences:
+An approved path rule now protects its paths' case variants as it protects
+the paths. The receipt path cannot isolate a collision in this repository
+by itself, because every written receipt also carries the run store's own
+untracked `.gitignore` as an unmapped fact and is full for that reason
+alone; that is the repository's ignore file, recorded for the owner, not
+the router. What the router does not model, ext4 casefold directories'
+default-ignorable code points outside the format category and macOS
+filesystems no host here can measure, stays a limit under D-116.
+
+Revisit when:
+A rule gains a requirement kind the empty-route comparison does not see, or
+a host this repository targets measures an alias the key does not fold.

@@ -5624,7 +5624,13 @@ class SelfGradingAuthorityTests(unittest.TestCase):
                       "tools/scripts/ADC.py",
                       "anti-dark-code/ſcripts/adc_route.py",
                       "ａnti-dark-code/scripts/adc_route.py",
-                      "anti‌-dark-code/scripts/adc_route.py")
+                      "anti‌-dark-code/scripts/adc_route.py",
+                      # D-121: the glob's own case is folded too, or these
+                      # lower-case spellings of upper-case globs escape.
+                      "docs/skill.md",
+                      ".github/codeowners",
+                      "anti-dark-code/source-scope.json",
+                      "app/aßets/verification-capabilities.json")
         for path in collisions:
             facts = facts_for(path)
             # R-040: the classifier never folds case, so no fact is authority.
@@ -5635,12 +5641,15 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.assertIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", route.unknowns, path)
             candidate = self.route.build_candidate_route(facts, policy, snapshot_ok=True)
             self.assertTrue(candidate.force_full, path)
-            self.assertEqual(policy.full_recipe.passes, candidate.passes, path)
+            # The full recipe's passes are all present; a rule that also
+            # fires, such as docs-only on docs/skill.md, may add its own.
+            self.assertTrue(policy.full_recipe.passes <= candidate.passes, path)
         # D-120: a component shaped like an NTFS short name aliases any
         # directory on a volume that generates them, and a trailing dot or
         # space is stripped by NTFS; the router cannot resolve either, so
         # the spelling is ambiguous and forces full with its own code.
         ambiguous = ("ANTI-D~1/scripts/adc_route.py",
+                     "anti-d~1/scripts/adc_route.py",
                      "AGENTS~1/skills/anti-dark-code/scripts/adc_route.py",
                      "anti-dark-code./scripts/adc_route.py",
                      "anti-dark-code /scripts/adc_route.py",
@@ -5666,6 +5675,43 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         self.assertNotIn("ADC-ROUTE-AMBIGUOUS-SPELLING", consumer.unknowns)
         self.assertFalse(self.route.build_candidate_route(
             consumer_facts, policy, snapshot_ok=True).force_full)
+
+    def test_an_approved_path_rule_protects_its_case_variants(self) -> None:
+        """D-121. A requirement a reviewed rule attaches to a path is what a
+        spelling collision must not undercut; a proposed rule attaches none.
+
+        Measured by the third round-twenty-one challenger at 38cdff8: with an
+        approved secrets/** rule raising the level and requiring review
+        without force_full, Secrets/notes.md routed at Level 0 without review
+        while secrets/notes.md was Level 3 with it; and a proposed force-full
+        rule's paths changed routes through the fold set, against D-022.
+        """
+        def policy_with(review_status, **requires):
+            data = json.loads(json.dumps(self.policy_source))
+            for rule in data["rules"]:
+                rule["review_status"] = "approved"
+            data["rules"].append({
+                "id": "sensitive", "review_status": review_status,
+                "match": {"paths": ["secrets/**"]},
+                "requires": {"minimum_level": 3, "passes": ["07", "14"], **requires},
+                "obligations": {"V09": ["validate-core"]}})
+            return self.route.load_policy(
+                data, self.gates_source, sorted(CAPABILITY_IDS),
+                self.gates_source["canonical_full_set"])
+
+        approved = policy_with("approved", independent_review=True)
+        genuine = self._route_for("secrets/notes.md", approved)
+        self.assertTrue(genuine.independent_review)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", genuine.unknowns)
+        for path in ("Secrets/notes.md", "SECRETS/scripts/rotate.py"):
+            variant = self._route_for(path, approved)
+            self.assertTrue(variant.force_full, path)
+            self.assertIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", variant.unknowns, path)
+        # A proposed rule never matches (D-022), so it protects nothing, even
+        # one that would force full if it were approved.
+        proposed = policy_with("proposed", force_full=True)
+        variant = self._route_for("Secrets/notes.md", proposed)
+        self.assertNotIn("ADC-ROUTE-AUTHORITY-CASE-COLLISION", variant.unknowns)
 
 
 class SubmoduleContractTests(unittest.TestCase):

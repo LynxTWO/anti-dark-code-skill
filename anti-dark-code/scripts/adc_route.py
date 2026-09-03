@@ -1053,27 +1053,38 @@ def _ambiguous_component(path: str) -> bool:
     return False
 
 
-def _authority_globs(policy: "ValidatedPolicy") -> tuple[str, ...]:
-    """Every glob whose spelling a collision must not be cheaper than.
+def _authority_globs(policy: "ValidatedPolicy") -> tuple[tuple[str, str], ...]:
+    """Every glob a collision must not be cheaper than, with its spelling key.
 
     The canonical classes, every classifier entry the loaded policy declares
-    as verification authority, and the path globs of every force-full rule.
-    The template's name-based `**/scripts/adc.py` is the measured case: it
-    is not canonical, and `tools/scripts/ADC.py` routed cheap while a pull
-    overwrote `tools/scripts/adc.py`. See D-120.
+    as verification authority, and the path globs of every approved rule that
+    requires anything beyond the empty route: a level, a pass, an obligation,
+    independent review, or the full recipe. A proposed rule never matches
+    (D-022), so its paths are not authority. The template's name-based
+    `**/scripts/adc.py` is the measured case for the classifier half, and an
+    approved `secrets/**` rule that raised the level and required review
+    without forcing full is the measured case for the rule half:
+    `Secrets/notes.md` routed at Level 0 without review while
+    `secrets/notes.md` was Level 3 with it. See D-120 and D-121.
     """
     globs = [glob for _label, glob, *_ in AUTHORITY_CLASSIFIERS]
     for entry in policy.classifier_map().get("surfaces", []):
         if entry.get("effect") == "verification-authority" and entry.get("glob"):
             globs.append(str(entry["glob"]))
     for rule in policy.rules:
-        if rule.force_full:
+        if not rule.approved:
+            continue
+        if (rule.force_full or rule.minimum_level or rule.passes
+                or rule.obligation_map() or rule.independent_review):
             globs.extend(str(glob) for glob in rule.match_map().get("paths", ()))
-    return tuple(dict.fromkeys(globs))
+    # The key is folded once per route, not once per fact: the third
+    # round-twenty-one challenger measured 165,000 key computations for a
+    # 5,000-fact route, three times the parent's cost.
+    return tuple((glob, _spelling_key(glob)) for glob in dict.fromkeys(globs))
 
 
 def _authority_spelling_collision(
-    path: str, authority_globs: Sequence[str]
+    path: str, authority_globs: Sequence[tuple[str, str]]
 ) -> str | None:
     """The unknown code a spelling collision earns, or None.
 
@@ -1094,10 +1105,10 @@ def _authority_spelling_collision(
     if _ambiguous_component(path):
         return "ADC-ROUTE-AMBIGUOUS-SPELLING"
     key = _spelling_key(path)
-    for glob in authority_globs:
+    for glob, glob_key in authority_globs:
         if fnmatch.fnmatchcase(path, glob):
             continue
-        if fnmatch.fnmatchcase(key, _spelling_key(glob)):
+        if fnmatch.fnmatchcase(key, glob_key):
             return "ADC-ROUTE-AUTHORITY-CASE-COLLISION"
     return None
 
