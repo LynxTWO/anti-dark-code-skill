@@ -6535,5 +6535,61 @@
       }
     ],
     "note": "G8. Provenance is derived from the head ref, never asserted; a record that could claim `live` from a canary/ branch would skip the ancestor check entirely."
+  },
+  {
+    "id": "M152",
+    "name": "a sidecar is trusted without hashing to its name",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "                if not _digests_to_its_name(path.name, body):",
+    "new": "                if not _digests_to_its_name(path.name, body) and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-133. A file named by the digest of its own content is self-certifying, and that is the only reason the policies directory needs no trusting; accepting one that does not hash to its name lets a forged policy decide what a class recomputes to."
+  },
+  {
+    "id": "M153",
+    "name": "a backfill record with no stored policy is recovered anyway",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        if provenance == \"backfill\":",
+    "new": "        if provenance == \"backfill\" and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-133. The backfill writes its own sidecar, so a backfill record without one means something else is wrong; recovering it from the calibration at its head would silently recompute it against a policy that did not build it."
+  },
+  {
+    "id": "M154",
+    "name": "the recomputed class is not compared with the recorded one",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        if recorded != recomputed:",
+    "new": "        if recorded != recomputed and False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-133 and G10. Re-reading the outcomes and recomputing the verdict leaves the matched rules, the selected and omitted gates and the key believed as written, which is the hole the implementation challenge found one layer up."
+  },
+  {
+    "id": "M155",
+    "name": "a backfill record's class is recomputed with the router at its head",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    at = None if str(record.get(\"provenance\")) == \"backfill\" else head",
+    "new": "    at = head",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-136. A backfill replays today's router over a historical change set (D-127), so the router at its head is a different version that never built it; reading there refuses every backfilled record as router-unrecoverable, which is what the first implementation of D-133 did."
   }
 ]

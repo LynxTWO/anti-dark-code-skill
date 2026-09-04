@@ -540,6 +540,11 @@ def command_record(args: argparse.Namespace, adc_module=None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
                    encoding="utf-8", newline="\n")
+    # D-133: the policy this record was built with, beside it, so ingest can
+    # recompute the class rather than believe it. The live job's artifact
+    # glob picks these up with the record.
+    for name in write_policy_sidecars(out.parent, policy_source, gates_source):
+        print(f"  policy sidecar {name}")
     print(f"SHADOW {record['status']} class={record['class_key'][:12]} "
           f"provenance={record['provenance']} "
           f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'} "
@@ -904,9 +909,235 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
               f"{record['status']:16} class={record['class_key'][:12]} "
               f"rules={','.join(record['class']['matched_rule_ids']) or '-'} "
               f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'}")
+    # D-133, once per distinct digest rather than once per record.
+    for name in write_policy_sidecars(out_dir, policy_source, gates_source):
+        print(f"  policy sidecar {name}")
     print(f"BACKFILL {written} record(s) in {out_dir}"
           + (f", {skipped} already live" if skipped else ""))
     return 0
+
+
+def policy_sidecars(policy_source: Mapping[str, Any],
+                    gates_source: Mapping[str, Any]) -> dict[str, str]:
+    """The stripped policy and gates a record was built with, named by digest.
+
+    D-133. A record already carries `audit.policy_terms_sha256` and
+    `audit.gates_terms_sha256`; what was missing is the bytes those digests
+    name, without which ingest cannot recompute the class and the class is a
+    claim. A file named by the digest of its own content is self-certifying,
+    so nothing about where it was kept needs trusting.
+    """
+    policy_terms = strip_underscored(policy_source)
+    gates_terms = strip_underscored(gates_source)
+    return {
+        f"policy-{digest(policy_terms)}.json": canonical_json(policy_terms) + "\n",
+        f"gates-{digest(gates_terms)}.json": canonical_json(gates_terms) + "\n",
+    }
+
+
+def write_policy_sidecars(out_dir: Path, policy_source: Mapping[str, Any],
+                          gates_source: Mapping[str, Any]) -> list[str]:
+    """Write the sidecars beside a record, once per distinct digest."""
+    written: list[str] = []
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, body in policy_sidecars(policy_source, gates_source).items():
+        target = out_dir / name
+        if target.exists():
+            continue
+        target.write_text(body, encoding="utf-8", newline="\n")
+        written.append(name)
+    return written
+
+
+def _digests_to_its_name(name: str, body: str) -> bool:
+    """A sidecar is trusted only because its content hashes to its name."""
+    stem = Path(name).stem
+    _, _, claimed = stem.partition("-")
+    try:
+        return digest(json.loads(body)) == claimed
+    except json.JSONDecodeError:
+        return False
+
+
+def _load_route_module_at(repo: Path, commit: str | None, expected_digest: str):
+    """The router that built a record, checked against the digest it names.
+
+    Where that router is depends on what kind of record it is, and getting
+    this wrong reads as a broken record rather than a broken lookup. A live
+    or canary record was built by the workflow running at its own head, so
+    the router at that head is the one. A backfill record was built by
+    replaying today's router over a historical change set, which is what
+    D-127 decided and D-128 kept, so its router is the one in the checkout
+    that ran the backfill, and the router at its head is a different version
+    that never touched it. `commit` is None for that second case.
+    """
+    import importlib.util
+    import tempfile
+
+    if commit is None:
+        source = (repo / "anti-dark-code" / "scripts" / "adc_route.py").read_bytes()
+    else:
+        try:
+            source = _git_bytes(repo, "show",
+                                f"{commit}:anti-dark-code/scripts/adc_route.py")
+        except ShadowError as error:
+            raise ShadowError(f"router-unrecoverable: {error}") from error
+    actual = hashlib.sha256(source).hexdigest()
+    if actual != expected_digest:
+        where = f"at {commit[:12]}" if commit else "in this checkout"
+        raise ShadowError(
+            f"router-unrecoverable: the router {where} digests to "
+            f"{actual[:12]} and the record names {expected_digest[:12]}")
+    handle = Path(tempfile.mkdtemp(prefix="adc-router-")) / "adc_route.py"
+    handle.write_bytes(source)
+    name = f"adc_route_{actual[:12]}"
+    spec = importlib.util.spec_from_file_location(name, handle)
+    module = importlib.util.module_from_spec(spec)
+    # Registered before execution: the router defines dataclasses, and
+    # dataclasses resolves a field's type through sys.modules[cls.__module__],
+    # which is None for a module that has been created and not registered.
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _git_bytes(repo: Path, *args: str) -> bytes:
+    done = subprocess.run(["git", "-C", str(repo), *args],
+                          capture_output=True, timeout=300)
+    if done.returncode != 0:
+        raise ShadowError(
+            f"git {' '.join(args)} failed: "
+            f"{done.stderr.decode('utf-8', 'replace').strip()[:200]}")
+    return done.stdout
+
+
+def recompute_class(record: Mapping[str, Any], *, repo: Path,
+                    policy_source: Mapping[str, Any],
+                    gates_source: Mapping[str, Any],
+                    capability_ids: Sequence[str]) -> list[str]:
+    """Rebuild the record's class from the policy that built it. D-133.
+
+    G10 says ingest recomputes the route. Recomputing the verdict, which the
+    implementation challenge forced, needs no policy and so was done first;
+    the class needs the policy, the gates and the router the record names,
+    and until all three are at hand the matched rules, the selected and
+    omitted gates and the key are believed as written.
+    """
+    problems: list[str] = []
+    klass = record.get("class") or {}
+    commits = record.get("commits") or {}
+    head = str(commits.get("head", ""))
+    base = str(commits.get("base", ""))
+    if not head or not base or base == "unavailable":
+        return [f"the record names no usable base and head, so its class "
+                f"cannot be recomputed"]
+    if not _commit_present(repo, head):
+        return [f"head {head[:12]} is not present, so the class cannot be "
+                f"recomputed"]
+
+    # A backfill replayed today's router; a live or canary record was built
+    # by the router at its own head. See _load_route_module_at.
+    at = None if str(record.get("provenance")) == "backfill" else head
+    try:
+        route_module = _load_route_module_at(
+            repo, at, str(klass.get("router_blob_sha256", "")))
+    except ShadowError as error:
+        return [str(error)]
+
+    try:
+        validated = route_module.load_policy(
+            policy_source, gates_source, list(capability_ids),
+            gates_source["canonical_full_set"])
+    except Exception as error:  # the router's own PolicyError and friends
+        return [f"the stored policy does not load: {error}"]
+
+    snapshot = route_module.read_change_inputs(
+        repo, base, runner=_historical_runner(route_module, repo, head))
+    facts = route_module.collect_change_facts(snapshot, validated.classifier_map())
+    candidate = route_module.build_candidate_route(
+        facts, validated, snapshot_ok=snapshot.complete)
+
+    if candidate is None:
+        recomputed_rules: list[str] = []
+        recomputed_selected: list[str] = []
+        recomputed_omitted: list[str] = []
+    else:
+        gates = canonical_gate_ids(gates_source)
+        recomputed_rules = sorted(candidate.matched_rule_ids)
+        recomputed_selected = sorted(candidate.selected_gate_ids())
+        recomputed_omitted = sorted(set(gates) - set(recomputed_selected))
+        if candidate.force_full:
+            recomputed_omitted = []
+            recomputed_selected = sorted(gates)
+
+    for field, recorded, recomputed in (
+            ("matched_rule_ids", sorted(klass.get("matched_rule_ids", ())), recomputed_rules),
+            ("selected_gate_ids", sorted(klass.get("selected_gate_ids", ())), recomputed_selected),
+            ("omitted_gate_ids", sorted(klass.get("omitted_gate_ids", ())), recomputed_omitted)):
+        if recorded != recomputed:
+            problems.append(
+                f"class.{field} does not follow from the stored policy: the "
+                f"record says {recorded} and the recomputation gives {recomputed}")
+
+    if not problems:
+        terms = class_terms(policy_source, gates_source, recomputed_rules)
+        key = class_key(terms, str(klass.get("router_blob_sha256", "")),
+                        recomputed_omitted)
+        if key != str(record.get("class_key")):
+            problems.append(
+                f"class_key does not follow from the stored policy: the record "
+                f"says {str(record.get('class_key'))[:12]} and the "
+                f"recomputation gives {key[:12]}")
+    return problems
+
+
+def _recompute_with_sidecars(record: Mapping[str, Any], *, repo: Path,
+                             sidecars: Mapping[str, str],
+                             capability_ids: Sequence[str]) -> list[str]:
+    """Find the policy a record names and recompute its class with it. D-133.
+
+    A live record whose sidecar is absent everywhere is recovered once from
+    the calibration at its own head, which is the tree that ran; a backfill
+    record in that state is refused, because the backfill wrote the sidecar
+    and its absence means something else is wrong.
+    """
+    audit = record.get("audit") or {}
+    policy_name = f"policy-{audit.get('policy_terms_sha256')}.json"
+    gates_name = f"gates-{audit.get('gates_terms_sha256')}.json"
+    policy_body = sidecars.get(policy_name)
+    gates_body = sidecars.get(gates_name)
+
+    if policy_body is None or gates_body is None:
+        provenance = str(record.get("provenance"))
+        if provenance == "backfill":
+            return [f"no stored policy for this record ({policy_name}), and a "
+                    f"backfill writes its own, so it is not recovered"]
+        head = str((record.get("commits") or {}).get("head", ""))
+        if not head or not _commit_present(repo, head):
+            return [f"no stored policy for this record ({policy_name}) and its "
+                    f"head is not present to recover one from"]
+        recovered = {}
+        for name, path in ((policy_name, ".agents/skills/anti-dark-code/"
+                                         "calibration/routing-policy.json"),
+                           (gates_name, ".agents/skills/anti-dark-code/"
+                                        "calibration/gates.json")):
+            try:
+                raw = _git_bytes(repo, "show", f"{head}:{path}")
+            except ShadowError as error:
+                return [f"no stored policy for this record and the calibration "
+                        f"at {head[:12]} could not be read: {error}"]
+            terms = strip_underscored(json.loads(raw.decode("utf-8")))
+            if digest(terms) != Path(name).stem.partition("-")[2]:
+                return [f"the calibration at {head[:12]} does not digest to the "
+                        f"{Path(name).stem.partition('-')[0]} the record names"]
+            recovered[name] = canonical_json(terms) + "\n"
+        policy_body, gates_body = recovered[policy_name], recovered[gates_name]
+
+    return recompute_class(
+        record, repo=repo,
+        policy_source=json.loads(policy_body),
+        gates_source=json.loads(gates_body),
+        capability_ids=capability_ids)
 
 
 def _ledger_paths(ledger_dir: Path) -> list[Path]:
@@ -1068,22 +1299,48 @@ def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
 
     known = {str(record.get("record_id")) for record in read_ledger(ledger_dir)}
     incoming: list[tuple[Path, dict[str, Any]]] = []
+    # A sidecar is trusted only because its content hashes to its name, so a
+    # bad one is refused here rather than copied and believed later. D-133.
+    sidecars: dict[str, str] = {}
+    policies_dir = ledger_dir.parent / "policies"
+    for existing in sorted(policies_dir.glob("*.json")) if policies_dir.exists() else []:
+        sidecars[existing.name] = existing.read_text(encoding="utf-8")
+    offered: dict[str, str] = {}
+    refused = 0
     for directory in args.source:
         for path in sorted(Path(directory).glob("*.json")):
+            if path.name.startswith(("policy-", "gates-")):
+                body = path.read_text(encoding="utf-8")
+                if not _digests_to_its_name(path.name, body):
+                    refused += 1
+                    print(f"  REFUSED {path.name}: content does not digest to its name")
+                    if not args.keep_going:
+                        return 2
+                    continue
+                offered[path.name] = body
+                continue
             try:
                 incoming.append((path, json.loads(path.read_text(encoding="utf-8"))))
             except (OSError, json.JSONDecodeError) as error:
                 print(f"  REFUSED {path.name}: unreadable: {error}")
                 if not args.keep_going:
                     return 2
+    sidecars.update({k: v for k, v in offered.items() if k not in sidecars})
+
+    catalog = json.loads((Path(__file__).resolve().parents[1] / "assets"
+                          / "verification-capabilities.json").read_text(encoding="utf-8"))
+    capability_ids = [c["id"] for c in catalog["capabilities"]]
 
     accepted: list[dict[str, Any]] = []
-    refused = 0
     for path, record in incoming:
         if str(record.get("record_id")) in known:
             continue
         problems = verify_record(record, repo=repo, gate_map=gate_map, slug=slug,
                                  main_ref=args.main, offline=args.offline)
+        if not problems and not args.skip_class_recomputation:
+            problems = _recompute_with_sidecars(
+                record, repo=repo, sidecars=sidecars,
+                capability_ids=capability_ids)
         if problems:
             refused += 1
             print(f"  REFUSED {path.name}: " + "; ".join(problems))
@@ -1092,6 +1349,23 @@ def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
             continue
         accepted.append(record)
         known.add(str(record.get("record_id")))
+
+    # Only the sidecars an accepted record actually names are kept, so the
+    # directory holds the policies the ledger rests on and nothing else.
+    if accepted:
+        wanted = set()
+        for record in accepted:
+            audit = record.get("audit") or {}
+            wanted.add(f"policy-{audit.get('policy_terms_sha256')}.json")
+            wanted.add(f"gates-{audit.get('gates_terms_sha256')}.json")
+        policies_dir.mkdir(parents=True, exist_ok=True)
+        for name in sorted(wanted):
+            body = sidecars.get(name)
+            target = policies_dir / name
+            if body is None or target.exists():
+                continue
+            target.write_text(body, encoding="utf-8", newline="\n")
+            print(f"  kept {name}")
 
     # One file per ingest month, named by --month, so the ledger grows by
     # append and a month's bytes never move once written.
@@ -1340,6 +1614,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write-pull-requests",
                    help="Refresh the pull request author and merge date the "
                         "criterion needs, beside the ledger")
+    p.add_argument("--skip-class-recomputation", action="store_true",
+                   help="Skip recomputing each record's class from the policy "
+                        "that built it, which is what makes the class more "
+                        "than a claim; for a fixture that has no clone")
     p.set_defaults(func=command_ingest)
 
     p = sub.add_parser("summary", help="Regenerate the campaign summary")

@@ -23,13 +23,13 @@
       ],
       "omitted_gate_ids": [],
       "records": {
-        "backfill": 20,
+        "backfill": 21,
         "canary": 1,
         "live": 2
       },
       "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
       "status": {
-        "no_omission": 23
+        "no_omission": 24
       }
     },
     {
@@ -116,6 +116,37 @@
       }
     },
     {
+      "canary_record_ids": [],
+      "class_key": "42d97bc10ca8ef2db8f61721aabe6bfa4c1eeac775d2f51eb94bd42fbfad5298",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only",
+        "product-code",
+        "schema-contract",
+        "skill-policy",
+        "verification-authority"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 3,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 3
+      }
+    },
+    {
       "canary_record_ids": [
         "72111be5bc02efbe95125ffc227935869074a4cbc5d88dddb6e833a41af5fad1"
       ],
@@ -147,6 +178,33 @@
       "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
       "status": {
         "miss": 1
+      }
+    },
+    {
+      "canary_record_ids": [],
+      "class_key": "49ad88311575548cd95b0374379dc6ba40595cc6e89dc9960d73e9cc76d35fda",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 0,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "product-code"
+      ],
+      "omitted_gate_ids": [],
+      "records": {
+        "backfill": 1,
+        "canary": 0,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "no_omission": 1
       }
     },
     {
@@ -301,9 +359,9 @@
       }
     }
   ],
-  "records": 65,
+  "records": 70,
   "records_by_provenance": {
-    "backfill": 55,
+    "backfill": 60,
     "canary": 3,
     "live": 7
   },

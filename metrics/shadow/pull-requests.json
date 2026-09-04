@@ -118,5 +118,20 @@
     "author": "LynxTWO",
     "merged_at": "",
     "title": "CANARY, NEVER MERGE: docs-only under the class key D-129 created"
+  },
+  "39": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-04T16:37:59Z",
+    "title": "chore: ingest the new docs-only canary and PR #37's live records"
+  },
+  "40": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-04T16:38:18Z",
+    "title": "evidence: two-host mutation replay catches up R-053 to 151 rows"
+  },
+  "41": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-04T18:15:45Z",
+    "title": "SLICE-002 design 0.5: policy by digest, dominance for inert classes, and the first consumer"
   }
 }

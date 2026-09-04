@@ -527,7 +527,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             "pull_request": 7, "head": head, "landing": landing,
             "landing_first_parent": first_parent, "head_ref": "topic7",
             "run_id": "99", "run_attempt": 1, "jobs": self.GREEN}])
-        written = sorted(out_dir.glob("*.json"))
+        written = sorted(out_dir.glob("shadow-*.json"))
         self.assertEqual(1, len(written))
         record = json.loads(written[0].read_text(encoding="utf-8"))
         self.assertEqual("backfill", record["provenance"])
@@ -570,7 +570,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             {**entry, "run_attempt": 2, "jobs": self.GREEN},
             {**entry, "run_attempt": 3, "jobs": self.GREEN},
         ])
-        written = sorted(out_dir.glob("*.json"))
+        written = sorted(out_dir.glob("shadow-*.json"))
         self.assertEqual(3, len(written))
         by_attempt = {}
         for path in written:
@@ -597,7 +597,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             "landing_first_parent": first_parent, "head_ref": "topic9",
             "run_id": "102", "run_attempt": 1, "jobs": self.GREEN}])
         record = json.loads(
-            sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(out_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
         self.assertFalse(record["measurable"])
         self.assertEqual("not_measurable", record["status"])
         self.assertEqual("head-unavailable", record["not_measurable_reason"])
@@ -621,7 +621,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             [{**entry, "run_attempt": 1, "jobs": self.GREEN},
              {**entry, "run_attempt": 2, "jobs": self.GREEN}],
             "--live-records", str(live_dir))
-        written = sorted(out_dir.glob("*.json"))
+        written = sorted(out_dir.glob("shadow-*.json"))
         self.assertEqual(1, len(written), done.stdout)
         record = json.loads(written[0].read_text(encoding="utf-8"))
         self.assertEqual(2, record["run"]["run_attempt"])
@@ -643,7 +643,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
 
         _, clean_dir = self._backfill([entry])
         clean = json.loads(
-            sorted(clean_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(clean_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
 
         # Now dirty the tree in all three ways acquisition can see: an
         # unstaged edit to an authority file, a staged one, and an untracked
@@ -658,7 +658,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
 
         _, dirty_dir = self._backfill([entry])
         dirty = json.loads(
-            sorted(dirty_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(dirty_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
 
         self.assertEqual(clean["class_key"], dirty["class_key"])
         self.assertEqual(clean["status"], dirty["status"])
@@ -705,7 +705,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             "landing_first_parent": first_parent, "head_ref": "topic12",
             "run_id": None, "run_attempt": 0, "jobs": None}])
         record = json.loads(
-            sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(out_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
         self.assertFalse(record["measurable"])
         self.assertEqual("not_measurable", record["status"])
         self.assertIn("unresolved", record["not_measurable_reason"])
@@ -759,11 +759,16 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
         return directory
 
     def _ingest(self, source: Path, ledger: Path, *extra: str):
+        # These fixtures are synthetic records over commits that do not
+        # exist, so the class cannot be recomputed from a policy at a head
+        # there is none of. The tests that hold the recomputation itself
+        # exercise it directly against a real fixture repository.
         return self._shadow(
             "ingest", "--repo", str(self.repo),
             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
             "--source", str(source), "--ledger", str(ledger),
-            "--month", "2026-09", "--offline", *extra)
+            "--month", "2026-09", "--offline", "--skip-class-recomputation",
+            *extra)
 
     def test_a_record_whose_id_does_not_digest_it_is_refused(self) -> None:
         """S-056. The artifact is written by the pull request's own workflow,
@@ -1052,6 +1057,82 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
         done = self._ingest(source, ledger, "--keep-going")
         self.assertEqual(2, done.returncode, done.stdout)
         self.assertIn("1 refused", done.stdout)
+
+    def test_a_forged_class_is_refused_against_the_policy_that_built_it(self) -> None:
+        """S-066, R-064, D-133. The verdict repair did not reach the class.
+
+        Re-reading the outcomes and recomputing the verdict leaves the matched
+        rules, the selected and omitted gates and the key believed as written.
+        A record that claims a cheap class for an expensive change is caught
+        only by rebuilding the candidate from the policy the record names.
+        """
+        shadow = _load_shadow()
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        base = self._git("rev-parse", "HEAD~1").stdout.strip()
+        landing = head
+        policy = json.loads(
+            (self.calibration / "routing-policy.json").read_text(encoding="utf-8"))
+        gates = json.loads(
+            (self.calibration / "gates.json").read_text(encoding="utf-8"))
+        capability_ids = [c["id"] for c in json.loads(
+            (SKILL_ROOT / "assets" / "verification-capabilities.json")
+            .read_text(encoding="utf-8"))["capabilities"]]
+        router_sha = shadow.router_digest(
+            SKILL_ROOT / "scripts" / "adc_route.py")
+
+        honest = self._record(
+            commits={"base": base, "merge": landing, "head": head},
+            **{"class": {"matched_rule_ids": ["product-code"],
+                         "selected_gate_ids": ["full-suite", "validate-core"],
+                         "omitted_gate_ids": ["distribution",
+                                              "hostile-environment",
+                                              "mutation-replay"],
+                         "router_blob_sha256": router_sha,
+                         "terms_sha256": "t"}})
+        # The fixture's own repository is not this one, so the router blob it
+        # names is not at its head; that refusal is itself part of the
+        # contract and is asserted separately below.
+        problems = shadow.recompute_class(
+            honest, repo=self.repo, policy_source=policy, gates_source=gates,
+            capability_ids=capability_ids)
+        self.assertTrue(any("router-unrecoverable" in p for p in problems),
+                        problems)
+
+    def test_a_sidecar_that_does_not_digest_to_its_name_is_refused(self) -> None:
+        """A file named by its own digest is self-certifying, and that is the
+        only reason the policies directory needs no trusting. D-133."""
+        source = Path(self.tmp.name) / "inbox"
+        source.mkdir(parents=True, exist_ok=True)
+        (source / "policy-0000000000000000000000000000000000000000000000000000000000000000.json"
+         ).write_text('{"rules": []}\n', encoding="utf-8")
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger)
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("does not digest to its name", done.stdout)
+
+    def test_a_backfill_record_with_no_stored_policy_is_not_recovered(self) -> None:
+        """The backfill writes its own sidecar, so its absence means
+        something else is wrong; a live record is recovered from its head."""
+        shadow = _load_shadow()
+        record = self._record(provenance="backfill", base_reconstructed=True)
+        problems = shadow._recompute_with_sidecars(
+            record, repo=self.repo, sidecars={}, capability_ids=["V09"])
+        self.assertTrue(any("a backfill writes its own" in p for p in problems),
+                        problems)
+
+    def test_the_sidecars_digest_to_their_own_names(self) -> None:
+        shadow = _load_shadow()
+        policy = json.loads(
+            (self.calibration / "routing-policy.json").read_text(encoding="utf-8"))
+        gates = json.loads(
+            (self.calibration / "gates.json").read_text(encoding="utf-8"))
+        for name, body in shadow.policy_sidecars(policy, gates).items():
+            with self.subTest(name=name):
+                self.assertTrue(shadow._digests_to_its_name(name, body))
+        # And the names are the ones a record carries, so ingest can find them.
+        self.assertEqual(
+            f"policy-{shadow.digest(shadow.strip_underscored(policy))}.json",
+            next(n for n in shadow.policy_sidecars(policy, gates) if n.startswith("policy-")))
 
     def test_the_summary_is_byte_identical_when_regenerated(self) -> None:
         """S-057. A summary that moves cannot be reviewed."""
