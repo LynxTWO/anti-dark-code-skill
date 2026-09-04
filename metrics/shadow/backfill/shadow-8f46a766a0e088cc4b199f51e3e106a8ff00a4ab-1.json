@@ -1,0 +1,61 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "1db985beac5bb77c3a45632c435ec6fbd920645abc542db0be7ca26f5d0e8a27",
+    "policy_terms_sha256": "0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNMAPPED-PATH",
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": null,
+  "base_reconstructed": true,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only",
+      "product-code",
+      "schema-contract",
+      "verification-authority"
+    ],
+    "omitted_gate_ids": [],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay",
+      "validate-core"
+    ],
+    "terms_sha256": "05bd8792695e97bea16d37518406873e2864f664b3e2b1abd9b7530ab725ff0f"
+  },
+  "class_key": "0d0ee37f853d0230168368d898186460ae13da76e7461d4969ac85c130766cf1",
+  "commits": {
+    "base": "3e4eda3f897fb283cccfa169afaaf836f406503c",
+    "head": "8f46a766a0e088cc4b199f51e3e106a8ff00a4ab",
+    "merge": "90aa79548d1d35c624994d74068f7ceddab03434"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "head_ref": "claude/round-eleven-evidence-contracts",
+  "inconclusive_reason": null,
+  "measurable": true,
+  "not_measurable_reason": null,
+  "provenance": "backfill",
+  "record_id": "607be32927f298a49c43c37a7ce7e2803bf1fad7fbeed96fbf4c62625daa535c",
+  "run": {
+    "pull_request": 22,
+    "run_attempt": 1,
+    "run_id": "33345218999"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": null,
+  "status": "no_omission"
+}

@@ -1,0 +1,60 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "871aa69098b30c1b1fb5d6e2318f040fc36a6a3e2885a2a1f1ed0524ac313bec",
+    "policy_terms_sha256": "730dcf299e144ea8c0edb231d1306dba105c3b1677c705ad282a1b2365fb575f",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNMAPPED-PATH",
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": null,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only",
+      "product-code",
+      "schema-contract",
+      "verification-authority"
+    ],
+    "omitted_gate_ids": [],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay",
+      "validate-core"
+    ],
+    "terms_sha256": "70c7cadeac77d749c9be8ad1b9396f9cd290abef507bc6b0722fd538d15582ba"
+  },
+  "class_key": "6a6b05ababcabfdea7bcfcb36459b014bfdd82ca5681c590eb250ac9f41a9b0d",
+  "commits": {
+    "base": "6097aee388c87c8bcb46c8f8a0bbaf031d02019f",
+    "head": "9b8a6db26db13c94c1f189ede7ecabc5166af5cd",
+    "merge": "5913e8a6d5631bf97e988e3b3324b9a03b47bd29"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "head_ref": "claude/slice-002-impl",
+  "inconclusive_reason": null,
+  "measurable": true,
+  "not_measurable_reason": null,
+  "provenance": "live",
+  "record_id": "05aec13940c74794233929218e6d2ac093848e1b5876d593c6c9c424e04ff91c",
+  "run": {
+    "pull_request": 34,
+    "run_attempt": 1,
+    "run_id": "33744556176"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": null,
+  "status": "no_omission"
+}

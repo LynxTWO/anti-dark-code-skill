@@ -19,6 +19,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -43,6 +44,16 @@ STATUS_NOT_MEASURABLE = "not_measurable"
 # are recorded and reported so a reader can see what the campaign could not
 # measure, which is the count that tells you whether the campaign is working.
 EVIDENCE_STATUSES = frozenset({STATUS_CLEAN, STATUS_MISS})
+
+# Every key a record carries, so an unknown one is refused rather than
+# ignored. The schema says `additionalProperties: false` and nothing on the
+# ingest path reads the schema, so the validator has to say it too.
+RECORD_KEYS = (
+    "schema_version", "schema", "record_id", "provenance", "head_ref",
+    "status", "measurable", "not_measurable_reason", "inconclusive_reason",
+    "commits", "base_reconstructed", "run", "class_key", "class", "audit",
+    "gate_outcomes", "base_gate_outcomes", "shadow",
+)
 
 RECORD_REQUIRED_KEYS = (
     "schema_version",
@@ -194,11 +205,17 @@ def build_record(
     backfill: bool,
     router_blob_sha256: str,
     shadow_result,
+    base_reconstructed: bool = False,
+    unmeasurable_reason: str | None = None,
 ) -> dict[str, Any]:
     """One record, in the order the brief defines it."""
     gates = canonical_gate_ids(gates_source)
     outcomes = {str(k): str(v) for k, v in outcomes.items()}
     measurable, reason = measurability(outcomes, gates, candidate)
+    if not measurable and unmeasurable_reason:
+        # D-128: a head whose commit no longer exists is not the same silence
+        # as a snapshot that would not read. The caller names which.
+        reason = unmeasurable_reason
 
     selected: tuple[str, ...] = ()
     omitted: list[str] = []
@@ -247,6 +264,11 @@ def build_record(
         "not_measurable_reason": reason if not measurable else None,
         "inconclusive_reason": reason if status == STATUS_INCONCLUSIVE else None,
         "commits": {key: str(commits.get(key, "")) for key in ("base", "merge", "head")},
+        # D-128. A backfilled record's base is computed now, from the commit
+        # that landed the pull request, because the merge commit CI checked
+        # out is not recoverable afterwards. A live record's base came from
+        # the event payload and is not reconstructed.
+        "base_reconstructed": bool(base_reconstructed),
         "run": {
             "pull_request": run.get("pull_request"),
             "run_id": str(run.get("run_id", "")),
@@ -288,6 +310,22 @@ def validate_record(record: Mapping[str, Any]) -> list[str]:
         return errors
     if record.get("schema_version") != SCHEMA_VERSION:
         errors.append(f"schema_version must be {SCHEMA_VERSION}")
+    if record.get("schema") != SCHEMA_NAME:
+        errors.append(f"schema must be {SCHEMA_NAME!r}")
+    unknown = sorted(set(record) - set(RECORD_KEYS))
+    if unknown:
+        errors.append(f"unknown key(s): {', '.join(unknown)}")
+    if "base_reconstructed" in record:
+        if not isinstance(record.get("base_reconstructed"), bool):
+            errors.append("base_reconstructed must be boolean")
+    elif str(record.get("provenance")) == "backfill":
+        # Required of a backfill, whose base is computed after the fact and
+        # must say so. A record without the key at all predates it, which
+        # only the live and canary records CI wrote before D-128 do, and a
+        # live record's base came from the event payload and was never
+        # reconstructed. Absent is therefore unambiguous for those, and a
+        # silent false for a backfill would be a lie.
+        errors.append("a backfilled record must carry base_reconstructed")
     if record.get("status") not in {
             STATUS_MISS, STATUS_CLEAN, STATUS_INCONCLUSIVE, STATUS_NO_OMISSION,
             STATUS_SELECTS_NOTHING, STATUS_NOT_MEASURABLE}:
@@ -525,71 +563,221 @@ def _gh_json(args: Sequence[str]) -> Any:
     return json.loads(done.stdout)
 
 
-def discover_changes(repo: Path, since: str, branch: str = "HEAD",
-                     workflow_name: str = "Tests") -> list[dict[str, Any]]:
-    """Every merge on the first-parent line since `since`, with its run.
+def repository_slug(repo: Path) -> str:
+    """owner/name for the origin remote."""
+    remote = _git(repo, "remote", "get-url", "origin")
+    remote = remote.rstrip("/").removesuffix(".git").split(":")[-1]
+    return "/".join(remote.split("/")[-2:])
 
-    A merge commit's first parent is the base the pull request was measured
-    against and its second is the head, which is what CI verified as
-    `refs/pull/N/merge`. A merge with no run under the workflow, which every
-    change before the workflow landed on 2026-08-22 has, is returned with no
-    run so the caller can record it as not measurable rather than drop it.
+
+def landing_commits(repo: Path, since: str, branch: str = "HEAD"
+                    ) -> dict[int, dict[str, str]]:
+    """Pull request number to the commit that landed it, and that commit's base.
+
+    First parent, whether the landing was a merge commit or a squash. The
+    first parent of a merge is the base branch as it stood at the merge, and
+    the parent of a squash is the same thing, which is why one rule serves
+    both and why D-128 takes the base from here rather than from the pull
+    request API, whose `base.sha` is where the branch pointed when the pull
+    request was opened.
     """
-    repository = _git(repo, "remote", "get-url", "origin")
-    repository = repository.rstrip("/").removesuffix(".git").split(":")[-1]
-    repository = "/".join(repository.split("/")[-2:])
-    log = _git(repo, "log", "--first-parent", "--merges", "--format=%H\x1f%P\x1f%s",
-               f"{since}..{branch}")
-    changes: list[dict[str, Any]] = []
+    log = _git(repo, "log", "--first-parent", "--format=%H\x1f%P\x1f%s",
+               f"{since}..{branch}" if since else branch)
+    landings: dict[int, dict[str, str]] = {}
     for line in log.splitlines():
         if not line.strip():
             continue
-        merge, parents, subject = line.split("\x1f", 2)
+        landing, parents, subject = line.split("\x1f", 2)
         parent_ids = parents.split()
-        if len(parent_ids) < 2:
+        if not parent_ids:
             continue
         number = None
-        for token in subject.replace(":", " ").split():
+        for token in subject.replace(":", " ").replace("(", " ").replace(")", " ").split():
             if token.startswith("#") and token[1:].isdigit():
                 number = int(token[1:])
                 break
-        entry: dict[str, Any] = {
-            "pull_request": number,
-            "merge": merge,
-            "base": parent_ids[0],
-            "head": parent_ids[1],
-            "subject": subject,
-            "run_id": None,
-            "run_attempt": None,
-            "jobs": None,
-        }
-        runs = _gh_json([f"/repos/{repository}/actions/runs"
-                         f"?head_sha={entry['head']}&per_page=100"])
-        candidates = [run for run in runs.get("workflow_runs", [])
-                      if run.get("name") == workflow_name]
-        if candidates:
-            run = max(candidates, key=lambda item: item.get("run_attempt", 1))
-            entry["run_id"] = str(run["id"])
-            entry["run_attempt"] = int(run.get("run_attempt", 1))
-            entry["jobs"] = _gh_json([
-                f"/repos/{repository}/actions/runs/{run['id']}/attempts/"
-                f"{entry['run_attempt']}/jobs?per_page=100"]).get("jobs", [])
-        changes.append(entry)
-    return changes
+        if number is None or number in landings:
+            continue
+        landings[number] = {"landing": landing, "first_parent": parent_ids[0],
+                            "subject": subject}
+    return landings
+
+
+def discover_pull_request_runs(
+    repo: Path, since: str, branch: str = "HEAD", workflow_name: str = "Tests",
+    repository: str | None = None, max_pages: int = 20,
+) -> list[dict[str, Any]]:
+    """Every `pull_request` run attempt of every merged pull request since `since`.
+
+    D-128: the population is the pull request's own runs, not the merge that
+    survived them, because a merge is a change whose run already passed the
+    checks that gated it and cannot show what they caught.
+
+    A run's `pull_requests` field empties once the branch is merged, so the
+    join is on head repository and branch, which the runs listing always
+    carries, and `/commits/{sha}/pulls` resolves whatever that leaves. Every
+    attempt is enumerated, not only the last, because a rerun does not
+    replace the attempt it supersedes.
+    """
+    slug = repository or repository_slug(repo)
+    landings = landing_commits(repo, since, branch)
+
+    runs: list[dict[str, Any]] = []
+    for page in range(1, max_pages + 1):
+        payload = _gh_json([f"/repos/{slug}/actions/runs"
+                            f"?event=pull_request&per_page=100&page={page}"])
+        batch = payload.get("workflow_runs", [])
+        runs.extend(run for run in batch if run.get("name") == workflow_name)
+        if len(batch) < 100:
+            break
+
+    # Head repository and branch name the pull request even after the merge.
+    by_branch: dict[tuple[str, str], int] = {}
+    for number in landings:
+        pull = _gh_json([f"/repos/{slug}/pulls/{number}"])
+        head = pull.get("head") or {}
+        head_repo = ((head.get("repo") or {}).get("full_name") or "")
+        by_branch[(str(head_repo), str(head.get("ref") or ""))] = number
+
+    entries: list[dict[str, Any]] = []
+    resolved: dict[str, int | None] = {}
+    for run in runs:
+        head_repo = str(((run.get("head_repository") or {}).get("full_name")) or "")
+        key = (head_repo, str(run.get("head_branch") or ""))
+        number = by_branch.get(key)
+        if number is None:
+            named = [p.get("number") for p in (run.get("pull_requests") or [])]
+            number = named[0] if named else None
+        if number is None:
+            head_sha = str(run.get("head_sha") or "")
+            if head_sha not in resolved:
+                try:
+                    pulls = _gh_json([f"/repos/{slug}/commits/{head_sha}/pulls"])
+                except ShadowError:
+                    pulls = []
+                resolved[head_sha] = (int(pulls[0]["number"]) if pulls else None)
+            number = resolved[head_sha]
+        if number is None or number not in landings:
+            continue
+
+        landing = landings[number]
+        head = str(run.get("head_sha") or "")
+        attempts = int(run.get("run_attempt", 1) or 1)
+        for attempt in range(1, attempts + 1):
+            try:
+                jobs = _gh_json([
+                    f"/repos/{slug}/actions/runs/{run['id']}/attempts/{attempt}"
+                    f"/jobs?per_page=100"]).get("jobs", [])
+            except ShadowError:
+                jobs = []
+            entries.append({
+                "pull_request": number,
+                "head": head,
+                "head_ref": run.get("head_branch") or "",
+                "landing": landing["landing"],
+                "landing_first_parent": landing["first_parent"],
+                "subject": landing["subject"],
+                "run_id": str(run["id"]),
+                "run_attempt": attempt,
+                "run_conclusion": run.get("conclusion"),
+                "jobs": jobs,
+            })
+    entries.sort(key=lambda item: (item["pull_request"], item["run_id"],
+                                   item["run_attempt"]))
+    return entries
+
+
+def _commit_present(repo: Path, sha: str) -> bool:
+    done = subprocess.run(["git", "-C", str(repo), "cat-file", "-e", f"{sha}^{{commit}}"],
+                          capture_output=True, text=True, timeout=120)
+    return done.returncode == 0
+
+
+def _historical_runner(route_module, repo: Path, head: str):
+    """The production acquisition, pointed at a commit instead of a checkout.
+
+    `read_change_inputs` reads `HEAD`, which a backfill would otherwise have
+    to check out: about forty-five seconds a change on a large tree, and
+    hours for a campaign. This substitutes the commit for the literal token,
+    so every git command, flag, parser, fingerprint and problem code stays
+    the production one.
+
+    It also answers the index, worktree and untracked sources with silence,
+    which is what they are for a commit. Those three describe the repository
+    now, and now is not the change being measured: the first run of this
+    backfill read four files this build had not yet committed and the
+    thirty-three records the run was itself writing, and every record it
+    produced was a reading of the present wearing a historical head. A fresh
+    detached checkout gives the same silence, which is why the field study,
+    which ran against a clean scratch clone, did not show it.
+    """
+    base_runner = route_module._default_runner(repo)
+
+    def runner(argv):
+        tokens = [str(token) for token in argv]
+        # The index (`--cached`), the worktree (`--no-textconv`), and the
+        # untracked scan (`ls-files --others`). _DIFF_FLAGS carries none of
+        # these, so the committed comparison is never caught by them.
+        #
+        # The untracked test is `--others`, not `ls-files` alone, because
+        # `_repo_fingerprint` also lists tracked files with `ls-files`, and
+        # silencing that would leave the acquisition boundary watching
+        # nothing: no ADC-ROUTE-BOUNDARY-VIOLATED could then fire, while the
+        # snapshot still called itself complete.
+        if ("--cached" in tokens or "--no-textconv" in tokens
+                or ("ls-files" in tokens and "--others" in tokens)):
+            return b""
+        return base_runner([head if token == "HEAD" else token for token in tokens])
+
+    return runner
+
+
+def _push_outcomes(slug: str, sha: str, gate_map: Mapping[str, Any],
+                   workflow_name: str, cache: dict[str, dict[str, str] | None],
+                   ) -> dict[str, str] | None:
+    """The base commit's own run, so an inherited failure is not read as a miss."""
+    if sha in cache:
+        return cache[sha]
+    try:
+        # event=push, because the base's own run is what tells an inherited
+        # failure from a miss. Without the filter a base that is another
+        # pull request's head returns that pull request's merge-ref run,
+        # which is a different change.
+        payload = _gh_json([f"/repos/{slug}/actions/runs"
+                            f"?head_sha={sha}&event=push&per_page=50"])
+    except ShadowError:
+        cache[sha] = None
+        return None
+    runs = [run for run in payload.get("workflow_runs", [])
+            if run.get("name") == workflow_name]
+    if not runs:
+        cache[sha] = None
+        return None
+    run = max(runs, key=lambda item: int(item.get("run_attempt", 1) or 1))
+    try:
+        jobs = _gh_json([
+            f"/repos/{slug}/actions/runs/{run['id']}/attempts/"
+            f"{int(run.get('run_attempt', 1) or 1)}/jobs?per_page=100"]).get("jobs", [])
+    except ShadowError:
+        cache[sha] = None
+        return None
+    cache[sha] = gate_outcomes_from_jobs(jobs, gate_map) if jobs else None
+    return cache[sha]
 
 
 def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
-    """Replay today's router over historical change sets.
+    """Replay today's router over a pull request's own run history.
 
     Not a reconstruction at each head: the candidate builder did not exist at
     the earliest heads and the policy differed across the stack, so per-head
     keys would be classes of one. Today's router and today's policy over the
     historical change set, keyed by today's digests, is what the brief's
     section 5 defines, and every record carries `provenance: backfill`.
-    """
-    import shutil
-    import tempfile
 
+    The population is the pull request's runs, every attempt, never the merge
+    that survived them: D-128, on the field study's measurement that a merge
+    is a change whose run already passed the checks that gated it.
+    """
     adc = _adc_module(adc_module)
     route_module, _ = adc.load_router_helpers()
     repo = Path(args.repo).resolve()
@@ -600,10 +788,12 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
     if args.changes:
         changes = json.loads(Path(args.changes).read_text(encoding="utf-8"))
     else:
-        if not args.since:
-            print("REFUSED: --since or --changes is required")
-            return 2
-        changes = discover_changes(repo, args.since, args.branch)
+        # No --since means the whole branch. The window is an option, not a
+        # requirement: making it mandatory is how the first run of this
+        # backfill covered nine of thirty-five pull requests without saying
+        # so, which the implementation challenge found.
+        changes = discover_pull_request_runs(
+            repo, args.since or "", args.branch, workflow_name=args.workflow)
     if args.save_changes:
         Path(args.save_changes).write_text(
             json.dumps(changes, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -617,12 +807,44 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
     validated = route_module.load_policy(
         policy_source, gates_source, [c["id"] for c in catalog["capabilities"]],
         gates_source["canonical_full_set"])
+    router_sha = router_digest(Path(route_module.__file__))
+
+    # A head and attempt CI already recorded live is never backfilled: the
+    # live record was built on the tree CI verified, and this one would be
+    # built on a reconstructed base. The live record wins.
+    already: set[tuple[str, str]] = set()
+    for directory in (args.live_records or []):
+        for path in sorted(Path(directory).glob("*.json")):
+            try:
+                existing = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if str(existing.get("provenance")) == "backfill":
+                continue
+            already.add((str(existing.get("commits", {}).get("head", "")),
+                         str(existing.get("run", {}).get("run_attempt", ""))))
+
+    # Resolved only if a base outcome is actually wanted. A saved discovery
+    # file needs no network at all, and a fixture repository has no remote;
+    # refusing there would make the offline path depend on the online one.
+    slug: str | None = args.repository
+    if slug is None:
+        try:
+            slug = repository_slug(repo)
+        except ShadowError:
+            slug = None
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    written = 0
+    base_cache: dict[str, dict[str, str] | None] = {}
+    written = skipped = 0
     for entry in changes:
         head = str(entry["head"])
+        attempt = int(entry.get("run_attempt") or 0)
+        if (head, str(attempt)) in already:
+            skipped += 1
+            continue
+
         jobs = entry.get("jobs")
         if isinstance(jobs, str):
             jobs = json.loads(Path(jobs).read_text(encoding="utf-8"))
@@ -632,48 +854,409 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
                     else {gate: "unresolved"
                           for gate in canonical_gate_ids(gates_source)})
 
-        checkout = Path(tempfile.mkdtemp(prefix=f"adc-backfill-{head[:8]}-"))
-        try:
-            _git(repo, "worktree", "add", "--detach", "--force", str(checkout), head)
-            snapshot = route_module.read_change_inputs(checkout, str(entry["base"]))
+        base = ""
+        route = candidate = None
+        unmeasurable_reason = None
+        if not _commit_present(repo, head):
+            # A force-pushed or deleted-fork head has no object to diff. That
+            # is recorded, not dropped: a campaign that silently skipped it
+            # would overstate its own coverage, as D-127 said of a missing run.
+            unmeasurable_reason = "head-unavailable"
+            base = str(entry.get("landing_first_parent") or "")
+        else:
+            first_parent = str(entry.get("landing_first_parent") or "")
+            base = _git(repo, "merge-base", head, first_parent) if first_parent else ""
+            snapshot = route_module.read_change_inputs(
+                repo, base, runner=_historical_runner(route_module, repo, head))
             facts = route_module.collect_change_facts(
                 snapshot, validated.classifier_map())
             route = route_module.build_route(
                 facts, validated, snapshot_ok=snapshot.complete)
             candidate = route_module.build_candidate_route(
                 facts, validated, snapshot_ok=snapshot.complete)
-        finally:
-            subprocess.run(["git", "-C", str(repo), "worktree", "remove",
-                            "--force", str(checkout)],
-                           capture_output=True, text=True, timeout=120)
-            shutil.rmtree(checkout, ignore_errors=True)
 
+        base_outcomes = (_push_outcomes(slug, base, gate_map, args.workflow,
+                                        base_cache)
+                         if base and slug and not args.no_base_outcomes else None)
         record = build_record(
             policy_source=policy_source, gates_source=gates_source,
             route=route, candidate=candidate, outcomes=outcomes,
-            base_outcomes=None,
-            commits={"base": str(entry["base"]), "merge": str(entry["merge"]),
+            base_outcomes=base_outcomes,
+            commits={"base": base or "unavailable",
+                     "merge": str(entry.get("landing") or head),
                      "head": head},
             run={"pull_request": entry.get("pull_request"),
                  "run_id": entry.get("run_id") or "",
-                 "run_attempt": entry.get("run_attempt") or 0},
+                 "run_attempt": attempt},
             head_ref=entry.get("head_ref"), backfill=True,
-            router_blob_sha256=router_digest(Path(route_module.__file__)),
-            shadow_result=adc.shadow_result,
+            router_blob_sha256=router_sha, shadow_result=adc.shadow_result,
+            base_reconstructed=True, unmeasurable_reason=unmeasurable_reason,
         )
         errors = validate_record(record)
         if errors:
             print(f"REFUSED {head[:12]}: " + "; ".join(errors))
             return 2
-        (out_dir / f"shadow-backfill-{head}.json").write_text(
+        (out_dir / f"shadow-{head}-{attempt}.json").write_text(
             json.dumps(record, indent=2, sort_keys=True) + "\n",
             encoding="utf-8", newline="\n")
         written += 1
-        print(f"  #{str(entry.get('pull_request') or '-'):>4} {head[:12]} "
+        print(f"  #{str(entry.get('pull_request') or '-'):>4} {head[:12]}/{attempt} "
               f"{record['status']:16} class={record['class_key'][:12]} "
               f"rules={','.join(record['class']['matched_rule_ids']) or '-'} "
               f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'}")
-    print(f"BACKFILL {written} record(s) in {out_dir}")
+    print(f"BACKFILL {written} record(s) in {out_dir}"
+          + (f", {skipped} already live" if skipped else ""))
+    return 0
+
+
+def _ledger_paths(ledger_dir: Path) -> list[Path]:
+    return sorted(ledger_dir.glob("*.jsonl"))
+
+
+def read_ledger(ledger_dir: Path) -> list[dict[str, Any]]:
+    """Every record the ledger holds, in file then line order."""
+    records: list[dict[str, Any]] = []
+    for path in _ledger_paths(ledger_dir):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                records.append(json.loads(line))
+    return records
+
+
+def _is_ancestor(repo: Path, commit: str, of: str) -> bool:
+    done = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", commit, of],
+        capture_output=True, text=True, timeout=120)
+    return done.returncode == 0
+
+
+def status_from(outcomes: Mapping[str, str], selected: Sequence[str],
+                omitted: Sequence[str],
+                base_outcomes: Mapping[str, str] | None) -> str:
+    """Section 2's verdict, from outcomes and what a route would have run.
+
+    Pure, and deliberately independent of any policy: it needs only which
+    gates a candidate selected, which it omitted, and what each concluded.
+    That is what lets ingest recompute a status across a classifier change
+    without recomputing a class, which D-129 makes a moving target.
+    """
+    outcomes = {str(k): str(v) for k, v in outcomes.items()}
+    gates = sorted(set(selected) | set(omitted))
+    if any(outcomes.get(gate) not in DECIDED_OUTCOMES for gate in gates):
+        return STATUS_NOT_MEASURABLE
+    if not omitted:
+        return STATUS_NO_OMISSION
+    if not selected:
+        return STATUS_SELECTS_NOTHING
+    missed = [gate for gate in omitted if outcomes.get(gate) == "fail"]
+    if missed:
+        inherited = [gate for gate in missed
+                     if base_outcomes and str(base_outcomes.get(gate)) == "fail"]
+        return STATUS_INCONCLUSIVE if inherited else STATUS_MISS
+    if all(outcomes.get(gate) == "pass" for gate in selected):
+        return STATUS_CLEAN
+    return STATUS_INCONCLUSIVE
+
+
+def verify_record(record: Mapping[str, Any], *, repo: Path,
+                  gate_map: Mapping[str, Any], slug: str | None,
+                  main_ref: str, offline: bool) -> list[str]:
+    """Why this record must not enter the ledger, or an empty list.
+
+    G10: the record was built by the pull request's own workflow, so a pull
+    request that edits the workflow could upload anything. Two things are
+    therefore recomputed rather than believed. The outcomes are re-read from
+    the API for the run and attempt the record names. The verdict is then
+    recomputed from those outcomes and the gates the record says its
+    candidate selected and omitted, and a record whose status does not follow
+    is refused: without that, a record could report an omitted gate's failure
+    truthfully and still call itself clean, and the summary would count it
+    toward N. The class itself is not recomputed against today's policy,
+    because the classifier legitimately changes and a record from before
+    D-129 is not forged for saying so.
+    """
+    problems = list(validate_record(record))
+    if problems:
+        return problems
+
+    body = {k: v for k, v in record.items() if k != "record_id"}
+    if record.get("record_id") != digest(body):
+        problems.append("record_id does not digest the record")
+
+    provenance = str(record.get("provenance"))
+    head = str(record.get("commits", {}).get("head", ""))
+
+    # G8 again: provenance is derived, never asserted, so a record cannot
+    # opt out of the canary rules by calling itself live.
+    derived = provenance_for(record.get("head_ref"), provenance == "backfill")
+    if derived == "canary" and provenance != "canary":
+        problems.append(
+            f"head_ref {record.get('head_ref')!r} is a canary branch but the "
+            f"record claims provenance {provenance!r}")
+        provenance = "canary"
+    if provenance == "canary":
+        # A canary is a branch that is never merged. One that has landed is
+        # an ordinary change wearing a canary's name. A head this repository
+        # does not have cannot be checked, so it is refused rather than
+        # waved through.
+        if not head or not _commit_present(repo, head):
+            problems.append(
+                f"canary head {head[:12] or '(none)'} is not present, so it "
+                f"cannot be shown not to have landed")
+        elif _is_ancestor(repo, head, main_ref):
+            problems.append(f"canary head {head[:12]} is an ancestor of {main_ref}")
+
+    if offline or not slug:
+        return problems
+
+    run_id = str(record.get("run", {}).get("run_id", ""))
+    attempt = int(record.get("run", {}).get("run_attempt", 0) or 0)
+    if not run_id or not attempt:
+        problems.append(
+            "the record names no run and attempt, so its outcomes cannot be "
+            "re-read; ingest it with --offline if that is intended")
+        return problems
+    try:
+        jobs = _gh_json([f"/repos/{slug}/actions/runs/{run_id}/attempts/{attempt}"
+                         f"/jobs?per_page=100"]).get("jobs", [])
+    except ShadowError as error:
+        problems.append(f"outcomes could not be re-read: {error}")
+        return problems
+    recomputed = gate_outcomes_from_jobs(jobs, gate_map) if jobs else {}
+    recorded = {str(k): str(v) for k, v in (record.get("gate_outcomes") or {}).items()}
+    if recomputed != recorded:
+        differing = sorted(set(recorded) | set(recomputed))
+        detail = ", ".join(
+            f"{gate}: recorded {recorded.get(gate)!r} but the run says "
+            f"{recomputed.get(gate)!r}"
+            for gate in differing
+            if recorded.get(gate) != recomputed.get(gate))
+        problems.append(f"outcomes disagree with the run: {detail}")
+        return problems
+
+    klass = record.get("class") or {}
+    expected = status_from(
+        recomputed,
+        [str(gate) for gate in klass.get("selected_gate_ids", ())],
+        [str(gate) for gate in klass.get("omitted_gate_ids", ())],
+        record.get("base_gate_outcomes"))
+    if expected != str(record.get("status")):
+        problems.append(
+            f"status does not follow from the run: the record says "
+            f"{record.get('status')!r} and these outcomes give {expected!r}")
+    return problems
+
+
+def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
+    """Move verified records into the committed ledger.
+
+    The artifact is an inbox, never the ledger: it is written by the pull
+    request's own workflow. Everything that reaches the ledger has had its
+    outcomes re-read from the API and its structure refused on disagreement.
+    """
+    repo = Path(args.repo).resolve()
+    gate_map = json.loads(Path(args.map).read_text(encoding="utf-8"))
+    ledger_dir = Path(args.ledger)
+    ledger_dir.mkdir(parents=True, exist_ok=True)
+
+    slug: str | None = args.repository
+    if slug is None and not args.offline:
+        try:
+            slug = repository_slug(repo)
+        except ShadowError:
+            slug = None
+
+    known = {str(record.get("record_id")) for record in read_ledger(ledger_dir)}
+    incoming: list[tuple[Path, dict[str, Any]]] = []
+    for directory in args.source:
+        for path in sorted(Path(directory).glob("*.json")):
+            try:
+                incoming.append((path, json.loads(path.read_text(encoding="utf-8"))))
+            except (OSError, json.JSONDecodeError) as error:
+                print(f"  REFUSED {path.name}: unreadable: {error}")
+                if not args.keep_going:
+                    return 2
+
+    accepted: list[dict[str, Any]] = []
+    refused = 0
+    for path, record in incoming:
+        if str(record.get("record_id")) in known:
+            continue
+        problems = verify_record(record, repo=repo, gate_map=gate_map, slug=slug,
+                                 main_ref=args.main, offline=args.offline)
+        if problems:
+            refused += 1
+            print(f"  REFUSED {path.name}: " + "; ".join(problems))
+            if not args.keep_going:
+                return 2
+            continue
+        accepted.append(record)
+        known.add(str(record.get("record_id")))
+
+    # One file per ingest month, named by --month, so the ledger grows by
+    # append and a month's bytes never move once written.
+    by_month: dict[str, list[dict[str, Any]]] = {}
+    for record in accepted:
+        by_month.setdefault(args.month, []).append(record)
+    written = 0
+    for month, records in sorted(by_month.items()):
+        target = ledger_dir / f"{month}.jsonl"
+        existing = target.read_text(encoding="utf-8") if target.exists() else ""
+        lines = [canonical_json(record) for record in
+                 sorted(records, key=lambda item: str(item.get("record_id")))]
+        target.write_text(existing + "\n".join(lines) + "\n", encoding="utf-8",
+                          newline="\n")
+        written += len(lines)
+
+    if args.write_pull_requests:
+        # The criterion counts pull requests, over days, by distinct authors,
+        # and a record carries none of that: it is deliberately timeless so
+        # the summary is byte-reproducible. The join lives beside the ledger
+        # rather than inside a record, so no record changes when it is
+        # refreshed. The author is the pull request's own, not the commit's,
+        # because every commit here is authored by one account.
+        path = Path(args.write_pull_requests)
+        existing: dict[str, Any] = {}
+        if path.exists():
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        numbers = sorted({str(record.get("run", {}).get("pull_request"))
+                          for record in read_ledger(ledger_dir)
+                          if record.get("run", {}).get("pull_request") is not None})
+        for number in numbers:
+            if number in existing or not slug:
+                continue
+            try:
+                pull = _gh_json([f"/repos/{slug}/pulls/{number}"])
+            except ShadowError:
+                continue
+            existing[number] = {
+                "author": str((pull.get("user") or {}).get("login") or ""),
+                "merged_at": str(pull.get("merged_at") or ""),
+                "title": str(pull.get("title") or "")[:120],
+            }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(existing, indent=2, sort_keys=True) + "\n",
+                        encoding="utf-8", newline="\n")
+        print(f"  pull request metadata for {len(existing)} pull request(s)")
+
+    print(f"INGEST {written} record(s) into {ledger_dir}"
+          + (f", {refused} refused" if refused else ""))
+    # A refusal is a refusal whether or not the run continued past it.
+    # --keep-going reports every one; it does not forgive them.
+    return 2 if refused else 0
+
+
+def summarise(records: Sequence[Mapping[str, Any]],
+              pulls: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """The campaign's counts, per class, from the ledger bytes alone.
+
+    D-128: N counts pull requests, not records. In one class a pull request
+    advances N when it has at least one clean live record there and no miss;
+    an inconclusive record neither adds nor removes; a miss on any attempt is
+    the class's miss and is never removed. N is therefore a count that can
+    fall when a later attempt misses, not a clock.
+    """
+    pulls = pulls or {}
+    classes: dict[str, dict[str, Any]] = {}
+    for record in records:
+        key = str(record.get("class_key"))
+        entry = classes.setdefault(key, {
+            "class_key": key,
+            "matched_rule_ids": list(record.get("class", {}).get("matched_rule_ids", [])),
+            "omitted_gate_ids": list(record.get("class", {}).get("omitted_gate_ids", [])),
+            "router_blob_sha256": str(record.get("class", {}).get("router_blob_sha256", "")),
+            "records": {"live": 0, "backfill": 0, "canary": 0},
+            "status": {},
+            "_live_clean": set(),
+            "_live_miss": set(),
+            "_backfill_miss": set(),
+            "canary_record_ids": [],
+        })
+        provenance = str(record.get("provenance"))
+        status = str(record.get("status"))
+        if provenance in entry["records"]:
+            entry["records"][provenance] += 1
+        entry["status"][status] = entry["status"].get(status, 0) + 1
+        pull = record.get("run", {}).get("pull_request")
+        pull_key = str(pull) if pull is not None else None
+        if provenance == "canary":
+            # G8: a canary is what shows the comparator sees failures. It is
+            # never evidence for or against the class it demonstrates.
+            entry["canary_record_ids"].append(str(record.get("record_id")))
+        elif provenance == "live" and pull_key:
+            if status == STATUS_CLEAN:
+                entry["_live_clean"].add(pull_key)
+            elif status == STATUS_MISS:
+                entry["_live_miss"].add(pull_key)
+        elif provenance == "backfill" and pull_key and status == STATUS_MISS:
+            entry["_backfill_miss"].add(pull_key)
+
+    out: list[dict[str, Any]] = []
+    for key in sorted(classes):
+        entry = classes[key]
+        clean = entry.pop("_live_clean")
+        missed = entry.pop("_live_miss")
+        backfill_missed = entry.pop("_backfill_miss")
+        counted = sorted(clean - missed)
+        authors = sorted({str(pulls.get(pull, {}).get("author", ""))
+                          for pull in counted} - {""})
+        landed = sorted(str(pulls.get(pull, {}).get("merged_at", ""))
+                        for pull in counted)
+        landed = [stamp for stamp in landed if stamp]
+        span_days = None
+        if len(landed) >= 2:
+            fmt = "%Y-%m-%dT%H:%M:%SZ"
+            span_days = (datetime.strptime(landed[-1], fmt)
+                         - datetime.strptime(landed[0], fmt)).days
+        entry.update({
+            "status": dict(sorted(entry["status"].items())),
+            "criterion": {
+                "pull_requests_counted": len(counted),
+                "pull_requests": counted,
+                "pull_requests_with_a_miss": sorted(missed),
+                "distinct_authors": len(authors),
+                "authors": authors,
+                "span_days": span_days,
+                "backfill_pull_requests_with_a_miss": sorted(backfill_missed),
+                "canaries": len(entry["canary_record_ids"]),
+            },
+            "canary_record_ids": sorted(entry["canary_record_ids"]),
+        })
+        out.append(entry)
+
+    totals: dict[str, int] = {}
+    for record in records:
+        totals[str(record.get("provenance"))] = (
+            totals.get(str(record.get("provenance")), 0) + 1)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "records": len(records),
+        "records_by_provenance": dict(sorted(totals.items())),
+        "classes": out,
+    }
+
+
+def command_summary(args: argparse.Namespace, adc_module=None) -> int:
+    """Regenerate the summary from the ledger bytes. Deterministic by design."""
+    ledger_dir = Path(args.ledger)
+    records = read_ledger(ledger_dir)
+    pulls: dict[str, Any] = {}
+    if args.pull_requests and Path(args.pull_requests).exists():
+        pulls = json.loads(Path(args.pull_requests).read_text(encoding="utf-8"))
+    payload = summarise(records, pulls)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                   encoding="utf-8", newline="\n")
+    print(f"SUMMARY {len(records)} record(s), {len(payload['classes'])} class(es) "
+          f"in {out}")
+    for entry in payload["classes"]:
+        criterion = entry["criterion"]
+        print(f"  {entry['class_key'][:12]} "
+              f"omits={','.join(entry['omitted_gate_ids']) or '-':28} "
+              f"N={criterion['pull_requests_counted']} "
+              f"misses={len(criterion['pull_requests_with_a_miss'])} "
+              f"canaries={criterion['canaries']}")
     return 0
 
 
@@ -713,17 +1296,59 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", required=True)
     p.set_defaults(func=command_outcomes)
 
-    p = sub.add_parser("backfill",
-                       help="Replay today's router over historical change sets")
+    p = sub.add_parser(
+        "backfill",
+        help="Replay today's router over merged pull requests' own run history")
     p.add_argument("--repo", default=".")
     p.add_argument("--calibration")
     p.add_argument("--map", required=True)
-    p.add_argument("--since", help="Replay merges after this commit")
+    p.add_argument("--since",
+                   help="Replay pull requests landed after this commit; "
+                        "omit for the whole branch, which is the honest default")
     p.add_argument("--branch", default="HEAD")
+    p.add_argument("--workflow", default="Tests",
+                   help="Workflow name whose runs carry the gates")
+    p.add_argument("--repository", help="owner/name; defaults to the origin remote")
     p.add_argument("--changes", help="A saved discovery file; skips the network")
     p.add_argument("--save-changes", help="Write what discovery found")
+    p.add_argument("--live-records", action="append", default=[],
+                   help="A directory of live records; their head and attempt "
+                        "are never backfilled")
+    p.add_argument("--no-base-outcomes", action="store_true",
+                   help="Skip reading each base commit's own run, which is "
+                        "what tells an inherited failure from a miss")
     p.add_argument("--out-dir", required=True)
     p.set_defaults(func=command_backfill)
+
+    p = sub.add_parser("ingest",
+                       help="Verify records and append them to the ledger")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--map", required=True)
+    p.add_argument("--source", action="append", required=True,
+                   help="A directory of records; repeatable")
+    p.add_argument("--ledger", default="metrics/shadow/ledger")
+    p.add_argument("--month", required=True,
+                   help="Ledger file to append to, as yyyy-mm")
+    p.add_argument("--main", default="origin/main",
+                   help="Ref a canary head must not be an ancestor of")
+    p.add_argument("--repository", help="owner/name; defaults to the origin remote")
+    p.add_argument("--offline", action="store_true",
+                   help="Skip re-reading outcomes from the API, which is the "
+                        "check that makes an uploaded record more than a claim")
+    p.add_argument("--keep-going", action="store_true",
+                   help="Report every refusal instead of stopping at the first")
+    p.add_argument("--write-pull-requests",
+                   help="Refresh the pull request author and merge date the "
+                        "criterion needs, beside the ledger")
+    p.set_defaults(func=command_ingest)
+
+    p = sub.add_parser("summary", help="Regenerate the campaign summary")
+    p.add_argument("--ledger", default="metrics/shadow/ledger")
+    p.add_argument("--pull-requests",
+                   help="JSON map from pull request number to author and "
+                        "merged_at, which the criterion's authors and span need")
+    p.add_argument("--out", default="metrics/shadow/summary.json")
+    p.set_defaults(func=command_summary)
     return parser
 
 

@@ -1,0 +1,63 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "1db985beac5bb77c3a45632c435ec6fbd920645abc542db0be7ca26f5d0e8a27",
+    "policy_terms_sha256": "0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "unresolved",
+    "mutation-replay": "unresolved",
+    "validate-core": "pass"
+  },
+  "base_reconstructed": true,
+  "class": {
+    "matched_rule_ids": [
+      "verification-authority"
+    ],
+    "omitted_gate_ids": [],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay",
+      "validate-core"
+    ],
+    "terms_sha256": "cd74fa9eff3758a87bd34b9bd68071ea43a169404f55782da5a15dfb21688776"
+  },
+  "class_key": "2cfaf2afc596cfb1a814a0b1bdd5cd26f4ba2061f01f398692de6cd9f5b90cd5",
+  "commits": {
+    "base": "a34dcb46512b7f63f3f07dbc0c87f8224cb3906d",
+    "head": "00edb9b7b16edc4e322782346f4e93defbe266d4",
+    "merge": "99a3eb08fc93d8fcaee88cb4932be27518517319"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "fail",
+    "hostile-environment": "unresolved",
+    "mutation-replay": "unresolved",
+    "validate-core": "skipped"
+  },
+  "head_ref": "ci/single-required-gate",
+  "inconclusive_reason": null,
+  "measurable": false,
+  "not_measurable_reason": "gates without a decided outcome: hostile-environment=unresolved, mutation-replay=unresolved, validate-core=skipped",
+  "provenance": "backfill",
+  "record_id": "986c5755a89a2b794f11e80c2b09c3e450c22c2ef58d412764d52aca87b2184d",
+  "run": {
+    "pull_request": 17,
+    "run_attempt": 1,
+    "run_id": "32599584446"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": null,
+  "status": "not_measurable"
+}

@@ -129,6 +129,13 @@
         "breadth": "repository"
       },
       {
+        "_note": "D-129. The suite's decision guard reads every markdown file under design/routing, so a change here can break a gate a docs-only route would have skipped; the canary measured it. The glob is `*`, not `**/*`: the router matches with fnmatchcase, whose `*` crosses `/`, so this reaches the top-level documents and every depth below.",
+        "glob": "design/routing/*.md",
+        "surface": "docs",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
         "glob": "pyproject.toml",
         "surface": "schema",
         "effect": "verification-authority",
@@ -235,13 +242,28 @@
   },
   "full_recipe": {
     "minimum_level": 3,
-    "passes": ["07", "10", "11", "14"],
+    "passes": [
+      "07",
+      "10",
+      "11",
+      "14"
+    ],
     "obligations": {
-      "V01": ["mutation-replay"],
-      "V08": ["distribution"],
-      "V09": ["validate-core"],
-      "V12": ["hostile-environment"],
-      "V21": ["full-suite"]
+      "V01": [
+        "mutation-replay"
+      ],
+      "V08": [
+        "distribution"
+      ],
+      "V09": [
+        "validate-core"
+      ],
+      "V12": [
+        "hostile-environment"
+      ],
+      "V21": [
+        "full-suite"
+      ]
     },
     "independent_review": true
   },
@@ -250,56 +272,142 @@
       "_note": "Prose only. The cheapest route the policy offers, and the one to read hardest before approving.",
       "id": "docs-only",
       "review_status": "proposed",
-      "match": {"surfaces": ["docs"], "effects": ["prose"]},
-      "requires": {"passes": ["06"], "minimum_level": 0},
-      "obligations": {"V09": ["validate-core"]}
+      "match": {
+        "surfaces": [
+          "docs"
+        ],
+        "effects": [
+          "prose"
+        ]
+      },
+      "requires": {
+        "passes": [
+          "06"
+        ],
+        "minimum_level": 0
+      },
+      "obligations": {
+        "V09": [
+          "validate-core"
+        ]
+      }
     },
     {
       "id": "product-code",
       "review_status": "proposed",
-      "match": {"surfaces": ["product"]},
-      "requires": {"passes": ["10", "11"], "minimum_level": 2},
-      "obligations": {"V21": ["full-suite"], "V09": ["validate-core"]}
+      "match": {
+        "surfaces": [
+          "product"
+        ]
+      },
+      "requires": {
+        "passes": [
+          "10",
+          "11"
+        ],
+        "minimum_level": 2
+      },
+      "obligations": {
+        "V21": [
+          "full-suite"
+        ],
+        "V09": [
+          "validate-core"
+        ]
+      }
     },
     {
       "id": "schema-contract",
       "review_status": "proposed",
-      "match": {"surfaces": ["schema"]},
-      "requires": {"passes": ["10", "11"], "minimum_level": 2},
-      "obligations": {"V08": ["distribution"], "V21": ["full-suite"]}
+      "match": {
+        "surfaces": [
+          "schema"
+        ]
+      },
+      "requires": {
+        "passes": [
+          "10",
+          "11"
+        ],
+        "minimum_level": 2
+      },
+      "obligations": {
+        "V08": [
+          "distribution"
+        ],
+        "V21": [
+          "full-suite"
+        ]
+      }
     },
     {
       "_note": "The self-grading rule. A change to what verifies the repository cannot be judged by a route that change could have weakened, so it forces the full recipe and independent review.",
       "id": "verification-authority",
       "review_status": "proposed",
-      "match": {"effects": ["verification-authority"]},
+      "match": {
+        "effects": [
+          "verification-authority"
+        ]
+      },
       "requires": {
-        "passes": ["07", "14"],
+        "passes": [
+          "07",
+          "14"
+        ],
         "minimum_level": 3,
         "force_full": true,
         "independent_review": true
       },
-      "obligations": {"V01": ["mutation-replay"], "V12": ["hostile-environment"]}
+      "obligations": {
+        "V01": [
+          "mutation-replay"
+        ],
+        "V12": [
+          "hostile-environment"
+        ]
+      }
     },
     {
       "id": "skill-policy",
       "review_status": "proposed",
-      "match": {"surfaces": ["skill-policy"]},
+      "match": {
+        "surfaces": [
+          "skill-policy"
+        ]
+      },
       "requires": {
-        "passes": ["07"],
+        "passes": [
+          "07"
+        ],
         "minimum_level": 3,
         "force_full": true,
         "independent_review": true
       },
-      "obligations": {"V09": ["validate-core"]}
+      "obligations": {
+        "V09": [
+          "validate-core"
+        ]
+      }
     },
     {
       "_note": "A mode change can turn data into a program without altering a byte of content, so it never takes a content-shaped route.",
       "id": "mode-change",
       "review_status": "proposed",
-      "match": {"mode_changed": true},
-      "requires": {"passes": ["04", "10"], "minimum_level": 2},
-      "obligations": {"V09": ["validate-core"]}
+      "match": {
+        "mode_changed": true
+      },
+      "requires": {
+        "passes": [
+          "04",
+          "10"
+        ],
+        "minimum_level": 2
+      },
+      "obligations": {
+        "V09": [
+          "validate-core"
+        ]
+      }
     }
   ]
 }

@@ -19,6 +19,7 @@ repository exist only in the scratch area. They were never installed anywhere.
 | LynxTWO/time-card-ledger | 24 | 2 | 51 days | 0 | 0 |
 | JeremyABurton/1st-downs | 45 | 2 | 22 days | 7 clean | 0 |
 | vitejs/vite | 216 | 52 | 53 days | 12 clean | 0 |
+| LynxTWO/mix-marriage-offline | 14 | 1 | 46 days | not measured | — |
 
 The first three rows are the earlier studies, recounted from their records for
 this table. Time-card-ledger's 24 records are 22 `no_omission`, one
@@ -28,7 +29,25 @@ this table. Time-card-ledger's 24 records are 22 `no_omission`, one
 at those heads. The canary's miss came from a branch, not a merge, and is the
 only miss any study produced.
 
-A fifth repository, obra/superpowers, was examined and not measured. It has no
+Two of the owner's own repositories were added after the first four, on his
+question, and neither changes the conclusion; one sharpens it.
+
+**LynxTWO/mix-marriage-offline** has the second most expensive CI of anything
+examined: 18 jobs, 224 machine-minutes per pull-request run, and a
+`linux-serial` job that takes 42.8 minutes on its own. It is also the
+clearest case of the constraint. Of its 14 merged pull requests, **none** is
+documentation-only and 78% touch tests, from one author over a 46-day span
+ending 2026-04-19. The prize is real and nothing can claim it, which is
+time-card-ledger's finding again at four times the cost. It also cannot meet
+the criterion's two-author requirement, and 14 pull requests in total is
+below N=30 whatever the mix.
+
+**LynxTWO/SignalForge** is private, so it is not a public case study, and it
+has no pull-request population at all: zero merged pull requests, and its
+four CI runs are all pushes to `main`. There is nothing for the campaign to
+grade.
+
+A further repository, obra/superpowers, was examined and not measured. It has no
 CI workflows of its own: the only workflows GitHub reports are its dynamic
 Copilot reviewer. Its tests exist, in a `tests/` tree that drives `claude -p`
 and an `evals/` harness that drives real agent sessions, but nothing runs them

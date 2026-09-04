@@ -1,0 +1,112 @@
+{
+  "15": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T20:29:38Z",
+    "title": "Run the suite on Linux, macOS, and Windows"
+  },
+  "16": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T21:34:28Z",
+    "title": "Recover the mutation-harness and fuzz work stranded off main"
+  },
+  "17": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T21:34:43Z",
+    "title": "Give branch protection one stable context instead of five brittle ones"
+  },
+  "18": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T22:25:34Z",
+    "title": "Decode git output as UTF-8, and test where the platform is unhelpful"
+  },
+  "19": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-22T23:41:39Z",
+    "title": "Judge source dirtiness by what an install actually carries"
+  },
+  "20": {
+    "author": "LynxTWO",
+    "merged_at": "2026-08-29T02:15:10Z",
+    "title": "Distill three consuming-repository lessons into the references"
+  },
+  "21": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:15:54Z",
+    "title": "Audit and harden the assurance router through round ten"
+  },
+  "22": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:16:48Z",
+    "title": "Round eleven: close M3 by contract, and repair the M4 plan"
+  },
+  "23": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:17:14Z",
+    "title": "Round thirteen: hold R-018 to its clause, and fix two tests that proved nothing"
+  },
+  "24": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:17:38Z",
+    "title": "Round fourteen: converge SLICE-001 for owner walkthrough"
+  },
+  "25": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:18:00Z",
+    "title": "Round fifteen: stop repository code executing during acquisition"
+  },
+  "26": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:18:22Z",
+    "title": "Verify Round Sixteen and adopt parallel replay"
+  },
+  "27": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:18:44Z",
+    "title": "Round seventeen: fail on the survivor the record hid, and hold parallel replay to HEAD"
+  },
+  "28": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:19:33Z",
+    "title": "Round eighteen: exact replay attribution and restored T540P records"
+  },
+  "29": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:20:37Z",
+    "title": "Round nineteen: close the interpreter beneath the worker, and refresh the Windows record"
+  },
+  "30": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:25:40Z",
+    "title": "Verify Round Nineteen and close the harness line with a stopping rule"
+  },
+  "31": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-02T23:46:51Z",
+    "title": "Mark SLICE-001 Done and move the build boundary to SLICE-002"
+  },
+  "32": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-03T08:38:56Z",
+    "title": "Round twenty-one: name the shipped skill's own scripts as authority, and verify it"
+  },
+  "33": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-03T08:50:07Z",
+    "title": "SLICE-002: design the shadow evidence campaign, challenged once"
+  },
+  "34": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-03T21:52:48Z",
+    "title": "SLICE-002: the shadow record, its precondition, and the CI job that feeds it"
+  },
+  "35": {
+    "author": "LynxTWO",
+    "merged_at": "",
+    "title": "CANARY, do not merge: prove the comparator sees a docs-only failure"
+  },
+  "36": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-03T21:56:12Z",
+    "title": "SLICE-002 design revision after the field study: brief 0.4, D-128 to D-130"
+  }
+}

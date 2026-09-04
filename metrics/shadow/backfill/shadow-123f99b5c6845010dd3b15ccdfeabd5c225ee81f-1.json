@@ -1,0 +1,66 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "1db985beac5bb77c3a45632c435ec6fbd920645abc542db0be7ca26f5d0e8a27",
+    "policy_terms_sha256": "0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNMAPPED-PATH",
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "unresolved",
+    "validate-core": "pass"
+  },
+  "base_reconstructed": true,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only",
+      "product-code",
+      "verification-authority"
+    ],
+    "omitted_gate_ids": [],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay",
+      "validate-core"
+    ],
+    "terms_sha256": "e83d5401edacd7afa47dc25c2920396dd2fe57d4025fbfdf04dfb4f3b6c212a6"
+  },
+  "class_key": "b3d197a8da0aea5e78d059df88d72de74806e97789745e4b67251be86f69dea6",
+  "commits": {
+    "base": "535fa12b2925d9c675acd010e66de246512d6fba",
+    "head": "123f99b5c6845010dd3b15ccdfeabd5c225ee81f",
+    "merge": "9899df5ef5c44d0667a2ba06a6e4a1e1c9947d01"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "pass",
+    "hostile-environment": "pass",
+    "mutation-replay": "unresolved",
+    "validate-core": "pass"
+  },
+  "head_ref": "lessons/publication-authorization-runner",
+  "inconclusive_reason": null,
+  "measurable": false,
+  "not_measurable_reason": "gates without a decided outcome: mutation-replay=unresolved",
+  "provenance": "backfill",
+  "record_id": "d2aa62a49b6883bcc1212103d66f69185bb8d3311efd46879bdc46c09477b6fa",
+  "run": {
+    "pull_request": 20,
+    "run_attempt": 1,
+    "run_id": "33113432306"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": null,
+  "status": "not_measurable"
+}

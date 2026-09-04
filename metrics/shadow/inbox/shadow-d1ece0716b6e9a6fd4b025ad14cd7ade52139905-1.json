@@ -1,0 +1,121 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "871aa69098b30c1b1fb5d6e2318f040fc36a6a3e2885a2a1f1ed0524ac313bec",
+    "policy_terms_sha256": "730dcf299e144ea8c0edb231d1306dba105c3b1677c705ad282a1b2365fb575f",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": null,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only"
+    ],
+    "omitted_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay"
+    ],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "validate-core"
+    ],
+    "terms_sha256": "6b8e7a3288f79cdbddf50a5d6cc4279a215cb24c9dca65ce9a172e6529a76a8f"
+  },
+  "class_key": "43dd098f71a31d952639334dfd15e54ba74b708a5769960e6bfe6437688fc3a3",
+  "commits": {
+    "base": "bc51ef63f413f527052a7ef397b588f1f0fdb1b9",
+    "head": "d1ece0716b6e9a6fd4b025ad14cd7ade52139905",
+    "merge": "0221430c2a1752b6388155bf8312ab0f4abdef22"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "fail",
+    "hostile-environment": "fail",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "head_ref": "canary/docs-only/2026-09-03",
+  "inconclusive_reason": null,
+  "measurable": true,
+  "not_measurable_reason": null,
+  "provenance": "canary",
+  "record_id": "72111be5bc02efbe95125ffc227935869074a4cbc5d88dddb6e833a41af5fad1",
+  "run": {
+    "pull_request": 35,
+    "run_attempt": 1,
+    "run_id": "33742816320"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": {
+    "authoritative": {
+      "selected_gate_ids": [
+        "distribution",
+        "full-suite",
+        "hostile-environment",
+        "mutation-replay",
+        "validate-core"
+      ]
+    },
+    "candidate": {
+      "capability_to_gate_ids": {
+        "V09": [
+          "validate-core"
+        ]
+      },
+      "considered_rule_ids": [
+        "docs-only",
+        "mode-change",
+        "product-code",
+        "schema-contract",
+        "skill-policy",
+        "verification-authority"
+      ],
+      "force_full": false,
+      "matched_rule_ids": [
+        "docs-only"
+      ],
+      "minimum_level": 0,
+      "provenance": "candidate-shadow",
+      "selected_gate_ids": [
+        "validate-core"
+      ],
+      "selected_passes": [
+        "06"
+      ]
+    },
+    "gate_results": {
+      "distribution": "pass",
+      "full-suite": "fail",
+      "hostile-environment": "fail",
+      "mutation-replay": "pass",
+      "validate-core": "pass"
+    },
+    "measurable": true,
+    "missed_gate_ids": [
+      "full-suite",
+      "hostile-environment"
+    ],
+    "omitted_gate_results": {
+      "distribution": "pass",
+      "full-suite": "fail",
+      "hostile-environment": "fail",
+      "mutation-replay": "pass"
+    },
+    "route_class": {
+      "force_full": false,
+      "matched_rule_ids": [
+        "docs-only"
+      ]
+    },
+    "routing_miss": true,
+    "schema_version": 2,
+    "selected_all_passed": true
+  },
+  "status": "miss"
+}
