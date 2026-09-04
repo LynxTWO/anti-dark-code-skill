@@ -108,5 +108,15 @@
     "author": "LynxTWO",
     "merged_at": "2026-09-03T21:56:12Z",
     "title": "SLICE-002 design revision after the field study: brief 0.4, D-128 to D-130"
+  },
+  "37": {
+    "author": "LynxTWO",
+    "merged_at": "2026-09-04T00:51:28Z",
+    "title": "SLICE-002: grade pull-request runs, narrow docs-only, and land the ledger"
+  },
+  "38": {
+    "author": "LynxTWO",
+    "merged_at": "",
+    "title": "CANARY, NEVER MERGE: docs-only under the class key D-129 created"
   }
 }
