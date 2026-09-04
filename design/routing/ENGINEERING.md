@@ -368,10 +368,10 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-060 | backfill of a real merge in a fixture repository, and of a merge with no run | `test_route_cli.py` |
 | R-061 | backfill of a fixture pull request landed as a merge commit with three run attempts, one failing, plus a missing head, a head that already has a live record, and the same commit measured against a clean and a dirty tree | `test_route_cli.py`; M141 to M144 |
 | R-062 | classifier check on a routing markdown change under the repository calibration, at both depths and on the canary's own filename, plus the glob spelling itself | `test_route.py`; M139 and M140 |
-| R-064 | ingest of a record with a forged class against its stored policy, a missing policy, a wrong-named policy file, and a router not at the head | proposed under D-133; `test_route_cli.py` when M8 lands |
-| R-065 | the counterexample test's own assertions, and a sweep of the suite for opens under `docs/` | proposed under D-134; `test_route.py` when M9 lands |
-| R-066 | dominance probe over a fixture class no gate reads, and over one an omitted gate reads | proposed under D-134; `test_route_cli.py` when M9 lands |
-| R-067 | ingest against a fixture consumer clone into a consumer ledger directory, with the clone hashed before and after | proposed under D-135; `test_route_cli.py` when M10 lands |
+| R-064 | ingest of a record with a forged class against its stored policy, a missing policy for a backfill, a wrong-named sidecar, and the sidecars' own digests | `test_route_cli.py`; M152 to M155 |
+| R-065 | the counterexample test's classifier assertions, a sweep of every test module for a path built into this tree's prose, and the sweep's own check that it catches the line D-134 removed | `test_route.py` |
+| R-066 | dominance over a fixture class no gate reads and one an omitted gate reads, the two refusals, and the summary's counting | `test_route_cli.py`; M156 to M158 |
+| R-067 | ingest of a fixture consumer clone into a consumer ledger directory, with the clone's file tree hashed before and after | `test_route_cli.py` |
 | R-063 | summary count over a pull request with eight clean records, with one miss, and with one inconclusive, plus canaries never counted, keys never merged, byte-identical regeneration, and ingest's refusals including outcomes re-read from the run | `test_route_cli.py`; M145 to M148 |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.

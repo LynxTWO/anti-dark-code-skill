@@ -1,8 +1,6 @@
 # Changelog
 
-## Unreleased
-
-Not a release. These land in the next tagged version.
+## 2026.09.04-unified.9
 
 ### Shadow Evidence Campaign
 
@@ -11,7 +9,9 @@ The routing policy's rules ship `proposed`, and a proposed rule never runs less 
 - **`scripts/adc_shadow.py`** and the `adc.py shadow` subcommands: `outcomes` and `record`, which a non-required CI job runs on every pull request to record what the proposed rules would have skipped and whether anything skipped failed; `backfill`, which replays today's router over every pull request's own run history rather than the merges that survived them; `ingest`, which re-reads each record's outcomes from the run it names and recomputes its verdict before appending it to a committed ledger; and `summary`, which counts pull requests per route class and is byte-identical on a second run. A record is evidence and never a gate: the job is absent from every required check's dependencies.
 - **`references/shadow-evidence.md`** documents the campaign for a maintainer: what a record says, what a repository needs, the install steps, the commands, canaries, and the boundaries. It is listed in `SKILL.md` beside the other supporting references and is not a pass.
 - **`assets/templates/shadow-job.yml`** is the job, with three placeholders, and **`assets/templates/shadow-gate-map.json`** is the mapping from canonical gates to a repository's own CI jobs and steps, with one example of each shape.
-- Two parts are designed and not yet built, and the reference says so: ingest recomputing the class with the policy kept by digest beside the ledger, and an approval-time dominance probe for a class no gate reads.
+- **`assets/templates/calibration/gates.json`** gains a `canonical_full_set` block, empty and commented: what a full route runs is declared beside the gates and checked against the policy, because a policy able to define "full" could shrink it and still look complete. **`assets/templates/calibration/routing-policy.json`** gains the classifier and the proposed rules a generated calibration starts from, every rule `proposed` so it can only ever describe what a route would have been.
+- **`assets/verification-capabilities.json`** adds V21, affected-unit testing, and V22, input fuzz testing, so the catalog describes 22 capabilities rather than 20. The obligations a routing policy binds are drawn from this catalog, and the shadow campaign's own gates bind to it.
+- Ingest recomputes each record's class against the policy that built it, kept beside the ledger and named by its own digest, so a class is checked rather than believed. `adc.py shadow dominance` is the second path to approval for a class no gate reads: it breaks every path the class covers, twice, runs every gate, and records what each concluded. It runs gates, so it refuses without the same owner confirmation the gate runner requires.
 
 ### Release and Install Provenance
 

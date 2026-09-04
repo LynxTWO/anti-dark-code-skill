@@ -152,6 +152,8 @@ The documents state what is true. This log preserves why, what else was consider
 | D-133 | 2026-09-04 | The policy that built a record is kept by its digest, and ingest recomputes the class with it | Confirmed | |
 | D-134 | 2026-09-04 | The suite reads no repository prose, and a class no gate reads is approved by dominance | Confirmed | |
 | D-135 | 2026-09-04 | A consumer repository carries the job, the map and its calibration; its evidence lives here | Confirmed | |
+| D-136 | 2026-09-04 | Where the router that built a record is found depends on how the record was made | Confirmed | |
+| D-137 | 2026-09-04 | This repository's gates do not run here, so its docs-only class is approvable by neither path | Confirmed | |
 
 ---
 
@@ -4711,3 +4713,108 @@ reference or asset the notes do not name.
 Revisit when:
 A consumer's owners want the ledger in their own repository, which is their
 choice and which option A already supports.
+
+## D-136: Where the router that built a record is found depends on how the record was made
+
+Date: 2026-09-04
+Status: Confirmed
+Area: D-127, D-128, D-133, SLICE-002 section 5 and G10, `adc_shadow.py`, R-064
+
+Context:
+D-133 says ingest recomputes a record's class with "the router whose blob
+digest the record names, read at the record's head". Implemented literally,
+that refused 55 of 55 backfilled records with `router-unrecoverable`, in two
+shapes: a head that predates `anti-dark-code/scripts/adc_route.py` existing
+at all, and a head whose router is a different version from the one the
+record names. The second shape is the informative one. A backfill record
+names today's router because D-127 decided the backfill replays today's
+router over a historical change set, and D-128 kept that; its head is a
+historical commit whose own router never touched it. So the head is the
+wrong place to look for a backfill record's router, by construction, and
+D-133's sentence is true only of the records whose head is the tree that
+ran.
+
+Decision:
+The router that built a record is read from where that kind of record was
+made. A live or canary record was built by the workflow running at its own
+head, so the router is read at that head. A backfill record was built by the
+checkout that ran the backfill, so the router is read from the working tree.
+Either way the digest is checked against the one the record names, and a
+mismatch refuses with `router-unrecoverable`; what changed is only where the
+bytes are fetched from. D-133 is otherwise unchanged: the policy and gates
+still come from the sidecars the record's own digests name.
+
+Because:
+The alternative readings are worse. Reading today's router for a live record
+would recompute an old record with a new router, which is the error D-127
+refused for the policy. Reading the head's router for a backfill record asks
+for bytes that never built it. Neither is a judgement call: which one built
+the record is a fact the record's provenance already states.
+
+Consequences:
+Re-ingesting the whole ledger under the corrected lookup accepts all 70
+records with zero refusals, class recomputed against the policy each was
+built with. A backfill record can only be recomputed by a checkout whose
+router still digests to the one it names, so a router change makes old
+backfill records unrecomputable and they must be replayed rather than
+re-verified, which is what D-127 already implies and the class key already
+records.
+
+Revisit when:
+A record carries the router bytes' location rather than only their digest,
+which would make this a lookup rather than a rule.
+
+## D-137: This repository's gates do not run here, so its docs-only class is approvable by neither path
+
+Date: 2026-09-04
+Status: Confirmed
+Area: D-011, D-134, D-130, SLICE-002 sections 6 and 11, `adc.py shadow dominance`
+
+Context:
+D-134 gave a class no gate reads a second path to approval: an exhaustive
+probe that breaks every path the class covers and runs every canonical gate.
+Built and tested, it works: a fixture class no gate reads comes back
+dominated, one an omitted gate reads comes back not dominated, and the tree
+is hash-verified as restored after each probe. It cannot be run in this
+repository. Every gate here carries `argv: None`, and the calibration says
+why in its own note: "Gate ids mirror the jobs in
+`.github/workflows/tests.yml`. The router names gates; it does not run
+them." `owner_confirmed_safe_to_execute` is false for the same reason. So
+the probe refuses twice, correctly, and there is nothing local to execute.
+
+The owner was given three ways forward and chose the third now and the
+second later: author local commands and confirm execution here; make
+dominance a CI act that dispatches the real jobs; or accept that the class
+is approvable by neither path for now.
+
+Decision:
+This repository's `docs-only` class is approvable by neither path, and that
+is recorded rather than engineered around. It has no live canary under its
+current key, because M9 removed the construction PR #38's canary used, and
+it has no dominance record, because the probe cannot run here. Nothing is
+approved on this repository's evidence. The first repository where either
+path is exercised is a consumer whose gates are real commands, which is
+1st-downs (D-135). Dominance as a CI act, a dispatch that applies each probe
+and runs the real jobs, is the owner's chosen second step and belongs to
+SLICE-003's design, not to this slice: it changes what CI does, and D-011
+keeps that behind the evidence this campaign is still gathering.
+
+Because:
+Authoring local gate commands here would flip a posture two decisions state
+deliberately, to prove a class in the one repository whose own history can
+never meet the criterion's second author anyway (D-130). The cost is real and
+the gain is nothing the campaign can use. Accepting the gap costs a
+milestone this repository was never going to reach.
+
+Consequences:
+The brief's section 11 records `docs-only` here as unresolved by design
+rather than pending. PR #38 stays open and unmerged as the record of the key
+it belongs to, and its construction is gone from the suite. The dominance
+command ships and is exercised by tests, so a consumer can use it the day
+its gates are commands. SLICE-003 inherits the CI-act design beside D-130's
+sampling.
+
+Revisit when:
+This repository's gates gain local commands for another reason, or the
+CI-act probe is designed, at which point the class can be probed here after
+all.

@@ -330,7 +330,7 @@ def validate_record(record: Mapping[str, Any]) -> list[str]:
             STATUS_MISS, STATUS_CLEAN, STATUS_INCONCLUSIVE, STATUS_NO_OMISSION,
             STATUS_SELECTS_NOTHING, STATUS_NOT_MEASURABLE}:
         errors.append(f"unknown status: {record.get('status')!r}")
-    if record.get("provenance") not in {"live", "backfill", "canary"}:
+    if record.get("provenance") not in {"live", "backfill", "canary", "dominance"}:
         errors.append(f"unknown provenance: {record.get('provenance')!r}")
     if record.get("status") in EVIDENCE_STATUSES and not record.get("measurable"):
         errors.append("an unmeasurable record cannot be evidence")
@@ -540,6 +540,11 @@ def command_record(args: argparse.Namespace, adc_module=None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
                    encoding="utf-8", newline="\n")
+    # D-133: the policy this record was built with, beside it, so ingest can
+    # recompute the class rather than believe it. The live job's artifact
+    # glob picks these up with the record.
+    for name in write_policy_sidecars(out.parent, policy_source, gates_source):
+        print(f"  policy sidecar {name}")
     print(f"SHADOW {record['status']} class={record['class_key'][:12]} "
           f"provenance={record['provenance']} "
           f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'} "
@@ -904,9 +909,235 @@ def command_backfill(args: argparse.Namespace, adc_module=None) -> int:
               f"{record['status']:16} class={record['class_key'][:12]} "
               f"rules={','.join(record['class']['matched_rule_ids']) or '-'} "
               f"omitted={','.join(record['class']['omitted_gate_ids']) or '-'}")
+    # D-133, once per distinct digest rather than once per record.
+    for name in write_policy_sidecars(out_dir, policy_source, gates_source):
+        print(f"  policy sidecar {name}")
     print(f"BACKFILL {written} record(s) in {out_dir}"
           + (f", {skipped} already live" if skipped else ""))
     return 0
+
+
+def policy_sidecars(policy_source: Mapping[str, Any],
+                    gates_source: Mapping[str, Any]) -> dict[str, str]:
+    """The stripped policy and gates a record was built with, named by digest.
+
+    D-133. A record already carries `audit.policy_terms_sha256` and
+    `audit.gates_terms_sha256`; what was missing is the bytes those digests
+    name, without which ingest cannot recompute the class and the class is a
+    claim. A file named by the digest of its own content is self-certifying,
+    so nothing about where it was kept needs trusting.
+    """
+    policy_terms = strip_underscored(policy_source)
+    gates_terms = strip_underscored(gates_source)
+    return {
+        f"policy-{digest(policy_terms)}.json": canonical_json(policy_terms) + "\n",
+        f"gates-{digest(gates_terms)}.json": canonical_json(gates_terms) + "\n",
+    }
+
+
+def write_policy_sidecars(out_dir: Path, policy_source: Mapping[str, Any],
+                          gates_source: Mapping[str, Any]) -> list[str]:
+    """Write the sidecars beside a record, once per distinct digest."""
+    written: list[str] = []
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, body in policy_sidecars(policy_source, gates_source).items():
+        target = out_dir / name
+        if target.exists():
+            continue
+        target.write_text(body, encoding="utf-8", newline="\n")
+        written.append(name)
+    return written
+
+
+def _digests_to_its_name(name: str, body: str) -> bool:
+    """A sidecar is trusted only because its content hashes to its name."""
+    stem = Path(name).stem
+    _, _, claimed = stem.partition("-")
+    try:
+        return digest(json.loads(body)) == claimed
+    except json.JSONDecodeError:
+        return False
+
+
+def _load_route_module_at(repo: Path, commit: str | None, expected_digest: str):
+    """The router that built a record, checked against the digest it names.
+
+    Where that router is depends on what kind of record it is, and getting
+    this wrong reads as a broken record rather than a broken lookup. A live
+    or canary record was built by the workflow running at its own head, so
+    the router at that head is the one. A backfill record was built by
+    replaying today's router over a historical change set, which is what
+    D-127 decided and D-128 kept, so its router is the one in the checkout
+    that ran the backfill, and the router at its head is a different version
+    that never touched it. `commit` is None for that second case.
+    """
+    import importlib.util
+    import tempfile
+
+    if commit is None:
+        source = (repo / "anti-dark-code" / "scripts" / "adc_route.py").read_bytes()
+    else:
+        try:
+            source = _git_bytes(repo, "show",
+                                f"{commit}:anti-dark-code/scripts/adc_route.py")
+        except ShadowError as error:
+            raise ShadowError(f"router-unrecoverable: {error}") from error
+    actual = hashlib.sha256(source).hexdigest()
+    if actual != expected_digest:
+        where = f"at {commit[:12]}" if commit else "in this checkout"
+        raise ShadowError(
+            f"router-unrecoverable: the router {where} digests to "
+            f"{actual[:12]} and the record names {expected_digest[:12]}")
+    handle = Path(tempfile.mkdtemp(prefix="adc-router-")) / "adc_route.py"
+    handle.write_bytes(source)
+    name = f"adc_route_{actual[:12]}"
+    spec = importlib.util.spec_from_file_location(name, handle)
+    module = importlib.util.module_from_spec(spec)
+    # Registered before execution: the router defines dataclasses, and
+    # dataclasses resolves a field's type through sys.modules[cls.__module__],
+    # which is None for a module that has been created and not registered.
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _git_bytes(repo: Path, *args: str) -> bytes:
+    done = subprocess.run(["git", "-C", str(repo), *args],
+                          capture_output=True, timeout=300)
+    if done.returncode != 0:
+        raise ShadowError(
+            f"git {' '.join(args)} failed: "
+            f"{done.stderr.decode('utf-8', 'replace').strip()[:200]}")
+    return done.stdout
+
+
+def recompute_class(record: Mapping[str, Any], *, repo: Path,
+                    policy_source: Mapping[str, Any],
+                    gates_source: Mapping[str, Any],
+                    capability_ids: Sequence[str]) -> list[str]:
+    """Rebuild the record's class from the policy that built it. D-133.
+
+    G10 says ingest recomputes the route. Recomputing the verdict, which the
+    implementation challenge forced, needs no policy and so was done first;
+    the class needs the policy, the gates and the router the record names,
+    and until all three are at hand the matched rules, the selected and
+    omitted gates and the key are believed as written.
+    """
+    problems: list[str] = []
+    klass = record.get("class") or {}
+    commits = record.get("commits") or {}
+    head = str(commits.get("head", ""))
+    base = str(commits.get("base", ""))
+    if not head or not base or base == "unavailable":
+        return [f"the record names no usable base and head, so its class "
+                f"cannot be recomputed"]
+    if not _commit_present(repo, head):
+        return [f"head {head[:12]} is not present, so the class cannot be "
+                f"recomputed"]
+
+    # A backfill replayed today's router; a live or canary record was built
+    # by the router at its own head. See _load_route_module_at.
+    at = None if str(record.get("provenance")) == "backfill" else head
+    try:
+        route_module = _load_route_module_at(
+            repo, at, str(klass.get("router_blob_sha256", "")))
+    except ShadowError as error:
+        return [str(error)]
+
+    try:
+        validated = route_module.load_policy(
+            policy_source, gates_source, list(capability_ids),
+            gates_source["canonical_full_set"])
+    except Exception as error:  # the router's own PolicyError and friends
+        return [f"the stored policy does not load: {error}"]
+
+    snapshot = route_module.read_change_inputs(
+        repo, base, runner=_historical_runner(route_module, repo, head))
+    facts = route_module.collect_change_facts(snapshot, validated.classifier_map())
+    candidate = route_module.build_candidate_route(
+        facts, validated, snapshot_ok=snapshot.complete)
+
+    if candidate is None:
+        recomputed_rules: list[str] = []
+        recomputed_selected: list[str] = []
+        recomputed_omitted: list[str] = []
+    else:
+        gates = canonical_gate_ids(gates_source)
+        recomputed_rules = sorted(candidate.matched_rule_ids)
+        recomputed_selected = sorted(candidate.selected_gate_ids())
+        recomputed_omitted = sorted(set(gates) - set(recomputed_selected))
+        if candidate.force_full:
+            recomputed_omitted = []
+            recomputed_selected = sorted(gates)
+
+    for field, recorded, recomputed in (
+            ("matched_rule_ids", sorted(klass.get("matched_rule_ids", ())), recomputed_rules),
+            ("selected_gate_ids", sorted(klass.get("selected_gate_ids", ())), recomputed_selected),
+            ("omitted_gate_ids", sorted(klass.get("omitted_gate_ids", ())), recomputed_omitted)):
+        if recorded != recomputed:
+            problems.append(
+                f"class.{field} does not follow from the stored policy: the "
+                f"record says {recorded} and the recomputation gives {recomputed}")
+
+    if not problems:
+        terms = class_terms(policy_source, gates_source, recomputed_rules)
+        key = class_key(terms, str(klass.get("router_blob_sha256", "")),
+                        recomputed_omitted)
+        if key != str(record.get("class_key")):
+            problems.append(
+                f"class_key does not follow from the stored policy: the record "
+                f"says {str(record.get('class_key'))[:12]} and the "
+                f"recomputation gives {key[:12]}")
+    return problems
+
+
+def _recompute_with_sidecars(record: Mapping[str, Any], *, repo: Path,
+                             sidecars: Mapping[str, str],
+                             capability_ids: Sequence[str]) -> list[str]:
+    """Find the policy a record names and recompute its class with it. D-133.
+
+    A live record whose sidecar is absent everywhere is recovered once from
+    the calibration at its own head, which is the tree that ran; a backfill
+    record in that state is refused, because the backfill wrote the sidecar
+    and its absence means something else is wrong.
+    """
+    audit = record.get("audit") or {}
+    policy_name = f"policy-{audit.get('policy_terms_sha256')}.json"
+    gates_name = f"gates-{audit.get('gates_terms_sha256')}.json"
+    policy_body = sidecars.get(policy_name)
+    gates_body = sidecars.get(gates_name)
+
+    if policy_body is None or gates_body is None:
+        provenance = str(record.get("provenance"))
+        if provenance == "backfill":
+            return [f"no stored policy for this record ({policy_name}), and a "
+                    f"backfill writes its own, so it is not recovered"]
+        head = str((record.get("commits") or {}).get("head", ""))
+        if not head or not _commit_present(repo, head):
+            return [f"no stored policy for this record ({policy_name}) and its "
+                    f"head is not present to recover one from"]
+        recovered = {}
+        for name, path in ((policy_name, ".agents/skills/anti-dark-code/"
+                                         "calibration/routing-policy.json"),
+                           (gates_name, ".agents/skills/anti-dark-code/"
+                                        "calibration/gates.json")):
+            try:
+                raw = _git_bytes(repo, "show", f"{head}:{path}")
+            except ShadowError as error:
+                return [f"no stored policy for this record and the calibration "
+                        f"at {head[:12]} could not be read: {error}"]
+            terms = strip_underscored(json.loads(raw.decode("utf-8")))
+            if digest(terms) != Path(name).stem.partition("-")[2]:
+                return [f"the calibration at {head[:12]} does not digest to the "
+                        f"{Path(name).stem.partition('-')[0]} the record names"]
+            recovered[name] = canonical_json(terms) + "\n"
+        policy_body, gates_body = recovered[policy_name], recovered[gates_name]
+
+    return recompute_class(
+        record, repo=repo,
+        policy_source=json.loads(policy_body),
+        gates_source=json.loads(gates_body),
+        capability_ids=capability_ids)
 
 
 def _ledger_paths(ledger_dir: Path) -> list[Path]:
@@ -1068,22 +1299,48 @@ def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
 
     known = {str(record.get("record_id")) for record in read_ledger(ledger_dir)}
     incoming: list[tuple[Path, dict[str, Any]]] = []
+    # A sidecar is trusted only because its content hashes to its name, so a
+    # bad one is refused here rather than copied and believed later. D-133.
+    sidecars: dict[str, str] = {}
+    policies_dir = ledger_dir.parent / "policies"
+    for existing in sorted(policies_dir.glob("*.json")) if policies_dir.exists() else []:
+        sidecars[existing.name] = existing.read_text(encoding="utf-8")
+    offered: dict[str, str] = {}
+    refused = 0
     for directory in args.source:
         for path in sorted(Path(directory).glob("*.json")):
+            if path.name.startswith(("policy-", "gates-")):
+                body = path.read_text(encoding="utf-8")
+                if not _digests_to_its_name(path.name, body):
+                    refused += 1
+                    print(f"  REFUSED {path.name}: content does not digest to its name")
+                    if not args.keep_going:
+                        return 2
+                    continue
+                offered[path.name] = body
+                continue
             try:
                 incoming.append((path, json.loads(path.read_text(encoding="utf-8"))))
             except (OSError, json.JSONDecodeError) as error:
                 print(f"  REFUSED {path.name}: unreadable: {error}")
                 if not args.keep_going:
                     return 2
+    sidecars.update({k: v for k, v in offered.items() if k not in sidecars})
+
+    catalog = json.loads((Path(__file__).resolve().parents[1] / "assets"
+                          / "verification-capabilities.json").read_text(encoding="utf-8"))
+    capability_ids = [c["id"] for c in catalog["capabilities"]]
 
     accepted: list[dict[str, Any]] = []
-    refused = 0
     for path, record in incoming:
         if str(record.get("record_id")) in known:
             continue
         problems = verify_record(record, repo=repo, gate_map=gate_map, slug=slug,
                                  main_ref=args.main, offline=args.offline)
+        if not problems and not args.skip_class_recomputation:
+            problems = _recompute_with_sidecars(
+                record, repo=repo, sidecars=sidecars,
+                capability_ids=capability_ids)
         if problems:
             refused += 1
             print(f"  REFUSED {path.name}: " + "; ".join(problems))
@@ -1092,6 +1349,23 @@ def command_ingest(args: argparse.Namespace, adc_module=None) -> int:
             continue
         accepted.append(record)
         known.add(str(record.get("record_id")))
+
+    # Only the sidecars an accepted record actually names are kept, so the
+    # directory holds the policies the ledger rests on and nothing else.
+    if accepted:
+        wanted = set()
+        for record in accepted:
+            audit = record.get("audit") or {}
+            wanted.add(f"policy-{audit.get('policy_terms_sha256')}.json")
+            wanted.add(f"gates-{audit.get('gates_terms_sha256')}.json")
+        policies_dir.mkdir(parents=True, exist_ok=True)
+        for name in sorted(wanted):
+            body = sidecars.get(name)
+            target = policies_dir / name
+            if body is None or target.exists():
+                continue
+            target.write_text(body, encoding="utf-8", newline="\n")
+            print(f"  kept {name}")
 
     # One file per ingest month, named by --month, so the ledger grows by
     # append and a month's bytes never move once written.
@@ -1165,12 +1439,14 @@ def summarise(records: Sequence[Mapping[str, Any]],
             "matched_rule_ids": list(record.get("class", {}).get("matched_rule_ids", [])),
             "omitted_gate_ids": list(record.get("class", {}).get("omitted_gate_ids", [])),
             "router_blob_sha256": str(record.get("class", {}).get("router_blob_sha256", "")),
-            "records": {"live": 0, "backfill": 0, "canary": 0},
+            "records": {"live": 0, "backfill": 0, "canary": 0, "dominance": 0},
             "status": {},
             "_live_clean": set(),
             "_live_miss": set(),
             "_backfill_miss": set(),
+            "_dominance": {},
             "canary_record_ids": [],
+            "dominance_record_ids": [],
         })
         provenance = str(record.get("provenance"))
         status = str(record.get("status"))
@@ -1179,7 +1455,15 @@ def summarise(records: Sequence[Mapping[str, Any]],
         entry["status"][status] = entry["status"].get(status, 0) + 1
         pull = record.get("run", {}).get("pull_request")
         pull_key = str(pull) if pull is not None else None
-        if provenance == "canary":
+        if provenance == "dominance":
+            # D-134: an exhaustive probe, not a sample. It is listed and
+            # counted in neither N nor the misses, exactly as a canary is;
+            # what it decides is whether the class needs either.
+            entry["dominance_record_ids"].append(str(record.get("record_id")))
+            probe = str(record.get("run", {}).get("run_id", "")).removeprefix(
+                "dominance-")
+            entry["_dominance"][probe] = status
+        elif provenance == "canary":
             # G8: a canary is what shows the comparator sees failures. It is
             # never evidence for or against the class it demonstrates.
             entry["canary_record_ids"].append(str(record.get("record_id")))
@@ -1197,6 +1481,14 @@ def summarise(records: Sequence[Mapping[str, Any]],
         clean = entry.pop("_live_clean")
         missed = entry.pop("_live_miss")
         backfill_missed = entry.pop("_backfill_miss")
+        probes = entry.pop("_dominance")
+        # Dominated only when every probe ran and none of them found a
+        # selected gate passing while an omitted one failed. A class with one
+        # probe is a class nobody finished probing.
+        dominated = (
+            bool(probes)
+            and all(probe in probes for probe in DOMINANCE_PROBES)
+            and all(probes[probe] != STATUS_MISS for probe in DOMINANCE_PROBES))
         counted = sorted(clean - missed)
         authors = sorted({str(pulls.get(pull, {}).get("author", ""))
                           for pull in counted} - {""})
@@ -1219,8 +1511,11 @@ def summarise(records: Sequence[Mapping[str, Any]],
                 "span_days": span_days,
                 "backfill_pull_requests_with_a_miss": sorted(backfill_missed),
                 "canaries": len(entry["canary_record_ids"]),
+                "dominance_probes": dict(sorted(probes.items())),
+                "dominated": dominated,
             },
             "canary_record_ids": sorted(entry["canary_record_ids"]),
+            "dominance_record_ids": sorted(entry["dominance_record_ids"]),
         })
         out.append(entry)
 
@@ -1258,6 +1553,211 @@ def command_summary(args: argparse.Namespace, adc_module=None) -> int:
               f"misses={len(criterion['pull_requests_with_a_miss'])} "
               f"canaries={criterion['canaries']}")
     return 0
+
+
+DOMINANCE_PROBES = ("deleted", "replaced")
+
+
+def class_covered_paths(repo: Path, policy_source: Mapping[str, Any],
+                        route_module, class_rule_ids: Sequence[str]) -> list[str]:
+    """Every tracked path whose facts would match one of the class's rules.
+
+    The class is what its rules match, so the paths it covers are the paths
+    the classifier gives facts those rules fire on. Enumerating the tree
+    rather than the globs is what makes the probe exhaustive: a glob can be
+    read two ways, a file list cannot.
+    """
+    tracked = _git(repo, "ls-files").splitlines()
+    validated_rules = {rule for rule in class_rule_ids}
+    classifier = {"surfaces": policy_source.get("classifier", {}).get("surfaces", [])}
+    covered: list[str] = []
+    for path in tracked:
+        path = path.strip()
+        if not path:
+            continue
+        matches = route_module._matching_classifications(path, classifier)
+        if not matches:
+            continue
+        rules_here = set()
+        for attrs in matches:
+            for rule in policy_source.get("rules", []):
+                match = rule.get("match", {})
+                surfaces = match.get("surfaces")
+                effects = match.get("effects")
+                if surfaces and attrs["surface"] not in surfaces:
+                    continue
+                if effects and attrs["effect"] not in effects:
+                    continue
+                if match.get("mode_changed") or match.get("paths"):
+                    continue
+                if not surfaces and not effects:
+                    continue
+                rules_here.add(str(rule.get("id")))
+        if rules_here and rules_here == validated_rules:
+            covered.append(path)
+    return sorted(covered)
+
+
+def command_dominance(args: argparse.Namespace, adc_module=None) -> int:
+    """Prove a class no gate reads cannot hide a failure. D-134.
+
+    A canary is one hand-built probe, and for a class the gates can see, one
+    probe plus a sample is enough. For a class the gates cannot see, a sample
+    of clean records shows only that nothing happened, so the honest evidence
+    is exhaustive: break every path the class covers, twice, and record what
+    every gate concluded. The class is dominated when no probe leaves a
+    selected gate passing while an omitted gate fails.
+
+    It executes gates, so it obeys the same confirmation the gate runner
+    does, and it executes everything rather than anything selectively.
+    """
+    import shutil
+
+    adc = _adc_module(adc_module)
+    route_module, _ = adc.load_router_helpers()
+    repo = Path(args.repo).resolve()
+    calibration = (Path(args.calibration).resolve() if args.calibration
+                   else repo / adc.ROUTE_CALIBRATION)
+    policy_source = json.loads(
+        (calibration / "routing-policy.json").read_text(encoding="utf-8"))
+    gates_source = json.loads(
+        (calibration / "gates.json").read_text(encoding="utf-8"))
+
+    if not gates_source.get("execution_policy", {}).get(
+            "owner_confirmed_safe_to_execute"):
+        print("REFUSED: the dominance probe runs every gate, and gates.json "
+              "does not record owner confirmation. Review the commands, then "
+              "set execution_policy.owner_confirmed_safe_to_execute to true.")
+        return 2
+
+    status = _git(repo, "status", "--porcelain")
+    if status.strip():
+        print("REFUSED: the probe rewrites and restores tracked files, so it "
+              "requires a clean tree; commit or stash first.")
+        return 2
+
+    summary = json.loads(Path(args.summary).read_text(encoding="utf-8"))
+    entry = next((c for c in summary.get("classes", [])
+                  if str(c.get("class_key")).startswith(args.class_key)), None)
+    if entry is None:
+        print(f"REFUSED: no class in {args.summary} begins {args.class_key}")
+        return 2
+    rule_ids = list(entry.get("matched_rule_ids", []))
+    omitted = list(entry.get("omitted_gate_ids", []))
+    selected = list(entry.get("selected_gate_ids", []))
+    if not omitted:
+        print(f"REFUSED: class {entry['class_key'][:12]} omits nothing, so "
+              f"there is nothing for a probe to hide behind.")
+        return 2
+
+    covered = class_covered_paths(repo, policy_source, route_module, rule_ids)
+    if not covered:
+        print(f"REFUSED: class {entry['class_key'][:12]} covers no tracked "
+              f"path, so an exhaustive probe would prove nothing.")
+        return 2
+
+    print(f"  class {entry['class_key'][:12]} rules={','.join(rule_ids)}")
+    print(f"  covers {len(covered)} tracked path(s); omits {','.join(omitted)}")
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    originals = {path: (repo / path).read_bytes() for path in covered}
+    before = {path: hashlib.sha256(body).hexdigest()
+              for path, body in originals.items()}
+    router_sha = router_digest(Path(route_module.__file__))
+    head = _git(repo, "rev-parse", "HEAD")
+    written = 0
+    verdicts: dict[str, str] = {}
+
+    for probe in DOMINANCE_PROBES:
+        try:
+            for path in covered:
+                target = repo / path
+                if probe == "deleted":
+                    target.unlink()
+                else:
+                    # Content that is not the original, and not empty: an
+                    # empty file is a shape some readers accept.
+                    target.write_bytes(b"dominance probe: this is not the "
+                                       b"content this file had\n")
+            outcomes = _run_every_gate(adc, repo, gates_source, args.allow_exec)
+        finally:
+            for path, body in originals.items():
+                target = repo / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(body)
+        after = {path: hashlib.sha256((repo / path).read_bytes()).hexdigest()
+                 for path in covered}
+        if after != before:
+            print("REFUSED: the tree was not restored after the probe; "
+                  "the following paths differ: "
+                  + ", ".join(p for p in covered if after[p] != before[p]))
+            return 2
+
+        status = status_from(outcomes, selected, omitted, None)
+        verdicts[probe] = status
+        record = build_record(
+            policy_source=policy_source, gates_source=gates_source,
+            route=None, candidate=None, outcomes=outcomes, base_outcomes=None,
+            commits={"base": head, "merge": head, "head": head},
+            run={"pull_request": None, "run_id": f"dominance-{probe}",
+                 "run_attempt": 1},
+            head_ref=None, backfill=False, router_blob_sha256=router_sha,
+            shadow_result=adc.shadow_result)
+        # The probe is not a route: it says what the gates concluded when the
+        # class's own paths were broken, under the class the summary names.
+        record["provenance"] = "dominance"
+        record["status"] = status
+        record["measurable"] = status not in (STATUS_NOT_MEASURABLE,)
+        record["class"] = {
+            "matched_rule_ids": sorted(rule_ids),
+            "selected_gate_ids": sorted(selected),
+            "omitted_gate_ids": sorted(omitted),
+            "router_blob_sha256": router_sha,
+            "terms_sha256": str(entry.get("terms_sha256", "")),
+        }
+        record["class_key"] = str(entry["class_key"])
+        record["gate_outcomes"] = dict(sorted(outcomes.items()))
+        record["not_measurable_reason"] = (
+            None if record["measurable"] else "a gate did not decide")
+        record["record_id"] = digest(
+            {k: v for k, v in record.items() if k != "record_id"})
+        (out_dir / f"shadow-dominance-{probe}-{entry['class_key'][:12]}.json"
+         ).write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
+                      encoding="utf-8", newline="\n")
+        written += 1
+        print(f"  probe {probe:9} {status:16} "
+              f"outcomes={json.dumps(record['gate_outcomes'])}")
+
+    for name in write_policy_sidecars(out_dir, policy_source, gates_source):
+        print(f"  policy sidecar {name}")
+    dominated = all(verdicts[probe] != STATUS_MISS for probe in DOMINANCE_PROBES)
+    print(f"DOMINANCE {written} probe(s) in {out_dir}: class "
+          f"{entry['class_key'][:12]} is "
+          + ("dominated" if dominated else "NOT dominated"))
+    return 0
+
+
+def _run_every_gate(adc, repo: Path, gates_source: Mapping[str, Any],
+                    allow_exec: bool) -> dict[str, str]:
+    """Every canonical gate's own command, run here. Never a subset."""
+    outcomes: dict[str, str] = {}
+    for gate in gates_source.get("gates", []):
+        gate_id = str(gate.get("id"))
+        argv = gate.get("argv")
+        if not argv:
+            outcomes[gate_id] = "config-error"
+            continue
+        if not allow_exec:
+            outcomes[gate_id] = "not-run"
+            continue
+        done = subprocess.run(
+            list(argv), cwd=str(Path(gate.get("cwd", ".")) if Path(
+                gate.get("cwd", ".")).is_absolute() else repo / gate.get("cwd", ".")),
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=int(gate.get("timeout_seconds", 3600)))
+        outcomes[gate_id] = "pass" if done.returncode == 0 else "fail"
+    return outcomes
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1340,7 +1840,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write-pull-requests",
                    help="Refresh the pull request author and merge date the "
                         "criterion needs, beside the ledger")
+    p.add_argument("--skip-class-recomputation", action="store_true",
+                   help="Skip recomputing each record's class from the policy "
+                        "that built it, which is what makes the class more "
+                        "than a claim; for a fixture that has no clone")
     p.set_defaults(func=command_ingest)
+
+    p = sub.add_parser(
+        "dominance",
+        help="Prove a class no gate reads cannot hide a failure (D-134)")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--calibration")
+    p.add_argument("--summary", default="metrics/shadow/summary.json",
+                   help="The summary naming the class and its gates")
+    p.add_argument("--class-key", required=True,
+                   help="The class to probe; a unique prefix is enough")
+    p.add_argument("--out-dir", required=True)
+    p.add_argument("--allow-exec", action="store_true",
+                   help="Run the gates. Without it every gate reads not-run "
+                        "and no probe can conclude anything, which is the "
+                        "dry run.")
+    p.set_defaults(func=command_dominance)
 
     p = sub.add_parser("summary", help="Regenerate the campaign summary")
     p.add_argument("--ledger", default="metrics/shadow/ledger")

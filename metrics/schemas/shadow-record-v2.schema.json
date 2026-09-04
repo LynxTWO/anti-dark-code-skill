@@ -34,9 +34,10 @@
       "enum": [
         "live",
         "backfill",
-        "canary"
+        "canary",
+        "dominance"
       ],
-      "description": "Derived from the head ref and the command, never asserted as a label (G8)."
+      "description": "Derived from the head ref and the command, never asserted as a label (G8). `dominance` is derived from the probe command, as `backfill` is (D-134)."
     },
     "head_ref": {
       "type": "string"

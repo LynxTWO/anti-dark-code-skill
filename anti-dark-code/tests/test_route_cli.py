@@ -527,7 +527,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             "pull_request": 7, "head": head, "landing": landing,
             "landing_first_parent": first_parent, "head_ref": "topic7",
             "run_id": "99", "run_attempt": 1, "jobs": self.GREEN}])
-        written = sorted(out_dir.glob("*.json"))
+        written = sorted(out_dir.glob("shadow-*.json"))
         self.assertEqual(1, len(written))
         record = json.loads(written[0].read_text(encoding="utf-8"))
         self.assertEqual("backfill", record["provenance"])
@@ -570,7 +570,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             {**entry, "run_attempt": 2, "jobs": self.GREEN},
             {**entry, "run_attempt": 3, "jobs": self.GREEN},
         ])
-        written = sorted(out_dir.glob("*.json"))
+        written = sorted(out_dir.glob("shadow-*.json"))
         self.assertEqual(3, len(written))
         by_attempt = {}
         for path in written:
@@ -597,7 +597,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             "landing_first_parent": first_parent, "head_ref": "topic9",
             "run_id": "102", "run_attempt": 1, "jobs": self.GREEN}])
         record = json.loads(
-            sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(out_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
         self.assertFalse(record["measurable"])
         self.assertEqual("not_measurable", record["status"])
         self.assertEqual("head-unavailable", record["not_measurable_reason"])
@@ -621,7 +621,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             [{**entry, "run_attempt": 1, "jobs": self.GREEN},
              {**entry, "run_attempt": 2, "jobs": self.GREEN}],
             "--live-records", str(live_dir))
-        written = sorted(out_dir.glob("*.json"))
+        written = sorted(out_dir.glob("shadow-*.json"))
         self.assertEqual(1, len(written), done.stdout)
         record = json.loads(written[0].read_text(encoding="utf-8"))
         self.assertEqual(2, record["run"]["run_attempt"])
@@ -643,7 +643,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
 
         _, clean_dir = self._backfill([entry])
         clean = json.loads(
-            sorted(clean_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(clean_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
 
         # Now dirty the tree in all three ways acquisition can see: an
         # unstaged edit to an authority file, a staged one, and an untracked
@@ -658,7 +658,7 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
 
         _, dirty_dir = self._backfill([entry])
         dirty = json.loads(
-            sorted(dirty_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(dirty_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
 
         self.assertEqual(clean["class_key"], dirty["class_key"])
         self.assertEqual(clean["status"], dirty["status"])
@@ -705,10 +705,155 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
             "landing_first_parent": first_parent, "head_ref": "topic12",
             "run_id": None, "run_attempt": 0, "jobs": None}])
         record = json.loads(
-            sorted(out_dir.glob("*.json"))[0].read_text(encoding="utf-8"))
+            sorted(out_dir.glob("shadow-*.json"))[0].read_text(encoding="utf-8"))
         self.assertFalse(record["measurable"])
         self.assertEqual("not_measurable", record["status"])
         self.assertIn("unresolved", record["not_measurable_reason"])
+
+
+class ShadowDominanceCliTests(_RoutedGateCliFixture):
+    """S-068, R-066, D-134. An exhaustive probe, for a class no gate reads.
+
+    A canary is one hand-built break, and for a class the gates can see, one
+    plus a sample is enough. For a class the gates cannot see, a sample of
+    clean records shows only that nothing happened, so the evidence has to be
+    every path the class covers, broken two ways, with every gate's verdict
+    recorded.
+    """
+
+    def _dominance_calibration(self, *, reads_prose: bool):
+        """A calibration whose gates are real commands this test can run.
+
+        The gate that reads prose is a script that fails when the prose file
+        is missing or changed; the gate that does not is one that ignores it
+        entirely. That difference is the whole experiment.
+        """
+        prose = self.repo / "docs"
+        prose.mkdir(parents=True, exist_ok=True)
+        (prose / "guide.md").write_text("the original guide\n", encoding="utf-8")
+        (prose / "notes.md").write_text("the original notes\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "prose")
+
+        reader = self.repo / "check_prose.py"
+        reader.write_text(
+            "import pathlib, sys\n"
+            "want = 'the original guide\\n'\n"
+            "p = pathlib.Path('docs/guide.md')\n"
+            "sys.exit(0 if p.is_file() and p.read_text() == want else 1)\n",
+            encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "reader")
+
+        gates = {
+            "schema_version": 1,
+            "execution_policy": {"owner_confirmed_safe_to_execute": True},
+            "canonical_full_set": {
+                "passes": ["07"],
+                "obligations": {"V09": ["selected"], "V21": ["omitted"]},
+            },
+            "gates": [
+                {"id": "selected", "enabled": True, "review_status": "approved",
+                 "level": 0, "argv": [sys.executable, "-c", "raise SystemExit(0)"],
+                 "timeout_seconds": 60},
+                {"id": "omitted", "enabled": True, "review_status": "approved",
+                 "level": 0,
+                 "argv": ([sys.executable, "check_prose.py"] if reads_prose
+                          else [sys.executable, "-c", "raise SystemExit(0)"]),
+                 "timeout_seconds": 60},
+            ],
+        }
+        policy = {
+            "schema_version": 1,
+            "classifier": {"surfaces": [
+                {"glob": "docs/*.md", "surface": "docs", "effect": "prose",
+                 "breadth": "leaf"},
+            ]},
+            "full_recipe": {"minimum_level": 3, "passes": ["07"],
+                            "obligations": {"V09": ["selected"],
+                                            "V21": ["omitted"]},
+                            "independent_review": True},
+            "rules": [
+                {"id": "docs-only", "review_status": "proposed",
+                 "match": {"surfaces": ["docs"], "effects": ["prose"]},
+                 "requires": {"passes": ["07"], "minimum_level": 0},
+                 "obligations": {"V09": ["selected"]}},
+            ],
+        }
+        calibration = Path(self.tmp.name) / "dominance-calibration"
+        calibration.mkdir(parents=True, exist_ok=True)
+        (calibration / "gates.json").write_text(json.dumps(gates, indent=2),
+                                                encoding="utf-8")
+        (calibration / "routing-policy.json").write_text(
+            json.dumps(policy, indent=2), encoding="utf-8")
+
+        summary = Path(self.tmp.name) / "dominance-summary.json"
+        summary.write_text(json.dumps({
+            "schema_version": 2, "records": 0, "records_by_provenance": {},
+            "classes": [{
+                "class_key": "K" * 64,
+                "matched_rule_ids": ["docs-only"],
+                "selected_gate_ids": ["selected"],
+                "omitted_gate_ids": ["omitted"],
+                "router_blob_sha256": "r", "terms_sha256": "t",
+                "records": {}, "status": {}, "criterion": {},
+                "canary_record_ids": [], "dominance_record_ids": [],
+            }],
+        }, indent=2), encoding="utf-8")
+        return calibration, summary
+
+    def _probe(self, calibration: Path, summary: Path, *extra: str):
+        out_dir = Path(self.tmp.name) / f"dominance-{len(extra)}-out"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "dominance",
+             "--repo", str(self.repo), "--calibration", str(calibration),
+             "--summary", str(summary), "--class-key", "K" * 12,
+             "--out-dir", str(out_dir), *extra],
+            capture_output=True, text=True, timeout=900)
+        return done, out_dir
+
+    def test_a_class_no_gate_reads_is_dominated(self) -> None:
+        calibration, summary = self._dominance_calibration(reads_prose=False)
+        done, out_dir = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertIn("is dominated", done.stdout)
+        records = sorted(out_dir.glob("shadow-dominance-*.json"))
+        self.assertEqual(2, len(records), done.stdout)
+        for path in records:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual("dominance", record["provenance"])
+            self.assertNotEqual("miss", record["status"])
+        # And the tree is exactly as it was.
+        self.assertEqual("", self._git("status", "--porcelain").stdout.strip())
+
+    def test_a_class_an_omitted_gate_reads_is_not_dominated(self) -> None:
+        calibration, summary = self._dominance_calibration(reads_prose=True)
+        done, out_dir = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertIn("NOT dominated", done.stdout)
+        statuses = {json.loads(p.read_text(encoding="utf-8"))["status"]
+                    for p in out_dir.glob("shadow-dominance-*.json")}
+        self.assertIn("miss", statuses)
+        self.assertEqual("", self._git("status", "--porcelain").stdout.strip())
+
+    def test_the_probe_refuses_without_owner_confirmation(self) -> None:
+        """It runs every gate, so it obeys the same confirmation the gate
+        runner does. D-011 is not relaxed by an approval-time act."""
+        calibration, summary = self._dominance_calibration(reads_prose=False)
+        gates = json.loads((calibration / "gates.json").read_text(encoding="utf-8"))
+        gates["execution_policy"]["owner_confirmed_safe_to_execute"] = False
+        (calibration / "gates.json").write_text(json.dumps(gates, indent=2),
+                                                encoding="utf-8")
+        done, _ = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(2, done.returncode)
+        self.assertIn("does not record owner confirmation", done.stdout)
+
+    def test_the_probe_refuses_a_dirty_tree(self) -> None:
+        calibration, summary = self._dominance_calibration(reads_prose=False)
+        (self.repo / "docs" / "guide.md").write_text("edited\n", encoding="utf-8")
+        done, _ = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(2, done.returncode)
+        self.assertIn("requires a clean tree", done.stdout)
 
 
 class ShadowLedgerCliTests(_RoutedGateCliFixture):
@@ -759,11 +904,16 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
         return directory
 
     def _ingest(self, source: Path, ledger: Path, *extra: str):
+        # These fixtures are synthetic records over commits that do not
+        # exist, so the class cannot be recomputed from a policy at a head
+        # there is none of. The tests that hold the recomputation itself
+        # exercise it directly against a real fixture repository.
         return self._shadow(
             "ingest", "--repo", str(self.repo),
             "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
             "--source", str(source), "--ledger", str(ledger),
-            "--month", "2026-09", "--offline", *extra)
+            "--month", "2026-09", "--offline", "--skip-class-recomputation",
+            *extra)
 
     def test_a_record_whose_id_does_not_digest_it_is_refused(self) -> None:
         """S-056. The artifact is written by the pull request's own workflow,
@@ -824,6 +974,37 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
             run={"pull_request": 1, "run_id": "1", "run_attempt": 9})]
         entry = shadow.summarise(with_inconclusive)["classes"][0]
         self.assertEqual(1, entry["criterion"]["pull_requests_counted"])
+
+    def test_the_summary_counts_a_dominance_record_as_neither(self) -> None:
+        shadow = _load_shadow()
+        base = self._record(class_key="K1")
+        probes = []
+        for probe, status in (("deleted", "clean"), ("replaced", "clean")):
+            record = self._record(class_key="K1", status=status,
+                                  provenance="dominance",
+                                  run={"pull_request": None,
+                                       "run_id": f"dominance-{probe}",
+                                       "run_attempt": 1})
+            probes.append(record)
+        summary = shadow.summarise([base] + probes)
+        entry = summary["classes"][0]
+        self.assertEqual(1, entry["criterion"]["pull_requests_counted"])
+        self.assertEqual([], entry["criterion"]["pull_requests_with_a_miss"])
+        self.assertEqual(2, len(entry["dominance_record_ids"]))
+        self.assertTrue(entry["criterion"]["dominated"])
+
+        # One probe is a class nobody finished probing.
+        half = shadow.summarise([base, probes[0]])
+        self.assertFalse(half["classes"][0]["criterion"]["dominated"])
+        # A probe that missed is not dominance.
+        missed = self._record(class_key="K1", status="miss",
+                              provenance="dominance",
+                              run={"pull_request": None,
+                                   "run_id": "dominance-replaced",
+                                   "run_attempt": 1})
+        self.assertFalse(
+            shadow.summarise([base, probes[0], missed])["classes"][0]
+            ["criterion"]["dominated"])
 
     def test_a_canary_is_never_counted_as_evidence(self) -> None:
         shadow = _load_shadow()
@@ -1052,6 +1233,223 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
         done = self._ingest(source, ledger, "--keep-going")
         self.assertEqual(2, done.returncode, done.stdout)
         self.assertIn("1 refused", done.stdout)
+
+    def test_a_forged_class_is_refused_against_the_policy_that_built_it(self) -> None:
+        """S-066, R-064, D-133. The verdict repair did not reach the class.
+
+        Re-reading the outcomes and recomputing the verdict leaves the matched
+        rules, the selected and omitted gates and the key believed as written.
+        A record that claims a cheap class for an expensive change is caught
+        only by rebuilding the candidate from the policy the record names.
+        """
+        shadow = _load_shadow()
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        base = self._git("rev-parse", "HEAD~1").stdout.strip()
+        landing = head
+        policy = json.loads(
+            (self.calibration / "routing-policy.json").read_text(encoding="utf-8"))
+        gates = json.loads(
+            (self.calibration / "gates.json").read_text(encoding="utf-8"))
+        capability_ids = [c["id"] for c in json.loads(
+            (SKILL_ROOT / "assets" / "verification-capabilities.json")
+            .read_text(encoding="utf-8"))["capabilities"]]
+        router_sha = shadow.router_digest(
+            SKILL_ROOT / "scripts" / "adc_route.py")
+
+        honest = self._record(
+            commits={"base": base, "merge": landing, "head": head},
+            **{"class": {"matched_rule_ids": ["product-code"],
+                         "selected_gate_ids": ["full-suite", "validate-core"],
+                         "omitted_gate_ids": ["distribution",
+                                              "hostile-environment",
+                                              "mutation-replay"],
+                         "router_blob_sha256": router_sha,
+                         "terms_sha256": "t"}})
+        # The fixture's own repository is not this one, so the router blob it
+        # names is not at its head; that refusal is itself part of the
+        # contract and is asserted separately below.
+        problems = shadow.recompute_class(
+            honest, repo=self.repo, policy_source=policy, gates_source=gates,
+            capability_ids=capability_ids)
+        self.assertTrue(any("router-unrecoverable" in p for p in problems),
+                        problems)
+
+    def _recomputable(self):
+        """A fixture where recomputation actually runs, and what it needs.
+
+        The earlier version of these tests stopped at `router-unrecoverable`,
+        because this fixture's head carries no router, so `recompute_class`
+        returned before it compared anything. The Linux replay found M154 and
+        M155 surviving on exactly that gap. Here the router is put in the
+        fixture's working tree and deliberately not committed: a backfill
+        record reads it from there (D-136), and a lookup at the head cannot
+        find it, which is what separates the two.
+        """
+        shadow = _load_shadow()
+        target = self.repo / "anti-dark-code" / "scripts"
+        target.mkdir(parents=True, exist_ok=True)
+        router = SKILL_ROOT / "scripts" / "adc_route.py"
+        (target / "adc_route.py").write_bytes(router.read_bytes())
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        base = self._git("rev-parse", "HEAD~1").stdout.strip()
+        policy = json.loads(
+            (self.calibration / "routing-policy.json").read_text(encoding="utf-8"))
+        gates = json.loads(
+            (self.calibration / "gates.json").read_text(encoding="utf-8"))
+        capability_ids = [c["id"] for c in json.loads(
+            (SKILL_ROOT / "assets" / "verification-capabilities.json")
+            .read_text(encoding="utf-8"))["capabilities"]]
+        return (shadow, head, base, policy, gates, capability_ids,
+                shadow.router_digest(router))
+
+    def test_a_class_that_does_not_follow_from_the_stored_policy_is_refused(self) -> None:
+        """S-066, R-064, D-133, and the gap the Linux replay found.
+
+        The record claims a cheap class for a change that is not cheap. Only
+        rebuilding the candidate from the policy the record names catches it;
+        re-reading the outcomes and recomputing the verdict cannot, because
+        both of those are true of the record as written.
+        """
+        shadow, head, base, policy, gates, capability_ids, router_sha = \
+            self._recomputable()
+        forged = self._record(
+            provenance="backfill", base_reconstructed=True,
+            commits={"base": base, "merge": head, "head": head},
+            **{"class": {"matched_rule_ids": ["docs-only"],
+                         "selected_gate_ids": ["validate-core"],
+                         "omitted_gate_ids": ["distribution", "full-suite",
+                                              "hostile-environment",
+                                              "mutation-replay"],
+                         "router_blob_sha256": router_sha,
+                         "terms_sha256": "t"}})
+        problems = shadow.recompute_class(
+            forged, repo=self.repo, policy_source=policy, gates_source=gates,
+            capability_ids=capability_ids)
+        self.assertFalse(any("router-unrecoverable" in p for p in problems),
+                         f"the fixture must reach the comparison: {problems}")
+        # Each field by name, not the general phrase: the class_key check
+        # further down carries the same wording and fires on its own, so a
+        # loose assertion here passes even with the field comparison
+        # disabled, which is how M154 survived its first measurement.
+        self.assertTrue(
+            any("class.matched_rule_ids does not follow" in p for p in problems),
+            problems)
+        self.assertTrue(
+            any("class.omitted_gate_ids does not follow" in p for p in problems),
+            problems)
+
+    def test_a_backfill_record_s_router_is_read_from_the_checkout(self) -> None:
+        """D-136. A backfill replayed today's router over a historical change
+        set, so its router is the one in the checkout that ran it; the router
+        at its head is a different version that never built it."""
+        shadow, head, base, policy, gates, capability_ids, router_sha = \
+            self._recomputable()
+        record = self._record(
+            provenance="backfill", base_reconstructed=True,
+            commits={"base": base, "merge": head, "head": head},
+            **{"class": {"matched_rule_ids": [],
+                         "selected_gate_ids": [], "omitted_gate_ids": [],
+                         "router_blob_sha256": router_sha,
+                         "terms_sha256": "t"}})
+        problems = shadow.recompute_class(
+            record, repo=self.repo, policy_source=policy, gates_source=gates,
+            capability_ids=capability_ids)
+        # The head has no router at all, so a lookup there refuses; reading
+        # the checkout finds the one whose digest the record names.
+        self.assertFalse(any("router-unrecoverable" in p for p in problems),
+                         problems)
+
+    def test_a_sidecar_that_does_not_digest_to_its_name_is_refused(self) -> None:
+        """A file named by its own digest is self-certifying, and that is the
+        only reason the policies directory needs no trusting. D-133."""
+        source = Path(self.tmp.name) / "inbox"
+        source.mkdir(parents=True, exist_ok=True)
+        (source / "policy-0000000000000000000000000000000000000000000000000000000000000000.json"
+         ).write_text('{"rules": []}\n', encoding="utf-8")
+        ledger = Path(self.tmp.name) / "ledger"
+        done = self._ingest(source, ledger)
+        self.assertEqual(2, done.returncode, done.stdout)
+        self.assertIn("does not digest to its name", done.stdout)
+
+    def test_a_backfill_record_with_no_stored_policy_is_not_recovered(self) -> None:
+        """The backfill writes its own sidecar, so its absence means
+        something else is wrong; a live record is recovered from its head."""
+        shadow = _load_shadow()
+        record = self._record(provenance="backfill", base_reconstructed=True)
+        problems = shadow._recompute_with_sidecars(
+            record, repo=self.repo, sidecars={}, capability_ids=["V09"])
+        self.assertTrue(any("a backfill writes its own" in p for p in problems),
+                        problems)
+
+    def test_the_sidecars_digest_to_their_own_names(self) -> None:
+        shadow = _load_shadow()
+        policy = json.loads(
+            (self.calibration / "routing-policy.json").read_text(encoding="utf-8"))
+        gates = json.loads(
+            (self.calibration / "gates.json").read_text(encoding="utf-8"))
+        for name, body in shadow.policy_sidecars(policy, gates).items():
+            with self.subTest(name=name):
+                self.assertTrue(shadow._digests_to_its_name(name, body))
+        # And the names are the ones a record carries, so ingest can find them.
+        self.assertEqual(
+            f"policy-{shadow.digest(shadow.strip_underscored(policy))}.json",
+            next(n for n in shadow.policy_sidecars(policy, gates) if n.startswith("policy-")))
+
+    def test_a_consumer_s_evidence_lands_here_and_its_clone_is_untouched(self) -> None:
+        """S-069, R-067, D-135. The measured repository carries the job, the
+        map and its calibration; its ledger lives in the repository running
+        the campaign, and ingest writes nothing back to it."""
+        import hashlib
+
+        consumer = Path(self.tmp.name) / "consumer-clone"
+        consumer.mkdir(parents=True, exist_ok=True)
+        for args in (("init", "-q", "-b", "main"),
+                     ("config", "user.email", "consumer@example.invalid"),
+                     ("config", "user.name", "Consumer")):
+            subprocess.run(["git", "-C", str(consumer), *args],
+                           capture_output=True, text=True, timeout=120)
+        (consumer / "README.md").write_text("consumer\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(consumer), "add", "-A"],
+                       capture_output=True, text=True, timeout=120)
+        subprocess.run(["git", "-C", str(consumer), "commit", "-qm", "first"],
+                       capture_output=True, text=True, timeout=120)
+
+        def tree_digest() -> str:
+            entries = []
+            for path in sorted(consumer.rglob("*")):
+                if ".git" in path.parts or not path.is_file():
+                    continue
+                entries.append(path.relative_to(consumer).as_posix())
+                entries.append(hashlib.sha256(path.read_bytes()).hexdigest())
+            return hashlib.sha256("|".join(entries).encode()).hexdigest()
+
+        before = tree_digest()
+        head = subprocess.run(["git", "-C", str(consumer), "rev-parse", "HEAD"],
+                              capture_output=True, text=True,
+                              timeout=120).stdout.strip()
+
+        source = self._write(Path(self.tmp.name) / "consumer-inbox", [
+            self._record(commits={"base": "b" * 40, "merge": head, "head": head},
+                         run={"pull_request": 1, "run_id": "5", "run_attempt": 1})])
+        ledger = (Path(self.tmp.name) / "metrics" / "shadow" / "consumers"
+                  / "owner-name" / "ledger")
+        done = self._shadow(
+            "ingest", "--repo", str(consumer),
+            "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+            "--source", str(source), "--ledger", str(ledger),
+            "--month", "2026-09", "--offline", "--skip-class-recomputation",
+            "--repository", "owner/name")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertTrue((ledger / "2026-09.jsonl").is_file())
+        self.assertEqual(before, tree_digest(),
+                         "ingest wrote into the consumer's clone")
+        self.assertFalse((consumer / "metrics").exists())
+
+        out = ledger.parent / "summary.json"
+        summary = self._shadow("summary", "--ledger", str(ledger), "--out", str(out))
+        self.assertEqual(0, summary.returncode, summary.stdout + summary.stderr)
+        self.assertTrue(out.is_file())
+        self.assertEqual(before, tree_digest())
 
     def test_the_summary_is_byte_identical_when_regenerated(self) -> None:
         """S-057. A summary that moves cannot be reviewed."""

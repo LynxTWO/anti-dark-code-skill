@@ -5373,6 +5373,15 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         facts = self.route.collect_change_facts(snapshot, policy.classifier_map())
         return self.route.build_route(facts, policy, snapshot_ok=True)
 
+    def _facts_for(self, path: str):
+        """What the installed classifier says about a path, tree or no tree."""
+        snapshot = self.route.ChangeSnapshot(
+            inputs=(self.route.ChangeInput(
+                path=path, change_kind="modify", source="unstaged"),),
+            base="HEAD", base_resolved=True, problems=())
+        return self.route.collect_change_facts(
+            snapshot, self._approved_policy().classifier_map())
+
     def test_authority_classes_cannot_be_demoted_by_exact_exceptions(self) -> None:
         """D-093: a representative path cannot stand for an authority class."""
         for path, authority_glob in (
@@ -5558,17 +5567,20 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # The counterexample. Without it, a policy that forced full on
         # everything would satisfy the test above and prove nothing.
         #
-        # This used design/routing/ARCHITECTURE.md until D-129 made every
-        # design/routing document verification authority, because the suite's
-        # decision guard reads them. That is the decision, not a regression,
-        # so the counterexample moves to a documentation path no gate reads.
-        # It has to be a file that exists: a path the tree does not contain
-        # would keep passing after the classifier stopped calling it prose.
-        ordinary = REPO_ROOT / "docs" / "review" / "adversarial-pass.md"
-        self.assertTrue(ordinary.is_file(),
-                        "the counterexample must be a real documentation file")
-        route = self._route_for("docs/review/adversarial-pass.md",
-                                self._approved_policy())
+        # This asserts a property of the policy, never of the tree. It used
+        # design/routing/ARCHITECTURE.md until D-129 made every
+        # design/routing document verification authority; it then moved to a
+        # docs/ path and asserted that file existed, which made the suite a
+        # reader of repository prose and handed the docs-only class the one
+        # construction that could break an omitted gate. D-134 removes that:
+        # the path here need not exist, because what is being tested is what
+        # the classifier says about such a path, and a suite that reads no
+        # prose is what lets a class of prose be inert.
+        path = "docs/review/adversarial-pass.md"
+        effects = {fact.effect for fact in self._facts_for(path)}
+        self.assertIn("prose", effects)
+        self.assertNotIn("verification-authority", effects)
+        route = self._route_for(path, self._approved_policy())
         self.assertFalse(route.force_full)
         self.assertEqual(0, route.minimum_level)
 
@@ -6289,6 +6301,77 @@ class RepositoryCalibrationTests(unittest.TestCase):
             fnmatch.fnmatchcase("design/routing/DECISION-LOG.md",
                                 "design/routing/**/*.md"),
             "the ** spelling would silently miss every top-level document")
+
+
+class SuiteReadsNoRepositoryProseTests(unittest.TestCase):
+    """S-067, R-065, D-134. The suite is not a reader of this tree's prose.
+
+    A test that asserts a prose file exists makes that file something a gate
+    reads, which by D-129's own principle is authority, and which handed the
+    docs-only class the single construction that could break an omitted gate.
+    Whether a class of prose is inert is a property of the policy and the
+    gates; a test may assert the policy, and may create its own prose under a
+    temporary directory, but may not depend on this repository's.
+    """
+
+    @staticmethod
+    def _prose_reaches(text: str) -> list[int]:
+        """Line numbers where a module builds a path into this tree's prose.
+
+        Both spellings, because the construction this exists to prevent used
+        the second: a slashed literal, and a path joined a segment at a time
+        from the repository root. Matching only the first would let the exact
+        line D-134 removed pass unnoticed. A line carrying the marker below
+        is one of this detector's own samples.
+        """
+        # Rooted at the repository, in either spelling. A bare "docs/x.md"
+        # string is data: the classifier assertions pass exactly that and
+        # never touch a file, which is the whole point of D-134's change.
+        rooted = re.compile(
+            r"""(REPO_ROOT|SKILL_ROOT\s*\.\s*parent)\s*/\s*['"](docs|brief)(/|['"])""")
+        return [number for number, line in enumerate(text.splitlines(), 1)
+                if rooted.search(line) and "detector-sample" not in line]
+
+    def test_the_detector_catches_the_construction_it_exists_to_prevent(self) -> None:
+        """A sweep that cannot see the line it was written for proves nothing.
+
+        These two samples are the shapes D-134 removed and the shape a future
+        test would most likely reach for.
+        """
+        segments = " / ".join(['REPO_ROOT', '"docs"', '"review"', '"x.md"'])
+        slashed = " / ".join(['REPO_ROOT', '"docs/review/x.md"'])
+        self.assertEqual([1], self._prose_reaches(f"ordinary = {segments}"))
+        self.assertEqual([1], self._prose_reaches(f"path = {slashed}"))
+        # And it does not fire on naming a path as data, which the classifier
+        # assertions do and must keep doing.
+        named = 'effects = {f.effect for f in self._facts_for(path)}'
+        self.assertEqual([], self._prose_reaches(named))
+
+    def test_no_test_module_reaches_this_repository_s_prose(self) -> None:
+        offenders: list[str] = []
+        for module in sorted((SKILL_ROOT / "tests").glob("test_*.py")):
+            text = module.read_text(encoding="utf-8")
+            for number in self._prose_reaches(text):
+                line = text.splitlines()[number - 1].strip()
+                # This module's own samples are the detector's fixtures.
+                if module.name == Path(__file__).name and "self._prose_reaches(" in line:
+                    continue
+                offenders.append(f"{module.name}:{number}: {line[:90]}")
+        self.assertEqual(
+            [], offenders,
+            "the suite must not read this repository's prose (D-134): "
+            + "; ".join(offenders))
+
+    def test_the_repository_root_prose_is_not_reachable_through_the_skill(self) -> None:
+        # The skill tree is what ships; nothing in it should reach out into
+        # the repository's own documentation either.
+        offenders: list[str] = []
+        for script in sorted((SKILL_ROOT / "scripts").glob("*.py")):
+            text = script.read_text(encoding="utf-8")
+            for number, line in enumerate(text.splitlines(), 1):
+                if re.search(r"""['"]docs/review|['"]brief/""", line):
+                    offenders.append(f"{script.name}:{number}")
+        self.assertEqual([], offenders, "; ".join(offenders))
 
 
 MATRIX = REPO_ROOT / "design" / "routing" / "mutants" / "matrix.json"

@@ -483,28 +483,34 @@
       ]
     },
     "R-064": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-133: The policy that built a record is kept by its digest, and ingest recomputes the class with it"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_forged_class_is_refused_against_the_policy_that_built_it",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_sidecar_that_does_not_digest_to_its_name_is_refused",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_backfill_record_with_no_stored_policy_is_not_recovered",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_the_sidecars_digest_to_their_own_names"
+      ]
     },
     "R-065": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-134: The suite reads no repository prose, and a class no gate reads is approved by dominance"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route.py::SuiteReadsNoRepositoryProseTests::test_the_detector_catches_the_construction_it_exists_to_prevent",
+        "anti-dark-code/tests/test_route.py::SuiteReadsNoRepositoryProseTests::test_no_test_module_reaches_this_repository_s_prose",
+        "anti-dark-code/tests/test_route.py::SuiteReadsNoRepositoryProseTests::test_the_repository_root_prose_is_not_reachable_through_the_skill",
+        "anti-dark-code/tests/test_route.py::SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full"
+      ]
     },
     "R-066": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-134: The suite reads no repository prose, and a class no gate reads is approved by dominance"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::ShadowDominanceCliTests::test_a_class_no_gate_reads_is_dominated",
+        "anti-dark-code/tests/test_route_cli.py::ShadowDominanceCliTests::test_a_class_an_omitted_gate_reads_is_not_dominated",
+        "anti-dark-code/tests/test_route_cli.py::ShadowDominanceCliTests::test_the_probe_refuses_without_owner_confirmation",
+        "anti-dark-code/tests/test_route_cli.py::ShadowDominanceCliTests::test_the_probe_refuses_a_dirty_tree",
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_the_summary_counts_a_dominance_record_as_neither"
+      ]
     },
     "R-067": {
-      "review": {
-        "path": "design/routing/DECISION-LOG.md",
-        "heading": "## D-135: A consumer repository carries the job, the map and its calibration; its evidence lives here"
-      }
+      "tests": [
+        "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_a_consumer_s_evidence_lands_here_and_its_clone_is_untouched"
+      ]
     }
   }
 }
