@@ -148,6 +148,7 @@ The documents state what is true. This log preserves why, what else was consider
 | D-129 | 2026-09-03 | Routing markdown the suite reads is verification authority | Confirmed | |
 | D-130 | 2026-09-03 | The campaign's product is the audit of a skip, and a skipped class keeps a sampled full run | Confirmed | |
 | D-131 | 2026-09-03 | A record GitHub is about to drop is committed unread, as an inbox | Confirmed | |
+| D-132 | 2026-09-04 | A mutation row anchors on committed bytes, so every file a row targets needs them on every host | Confirmed | |
 
 ---
 
@@ -4460,3 +4461,68 @@ Revisit when:
 Ingest exists and the inbox is drained, at which point the directory is
 either removed or kept as the documented landing place for a downloaded
 artifact.
+
+## D-132: A mutation row anchors on committed bytes, so every file a row targets needs them on every host
+
+Date: 2026-09-04
+Status: Confirmed
+Area: D-114, D-124, M129, M137, `.gitattributes`, `design/routing/mutants/replay.py`
+
+Context:
+The authoritative two-host replay this round first sanity-checked the
+twenty-five rows added since round twenty-one's last full record, read-only,
+in this session's own worktree. M137, which targets
+`.github/workflows/tests.yml`, read `target occurs 0 times`. `run_row`
+matches a row's `old` text against the source file's raw bytes
+(`original.count(old)`), and the committed blob is pure LF (measured: 344
+bare LF, 0 CRLF), but this worktree's checkout of that file was CRLF,
+because `.gitattributes` did not cover `.github/workflows/`, and this
+machine's `core.autocrlf` is `true` globally with no local override, which
+D-047's evidence already recorded as the owner's own default. Fixing that
+one path and re-checking prompted a full sweep of every row's `source`
+field against every unique target file's checked-out bytes, which found two
+more: `design/routing/mutants/replay.py`, the tool itself, ten of whose
+nineteen rows (M97, M98, M101 to M107, M110) anchor on multi-line text and
+would have failed the same way though none had actually been re-run against
+this worktree to show it; and
+`.agents/skills/anti-dark-code/calibration/routing-policy.json`, which
+M139 and M140 target but which happened not to fail, because both rows'
+anchors are single lines with no embedded newline and so are insensitive to
+which line ending the file sits at rest in. `.gitattributes` itself, which
+M129 targets, has the same property and needs no entry. The two clones this
+round's authoritative replay actually uses, a `core.autocrlf=false` Windows
+clone and a native WSL2 clone, read all three files as LF regardless, for
+reasons unrelated to this attribute (the explicit flag on one, the
+platform's own checkout behaviour on the other; both committed blobs were
+confirmed pure LF), so no authoritative record was ever at risk. A default
+Windows checkout, this worktree included, would have measured M137 wrong
+outright and silently relied on luck for the ten `replay.py` rows.
+
+Decision:
+`.gitattributes` gains three entries: `.github/workflows/*.yml`,
+`design/routing/mutants/*.py`, and
+`.agents/skills/anti-dark-code/calibration/*.json`, all `text eol=lf`,
+beside the existing entries for the matrix and the shadow ledger. The
+worktree's checked-out copies of all three files are renormalized to match;
+content is unchanged, confirmed by `git status` showing no diff beyond
+`.gitattributes` itself. Re-verified locally: M137 and three of the ten
+previously-silent `replay.py` rows (M97, M107, M110) now catch.
+
+Because:
+D-114 already states the principle for the matrix itself: a checkout that
+rewrites the bytes a row's exact match depends on must not disagree with the
+committed blob. Any file a row anchors on is that kind of input, and a
+one-file fix answered only the row that happened to announce itself; the
+sweep is what finds the ones a lucky single-line anchor was hiding.
+
+Consequences:
+Every checkout of these three paths, on every host and every `core.autocrlf`
+setting, now reads the committed LF bytes, so every row measures the same
+way everywhere, including a future default Windows checkout the owner might
+make. The two clones this round's replay uses were unaffected
+either way; this fix protects a checkout neither of them is.
+
+Revisit when:
+A mutation row is written against a path outside both `anti-dark-code/**`
+and the paths this decision and D-114/D-124 already cover; the fix is to
+add that path's own `text eol=lf` entry, not to widen this one.
