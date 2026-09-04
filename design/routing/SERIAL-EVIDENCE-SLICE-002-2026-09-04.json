@@ -1,0 +1,57 @@
+{
+  "schema": "slice-002-mutation-catchup-serial-evidence-v1",
+  "purpose": "M127 to M151, added across the SLICE-002 implementation and its revision and repair, carried no host record. This is the first authoritative two-host replay since round twenty-one's at fe350e9: a full serial --write on Windows and one on WSL2 Ubuntu, run concurrently from independent clean clones of the same reference commit, merged per platform.",
+  "reference_commit": "6449d1f17e380ff3156f5bc5598cffe1222228dc",
+  "reference_commit_subject": "Merge pull request #37 from LynxTWO/claude/slice-002-impl-r2",
+  "rows_before_this_replay": {
+    "total": 151,
+    "active": 145,
+    "superseded": 6,
+    "with_a_host_record": 120,
+    "pending_no_host_record": 25,
+    "note": "The 21 rows M100 and M107 to M126 already carried both hosts' records from round twenty-one's replay at fe350e9, but their note field's trailing 'Pending the next authoritative two-host replay' sentence had never been stripped; this replay's note cleanup removed it from all 46 rows that still had it, 21 legacy and 25 new."
+  },
+  "timing_caveat": "Neither write was run with --report, so no per-run JSON report or its wall_duration_seconds field exists; the durations below are bracketed from process start (ps StartTime, WSL2 setsid launch) and the write log's own mtime (fully buffered stdout flushes at process exit), not the report's precise timer.",
+  "windows_parallel_read_only": null,
+  "linux_serial_write": {
+    "commit": "6449d1f17e380ff3156f5bc5598cffe1222228dc",
+    "host": "Linux 6.18.33.2-microsoft-standard-WSL2, python 3.12.3 in a venv, pytest 9.1.1, git 2.43.0",
+    "clone": "fresh clone under the WSL2 home directory, no autocrlf conversion applies to a native Linux checkout",
+    "exit_code": 0,
+    "summary": "151 mutants, 0 not caught: none",
+    "launch_bracket": "2026-09-04T00:05 (setsid nohup, confirmed alive via ps after the launching wsl.exe session closed)",
+    "finish": "2026-09-04T00:37:09-04:00",
+    "wall_duration_seconds_approx": 1929,
+    "pre_merge_matrix_sha256": "d95eb18e116ec97223c8fc7b14e51731de816912174a08fecded7d1f55b03467",
+    "worktree_status_after": "clean except design/routing/mutants/matrix.json"
+  },
+  "windows_serial_write": {
+    "commit": "6449d1f17e380ff3156f5bc5598cffe1222228dc",
+    "host": "Windows 11, python 3.14.2, pytest 9.0.2, git version 2.50.1.windows.1",
+    "clone": "fresh core.autocrlf=false clone beneath the scratch directory",
+    "exit_code": 0,
+    "summary": "151 mutants, 0 not caught: none",
+    "local_disclosure_line": "3 survived here under skipped tests and rest on another host's record: ['M37', 'M46', 'M48']",
+    "launch_bracket": "2026-09-04T00:06:45 (first pytest subprocess spawn observed)",
+    "finish": "2026-09-04T02:22:10-04:00",
+    "wall_duration_seconds_approx": 8125,
+    "pre_merge_matrix_sha256": "592d2d2465cdf16c2395620740ae3337d018f00364eeb012a8b8725261086521",
+    "worktree_status_after": "clean except design/routing/mutants/matrix.json",
+    "note": "Ran concurrently with the Linux write for its first ~32 minutes (both on the same physical machine, WSL2 as a subsystem), which is the likely source of the gap against round twenty-one's isolated 5578s baseline scaled to 151 rows (~6688s)."
+  },
+  "merge": {
+    "method": "Both hosts cloned the same reference commit independently and ran concurrently, so neither write's matrix.json ever saw the other's fresh entries (unlike a sequential same-file write, where the second run's own per-platform-key overwrite in run_row would have done this automatically). A standalone script imported derive_verdict from replay.py and, per row, took the Windows platform entry from the Windows-written matrix.json and the Linux platform entry from the Linux-written matrix.json, combined them into one results list, and re-derived the top-level verdict from both -- arithmetically identical to what a sequential write would have produced.",
+    "rows_merged": 151,
+    "active_rows_with_both_hosts_after_merge": 145,
+    "not_caught_after_merge": 0,
+    "note_cleanup": "The stale 'Pending the next authoritative two-host replay' sentence was stripped from all 46 rows that carried it (21 legacy rows verified in round twenty-one whose note was never updated, plus the 25 new rows this replay covers), since every one of those rows now carries a current both-host record.",
+    "final_matrix_sha256": "6fd0fa6f3bfd53ebfe4c16524ff330a8128bb242b88ff81ee6601b6c722aa1c6"
+  },
+  "sanity_check_before_committing_to_the_long_writes": {
+    "what": "read-only replay of the 25 pending rows (M127-M151) in this session's own worktree (core.autocrlf=true, no override), to catch a structural problem before spending the wall time on two full writes",
+    "first_finding": "M137 read 'target occurs 0 times': its multi-line anchor on .github/workflows/tests.yml is LF in the committed blob but CRLF on this worktree's checkout, because that path carried no text eol=lf attribute",
+    "widened_sweep": "checking every row's source field against every unique target file's checked-out bytes found two more of the same class: design/routing/mutants/replay.py (10 of its 19 rows are multi-line and would fail the same way) and .agents/skills/anti-dark-code/calibration/routing-policy.json (currently safe by luck: its two rows, M139 and M140, are single-line and insensitive to the file's line-ending convention)",
+    "fix": "D-132; three .gitattributes entries added, all text eol=lf",
+    "authoritative_replay_impact": "none -- the Windows core.autocrlf=false clone and the native WSL2 clone both already read all three files as LF for reasons unrelated to this attribute, confirmed by direct byte inspection of both clones before either write started"
+  }
+}
