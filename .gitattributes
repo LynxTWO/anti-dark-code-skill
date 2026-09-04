@@ -7,6 +7,12 @@ docs/data/*.json text eol=lf
 # Evidence artifacts and the mutation matrix are hashed by their blob digest;
 # a checkout that rewrites their line endings must not disagree with it (D-114).
 design/routing/**/*.json text eol=lf
+# A mutation row anchors on each of these files' exact bytes; a default
+# Windows checkout (core.autocrlf=true, no override) rewrites an uncovered
+# path to CRLF and a multi-line row reads "target occurs 0 times" (D-132).
+.github/workflows/*.yml text eol=lf
+design/routing/mutants/*.py text eol=lf
+.agents/skills/anti-dark-code/calibration/*.json text eol=lf
 # The shadow ledger is read back byte for byte by a deterministic summary, so
 # a checkout that rewrote its line endings would change the summary (D-124).
 metrics/shadow/** text eol=lf

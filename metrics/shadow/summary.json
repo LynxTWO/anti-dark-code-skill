@@ -1,12 +1,14 @@
 {
   "classes": [
     {
-      "canary_record_ids": [],
+      "canary_record_ids": [
+        "5687daf562c798042b963ed4720b6e6551203f5de3bd0951c20f7187c6612b03"
+      ],
       "class_key": "0d0ee37f853d0230168368d898186460ae13da76e7461d4969ac85c130766cf1",
       "criterion": {
         "authors": [],
         "backfill_pull_requests_with_a_miss": [],
-        "canaries": 0,
+        "canaries": 1,
         "distinct_authors": 0,
         "pull_requests": [],
         "pull_requests_counted": 0,
@@ -22,12 +24,12 @@
       "omitted_gate_ids": [],
       "records": {
         "backfill": 20,
-        "canary": 0,
-        "live": 0
+        "canary": 1,
+        "live": 2
       },
       "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
       "status": {
-        "no_omission": 20
+        "no_omission": 23
       }
     },
     {
@@ -118,6 +120,40 @@
         "72111be5bc02efbe95125ffc227935869074a4cbc5d88dddb6e833a41af5fad1"
       ],
       "class_key": "43dd098f71a31d952639334dfd15e54ba74b708a5769960e6bfe6437688fc3a3",
+      "criterion": {
+        "authors": [],
+        "backfill_pull_requests_with_a_miss": [],
+        "canaries": 1,
+        "distinct_authors": 0,
+        "pull_requests": [],
+        "pull_requests_counted": 0,
+        "pull_requests_with_a_miss": [],
+        "span_days": null
+      },
+      "matched_rule_ids": [
+        "docs-only"
+      ],
+      "omitted_gate_ids": [
+        "distribution",
+        "full-suite",
+        "hostile-environment",
+        "mutation-replay"
+      ],
+      "records": {
+        "backfill": 0,
+        "canary": 1,
+        "live": 0
+      },
+      "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+      "status": {
+        "miss": 1
+      }
+    },
+    {
+      "canary_record_ids": [
+        "ac45989a49d49e96476532dd0ccd95d4a5b39fec8190d095e1bee82d30da31f7"
+      ],
+      "class_key": "65b61f683e8a15c8549eb7d33dc576b922efba77bf6de8b54f47a090c072e044",
       "criterion": {
         "authors": [],
         "backfill_pull_requests_with_a_miss": [],
@@ -265,11 +301,11 @@
       }
     }
   ],
-  "records": 61,
+  "records": 65,
   "records_by_provenance": {
     "backfill": 55,
-    "canary": 1,
-    "live": 5
+    "canary": 3,
+    "live": 7
   },
   "schema_version": 2
 }

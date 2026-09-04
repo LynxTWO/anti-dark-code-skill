@@ -1,0 +1,122 @@
+{
+  "audit": {
+    "gates_terms_sha256": "b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb",
+    "policy_bytes_sha256": "1db985beac5bb77c3a45632c435ec6fbd920645abc542db0be7ca26f5d0e8a27",
+    "policy_terms_sha256": "0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e",
+    "route_force_full": true,
+    "route_minimum_level": 3,
+    "route_unknowns": [
+      "ADC-ROUTE-UNROUTED-FACT"
+    ]
+  },
+  "base_gate_outcomes": null,
+  "base_reconstructed": false,
+  "class": {
+    "matched_rule_ids": [
+      "docs-only"
+    ],
+    "omitted_gate_ids": [
+      "distribution",
+      "full-suite",
+      "hostile-environment",
+      "mutation-replay"
+    ],
+    "router_blob_sha256": "d0d40e77a26430eacc2851f8641b47d618e8d8550a55cb91de50c49fb70950f7",
+    "selected_gate_ids": [
+      "validate-core"
+    ],
+    "terms_sha256": "c04713b714a98ce41f9768ee811897f0461778bf58481f59961b61fbb3660b5a"
+  },
+  "class_key": "65b61f683e8a15c8549eb7d33dc576b922efba77bf6de8b54f47a090c072e044",
+  "commits": {
+    "base": "c7c8d06bab6fd91ea71042a0e4aeebc57fcb9f8b",
+    "head": "c16f0fc30811e25902e29a30453afa0ab2e6194c",
+    "merge": "65644f28432b900e67df32e2eb29ed29daf4e777"
+  },
+  "gate_outcomes": {
+    "distribution": "pass",
+    "full-suite": "fail",
+    "hostile-environment": "fail",
+    "mutation-replay": "pass",
+    "validate-core": "pass"
+  },
+  "head_ref": "canary/docs-only/2026-09-03-b",
+  "inconclusive_reason": null,
+  "measurable": true,
+  "not_measurable_reason": null,
+  "provenance": "canary",
+  "record_id": "ac45989a49d49e96476532dd0ccd95d4a5b39fec8190d095e1bee82d30da31f7",
+  "run": {
+    "pull_request": 38,
+    "run_attempt": 1,
+    "run_id": "33823351692"
+  },
+  "schema": "shadow-record-v2",
+  "schema_version": 2,
+  "shadow": {
+    "authoritative": {
+      "selected_gate_ids": [
+        "distribution",
+        "full-suite",
+        "hostile-environment",
+        "mutation-replay",
+        "validate-core"
+      ]
+    },
+    "candidate": {
+      "capability_to_gate_ids": {
+        "V09": [
+          "validate-core"
+        ]
+      },
+      "considered_rule_ids": [
+        "docs-only",
+        "mode-change",
+        "product-code",
+        "schema-contract",
+        "skill-policy",
+        "verification-authority"
+      ],
+      "force_full": false,
+      "matched_rule_ids": [
+        "docs-only"
+      ],
+      "minimum_level": 0,
+      "provenance": "candidate-shadow",
+      "selected_gate_ids": [
+        "validate-core"
+      ],
+      "selected_passes": [
+        "06"
+      ]
+    },
+    "gate_results": {
+      "distribution": "pass",
+      "full-suite": "fail",
+      "hostile-environment": "fail",
+      "mutation-replay": "pass",
+      "validate-core": "pass"
+    },
+    "measurable": true,
+    "missed_gate_ids": [
+      "full-suite",
+      "hostile-environment"
+    ],
+    "omitted_gate_results": {
+      "distribution": "pass",
+      "full-suite": "fail",
+      "hostile-environment": "fail",
+      "mutation-replay": "pass"
+    },
+    "route_class": {
+      "force_full": false,
+      "matched_rule_ids": [
+        "docs-only"
+      ]
+    },
+    "routing_miss": true,
+    "schema_version": 2,
+    "selected_all_passed": true
+  },
+  "status": "miss"
+}
