@@ -148,6 +148,9 @@ The documents state what is true. This log preserves why, what else was consider
 | D-129 | 2026-09-03 | Routing markdown the suite reads is verification authority | Confirmed | |
 | D-130 | 2026-09-03 | The campaign's product is the audit of a skip, and a skipped class keeps a sampled full run | Confirmed | |
 | D-131 | 2026-09-03 | A record GitHub is about to drop is committed unread, as an inbox | Confirmed | |
+| D-133 | 2026-09-04 | The policy that built a record is kept by its digest, and ingest recomputes the class with it | Confirmed | |
+| D-134 | 2026-09-04 | The suite reads no repository prose, and a class no gate reads is approved by dominance | Confirmed | |
+| D-135 | 2026-09-04 | A consumer repository carries the job, the map and its calibration; its evidence lives here | Confirmed | |
 
 ---
 
@@ -4460,3 +4463,186 @@ Revisit when:
 Ingest exists and the inbox is drained, at which point the directory is
 either removed or kept as the documented landing place for a downloaded
 artifact.
+
+## D-133: The policy that built a record is kept by its digest, and ingest recomputes the class with it
+
+Date: 2026-09-04
+Status: Confirmed
+Area: G5, G10, D-129, D-131, SLICE-002 section 5, `adc_shadow.py`, R-064
+
+Context:
+The implementation challenge showed ingest verifying the outcomes and the
+verdict and never the class: the matched rules, the selected and omitted
+gates and the key were believed as written. The repair recomputed the
+verdict, which needs no policy, and left the class alone, because D-129 had
+just changed the classifier and a record from before that change is not
+forged for carrying the old key. The summary's byte-determinism is
+therefore conditional on records ingest cannot fully check. The record
+already carries `audit.policy_terms_sha256` and `audit.gates_terms_sha256`,
+the digests of the stripped policy and gates that built it, and
+`class.router_blob_sha256`, the digest of the router file. What is missing
+is the bytes those digests name.
+
+Decision:
+Every producer of a record writes, beside it, the stripped policy and gates
+it used, as `policy-<policy_terms_sha256>.json` and
+`gates-<gates_terms_sha256>.json`: the live job uploads them in the same
+artifact, and the backfill writes them into its output directory. Ingest
+copies each into `metrics/shadow/policies/` after checking that the file's
+content digests to its name; a file that does not is refused, and a file
+already present is never rewritten. Ingest then recomputes the class. It
+loads the policy and gates the record's digests name, loads the router
+whose blob digest the record names by reading
+`anti-dark-code/scripts/adc_route.py` at the record's head commit and
+checking the digest, acquires the change set from the record's base and
+head through the historical runner, builds the candidate, and refuses the
+record if the matched rules, the selected gates, the omitted gates or the
+class key differ from what the record says. A live record whose policy file
+is absent from both the artifact and the policies directory is recovered
+once from the calibration at its head commit, which is the tree that ran;
+a backfill record in that state is refused, because the backfill wrote the
+file and its absence means something else is wrong. A record whose router
+blob cannot be recovered is refused with reason `router-unrecoverable`.
+
+Because:
+G10 says ingest recomputes the route. Without the policy the route cannot
+be recomputed and the class is a claim. The bytes are small, the digests
+already exist, and a file named by its own digest is self-certifying, so
+nothing about the policies directory needs trusting.
+
+Consequences:
+`metrics/shadow/policies/` gains one small file per distinct policy or
+gates terms the campaign has ever used, which is a handful. The six D-131
+inbox records and the two canary records are recoverable from their head
+commits' calibration. The summary's determinism stops being conditional.
+Approving a rule changes `review_status`, which the stripped terms exclude,
+so an approval writes no new policy file, and G6 holds. Storage option A is
+unchanged.
+
+Revisit when:
+A consumer repository's calibration cannot be read at a record's head,
+which D-135's clone requirement exists to prevent.
+
+## D-134: The suite reads no repository prose, and a class no gate reads is approved by dominance
+
+Date: 2026-09-04
+Status: Confirmed
+Area: G8, D-093, D-129, SLICE-002 sections 4 and 6, `test_route.py`, R-065, R-066
+
+Context:
+D-129 says a file a gate reads is not inert prose.
+`SelfGradingAuthorityTests::test_an_ordinary_documentation_path_does_not_force_full`
+asserts that `docs/review/adversarial-pass.md` exists, so the suite reads
+that prose file, and deleting it fails the suite while `validate-core`
+passes. That is the construction PR #38's canary uses, and it is a
+construction this build created when it moved the counterexample there. By
+D-129's own principle the file is authority; if it were classified so, the
+`docs-only` class here would cover no path any omitted gate reads, no
+canary could be built, and G8 could not be met. The implementer escalated a
+change to G8 on a wrong premise, the challenge corrected the premise, and
+the tension underneath is real. It is decided here.
+
+Decision, in two parts:
+First, the suite reads no repository prose. The counterexample test asserts
+a property of the policy, not of the tree: that under the installed
+calibration the path matches a classifier entry with effect `prose` and no
+entry with effect `verification-authority`. The existence assertion goes.
+A test that needs a prose file creates one under its own temporary
+directory. Second, G8 gains an alternative for a class no gate reads. A
+class is approved either by the statistical path, criterion 1 to 5 as
+written, or by a dominance proof: over destructive probes of every path the
+class's classifier entries cover in the tree, first deleting every covered
+file and then replacing every covered file's content with bytes that are
+not the original, the full recipe is run and every gate's conclusion
+recorded; the class is dominated when no probe produces a selected gate
+passing while an omitted gate fails. A dominated class needs no canary and
+no N, because the proof is the comparator seeing every failure the class
+can cause and finding each one caught by a selected gate or caused by
+nothing at all. It is re-run whenever the class key changes, which is
+whenever the classifier, the canonical set, the rule's terms or the router
+change. A class where a probe produces a miss is not dominated: it falls
+back to the statistical path, with that probe's record as its canary.
+
+Because:
+The canary was one hand-built probe. For a class the gates can see, one
+probe shows the comparator works and the sample does the rest. For a class
+the gates cannot see, a sample of clean records shows only that nothing
+happened, and the honest evidence is the exhaustive probe: the mutation-row
+principle applied to the class rather than to the router.
+
+Consequences:
+PR #38's canary loses its construction once the test changes, and stays in
+the ledger as the record of the class key it belongs to. The `docs-only`
+class here moves to the dominance path. The probe is an approval-time
+command, `adc.py shadow dominance --class-key <key>`, not a per-pull-request
+job: it runs the recipe twice and writes a record with `provenance:
+dominance`, derived from the command as `backfill` is, which the summary
+lists beside canaries and never counts. It runs gates, so it obeys
+`owner_confirmed_safe_to_execute` and D-011: it executes nothing
+selectively; it executes everything, twice. In this repository the
+calibration templates are prose that an omitted gate reads and the selected
+gate also reads, which is exactly the case dominance is built to grade.
+
+Revisit when:
+A class covers a path whose deletion is not a well-formed probe, such as a
+file the build cannot start without; the probe then records that gate as
+`config-error` and the class is not dominated.
+
+## D-135: A consumer repository carries the job, the map and its calibration; its evidence lives here
+
+Date: 2026-09-04
+Status: Confirmed
+Area: D-130, D-131, SLICE-002 sections 5 and 12, `references/shadow-evidence.md`, `assets/templates/`, R-067
+
+Context:
+D-130 named routing's product as audit and said conclusions come from
+repositories with two or more authors. The field study measured five;
+1st-downs is the only one that can meet criterion 4: two authors, 45 pull
+requests, every record measurable, seven clean, no miss. The owner has
+Jeremy's consent to install the shadow job there. What a consumer needs and
+where its evidence goes were never decided, and the shipped skill carries
+`adc_shadow.py` with no reference explaining it.
+
+Decision:
+A consumer repository carries three things: the skill at a version that
+ships `adc_shadow.py`; its own calibration, a `routing-policy.json` with
+every rule `proposed` and a `gates.json` whose canonical full set names its
+own gates; and `.github/shadow-gate-map.json` naming its own jobs and
+steps. It adds the `shadow` job from `assets/templates/shadow-job.yml` to
+its workflow, with `needs` naming its gate jobs, and touches its required
+check nowhere. Its evidence lives in this repository under
+`metrics/shadow/consumers/<owner>-<name>/`, in the same `inbox/`,
+`policies/`, `ledger/` and `summary.json` shape, ingested by a person from
+a clone of the consumer with `--repo <clone> --repository <owner>/<name>`
+and `--ledger` naming that directory; the clone is what the canary-ancestor
+check and D-133's recomputation read. Nothing under `metrics/` is written
+to the consumer, and nothing of this repository's calibration is
+transplanted into it: a consumer's calibration is authored for it, in its
+repository, by its owners. Each consumer's summary is generated from its
+own ledger directory, so its classes never sit in a table with this
+repository's. The shipped skill documents all of this in
+`references/shadow-evidence.md`, listed in SKILL.md beside the other
+supporting references and not as a pass, because the campaign is a
+measurement a maintainer installs once, not a step an agent runs.
+
+Because:
+The ledger is read by the people running the campaign, and they are here.
+A consumer that carries its own ledger carries measurement noise in its
+history and a tool it did not ask for; one that carries only the job, the
+map and its calibration carries what its CI needs and nothing else.
+Documenting the campaign as a pass would put it in every audit's router; it
+belongs to the maintainer who installs it.
+
+Consequences:
+1st-downs' pull request adds four files and one job. The field study's
+1st-downs calibration is the starting point and is kept under
+`design/routing/consumers/JeremyABurton-1st-downs/` as the proposal that
+pull request copies, every rule `proposed` and execution unconfirmed. The
+two-author requirement is met by pull request authorship, which ingest
+already records. The shipped skill needs a version that names the new
+reference and templates in its notes, because `release-check` reports a
+reference or asset the notes do not name.
+
+Revisit when:
+A consumer's owners want the ledger in their own repository, which is their
+choice and which option A already supports.

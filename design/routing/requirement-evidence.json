@@ -481,6 +481,30 @@
         "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_ingest_is_idempotent",
         "anti-dark-code/tests/test_route_cli.py::ShadowLedgerCliTests::test_outcomes_are_re_read_from_the_run_and_not_believed"
       ]
+    },
+    "R-064": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-133: The policy that built a record is kept by its digest, and ingest recomputes the class with it"
+      }
+    },
+    "R-065": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-134: The suite reads no repository prose, and a class no gate reads is approved by dominance"
+      }
+    },
+    "R-066": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-134: The suite reads no repository prose, and a class no gate reads is approved by dominance"
+      }
+    },
+    "R-067": {
+      "review": {
+        "path": "design/routing/DECISION-LOG.md",
+        "heading": "## D-135: A consumer repository carries the job, the map and its calibration; its evidence lives here"
+      }
     }
   }
 }
