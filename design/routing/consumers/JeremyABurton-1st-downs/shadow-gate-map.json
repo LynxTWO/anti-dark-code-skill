@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "_note": "Both gates live in the one job `test`, as named steps.",
+  "gates": {
+    "ci-test": {
+      "jobs": [
+        "test"
+      ],
+      "step": "Run pnpm test"
+    },
+    "ci-replay": {
+      "jobs": [
+        "test"
+      ],
+      "step": "Run pnpm replay"
+    }
+  }
+}

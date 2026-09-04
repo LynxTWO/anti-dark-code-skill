@@ -73,6 +73,7 @@ Passes `13` through `16` extend the original audit workflow. They do not replace
 - `references/assurance-contracts.md` contains claim, recovery, publication, native-runtime, provenance, and UI-policy checklists. Load only the sections that match the active finding.
 - `references/host-adapters.md` routes to the host-specific addendum. Load only the addendum for the active harness.
 - `references/example-stress-test-report.md` is an example, not a pass.
+- `references/shadow-evidence.md` is the routing campaign's measurement: how a maintainer installs the non-required shadow job, and how its records are ingested and summarised. It is not a pass, and its job is never a gate. Load it only when installing the campaign or reading its ledger.
 - `assets/templates/` files load only when creating the matching artifact.
 
 ## Deterministic-First Contract

@@ -105,6 +105,10 @@ Rules for placing pieces. Where a section depends on an architecture decision, i
 | R-061 | A backfilled record grades a pull request's own run attempts, never the merge that survived them | given a merged pull request on a merge-commit history with several run attempts, one failing an omitted gate, when backfilled, then one record exists per head and attempt, each with a non-empty change set against the fork point of the head and the landing commit's first parent, each says its base was reconstructed, and the failing attempt is a miss |
 | R-062 | Routing markdown a gate reads is verification authority in this repository | given a change to a top-level `design/routing/*.md` file alone, or to one below it, when routed under the repository calibration, then a verification-authority fact is emitted and the route forces full |
 | R-063 | The criterion counts pull requests, and a miss on any attempt is the class's miss | given one pull request with many clean records, when the summary counts, then N advances by one; given one miss among them, then the class has a miss |
+| R-064 | A record's class is recomputed at ingest with the policy that built it and the router at its head | given a record whose class does not follow from its stored policy over its change set, or whose policy or router cannot be recovered, when ingested, then it is refused naming the reason; given a policy file whose content does not digest to its name, then it is refused |
+| R-065 | The suite reads no repository prose | given the installed calibration, when the counterexample test runs, then it asserts the classifier and opens no file under `docs/` |
+| R-066 | A class no gate reads is approved by a dominance proof | given a class whose covered paths no omitted gate reads, when both probes run, then every gate passes and the class is dominated; given a probe on which an omitted gate fails while every selected gate passes, then it is a recorded miss and the class is not dominated |
+| R-067 | A consumer repository's evidence is ingested here from a clone of it, and nothing is written to it | given a consumer clone and slug, when ingest runs against its consumer ledger directory, then records verify against the consumer's API and calibration and the clone is unchanged |
 
 ### 4.2 Assumed requirements
 
@@ -364,6 +368,10 @@ Tier 1 baseline applies. The relevant additions for this subsystem:
 | R-060 | backfill of a real merge in a fixture repository, and of a merge with no run | `test_route_cli.py` |
 | R-061 | backfill of a fixture pull request landed as a merge commit with three run attempts, one failing, plus a missing head, a head that already has a live record, and the same commit measured against a clean and a dirty tree | `test_route_cli.py`; M141 to M144 |
 | R-062 | classifier check on a routing markdown change under the repository calibration, at both depths and on the canary's own filename, plus the glob spelling itself | `test_route.py`; M139 and M140 |
+| R-064 | ingest of a record with a forged class against its stored policy, a missing policy, a wrong-named policy file, and a router not at the head | proposed under D-133; `test_route_cli.py` when M8 lands |
+| R-065 | the counterexample test's own assertions, and a sweep of the suite for opens under `docs/` | proposed under D-134; `test_route.py` when M9 lands |
+| R-066 | dominance probe over a fixture class no gate reads, and over one an omitted gate reads | proposed under D-134; `test_route_cli.py` when M9 lands |
+| R-067 | ingest against a fixture consumer clone into a consumer ledger directory, with the clone hashed before and after | proposed under D-135; `test_route_cli.py` when M10 lands |
 | R-063 | summary count over a pull request with eight clean records, with one miss, and with one inconclusive, plus canaries never counted, keys never merged, byte-identical regeneration, and ingest's refusals including outcomes re-read from the run | `test_route_cli.py`; M145 to M148 |
 
 **Test data rule.** ChangeInputs and fact sets are constructed in code for pure-function tests. A small temporary Git repository exercises the impure reader on every platform. A NUL-delimited parser fixture covers path bytes and statuses the host filesystem cannot create.

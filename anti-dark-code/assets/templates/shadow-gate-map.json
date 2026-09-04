@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "_note": "Which CI job, and optionally which step inside it, carries each canonical gate named in gates.json's canonical_full_set. Copy to .github/shadow-gate-map.json and replace the example gates with your own. `jobs` matches job names exactly; `job_prefixes` matches every matrix leg whose name starts with the prefix; `step` narrows a job to one named step. A gate that resolves to no job reads `unresolved` and the record is not measurable, so a renamed job announces itself in the next record rather than reading as a pass.",
+  "gates": {
+    "ci-test": {
+      "_note": "A gate that is one named step of one job. GitHub names a bare `run:` step `Run <command>`.",
+      "jobs": ["test"],
+      "step": "Run pnpm test"
+    },
+    "ci-lint": {
+      "_note": "A gate that is a whole job.",
+      "jobs": ["Lint"]
+    },
+    "ci-matrix": {
+      "_note": "A gate spread across matrix legs: every job whose name starts with the prefix must pass.",
+      "job_prefixes": ["Build & Test:"]
+    }
+  }
+}

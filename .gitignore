@@ -5,3 +5,7 @@ __pycache__/
 # store is deliberately excluded from the receipt binding for the same
 # reason: writing one must not invalidate it.
 .anti-dark-code/runs/
+
+# Drafts for the public brief that are not yet public. The brief is a
+# release artifact; a draft lands in it through the release pull request.
+brief/drafts/

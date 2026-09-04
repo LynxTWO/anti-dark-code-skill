@@ -4,6 +4,15 @@
 
 Not a release. These land in the next tagged version.
 
+### Shadow Evidence Campaign
+
+The routing policy's rules ship `proposed`, and a proposed rule never runs less than everything. This adds the measurement by which a rule earns an approval review, and documents it for a repository that installs it.
+
+- **`scripts/adc_shadow.py`** and the `adc.py shadow` subcommands: `outcomes` and `record`, which a non-required CI job runs on every pull request to record what the proposed rules would have skipped and whether anything skipped failed; `backfill`, which replays today's router over every pull request's own run history rather than the merges that survived them; `ingest`, which re-reads each record's outcomes from the run it names and recomputes its verdict before appending it to a committed ledger; and `summary`, which counts pull requests per route class and is byte-identical on a second run. A record is evidence and never a gate: the job is absent from every required check's dependencies.
+- **`references/shadow-evidence.md`** documents the campaign for a maintainer: what a record says, what a repository needs, the install steps, the commands, canaries, and the boundaries. It is listed in `SKILL.md` beside the other supporting references and is not a pass.
+- **`assets/templates/shadow-job.yml`** is the job, with three placeholders, and **`assets/templates/shadow-gate-map.json`** is the mapping from canonical gates to a repository's own CI jobs and steps, with one example of each shape.
+- Two parts are designed and not yet built, and the reference says so: ingest recomputing the class with the policy kept by digest beside the ledger, and an approval-time dominance probe for a class no gate reads.
+
 ### Release and Install Provenance
 
 Four guards, added after `unified.7` shipped a tag that did not reproduce the core distributed from it and notes that did not describe everything the release carried. Both defects were found by an independent reviewer at a consuming repository, and neither was caught by anything in this repository, because nothing checked them.
