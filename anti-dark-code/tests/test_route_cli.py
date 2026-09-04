@@ -1310,6 +1310,62 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
             f"policy-{shadow.digest(shadow.strip_underscored(policy))}.json",
             next(n for n in shadow.policy_sidecars(policy, gates) if n.startswith("policy-")))
 
+    def test_a_consumer_s_evidence_lands_here_and_its_clone_is_untouched(self) -> None:
+        """S-069, R-067, D-135. The measured repository carries the job, the
+        map and its calibration; its ledger lives in the repository running
+        the campaign, and ingest writes nothing back to it."""
+        import hashlib
+
+        consumer = Path(self.tmp.name) / "consumer-clone"
+        consumer.mkdir(parents=True, exist_ok=True)
+        for args in (("init", "-q", "-b", "main"),
+                     ("config", "user.email", "consumer@example.invalid"),
+                     ("config", "user.name", "Consumer")):
+            subprocess.run(["git", "-C", str(consumer), *args],
+                           capture_output=True, text=True, timeout=120)
+        (consumer / "README.md").write_text("consumer\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(consumer), "add", "-A"],
+                       capture_output=True, text=True, timeout=120)
+        subprocess.run(["git", "-C", str(consumer), "commit", "-qm", "first"],
+                       capture_output=True, text=True, timeout=120)
+
+        def tree_digest() -> str:
+            entries = []
+            for path in sorted(consumer.rglob("*")):
+                if ".git" in path.parts or not path.is_file():
+                    continue
+                entries.append(path.relative_to(consumer).as_posix())
+                entries.append(hashlib.sha256(path.read_bytes()).hexdigest())
+            return hashlib.sha256("|".join(entries).encode()).hexdigest()
+
+        before = tree_digest()
+        head = subprocess.run(["git", "-C", str(consumer), "rev-parse", "HEAD"],
+                              capture_output=True, text=True,
+                              timeout=120).stdout.strip()
+
+        source = self._write(Path(self.tmp.name) / "consumer-inbox", [
+            self._record(commits={"base": "b" * 40, "merge": head, "head": head},
+                         run={"pull_request": 1, "run_id": "5", "run_attempt": 1})])
+        ledger = (Path(self.tmp.name) / "metrics" / "shadow" / "consumers"
+                  / "owner-name" / "ledger")
+        done = self._shadow(
+            "ingest", "--repo", str(consumer),
+            "--map", str(REPO_ROOT / ".github" / "shadow-gate-map.json"),
+            "--source", str(source), "--ledger", str(ledger),
+            "--month", "2026-09", "--offline", "--skip-class-recomputation",
+            "--repository", "owner/name")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertTrue((ledger / "2026-09.jsonl").is_file())
+        self.assertEqual(before, tree_digest(),
+                         "ingest wrote into the consumer's clone")
+        self.assertFalse((consumer / "metrics").exists())
+
+        out = ledger.parent / "summary.json"
+        summary = self._shadow("summary", "--ledger", str(ledger), "--out", str(out))
+        self.assertEqual(0, summary.returncode, summary.stdout + summary.stderr)
+        self.assertTrue(out.is_file())
+        self.assertEqual(before, tree_digest())
+
     def test_the_summary_is_byte_identical_when_regenerated(self) -> None:
         """S-057. A summary that moves cannot be reviewed."""
         source = self._write(Path(self.tmp.name) / "inbox",

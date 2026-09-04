@@ -1,8 +1,6 @@
 # Changelog
 
-## Unreleased
-
-Not a release. These land in the next tagged version.
+## 2026.09.04-unified.9
 
 ### Shadow Evidence Campaign
 

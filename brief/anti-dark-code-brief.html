@@ -462,6 +462,17 @@
   <p>This static brief does not invent a historical total. The <a href="https://lynxtwo.github.io/anti-dark-code-skill/">live public brief</a> displays validated, self-reported controlled-pair evidence when a public summary exists.</p>
 </div>
 
+<h2>Shadow evidence, and why no rule is approved yet</h2>
+<p class="prose">The routing policy proposes rules: a change of this shape would need only these checks. Every rule ships <strong>proposed</strong>, and a proposed rule never runs less than everything. This release adds the measurement by which a rule could earn an approval review, and it has approved nothing.</p>
+<p class="prose">On every pull request a non-required job records what the proposed rules would have skipped and whether anything they skipped failed. It is evidence, never a gate: it is absent from the required check's dependencies, it blocks nothing, and the full recipe runs as it always did. A record says which rules matched, which checks the candidate route would have run, which it would have omitted, and what every check actually concluded. Only two of its outcomes are evidence: <strong>clean</strong>, where everything passed and something was omitted, and <strong>miss</strong>, where an omitted check failed while the ones the route kept passed. A miss is never removed.</p>
+<div class="callout">
+  <h3>What the measurement found first</h3>
+  <p>The campaign's first canary was a pull request built to break a check its own route would have skipped, and it came back a <strong>miss</strong>: the suite's decision guard reads the design documents that the documentation-only route would have skipped the suite for. The classifier was narrowed on that record rather than on the prediction that preceded it.</p>
+  <p>Pointed read-only at five other repositories, the same machinery found that a backfill over merge commits is survivorship. On one of them a linting check failed on none of 216 merges and in 57 of 309 pull-request runs: the branch is clean precisely because the check works, so grading a candidate against merges rates every check unnecessary in proportion to how well it catches things. The campaign grades pull-request run history instead.</p>
+</div>
+<p class="prose">The honest economics are in that study too. Where skipping a check saves real time, maintainers already skip it by hand with a few lines of workflow configuration; where routing is provably safe, it saves a linting job. So the product is not speed. It is the graded, auditable record of why a check was not run, which a hand-written path filter cannot produce. <span class="tier v">verified</span></p>
+<p class="prose">A repository that wants the measurement installs it once: the skill, its own calibration, a map from its checks to its own CI jobs, and the job template. <code>references/shadow-evidence.md</code> is the maintainer's guide, and it names the two parts that are designed and not yet built.</p>
+
 <h2>What you end up with</h2>
 <p class="prose">Every pass reports back the same way: which pass ran on which slice, what was created or updated, what unknowns were recorded, which risks moved, which approval gates were crossed or are still pending, and what to run next. The durable outputs live in the repo:</p>
 <ul class="clean">
@@ -495,6 +506,6 @@
 </div>
 
 <footer>
-  Anti-Dark-Code field brief, updated 2026-08-22 for the unified core (2026.08.22-unified.8): one model-neutral skill with thin host adapters for Claude, Codex, and Gemini harnesses. This release repairs reference text that an earlier version rebuilt from truncated proposals, and extends the shell exit-code contract to cover conjunctions as well as pipelines.
+  Anti-Dark-Code field brief, updated 2026-09-04 for the unified core (2026.09.04-unified.9): one model-neutral skill with thin host adapters for Claude, Codex, and Gemini harnesses. This release adds the shadow evidence campaign: a non-required CI job that records what the proposed routing rules would have skipped and whether anything skipped failed, the commands that verify and summarise those records, and the maintainer's guide and templates for installing it in another repository. No routing rule is approved by it.
 </footer>
 </div>
