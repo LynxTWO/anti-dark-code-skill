@@ -711,6 +711,151 @@ class ShadowBackfillCliTests(_RoutedGateCliFixture):
         self.assertIn("unresolved", record["not_measurable_reason"])
 
 
+class ShadowDominanceCliTests(_RoutedGateCliFixture):
+    """S-068, R-066, D-134. An exhaustive probe, for a class no gate reads.
+
+    A canary is one hand-built break, and for a class the gates can see, one
+    plus a sample is enough. For a class the gates cannot see, a sample of
+    clean records shows only that nothing happened, so the evidence has to be
+    every path the class covers, broken two ways, with every gate's verdict
+    recorded.
+    """
+
+    def _dominance_calibration(self, *, reads_prose: bool):
+        """A calibration whose gates are real commands this test can run.
+
+        The gate that reads prose is a script that fails when the prose file
+        is missing or changed; the gate that does not is one that ignores it
+        entirely. That difference is the whole experiment.
+        """
+        prose = self.repo / "docs"
+        prose.mkdir(parents=True, exist_ok=True)
+        (prose / "guide.md").write_text("the original guide\n", encoding="utf-8")
+        (prose / "notes.md").write_text("the original notes\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "prose")
+
+        reader = self.repo / "check_prose.py"
+        reader.write_text(
+            "import pathlib, sys\n"
+            "want = 'the original guide\\n'\n"
+            "p = pathlib.Path('docs/guide.md')\n"
+            "sys.exit(0 if p.is_file() and p.read_text() == want else 1)\n",
+            encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-qm", "reader")
+
+        gates = {
+            "schema_version": 1,
+            "execution_policy": {"owner_confirmed_safe_to_execute": True},
+            "canonical_full_set": {
+                "passes": ["07"],
+                "obligations": {"V09": ["selected"], "V21": ["omitted"]},
+            },
+            "gates": [
+                {"id": "selected", "enabled": True, "review_status": "approved",
+                 "level": 0, "argv": [sys.executable, "-c", "raise SystemExit(0)"],
+                 "timeout_seconds": 60},
+                {"id": "omitted", "enabled": True, "review_status": "approved",
+                 "level": 0,
+                 "argv": ([sys.executable, "check_prose.py"] if reads_prose
+                          else [sys.executable, "-c", "raise SystemExit(0)"]),
+                 "timeout_seconds": 60},
+            ],
+        }
+        policy = {
+            "schema_version": 1,
+            "classifier": {"surfaces": [
+                {"glob": "docs/*.md", "surface": "docs", "effect": "prose",
+                 "breadth": "leaf"},
+            ]},
+            "full_recipe": {"minimum_level": 3, "passes": ["07"],
+                            "obligations": {"V09": ["selected"],
+                                            "V21": ["omitted"]},
+                            "independent_review": True},
+            "rules": [
+                {"id": "docs-only", "review_status": "proposed",
+                 "match": {"surfaces": ["docs"], "effects": ["prose"]},
+                 "requires": {"passes": ["07"], "minimum_level": 0},
+                 "obligations": {"V09": ["selected"]}},
+            ],
+        }
+        calibration = Path(self.tmp.name) / "dominance-calibration"
+        calibration.mkdir(parents=True, exist_ok=True)
+        (calibration / "gates.json").write_text(json.dumps(gates, indent=2),
+                                                encoding="utf-8")
+        (calibration / "routing-policy.json").write_text(
+            json.dumps(policy, indent=2), encoding="utf-8")
+
+        summary = Path(self.tmp.name) / "dominance-summary.json"
+        summary.write_text(json.dumps({
+            "schema_version": 2, "records": 0, "records_by_provenance": {},
+            "classes": [{
+                "class_key": "K" * 64,
+                "matched_rule_ids": ["docs-only"],
+                "selected_gate_ids": ["selected"],
+                "omitted_gate_ids": ["omitted"],
+                "router_blob_sha256": "r", "terms_sha256": "t",
+                "records": {}, "status": {}, "criterion": {},
+                "canary_record_ids": [], "dominance_record_ids": [],
+            }],
+        }, indent=2), encoding="utf-8")
+        return calibration, summary
+
+    def _probe(self, calibration: Path, summary: Path, *extra: str):
+        out_dir = Path(self.tmp.name) / f"dominance-{len(extra)}-out"
+        done = subprocess.run(
+            [sys.executable, "-B", str(ADC), "shadow", "dominance",
+             "--repo", str(self.repo), "--calibration", str(calibration),
+             "--summary", str(summary), "--class-key", "K" * 12,
+             "--out-dir", str(out_dir), *extra],
+            capture_output=True, text=True, timeout=900)
+        return done, out_dir
+
+    def test_a_class_no_gate_reads_is_dominated(self) -> None:
+        calibration, summary = self._dominance_calibration(reads_prose=False)
+        done, out_dir = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertIn("is dominated", done.stdout)
+        records = sorted(out_dir.glob("shadow-dominance-*.json"))
+        self.assertEqual(2, len(records), done.stdout)
+        for path in records:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual("dominance", record["provenance"])
+            self.assertNotEqual("miss", record["status"])
+        # And the tree is exactly as it was.
+        self.assertEqual("", self._git("status", "--porcelain").stdout.strip())
+
+    def test_a_class_an_omitted_gate_reads_is_not_dominated(self) -> None:
+        calibration, summary = self._dominance_calibration(reads_prose=True)
+        done, out_dir = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertIn("NOT dominated", done.stdout)
+        statuses = {json.loads(p.read_text(encoding="utf-8"))["status"]
+                    for p in out_dir.glob("shadow-dominance-*.json")}
+        self.assertIn("miss", statuses)
+        self.assertEqual("", self._git("status", "--porcelain").stdout.strip())
+
+    def test_the_probe_refuses_without_owner_confirmation(self) -> None:
+        """It runs every gate, so it obeys the same confirmation the gate
+        runner does. D-011 is not relaxed by an approval-time act."""
+        calibration, summary = self._dominance_calibration(reads_prose=False)
+        gates = json.loads((calibration / "gates.json").read_text(encoding="utf-8"))
+        gates["execution_policy"]["owner_confirmed_safe_to_execute"] = False
+        (calibration / "gates.json").write_text(json.dumps(gates, indent=2),
+                                                encoding="utf-8")
+        done, _ = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(2, done.returncode)
+        self.assertIn("does not record owner confirmation", done.stdout)
+
+    def test_the_probe_refuses_a_dirty_tree(self) -> None:
+        calibration, summary = self._dominance_calibration(reads_prose=False)
+        (self.repo / "docs" / "guide.md").write_text("edited\n", encoding="utf-8")
+        done, _ = self._probe(calibration, summary, "--allow-exec")
+        self.assertEqual(2, done.returncode)
+        self.assertIn("requires a clean tree", done.stdout)
+
+
 class ShadowLedgerCliTests(_RoutedGateCliFixture):
     """S-056, S-057, S-059, S-061, S-065. Ingest refuses; the summary counts.
 
@@ -829,6 +974,37 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
             run={"pull_request": 1, "run_id": "1", "run_attempt": 9})]
         entry = shadow.summarise(with_inconclusive)["classes"][0]
         self.assertEqual(1, entry["criterion"]["pull_requests_counted"])
+
+    def test_the_summary_counts_a_dominance_record_as_neither(self) -> None:
+        shadow = _load_shadow()
+        base = self._record(class_key="K1")
+        probes = []
+        for probe, status in (("deleted", "clean"), ("replaced", "clean")):
+            record = self._record(class_key="K1", status=status,
+                                  provenance="dominance",
+                                  run={"pull_request": None,
+                                       "run_id": f"dominance-{probe}",
+                                       "run_attempt": 1})
+            probes.append(record)
+        summary = shadow.summarise([base] + probes)
+        entry = summary["classes"][0]
+        self.assertEqual(1, entry["criterion"]["pull_requests_counted"])
+        self.assertEqual([], entry["criterion"]["pull_requests_with_a_miss"])
+        self.assertEqual(2, len(entry["dominance_record_ids"]))
+        self.assertTrue(entry["criterion"]["dominated"])
+
+        # One probe is a class nobody finished probing.
+        half = shadow.summarise([base, probes[0]])
+        self.assertFalse(half["classes"][0]["criterion"]["dominated"])
+        # A probe that missed is not dominance.
+        missed = self._record(class_key="K1", status="miss",
+                              provenance="dominance",
+                              run={"pull_request": None,
+                                   "run_id": "dominance-replaced",
+                                   "run_attempt": 1})
+        self.assertFalse(
+            shadow.summarise([base, probes[0], missed])["classes"][0]
+            ["criterion"]["dominated"])
 
     def test_a_canary_is_never_counted_as_evidence(self) -> None:
         shadow = _load_shadow()

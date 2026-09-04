@@ -6338,8 +6338,8 @@
     "suite": [
       "anti-dark-code/tests/test_route_cli.py"
     ],
-    "old": "        if provenance == \"canary\":",
-    "new": "        if provenance == \"canary\" and False:",
+    "old": "        elif provenance == \"canary\":",
+    "new": "        elif provenance == \"canary\" and False:",
     "verdict": "caught",
     "pytest": "1 failed, 52 passed, 3 subtests passed in 75.27s (0:01:15)",
     "results": [
@@ -6591,5 +6591,47 @@
     "pytest": "",
     "results": [],
     "note": "D-136. A backfill replays today's router over a historical change set (D-127), so the router at its head is a different version that never built it; reading there refuses every backfilled record as router-unrecoverable, which is what the first implementation of D-133 did."
+  },
+  {
+    "id": "M156",
+    "name": "a dominance probe does not restore what it broke",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "        finally:\n            for path, body in originals.items():",
+    "new": "        finally:\n            for path, body in list(originals.items())[:0]:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-134. The probe deletes and rewrites every path a class covers; a probe that does not put them back has destroyed the tree it was measuring, and the hash comparison after each probe is what catches it."
+  },
+  {
+    "id": "M157",
+    "name": "the dominance probe runs gates without owner confirmation",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "    if not gates_source.get(\"execution_policy\", {}).get(\n            \"owner_confirmed_safe_to_execute\"):",
+    "new": "    if False:",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-134 and D-011. The probe executes every gate, so it obeys the same confirmation the gate runner does; an approval-time act does not get to skip it."
+  },
+  {
+    "id": "M158",
+    "name": "one dominance probe is enough to call a class dominated",
+    "source": "anti-dark-code/scripts/adc_shadow.py",
+    "suite": [
+      "anti-dark-code/tests/test_route_cli.py"
+    ],
+    "old": "            and all(probe in probes for probe in DOMINANCE_PROBES)",
+    "new": "            and any(probe in probes for probe in DOMINANCE_PROBES)",
+    "verdict": "pending",
+    "pytest": "",
+    "results": [],
+    "note": "D-134. Deleting a file and changing its content are different failures, and a class probed one way is a class nobody finished probing."
   }
 ]

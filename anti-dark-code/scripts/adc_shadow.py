@@ -330,7 +330,7 @@ def validate_record(record: Mapping[str, Any]) -> list[str]:
             STATUS_MISS, STATUS_CLEAN, STATUS_INCONCLUSIVE, STATUS_NO_OMISSION,
             STATUS_SELECTS_NOTHING, STATUS_NOT_MEASURABLE}:
         errors.append(f"unknown status: {record.get('status')!r}")
-    if record.get("provenance") not in {"live", "backfill", "canary"}:
+    if record.get("provenance") not in {"live", "backfill", "canary", "dominance"}:
         errors.append(f"unknown provenance: {record.get('provenance')!r}")
     if record.get("status") in EVIDENCE_STATUSES and not record.get("measurable"):
         errors.append("an unmeasurable record cannot be evidence")
@@ -1439,12 +1439,14 @@ def summarise(records: Sequence[Mapping[str, Any]],
             "matched_rule_ids": list(record.get("class", {}).get("matched_rule_ids", [])),
             "omitted_gate_ids": list(record.get("class", {}).get("omitted_gate_ids", [])),
             "router_blob_sha256": str(record.get("class", {}).get("router_blob_sha256", "")),
-            "records": {"live": 0, "backfill": 0, "canary": 0},
+            "records": {"live": 0, "backfill": 0, "canary": 0, "dominance": 0},
             "status": {},
             "_live_clean": set(),
             "_live_miss": set(),
             "_backfill_miss": set(),
+            "_dominance": {},
             "canary_record_ids": [],
+            "dominance_record_ids": [],
         })
         provenance = str(record.get("provenance"))
         status = str(record.get("status"))
@@ -1453,7 +1455,15 @@ def summarise(records: Sequence[Mapping[str, Any]],
         entry["status"][status] = entry["status"].get(status, 0) + 1
         pull = record.get("run", {}).get("pull_request")
         pull_key = str(pull) if pull is not None else None
-        if provenance == "canary":
+        if provenance == "dominance":
+            # D-134: an exhaustive probe, not a sample. It is listed and
+            # counted in neither N nor the misses, exactly as a canary is;
+            # what it decides is whether the class needs either.
+            entry["dominance_record_ids"].append(str(record.get("record_id")))
+            probe = str(record.get("run", {}).get("run_id", "")).removeprefix(
+                "dominance-")
+            entry["_dominance"][probe] = status
+        elif provenance == "canary":
             # G8: a canary is what shows the comparator sees failures. It is
             # never evidence for or against the class it demonstrates.
             entry["canary_record_ids"].append(str(record.get("record_id")))
@@ -1471,6 +1481,14 @@ def summarise(records: Sequence[Mapping[str, Any]],
         clean = entry.pop("_live_clean")
         missed = entry.pop("_live_miss")
         backfill_missed = entry.pop("_backfill_miss")
+        probes = entry.pop("_dominance")
+        # Dominated only when every probe ran and none of them found a
+        # selected gate passing while an omitted one failed. A class with one
+        # probe is a class nobody finished probing.
+        dominated = (
+            bool(probes)
+            and all(probe in probes for probe in DOMINANCE_PROBES)
+            and all(probes[probe] != STATUS_MISS for probe in DOMINANCE_PROBES))
         counted = sorted(clean - missed)
         authors = sorted({str(pulls.get(pull, {}).get("author", ""))
                           for pull in counted} - {""})
@@ -1493,8 +1511,11 @@ def summarise(records: Sequence[Mapping[str, Any]],
                 "span_days": span_days,
                 "backfill_pull_requests_with_a_miss": sorted(backfill_missed),
                 "canaries": len(entry["canary_record_ids"]),
+                "dominance_probes": dict(sorted(probes.items())),
+                "dominated": dominated,
             },
             "canary_record_ids": sorted(entry["canary_record_ids"]),
+            "dominance_record_ids": sorted(entry["dominance_record_ids"]),
         })
         out.append(entry)
 
@@ -1532,6 +1553,211 @@ def command_summary(args: argparse.Namespace, adc_module=None) -> int:
               f"misses={len(criterion['pull_requests_with_a_miss'])} "
               f"canaries={criterion['canaries']}")
     return 0
+
+
+DOMINANCE_PROBES = ("deleted", "replaced")
+
+
+def class_covered_paths(repo: Path, policy_source: Mapping[str, Any],
+                        route_module, class_rule_ids: Sequence[str]) -> list[str]:
+    """Every tracked path whose facts would match one of the class's rules.
+
+    The class is what its rules match, so the paths it covers are the paths
+    the classifier gives facts those rules fire on. Enumerating the tree
+    rather than the globs is what makes the probe exhaustive: a glob can be
+    read two ways, a file list cannot.
+    """
+    tracked = _git(repo, "ls-files").splitlines()
+    validated_rules = {rule for rule in class_rule_ids}
+    classifier = {"surfaces": policy_source.get("classifier", {}).get("surfaces", [])}
+    covered: list[str] = []
+    for path in tracked:
+        path = path.strip()
+        if not path:
+            continue
+        matches = route_module._matching_classifications(path, classifier)
+        if not matches:
+            continue
+        rules_here = set()
+        for attrs in matches:
+            for rule in policy_source.get("rules", []):
+                match = rule.get("match", {})
+                surfaces = match.get("surfaces")
+                effects = match.get("effects")
+                if surfaces and attrs["surface"] not in surfaces:
+                    continue
+                if effects and attrs["effect"] not in effects:
+                    continue
+                if match.get("mode_changed") or match.get("paths"):
+                    continue
+                if not surfaces and not effects:
+                    continue
+                rules_here.add(str(rule.get("id")))
+        if rules_here and rules_here == validated_rules:
+            covered.append(path)
+    return sorted(covered)
+
+
+def command_dominance(args: argparse.Namespace, adc_module=None) -> int:
+    """Prove a class no gate reads cannot hide a failure. D-134.
+
+    A canary is one hand-built probe, and for a class the gates can see, one
+    probe plus a sample is enough. For a class the gates cannot see, a sample
+    of clean records shows only that nothing happened, so the honest evidence
+    is exhaustive: break every path the class covers, twice, and record what
+    every gate concluded. The class is dominated when no probe leaves a
+    selected gate passing while an omitted gate fails.
+
+    It executes gates, so it obeys the same confirmation the gate runner
+    does, and it executes everything rather than anything selectively.
+    """
+    import shutil
+
+    adc = _adc_module(adc_module)
+    route_module, _ = adc.load_router_helpers()
+    repo = Path(args.repo).resolve()
+    calibration = (Path(args.calibration).resolve() if args.calibration
+                   else repo / adc.ROUTE_CALIBRATION)
+    policy_source = json.loads(
+        (calibration / "routing-policy.json").read_text(encoding="utf-8"))
+    gates_source = json.loads(
+        (calibration / "gates.json").read_text(encoding="utf-8"))
+
+    if not gates_source.get("execution_policy", {}).get(
+            "owner_confirmed_safe_to_execute"):
+        print("REFUSED: the dominance probe runs every gate, and gates.json "
+              "does not record owner confirmation. Review the commands, then "
+              "set execution_policy.owner_confirmed_safe_to_execute to true.")
+        return 2
+
+    status = _git(repo, "status", "--porcelain")
+    if status.strip():
+        print("REFUSED: the probe rewrites and restores tracked files, so it "
+              "requires a clean tree; commit or stash first.")
+        return 2
+
+    summary = json.loads(Path(args.summary).read_text(encoding="utf-8"))
+    entry = next((c for c in summary.get("classes", [])
+                  if str(c.get("class_key")).startswith(args.class_key)), None)
+    if entry is None:
+        print(f"REFUSED: no class in {args.summary} begins {args.class_key}")
+        return 2
+    rule_ids = list(entry.get("matched_rule_ids", []))
+    omitted = list(entry.get("omitted_gate_ids", []))
+    selected = list(entry.get("selected_gate_ids", []))
+    if not omitted:
+        print(f"REFUSED: class {entry['class_key'][:12]} omits nothing, so "
+              f"there is nothing for a probe to hide behind.")
+        return 2
+
+    covered = class_covered_paths(repo, policy_source, route_module, rule_ids)
+    if not covered:
+        print(f"REFUSED: class {entry['class_key'][:12]} covers no tracked "
+              f"path, so an exhaustive probe would prove nothing.")
+        return 2
+
+    print(f"  class {entry['class_key'][:12]} rules={','.join(rule_ids)}")
+    print(f"  covers {len(covered)} tracked path(s); omits {','.join(omitted)}")
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    originals = {path: (repo / path).read_bytes() for path in covered}
+    before = {path: hashlib.sha256(body).hexdigest()
+              for path, body in originals.items()}
+    router_sha = router_digest(Path(route_module.__file__))
+    head = _git(repo, "rev-parse", "HEAD")
+    written = 0
+    verdicts: dict[str, str] = {}
+
+    for probe in DOMINANCE_PROBES:
+        try:
+            for path in covered:
+                target = repo / path
+                if probe == "deleted":
+                    target.unlink()
+                else:
+                    # Content that is not the original, and not empty: an
+                    # empty file is a shape some readers accept.
+                    target.write_bytes(b"dominance probe: this is not the "
+                                       b"content this file had\n")
+            outcomes = _run_every_gate(adc, repo, gates_source, args.allow_exec)
+        finally:
+            for path, body in originals.items():
+                target = repo / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(body)
+        after = {path: hashlib.sha256((repo / path).read_bytes()).hexdigest()
+                 for path in covered}
+        if after != before:
+            print("REFUSED: the tree was not restored after the probe; "
+                  "the following paths differ: "
+                  + ", ".join(p for p in covered if after[p] != before[p]))
+            return 2
+
+        status = status_from(outcomes, selected, omitted, None)
+        verdicts[probe] = status
+        record = build_record(
+            policy_source=policy_source, gates_source=gates_source,
+            route=None, candidate=None, outcomes=outcomes, base_outcomes=None,
+            commits={"base": head, "merge": head, "head": head},
+            run={"pull_request": None, "run_id": f"dominance-{probe}",
+                 "run_attempt": 1},
+            head_ref=None, backfill=False, router_blob_sha256=router_sha,
+            shadow_result=adc.shadow_result)
+        # The probe is not a route: it says what the gates concluded when the
+        # class's own paths were broken, under the class the summary names.
+        record["provenance"] = "dominance"
+        record["status"] = status
+        record["measurable"] = status not in (STATUS_NOT_MEASURABLE,)
+        record["class"] = {
+            "matched_rule_ids": sorted(rule_ids),
+            "selected_gate_ids": sorted(selected),
+            "omitted_gate_ids": sorted(omitted),
+            "router_blob_sha256": router_sha,
+            "terms_sha256": str(entry.get("terms_sha256", "")),
+        }
+        record["class_key"] = str(entry["class_key"])
+        record["gate_outcomes"] = dict(sorted(outcomes.items()))
+        record["not_measurable_reason"] = (
+            None if record["measurable"] else "a gate did not decide")
+        record["record_id"] = digest(
+            {k: v for k, v in record.items() if k != "record_id"})
+        (out_dir / f"shadow-dominance-{probe}-{entry['class_key'][:12]}.json"
+         ).write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
+                      encoding="utf-8", newline="\n")
+        written += 1
+        print(f"  probe {probe:9} {status:16} "
+              f"outcomes={json.dumps(record['gate_outcomes'])}")
+
+    for name in write_policy_sidecars(out_dir, policy_source, gates_source):
+        print(f"  policy sidecar {name}")
+    dominated = all(verdicts[probe] != STATUS_MISS for probe in DOMINANCE_PROBES)
+    print(f"DOMINANCE {written} probe(s) in {out_dir}: class "
+          f"{entry['class_key'][:12]} is "
+          + ("dominated" if dominated else "NOT dominated"))
+    return 0
+
+
+def _run_every_gate(adc, repo: Path, gates_source: Mapping[str, Any],
+                    allow_exec: bool) -> dict[str, str]:
+    """Every canonical gate's own command, run here. Never a subset."""
+    outcomes: dict[str, str] = {}
+    for gate in gates_source.get("gates", []):
+        gate_id = str(gate.get("id"))
+        argv = gate.get("argv")
+        if not argv:
+            outcomes[gate_id] = "config-error"
+            continue
+        if not allow_exec:
+            outcomes[gate_id] = "not-run"
+            continue
+        done = subprocess.run(
+            list(argv), cwd=str(Path(gate.get("cwd", ".")) if Path(
+                gate.get("cwd", ".")).is_absolute() else repo / gate.get("cwd", ".")),
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=int(gate.get("timeout_seconds", 3600)))
+        outcomes[gate_id] = "pass" if done.returncode == 0 else "fail"
+    return outcomes
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1619,6 +1845,22 @@ def build_parser() -> argparse.ArgumentParser:
                         "that built it, which is what makes the class more "
                         "than a claim; for a fixture that has no clone")
     p.set_defaults(func=command_ingest)
+
+    p = sub.add_parser(
+        "dominance",
+        help="Prove a class no gate reads cannot hide a failure (D-134)")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--calibration")
+    p.add_argument("--summary", default="metrics/shadow/summary.json",
+                   help="The summary naming the class and its gates")
+    p.add_argument("--class-key", required=True,
+                   help="The class to probe; a unique prefix is enough")
+    p.add_argument("--out-dir", required=True)
+    p.add_argument("--allow-exec", action="store_true",
+                   help="Run the gates. Without it every gate reads not-run "
+                        "and no probe can conclude anything, which is the "
+                        "dry run.")
+    p.set_defaults(func=command_dominance)
 
     p = sub.add_parser("summary", help="Regenerate the campaign summary")
     p.add_argument("--ledger", default="metrics/shadow/ledger")
