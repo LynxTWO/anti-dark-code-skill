@@ -1274,6 +1274,91 @@ class ShadowLedgerCliTests(_RoutedGateCliFixture):
         self.assertTrue(any("router-unrecoverable" in p for p in problems),
                         problems)
 
+    def _recomputable(self):
+        """A fixture where recomputation actually runs, and what it needs.
+
+        The earlier version of these tests stopped at `router-unrecoverable`,
+        because this fixture's head carries no router, so `recompute_class`
+        returned before it compared anything. The Linux replay found M154 and
+        M155 surviving on exactly that gap. Here the router is put in the
+        fixture's working tree and deliberately not committed: a backfill
+        record reads it from there (D-136), and a lookup at the head cannot
+        find it, which is what separates the two.
+        """
+        shadow = _load_shadow()
+        target = self.repo / "anti-dark-code" / "scripts"
+        target.mkdir(parents=True, exist_ok=True)
+        router = SKILL_ROOT / "scripts" / "adc_route.py"
+        (target / "adc_route.py").write_bytes(router.read_bytes())
+        head = self._git("rev-parse", "HEAD").stdout.strip()
+        base = self._git("rev-parse", "HEAD~1").stdout.strip()
+        policy = json.loads(
+            (self.calibration / "routing-policy.json").read_text(encoding="utf-8"))
+        gates = json.loads(
+            (self.calibration / "gates.json").read_text(encoding="utf-8"))
+        capability_ids = [c["id"] for c in json.loads(
+            (SKILL_ROOT / "assets" / "verification-capabilities.json")
+            .read_text(encoding="utf-8"))["capabilities"]]
+        return (shadow, head, base, policy, gates, capability_ids,
+                shadow.router_digest(router))
+
+    def test_a_class_that_does_not_follow_from_the_stored_policy_is_refused(self) -> None:
+        """S-066, R-064, D-133, and the gap the Linux replay found.
+
+        The record claims a cheap class for a change that is not cheap. Only
+        rebuilding the candidate from the policy the record names catches it;
+        re-reading the outcomes and recomputing the verdict cannot, because
+        both of those are true of the record as written.
+        """
+        shadow, head, base, policy, gates, capability_ids, router_sha = \
+            self._recomputable()
+        forged = self._record(
+            provenance="backfill", base_reconstructed=True,
+            commits={"base": base, "merge": head, "head": head},
+            **{"class": {"matched_rule_ids": ["docs-only"],
+                         "selected_gate_ids": ["validate-core"],
+                         "omitted_gate_ids": ["distribution", "full-suite",
+                                              "hostile-environment",
+                                              "mutation-replay"],
+                         "router_blob_sha256": router_sha,
+                         "terms_sha256": "t"}})
+        problems = shadow.recompute_class(
+            forged, repo=self.repo, policy_source=policy, gates_source=gates,
+            capability_ids=capability_ids)
+        self.assertFalse(any("router-unrecoverable" in p for p in problems),
+                         f"the fixture must reach the comparison: {problems}")
+        # Each field by name, not the general phrase: the class_key check
+        # further down carries the same wording and fires on its own, so a
+        # loose assertion here passes even with the field comparison
+        # disabled, which is how M154 survived its first measurement.
+        self.assertTrue(
+            any("class.matched_rule_ids does not follow" in p for p in problems),
+            problems)
+        self.assertTrue(
+            any("class.omitted_gate_ids does not follow" in p for p in problems),
+            problems)
+
+    def test_a_backfill_record_s_router_is_read_from_the_checkout(self) -> None:
+        """D-136. A backfill replayed today's router over a historical change
+        set, so its router is the one in the checkout that ran it; the router
+        at its head is a different version that never built it."""
+        shadow, head, base, policy, gates, capability_ids, router_sha = \
+            self._recomputable()
+        record = self._record(
+            provenance="backfill", base_reconstructed=True,
+            commits={"base": base, "merge": head, "head": head},
+            **{"class": {"matched_rule_ids": [],
+                         "selected_gate_ids": [], "omitted_gate_ids": [],
+                         "router_blob_sha256": router_sha,
+                         "terms_sha256": "t"}})
+        problems = shadow.recompute_class(
+            record, repo=self.repo, policy_source=policy, gates_source=gates,
+            capability_ids=capability_ids)
+        # The head has no router at all, so a lookup there refuses; reading
+        # the checkout finds the one whose digest the record names.
+        self.assertFalse(any("router-unrecoverable" in p for p in problems),
+                         problems)
+
     def test_a_sidecar_that_does_not_digest_to_its_name_is_refused(self) -> None:
         """A file named by its own digest is self-certifying, and that is the
         only reason the policies directory needs no trusting. D-133."""
