@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Shadow Evidence Campaign
+
+- **`assets/templates/shadow-job.yml`** uploads the two policy sidecars beside the record. The record step has always written `policy-<digest>.json` and `gates-<digest>.json` next to `shadow-<head>-<attempt>.json`, and ingest recomputes a record's class from them (D-133), but the upload step's glob was `shadow-*.json`, so every artifact carried the record alone and ingest fell back to recovering the policy from the calibration at the record's head. Found on the first consumer's first live record: the job log showed both sidecars written and "1 file uploaded". The glob is now the three patterns the step writes, not `*.json`, because the outcomes file lives in the same directory and ingest would read it as a record and refuse it. This repository's own workflow and the consumer proposal under `design/routing/consumers/` carry the same fix. Records already uploaded without sidecars remain ingestible through the recovery path.
+
 ## 2026.09.04-unified.9
 
 ### Shadow Evidence Campaign
