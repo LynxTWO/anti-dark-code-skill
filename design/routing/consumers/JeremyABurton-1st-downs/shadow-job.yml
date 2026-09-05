@@ -59,6 +59,13 @@
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: shadow-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/shadow-*.json
+          # The record plus the two sidecars the record step wrote beside it,
+          # which name the policy and gates by digest so ingest can recompute
+          # the class rather than believe it. Not `*.json`: the outcomes file
+          # lives in the same directory, and ingest would read it as a record.
+          path: |
+            ${{ runner.temp }}/shadow-*.json
+            ${{ runner.temp }}/policy-*.json
+            ${{ runner.temp }}/gates-*.json
           if-no-files-found: error
           retention-days: 90
