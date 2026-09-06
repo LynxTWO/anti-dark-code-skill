@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2026.09.06-unified.12
 
 ### Six Lessons Promoted
 
