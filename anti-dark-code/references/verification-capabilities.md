@@ -1,4 +1,4 @@
-# Reference: The 20 Verification Capabilities
+# Reference: The 22 Verification Capabilities
 
 This catalog is the conceptual source for `assets/verification-capabilities.json`. Evaluate every capability, but select only what repo evidence and change risk justify.
 
@@ -242,6 +242,30 @@ This catalog is the conceptual source for `assets/verification-capabilities.json
 
 **Rule:** cheap blockers run first. Expensive checks run only when the change survives and risk justifies them.
 
+## V21 Affected-Unit Testing
+
+**Catches:** regressions in the slice a change touched that a whole-suite run would find late and an untargeted run would not find at all.
+
+**Computer work:** run the unit and module tests owning the changed paths; report the executed set, not the selected set.
+
+**Agent work:** name the ownership edges a path map cannot see, such as a shared contract or a generated client.
+
+**Use when:** any repo with a test suite and more than one owner of behavior. In a small repo the affected set is the whole suite.
+
+**Rule:** a selected test that did not run is not evidence. Record what was executed and what was left out.
+
+## V22 Input Fuzz Testing
+
+**Catches:** parsing, decoding, and boundary defects in code that accepts caller-supplied or persisted bytes.
+
+**Computer work:** generate hostile and malformed inputs against a parser or decoder, then minimize and record any failing input.
+
+**Agent work:** choose the input surfaces worth fuzzing and the properties that must hold, such as never raising, never hanging, and failing closed.
+
+**Use when:** the profile observes serialized, generated, or decoded input, or a public entry point accepts data the product did not produce.
+
+**Rule:** fuzz in-process behind a seam. Never fuzz by launching external tools or touching user files.
+
 ## Selection Summary
 
-The planner should normally select a core of V03, V08, V09, V10, V11, V16, V17, V18, V19, and V20 for a non-trivial maintained repo, then conditionally add the rest. It may defer or mark a core capability not applicable when repo evidence provides a real reason.
+The planner should normally select a core of V03, V08, V09, V10, V11, V16, V17, V18, V19, V20, and V21 for a non-trivial maintained repo, then conditionally add the rest. It may defer or mark a core capability not applicable when repo evidence provides a real reason.

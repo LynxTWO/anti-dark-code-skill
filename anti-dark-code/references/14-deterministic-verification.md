@@ -6,9 +6,9 @@ Use this pass to make the local computer perform every safe, exact verification 
 
 ## Important Distinction
 
-The 20 items in this system are verification capabilities, not 20 tests that every repo should run.
+The 22 items in this system are verification capabilities, not 22 tests that every repo should run.
 
-Some are test techniques. Some are architecture controls, execution controls, evidence packaging, or review separation. Evaluate all 20 for every repo, then mark each one:
+Some are test techniques. Some are architecture controls, execution controls, evidence packaging, or review separation. Evaluate all 22 for every repo, then mark each one:
 
 - `selected` - evidence shows it belongs now
 - `candidate` - useful if a named condition is confirmed
@@ -37,7 +37,7 @@ python .agents/skills/anti-dark-code/scripts/adc.py probe --repo . --write
 
 The probe reads file names, manifests, selected small configuration files, and bounded code indicators. It does not execute application code. It records evidence paths and scan limits so the result does not pretend to be a full architecture review. It excludes host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`, agent worktrees under `.claude/worktrees/`, and any nested directory with its own `.git` entry, so tooling and other checkouts do not pollute product-code classification or evidence. Pass `--exclude <path-or-glob>` for anything else that should not count; the profile records it and `plan` reuses it. When the profile reports `counts.unrecognized_source_extensions`, a language the probe cannot see outnumbers every language it can, and the classification is incomplete.
 
-## Step 2: Evaluate All 20 Capabilities
+## Step 2: Evaluate All 22 Capabilities
 
 ```bash
 python .agents/skills/anti-dark-code/scripts/adc.py plan --repo . --write
@@ -279,7 +279,7 @@ Verifiers receive the claim and evidence, not the finder's persuasive narrative.
 
 Pass `14` is complete when:
 
-- all 20 capabilities have a status and reason
+- all 22 capabilities have a status and reason
 - repo-type adaptations are named
 - confidence levels are assigned
 - exact gates are proposed or configured

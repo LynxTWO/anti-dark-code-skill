@@ -56,7 +56,7 @@ Run one bounded pass at a time. Load only the active pass and the small amount o
 - `13` Calibrated local mode: `references/13-calibrated-local-mode.md`
   Install or update the shared skill inside a repo while preserving a repo-owned calibration overlay.
 - `14` Deterministic verification planner: `references/14-deterministic-verification.md`
-  Evaluate all 20 verification capabilities, select the repo-fit subset, generate confidence-ladder gates, and keep successful output compact.
+  Evaluate all 22 verification capabilities, select the repo-fit subset, generate confidence-ladder gates, and keep successful output compact.
 - `15` Dogfeeding and flow-back: `references/15-dogfeeding-flowback.md`
   Capture local lessons, separate repo-specific facts from general rules, and stage human-reviewed proposals back to the shared skill.
 - `16` Community feedback and efficiency evidence: `references/16-community-feedback-and-efficiency.md`
@@ -68,7 +68,7 @@ Passes `13` through `16` extend the original audit workflow. They do not replace
 
 - `references/combined-03-06-loop.md` is a runnable comment-plus-hygiene loop.
 - `references/orchestration-mode.md` is a runnable fan-out mode. It changes execution shape, not pass order or evidence rules.
-- `references/verification-capabilities.md` defines the 20 capabilities and their evidence requirements.
+- `references/verification-capabilities.md` defines the 22 capabilities and their evidence requirements.
 - `references/repo-verification-profiles.md` adapts those capabilities by repo type.
 - `references/assurance-contracts.md` contains claim, recovery, publication, native-runtime, provenance, and UI-policy checklists. Load only the sections that match the active finding.
 - `references/host-adapters.md` routes to the host-specific addendum. Load only the addendum for the active harness.

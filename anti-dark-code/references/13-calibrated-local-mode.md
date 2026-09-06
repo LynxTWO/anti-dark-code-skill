@@ -72,7 +72,7 @@ The repository owns `calibration/`. Preserve it across core updates, but never t
 - `invariants.md` stores load-bearing repo truths and approval boundaries.
 - `system-map.md` stores accumulated architecture, rule authority, trust, and external control planes.
 - `gates.json` stores exact reviewed command arrays and machine constraints.
-- `verification-plan.json` records how all 20 capabilities apply.
+- `verification-plan.json` records how all 22 capabilities apply.
 - `coverage-ledger.md` prevents expensive re-audits of fresh, guarded surfaces.
 - `findings-ledger.md` prevents settled work from being rediscovered.
 - `upstream-candidates.md` queues repo-agnostic lessons.
