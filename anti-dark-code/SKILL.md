@@ -101,7 +101,7 @@ Successful deterministic work should collapse to a one-line result. Failed work 
 
 Do not execute repo code merely because a command exists. Inspect what a gate does and obtain the required permission for inherited, unknown, or high-risk repos. The bundled gate runner is dry-run by default and requires an explicit execution flag. A blocked gate plan returns a nonzero status even in dry-run mode. Timed-out gates are launched in a separate process group and the runner makes a best-effort attempt to terminate the whole process tree.
 
-Repo profiling excludes agent skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`. Skills are tooling inputs, not product-code evidence.
+Repo profiling excludes agent skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`, agent worktrees under `.claude/worktrees/`, and any nested directory that carries its own `.git` entry. Skills and worktrees are tooling inputs, not product-code evidence, and a nested checkout is another repository. `probe`, `plan`, and `bootstrap` accept a repeatable `--exclude` for a path or glob no rule can know; the profile records the requested exclusions and the nested repositories it skipped, and reports a large count of unrecognized source extensions as an unknown instead of dropping it.
 
 ## Local Calibration Contract
 

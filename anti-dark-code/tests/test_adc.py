@@ -2966,6 +2966,133 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
         # was regenerated from the current HTML; only an actual re-render does.
         self.assertEqual(provenance["normalized_pdf_sha256"], adc.normalized_pdf_sha256(pdf))
 
+    def test_probe_skips_nested_checkouts_and_agent_worktrees(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("print('product')\n", encoding="utf-8")
+            (repo / "AGENTS.md").write_text("# steering\n", encoding="utf-8")
+            noise = "async worker payment simulation Date.now fetch router component database\n"
+            # A checkout of another project, vendored by cloning: it carries its own .git directory.
+            nested = repo / "third-party-checkout"
+            (nested / ".git").mkdir(parents=True)
+            (nested / "noise.py").write_text(noise, encoding="utf-8")
+            (nested / "AGENTS.md").write_text("# nested steering\n", encoding="utf-8")
+            # A linked worktree the agent harness keeps inside the repository: .git is a file.
+            worktree = repo / ".claude" / "worktrees" / "feature-branch"
+            worktree.mkdir(parents=True)
+            (worktree / ".git").write_text("gitdir: ../../../.git/worktrees/feature-branch\n", encoding="utf-8")
+            (worktree / "noise.py").write_text(noise, encoding="utf-8")
+            (worktree / "AGENTS.md").write_text("# worktree steering\n", encoding="utf-8")
+            (worktree / "package.json").write_text(json.dumps({"name": "w", "scripts": {"lint": "eslint ."}}), encoding="utf-8")
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+
+            self.assertEqual(profile["counts"]["source_files"], 1)
+            self.assertEqual(profile["steering_files"], ["AGENTS.md"])
+            self.assertEqual(profile["manifests"], [])
+            self.assertEqual(profile["scan"]["skipped_nested_repositories"], ["third-party-checkout/"])
+            self.assertIn(".claude/worktrees/", profile["scan"]["ignored_worktree_trees"])
+            evidence = [item for signal in profile["signals"].values() for item in signal.get("evidence", [])]
+            self.assertFalse(any("noise" in item or "feature-branch" in item for item in evidence))
+
+    def test_probe_exclude_prunes_requested_paths_and_records_them(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("print('product')\n", encoding="utf-8")
+            (repo / "generated" / "deep").mkdir(parents=True)
+            (repo / "generated" / "deep" / "big.py").write_text("x = 1\n", encoding="utf-8")
+            (repo / "notes.log").write_text("log\n", encoding="utf-8")
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000, exclude=["generated/", "*.log"])
+
+            self.assertEqual(profile["counts"]["source_files"], 1)
+            self.assertEqual(profile["counts"]["total_files"], 1)
+            self.assertEqual(profile["scan"]["requested_exclusions"], ["*.log", "generated"])
+
+    def test_probe_exclude_refuses_paths_outside_the_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("x = 1\n", encoding="utf-8")
+            for bad in ("../sibling", "/absolute", "C:/absolute", "src/../.."):
+                with self.assertRaises(SystemExit, msg=bad):
+                    adc.probe_repo(repo, max_files=1000, content_scan_limit=1000, exclude=[bad])
+
+    def test_plan_reuses_recorded_exclusions_when_reprobing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            (repo / "generated").mkdir()
+            (repo / "generated" / "big.py").write_text("x = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+            self.bind_calibration(repo, cal)
+            stale = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000, exclude=["generated"])
+            stale["source_identity"]["git_commit"] = "0" * 40
+            (cal / "repo-profile.json").write_text(json.dumps(stale), encoding="utf-8")
+            args = argparse.Namespace(repo=str(repo), write=True, json=False, no_gate_suggestions=True)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.command_plan(args), 0)
+            refreshed = json.loads((cal / "repo-profile.json").read_text(encoding="utf-8"))
+            self.assertEqual(refreshed["scan"]["requested_exclusions"], ["generated"])
+            self.assertEqual(refreshed["counts"]["source_files"], 1)
+
+    def test_probe_counts_visual_basic_and_binds_the_dotnet_candidate_to_vbproj(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "Source").mkdir()
+            (repo / "Source" / "Main.vb").write_text("Module Main\nEnd Module\n", encoding="utf-8")
+            (repo / "Source" / "App.vbproj").write_text('<Project Sdk="Microsoft.NET.Sdk"></Project>\n', encoding="utf-8")
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+
+            self.assertEqual(profile["languages"], [{"name": "Visual Basic .NET", "source_files": 1}])
+            self.assertEqual(profile["manifests"], ["Source/App.vbproj"])
+            dotnet = [item for item in profile["exact_commands"] if item["id"] == "dotnet-test"]
+            self.assertEqual(len(dotnet), 1)
+            self.assertEqual(dotnet[0]["source_files"], ["Source/App.vbproj"])
+
+    def test_probe_reports_large_unrecognized_extension_residue_as_unknown(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
+            for index in range(12):
+                (repo / "src" / f"unit{index}.zig").write_text("const x = 1;\n", encoding="utf-8")
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+
+            self.assertEqual(profile["counts"]["unrecognized_source_extensions"], {".zig": 12})
+            self.assertTrue(any(".zig" in note for note in profile["notes"]))
+
+    def test_probe_stays_quiet_about_small_unrecognized_residue(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            for index in range(20):
+                (repo / "src" / f"m{index}.py").write_text("x = 1\n", encoding="utf-8")
+            for index in range(3):
+                (repo / "src" / f"u{index}.zig").write_text("const x = 1;\n", encoding="utf-8")
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+
+            self.assertNotIn("unrecognized_source_extensions", profile["counts"])
+            self.assertFalse(any(".zig" in note for note in profile["notes"]))
+
+    def test_profile_identity_ignores_agent_worktrees(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            worktree = repo / ".claude" / "worktrees" / "feature-branch"
+            worktree.mkdir(parents=True)
+            (worktree / ".git").write_text("gitdir: elsewhere\n", encoding="utf-8")
+            (worktree / "app.py").write_text("value = 2\n", encoding="utf-8")
+
+            self.assertTrue(adc.profile_is_fresh(repo, profile))
+            self.assertIn(".claude/worktrees/", adc.current_source_identity(repo)["identity_excludes"])
 
 
 if __name__ == "__main__":
