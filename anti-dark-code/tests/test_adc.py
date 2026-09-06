@@ -3134,6 +3134,86 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             by_id = {item["id"]: item for item in plan["capabilities"]}
 
             self.assertEqual(by_id["V14"]["status"], "selected")
+    def make_source_bound_gate_repo(self, repo: Path) -> Path:
+        """A bound repository with one approved gate whose source binding covers build.txt."""
+        (repo / "build.txt").write_text("target: one\n", encoding="utf-8")
+        self.init_git_repo(repo)
+        cal = repo / ".agents" / "skills" / "anti-dark-code" / "calibration"
+        self.bind_calibration(repo, cal)
+        gate = {
+            "id": "bound-echo",
+            "level": 0,
+            "argv": [sys.executable, "-c", "print('ok')"],
+            "enabled": True,
+            "review_status": "approved",
+            "source": "reviewed direct command bound to build.txt",
+            "source_files": ["build.txt"],
+            "source_definition_sha256": adc.source_set_hash(repo, ["build.txt"]),
+            "cwd": ".",
+            "timeout_seconds": 30,
+            "include_globs": ["**"],
+            "exclude_globs": [],
+        }
+        (cal / "gates.json").write_text(json.dumps({
+            "schema_version": 1,
+            "execution_policy": {"owner_confirmed_safe_to_execute": True},
+            "gates": [gate],
+        }), encoding="utf-8")
+        (cal / "verification-plan.json").write_text('{"schema_version": 1, "reviewed": "by hand"}\n', encoding="utf-8")
+        return cal
+
+    def test_gate_refusal_after_source_drift_names_the_targeted_rebind_first(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            self.make_source_bound_gate_repo(repo)
+            (repo / "build.txt").write_text("target: two\n", encoding="utf-8")
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = adc.run_gates(repo, 0, allow_exec=False, changed_from=None, keep_going=False)
+
+            self.assertEqual(result, 2)
+            text = output.getvalue()
+            self.assertIn("--rebind bound-echo --note", text)
+            self.assertLess(text.index("--rebind"), text.index("planner"))
+
+    def test_rebind_refreshes_one_binding_and_leaves_the_reviewed_plan_alone(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = self.make_source_bound_gate_repo(repo)
+            before = json.loads((cal / "gates.json").read_text(encoding="utf-8"))["gates"][0]["source_definition_sha256"]
+            plan_before = (cal / "verification-plan.json").read_bytes()
+            (repo / "build.txt").write_text("target: two\n", encoding="utf-8")
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = adc.rebind_gate(repo, "bound-echo", "build.txt changed with the owner's own commit")
+
+            self.assertEqual(result, 0)
+            gate = json.loads((cal / "gates.json").read_text(encoding="utf-8"))["gates"][0]
+            self.assertEqual(gate["source_definition_sha256"], adc.source_set_hash(repo, ["build.txt"]))
+            self.assertEqual(gate["previous_definition_sha256"], before)
+            self.assertIn("build.txt changed with the owner's own commit", gate["owner_notes"])
+            self.assertTrue(gate["enabled"])
+            self.assertEqual(gate["review_status"], "approved")
+            self.assertEqual((cal / "verification-plan.json").read_bytes(), plan_before)
+            self.assertFalse((cal / "repo-profile.json").exists())
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.run_gates(repo, 0, allow_exec=False, changed_from=None, keep_going=False), 0)
+
+    def test_rebind_refuses_without_a_note_an_unknown_gate_or_an_unchanged_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            cal = self.make_source_bound_gate_repo(repo)
+            untouched = (cal / "gates.json").read_bytes()
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(adc.rebind_gate(repo, "bound-echo", ""), 2)
+                self.assertEqual(adc.rebind_gate(repo, "no-such-gate", "note"), 2)
+                self.assertEqual(adc.rebind_gate(repo, "bound-echo", "nothing drifted"), 2)
+
+            self.assertEqual((cal / "gates.json").read_bytes(), untouched)
 
 
 if __name__ == "__main__":

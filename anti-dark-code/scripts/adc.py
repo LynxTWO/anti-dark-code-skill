@@ -2979,6 +2979,59 @@ class VerifiedRouteReceipt(NamedTuple):
     gate_configuration_json: bytes
 
 
+def rebind_gate(repo: Path, gate_id: str, note: str) -> int:
+    """Recompute one approved gate's source binding after a reviewed drift.
+
+    This is the targeted repair the drift refusal names. It keeps the previous
+    digest, appends the owner's note to the trust record, and touches nothing
+    else: no profile, no plan, no other gate. Rerunning the planner also rebinds,
+    and also replaces the repo profile and the verification plan, which is the
+    wider loss this command exists to avoid.
+    """
+    repo = repo.resolve()
+    if not gate_id or not str(note or "").strip():
+        print("REFUSED: --rebind needs --note saying why the bound files changed; the note becomes part of the trust record")
+        return 2
+    config_path = safe_calibration_dir(repo, "gate rebind") / "gates.json"
+    if not config_path.exists():
+        print(f"REFUSED: gate config not found: {config_path}")
+        return 2
+    binding = assess_repository_binding(repo, config_path.parent)
+    if binding.get("status") != "match":
+        print(f"REFUSED: calibration binding is {binding.get('status')}; rebind only inside the bound repository")
+        return 2
+    config = read_json(config_path)
+    gates = config.get("gates") if isinstance(config, dict) else None
+    if not isinstance(gates, list):
+        print(f"REFUSED: invalid gate config structure: {config_path}")
+        return 2
+    gate = next((item for item in gates if isinstance(item, dict) and item.get("id") == gate_id), None)
+    if gate is None:
+        print(f"REFUSED: no gate named {gate_id} in {config_path}")
+        return 2
+    source_files = gate.get("source_files")
+    if not isinstance(source_files, list) or not source_files:
+        print(f"REFUSED: {gate_id} has no source-file binding to rebind")
+        return 2
+    try:
+        actual = source_set_hash(repo, [str(item) for item in source_files])
+    except (OSError, ValueError) as exc:
+        print(f"REFUSED: {exc}")
+        return 2
+    previous = gate.get("source_definition_sha256")
+    if actual == previous:
+        print(f"NO CHANGE: {gate_id} is already bound to the current source files; nothing to rebind")
+        return 2
+    gate["previous_definition_sha256"] = previous
+    gate["source_definition_sha256"] = actual
+    entry = f"{utc_now()} rebind: {str(note).strip()}"
+    existing = str(gate.get("owner_notes") or "").strip()
+    gate["owner_notes"] = f"{existing} {entry}".strip() if existing else entry
+    write_json_atomic(config_path, config)
+    print(f"REBOUND {gate_id}: {str(previous)[:12]} -> {actual[:12]}; previous digest kept, note recorded, profile and plan untouched")
+    return 0
+
+
 def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None,
               keep_going: bool, force_full: bool = False,
               route: Any | None = None,
@@ -3043,7 +3096,13 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         print(f"BLOCKED: {len(blocked)} enabled gate(s) need review:")
         for gate, reason in blocked:
             print(f"  {gate.get('id', 'unnamed')}: {reason}")
-        print("REFUSED: rerun the planner after source changes, then approve each command and reconfirm execution safety.")
+        # A refusal must name a repair that does not destroy something else. The
+        # targeted rebind refreshes one binding; the planner also replaces the
+        # reviewed profile and plan, so it is named second.
+        drifted = [gate for gate, reason in blocked if reason == "conventional gate source files changed after approval"]
+        for gate in drifted:
+            print(f"  repair: gates --repo . --rebind {gate.get('id', 'unnamed')} --note \"why the bound files changed\"")
+        print("REFUSED: refresh a drifted binding with --rebind after reviewing the change; rerun the planner only when no reviewed plan exists; then approve each command and reconfirm execution safety.")
         return 2
 
     if not gates:
@@ -4400,6 +4459,8 @@ def _candidate_shadow_context(
 
 def command_gates(args: argparse.Namespace) -> int:
     repo = Path(args.repo).resolve()
+    if getattr(args, "rebind", None):
+        return rebind_gate(repo, args.rebind, getattr(args, "note", None) or "")
     requested = args.level
     force_full = False
     route_data: Mapping[str, Any] | None = None
@@ -4964,6 +5025,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-exec", action="store_true")
     p.add_argument("--changed-from")
     p.add_argument("--keep-going", action="store_true")
+    p.add_argument("--rebind", metavar="GATE", help="Recompute one approved gate's source binding after a reviewed drift. Keeps the previous digest, requires --note, touches nothing else.")
+    p.add_argument("--note", help="Why the bound files changed; appended to the gate's owner_notes. Required with --rebind.")
     p.set_defaults(func=command_gates)
 
     p = sub.add_parser("flowback", help="Stage ready repo lessons as a proposal")
