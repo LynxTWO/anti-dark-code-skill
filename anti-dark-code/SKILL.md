@@ -205,6 +205,7 @@ Never place sensitive values in logs, comments, tests, docs, screenshots, prompt
 - Stop sooner when the slice is complete, an approval gate appears, calibration conflicts with code, evidence turns soft, or the verification cost no longer matches the risk.
 - One commit should cover one backlog item, one slice checkpoint, or one tightly related docs-plus-code unit.
 - Do not interleave numbered passes. The combined `03` + `06` loop is the only routine exception.
+- Stage explicit paths, never a sweep, and read each commit's diff stat against its base before pushing. See the commit hygiene section of `00-conventions.md`.
 
 ## Host Addenda
 

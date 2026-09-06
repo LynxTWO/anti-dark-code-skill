@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Six Lessons Promoted
+
+Staged from a consuming repository in proposal #50 and promoted here.
+
+- **A claim that crossed a context boundary is a hypothesis again** (**`references/00-conventions.md`**, confidence levels). A claim inherited across a summary, handoff, or session carries no label until re-measured in the current session, and a refuted inherited claim is recorded as refuted where it was going to be filed.
+- **Enumerate the channels before reporting an absence** (**`references/00-conventions.md`**, negative-search evidence). An availability absence names the channels searched; a mid-migration ecosystem makes a single-channel survey systematically negative.
+- **A line-ending override plus a sweep commit rewrites the repository** (**`references/00-conventions.md`**, new commit hygiene section, and `SKILL.md` bounded execution). Explicit staging, no sweep with an environment override, attributes decide line endings, and a diff stat against the base before every push.
+- **An unaudited producer needs its own output root** (**`references/10-maintenance-harness.md`**, 9b). A non-gate producer declares an output root outside any audited tree, with the reason commented at the path.
+- **A required job at the edge of its timeout is a flake waiting for contention** (**`references/10-maintenance-harness.md`**, harness safety rules). Keep a measured two-to-one margin or split the job; re-measure before opening several pull requests at once. This repository's own mutation-replay job is the example.
+- **A refusal must name a repair that does not destroy something else** (**`references/14-deterministic-verification.md`**, step 4, and `scripts/adc.py`). `gates --rebind GATE --note TEXT` recomputes one gate's source binding, keeps the previous digest, appends the note, and leaves the profile and plan untouched; it refuses without a note, for an unknown gate, and when nothing drifted. The runner's refusal now names it before the planner. Three tests cover the message order, the targeted rebind, and the three refusals.
+
 ## 2026.09.06-unified.11
 
 ### Profiling Scope

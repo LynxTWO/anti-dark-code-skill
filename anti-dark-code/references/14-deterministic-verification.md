@@ -101,6 +101,8 @@ A repo may move one capability up or down a level based on measured cost and ris
 
 Store reviewed commands as argument arrays in `calibration/gates.json`. Do not store vague prose such as "run the tests."
 
+A gate bound to source files (`source_files` plus `source_definition_sha256`) is bound to one tree. When those files change, on a commit or on a branch switch, the runner refuses the gate until the binding is reviewed. The targeted repair is `adc.py gates --repo . --rebind GATE --note "why the files changed"`: it recomputes that one gate's binding, keeps the previous digest under `previous_definition_sha256`, appends the note to `owner_notes`, and touches nothing else. It refuses without a note, for an unknown gate, and when nothing drifted. Rerunning the planner also rebinds, and it also replaces the repo profile and the verification plan; use it only when no reviewed plan exists yet. A refusal must name a repair that does not destroy something else, so the runner names the targeted rebind first and the planner second.
+
 Good gate entry:
 
 ```json
