@@ -3093,6 +3093,47 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
             self.assertTrue(adc.profile_is_fresh(repo, profile))
             self.assertIn(".claude/worktrees/", adc.current_source_identity(repo)["identity_excludes"])
+    def test_probe_marks_signals_backed_only_by_documentation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+            (repo / "README.md").write_text("# Notes\nBilling and payment terms are described here.\n", encoding="utf-8")
+
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            signal = profile["signals"]["financial_or_entitlement"]
+
+            self.assertTrue(signal["present"])
+            self.assertEqual(signal["evidence_classes"], {"prose": 1})
+            self.assertTrue(signal["documentation_only"])
+
+            (repo / "src" / "pay.py").write_text("def charge(): return 'billing'\n", encoding="utf-8")
+            profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
+            signal = profile["signals"]["financial_or_entitlement"]
+
+            self.assertEqual(signal["evidence_classes"], {"prose": 1, "source": 1})
+            self.assertFalse(signal["documentation_only"])
+            self.assertFalse(profile["signals"]["has_tests"]["documentation_only"])
+
+    def test_plan_holds_documentation_only_signals_at_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "src").mkdir()
+            (repo / "src" / "app.py").write_text("value = 1\n", encoding="utf-8")
+            (repo / "README.md").write_text("# Notes\nA physics simulation is planned for a later release.\n", encoding="utf-8")
+
+            plan = adc.build_plan(adc.probe_repo(repo, max_files=1000, content_scan_limit=1000))
+            by_id = {item["id"]: item for item in plan["capabilities"]}
+
+            self.assertEqual(by_id["V14"]["status"], "candidate")
+            self.assertIn("documentation", by_id["V14"]["reason"].lower())
+            self.assertIn("emergent_or_simulation", by_id["V14"]["reason"])
+
+            (repo / "src" / "world.py").write_text("def step(): return 'simulation tick'\n", encoding="utf-8")
+            plan = adc.build_plan(adc.probe_repo(repo, max_files=1000, content_scan_limit=1000))
+            by_id = {item["id"]: item for item in plan["capabilities"]}
+
+            self.assertEqual(by_id["V14"]["status"], "selected")
 
 
 if __name__ == "__main__":

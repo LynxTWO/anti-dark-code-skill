@@ -244,9 +244,9 @@ Treat the snippet as a drift detector. Pair it with the PR-template checkbox for
 
 ### 11. Install a repo-fit verification plan
 
-Evaluate all 20 capabilities through pass `14`. Store the result in `calibration/verification-plan.json` or the repo's equivalent.
+Evaluate all 22 capabilities through pass `14`. Store the result in `calibration/verification-plan.json` or the repo's equivalent.
 
-Do not install all 20 as tools. Select the smallest set justified by repo evidence. Record candidates and triggers so the plan can grow deliberately.
+Do not install all 22 as tools. Select the smallest set justified by repo evidence. Record candidates and triggers so the plan can grow deliberately.
 
 ### 12. Use an explicit confidence ladder
 

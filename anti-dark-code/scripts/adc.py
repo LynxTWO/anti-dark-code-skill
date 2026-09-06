@@ -1240,11 +1240,41 @@ def js_run_argv(runner: str, script_name: str) -> list[str]:
     return [runner, "run", script_name]
 
 
-def add_evidence(signals: dict[str, dict[str, Any]], signal: str, evidence: str, limit: int = 12) -> None:
-    entry = signals.setdefault(signal, {"present": False, "evidence": []})
+# Where a piece of signal evidence came from. Prose describes intentions, risks,
+# other systems, and things that were ruled out; source and configuration describe
+# what runs. The planner treats a signal backed only by prose as a question.
+PROSE_EXTENSIONS = {".md", ".markdown", ".rst", ".adoc", ".txt", ".html", ".htm"}
+
+
+def evidence_class_for(path: Path) -> str:
+    if path.name in STEERING_NAMES or path.suffix.lower() in PROSE_EXTENSIONS:
+        return "prose"
+    if path.suffix.lower() in SOURCE_EXTENSIONS:
+        return "source"
+    return "config"
+
+
+def add_evidence(
+    signals: dict[str, dict[str, Any]],
+    signal: str,
+    evidence: str,
+    limit: int = 12,
+    evidence_class: str = "structure",
+) -> None:
+    entry = signals.setdefault(signal, {"present": False, "evidence": [], "evidence_classes": {}})
     entry["present"] = True
+    classes = entry.setdefault("evidence_classes", {})
+    if evidence not in entry["evidence"]:
+        classes[evidence_class] = classes.get(evidence_class, 0) + 1
     if evidence not in entry["evidence"] and len(entry["evidence"]) < limit:
         entry["evidence"].append(evidence)
+
+
+def signal_is_documentation_only(entry: dict[str, Any]) -> bool:
+    if not entry.get("present"):
+        return False
+    classes = entry.get("evidence_classes") or {}
+    return bool(classes) and set(classes) == {"prose"}
 
 
 def parse_package_json(path: Path, repo: Path, profile: dict[str, Any]) -> None:
@@ -1322,13 +1352,13 @@ def parse_package_json(path: Path, repo: Path, profile: dict[str, Any]) -> None:
 
     for dep in dep_names:
         if any(term in dep for term in ("zod", "joi", "yup", "ajv", "pydantic", "jsonschema")):
-            add_evidence(profile["signals"], "schema_validation_present", package_rel)
+            add_evidence(profile["signals"], "schema_validation_present", package_rel, evidence_class="config")
         if any(term in dep for term in ("dependency-cruiser", "madge", "eslint-plugin-boundaries", "archunit")):
-            add_evidence(profile["signals"], "architecture_tool_present", package_rel)
+            add_evidence(profile["signals"], "architecture_tool_present", package_rel, evidence_class="config")
         if any(term in dep for term in ("stryker", "mutmut", "pitest", "cargo-mutants")):
-            add_evidence(profile["signals"], "mutation_tool_present", package_rel)
+            add_evidence(profile["signals"], "mutation_tool_present", package_rel, evidence_class="config")
         if any(term in dep for term in ("fast-check", "hypothesis", "quickcheck", "proptest")):
-            add_evidence(profile["signals"], "property_tool_present", package_rel)
+            add_evidence(profile["signals"], "property_tool_present", package_rel, evidence_class="config")
 
 
 def add_conventional_commands(
@@ -1500,9 +1530,10 @@ def probe_repo(
             continue
         scanned += 1
         r = rel(path, repo)
+        evidence_class = evidence_class_for(path)
         for signal, patterns in CONTENT_PATTERNS.items():
             if any(pattern.search(text) for pattern in patterns):
-                add_evidence(signals, signal, r)
+                add_evidence(signals, signal, r, evidence_class=evidence_class)
     profile["scan"]["files_scanned_for_indicators"] = scanned
     if scanned >= content_scan_limit and len(files) > scanned:
         profile["notes"].append("Indicator content scan reached its bound. Signals are evidence of presence, not proof of absence.")
@@ -1574,6 +1605,9 @@ def probe_repo(
     # Normalize signals. Absence is unknown under a bounded scan, not verified false.
     for name in sorted(set(CONTENT_PATTERNS) | {"has_tests", "has_ci", "large_repo", "schema_validation_present", "architecture_tool_present", "mutation_tool_present", "property_tool_present"}):
         profile["signals"].setdefault(name, {"present": False, "evidence": []})
+    for entry in profile["signals"].values():
+        entry.setdefault("evidence_classes", {})
+        entry["documentation_only"] = signal_is_documentation_only(entry)
     profile["signals"] = {name: profile["signals"][name] for name in sorted(profile["signals"])}
     return profile
 
@@ -1630,6 +1664,9 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
         selection = cap["selection"]
         matched_signals = [s for s in selection.get("signals_any", []) if signals.get(s, {}).get("present")]
         matched_risks = [s for s in selection.get("risks_any", []) if signals.get(s, {}).get("present")]
+        # A signal backed only by documentation is a question, not an observation.
+        prose_only = [s for s in matched_signals + matched_risks if signal_is_documentation_only(signals.get(s, {}))]
+        code_backed = [s for s in matched_signals + matched_risks if s not in prose_only]
         evidence: list[str] = []
         for name in matched_signals + matched_risks:
             for item in signals.get(name, {}).get("evidence", []):
@@ -1641,10 +1678,19 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
             reason = "Core capability for a maintained repo. Use the light repo-fit form."
             if cap["id"] == "V17" and not high_risk_present and source_count < 25:
                 reason = "Selected in light form. One deterministic verifier is enough for low-risk work; add independent agent roles when risk rises."
-        elif matched_signals or matched_risks:
+        elif code_backed:
             status = "selected"
-            matched = ", ".join(matched_signals + matched_risks)
+            matched = ", ".join(code_backed)
             reason = f"Selected because the deterministic profile observed: {matched}."
+            if prose_only:
+                reason += f" Documentation alone also mentions: {', '.join(prose_only)}."
+        elif prose_only:
+            status = "candidate"
+            matched = ", ".join(prose_only)
+            reason = (
+                f"Candidate. Only documentation mentions: {matched}. "
+                "Confirm the behavior in source or configuration before selecting."
+            )
         elif primary == "small-new" and cap.get("cost") == "high":
             status = "deferred"
             reason = "Deferred for the small or new repo profile until the named trigger appears."

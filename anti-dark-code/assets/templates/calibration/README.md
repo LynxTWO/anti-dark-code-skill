@@ -13,7 +13,7 @@ Files:
 - `invariants.md` - load-bearing truths and approval boundaries
 - `system-map.md` - accumulated runtime, ownership, trust, and rule-authority map
 - `gates.json` - exact reviewed command arrays and machine cautions
-- `verification-plan.json` - status of all 20 capabilities
+- `verification-plan.json` - status of all 22 capabilities
 - `coverage-ledger.md` - audited surfaces and freshness
 - `findings-ledger.md` - open, fixed, refuted, deferred, and approval-gated findings
 - `upstream-candidates.md` - repo-agnostic lessons proposed for flow-back

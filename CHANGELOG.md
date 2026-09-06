@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Profiling Scope
+
+- **Documentation is not evidence that code does a thing.** Every signal now records `evidence_classes` (`source`, `config`, `structure`, `prose`) and a `documentation_only` flag. A content match in a steering file, a design note, or a user guide is recorded as prose; the planner holds a non-core capability whose matched signals are all documentation-only at `candidate` and names them in the reason, instead of selecting it. Found at a consuming repository where 23 of 30 signals were present and the citations for financial entitlement and simulation were all Markdown, so the automatic plan selected 21 of 22 capabilities against a reviewed 10. Two tests cover the flag and the planner's response; **`references/14-deterministic-verification.md`** documents both.
+
+### Documentation
+
+- The catalog has described 22 capabilities since `unified.9`, but eleven sentences across `SKILL.md`, **`references/10-maintenance-harness.md`**, **`references/13-calibrated-local-mode.md`**, **`references/14-deterministic-verification.md`**, and **`assets/templates/calibration/README.md`** still said twenty, and **`references/verification-capabilities.md`** had no entry for V21 or V22. The counts now say 22, the reference gains both entries in the shape of the others, and V21 joins the core list in its selection summary.
+
 ## 2026.09.05-unified.10
 
 ### Shadow Evidence Campaign
