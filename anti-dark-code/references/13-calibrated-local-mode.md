@@ -177,6 +177,8 @@ python3 .agents/skills/anti-dark-code/scripts/adc.py probe --repo . --write
 python3 .agents/skills/anti-dark-code/scripts/adc.py plan --repo . --write
 ```
 
+Add `--exclude <path-or-glob>`, repeatable, when the tree holds generated or foreign content no rule can recognize. The profile records the request under `scan.requested_exclusions`, and `plan` reuses it when it re-probes, so a plan cannot silently widen a scan the owner narrowed. Nested checkouts and agent worktrees under `.claude/worktrees/` are skipped without being asked and listed under `scan.skipped_nested_repositories` and `scan.ignored_worktree_trees`. A profile that reports `counts.unrecognized_source_extensions` has an incomplete language list; treat its repo-type classification as `inferred` until the extension is recognized or the owner confirms it is not source.
+
 Then review:
 
 - repository binding status

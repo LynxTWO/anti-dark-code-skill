@@ -63,13 +63,31 @@ SOURCE_EXTENSIONS = {
     ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".go", ".rs", ".java",
     ".kt", ".kts", ".cs", ".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".swift",
     ".rb", ".php", ".scala", ".ex", ".exs", ".fs", ".fsx", ".dart", ".lua", ".gd",
-    ".sh", ".bash", ".zsh", ".ps1", ".sql", ".tf", ".hcl", ".vue", ".svelte",
+    ".sh", ".bash", ".zsh", ".ps1", ".sql", ".tf", ".hcl", ".vue", ".svelte", ".vb",
 }
 
 TEXT_EXTENSIONS = SOURCE_EXTENSIONS | {
     ".json", ".jsonc", ".yaml", ".yml", ".toml", ".xml", ".md", ".txt", ".ini",
     ".cfg", ".conf", ".properties", ".gradle", ".graphql", ".gql", ".proto", ".csproj",
+    ".vbproj", ".fsproj", ".vcxproj",
     ".sln", ".props", ".targets", ".html", ".css", ".scss", ".less", ".csv",
+}
+
+# Extensions the profiler knows are not source and never counts as such. A file
+# whose extension is in none of SOURCE_EXTENSIONS, TEXT_EXTENSIONS, or this set is
+# unrecognized. A large unrecognized residue is reported in the profile as an
+# unknown, because silently dropping it reads as a confident inventory.
+KNOWN_NON_SOURCE_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp", ".tif", ".tiff", ".psd", ".pdf",
+    ".ttf", ".otf", ".woff", ".woff2", ".eot", ".mp3", ".mp4", ".wav", ".ogg", ".webm", ".mov", ".flac",
+    ".zip", ".7z", ".gz", ".tgz", ".tar", ".rar", ".dll", ".exe", ".so", ".dylib", ".lib", ".a", ".o",
+    ".pdb", ".bin", ".dat", ".db", ".sqlite", ".pyc", ".class", ".jar", ".nupkg", ".snupkg", ".p7s",
+    ".tlog", ".idb", ".ipch", ".ilk", ".exp", ".res", ".resx", ".resources", ".manifest", ".user",
+    ".suo", ".cache", ".lock", ".log", ".map", ".snap", ".bak", ".tmp", ".orig", ".rej", ".patch",
+    ".diff", ".rtf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".lnk", ".url",
+    ".plist", ".pem", ".crt", ".key", ".pub", ".sig", ".asc", ".md5", ".sha1", ".sha256", ".po",
+    ".pot", ".mo", ".strings", ".resw", ".xlf", ".xliff", ".ipynb", ".sample", ".example",
+    ".myapp", ".settings", ".datasource", ".nuspec", ".pfx", ".snk", ".cer",
 }
 
 LANGUAGE_BY_EXT = {
@@ -81,7 +99,7 @@ LANGUAGE_BY_EXT = {
     ".ex": "Elixir", ".exs": "Elixir", ".fs": "F#", ".fsx": "F#", ".dart": "Dart",
     ".lua": "Lua", ".gd": "GDScript", ".sh": "Shell", ".bash": "Shell", ".zsh": "Shell",
     ".ps1": "PowerShell", ".sql": "SQL", ".tf": "Terraform", ".hcl": "HCL",
-    ".vue": "Vue", ".svelte": "Svelte",
+    ".vue": "Vue", ".svelte": "Svelte", ".vb": "Visual Basic .NET",
 }
 
 MANIFEST_NAMES = {
@@ -91,6 +109,7 @@ MANIFEST_NAMES = {
     "settings.gradle.kts", "Gemfile", "composer.json", "mix.exs", "pubspec.yaml", "Package.swift",
     "CMakeLists.txt", "Makefile", "Justfile", "Taskfile.yml", "Dockerfile", "docker-compose.yml",
     "docker-compose.yaml", "project.godot", "ProjectVersion.txt", "*.uproject", "*.sln", "*.csproj",
+    "*.vbproj", "*.fsproj",
 }
 
 STEERING_NAMES = {
@@ -110,9 +129,15 @@ HOST_SKILL_TREE_PREFIXES = {
     (".gemini", "skills"),
     (".codex", "skills"),
 }
+# Linked worktrees an agent harness keeps inside the repository. Each is a full
+# second checkout of some branch, so profiling one describes a different tree.
+HOST_WORKTREE_TREE_PREFIXES = {
+    (".claude", "worktrees"),
+}
 TOOLING_PATH_PREFIXES = (
     ".agents/skills/",
     ".claude/skills/",
+    ".claude/worktrees/",
     ".gemini/skills/",
     ".codex/skills/",
     ".anti-dark-code/",
@@ -991,17 +1016,68 @@ def is_host_skill_tree_parts(parts: Sequence[str]) -> bool:
     return any(tuple(parts[:len(prefix)]) == prefix for prefix in HOST_SKILL_TREE_PREFIXES)
 
 
+def is_host_worktree_tree_parts(parts: Sequence[str]) -> bool:
+    return any(tuple(parts[:len(prefix)]) == prefix for prefix in HOST_WORKTREE_TREE_PREFIXES)
+
+
 def is_ignored(path: Path, root: Path) -> bool:
     try:
         parts = path.relative_to(root).parts
     except ValueError:
         parts = path.parts
-    if is_host_skill_tree_parts(parts):
+    if is_host_skill_tree_parts(parts) or is_host_worktree_tree_parts(parts):
         return True
     return any(part in IGNORED_DIRS for part in parts[:-1])
 
 
-def iter_repo_files(root: Path, max_files: int = 50_000) -> tuple[list[Path], bool]:
+def normalize_exclusions(entries: Sequence[str] | None) -> list[str]:
+    """Normalize requested scan exclusions to repo-relative POSIX paths or globs.
+
+    An exclusion can only narrow the scan. Absolute paths, drive-qualified paths,
+    and parent references are refused so a request cannot point outside the
+    repository or be mistaken for one that does.
+    """
+    normalized: set[str] = set()
+    for raw in entries or ():
+        original = str(raw).strip().replace("\\", "/")
+        if not original:
+            continue
+        if original.startswith("/") or original[1:2] == ":" or ".." in original.split("/"):
+            raise SystemExit(f"Refused scan exclusion outside the repository: {raw}")
+        entry = original
+        while entry.startswith("./"):
+            entry = entry[2:]
+        entry = entry.strip("/")
+        if entry:
+            normalized.add(entry)
+    return sorted(normalized)
+
+
+def matches_exclusion(rel_posix: str, exclusions: Sequence[str]) -> bool:
+    """Return whether a repo-relative path is covered by a requested exclusion.
+
+    A plain entry covers itself and everything beneath it. An entry with glob
+    characters is matched against the whole relative path, and, when it names no
+    directory, against the base name as well so `*.log` reads the way people write it.
+    """
+    base = rel_posix.rsplit("/", 1)[-1]
+    for pattern in exclusions:
+        if rel_posix == pattern or rel_posix.startswith(pattern + "/"):
+            return True
+        if any(char in pattern for char in "*?["):
+            if fnmatch.fnmatch(rel_posix, pattern):
+                return True
+            if "/" not in pattern and fnmatch.fnmatch(base, pattern):
+                return True
+    return False
+
+
+def iter_repo_files(
+    root: Path,
+    max_files: int = 50_000,
+    exclusions: Sequence[str] = (),
+    skipped_nested_repositories: list[str] | None = None,
+) -> tuple[list[Path], bool]:
     files: list[Path] = []
     truncated = False
     for current, dirs, names in os.walk(root, followlinks=False):
@@ -1010,15 +1086,30 @@ def iter_repo_files(root: Path, max_files: int = 50_000) -> tuple[list[Path], bo
             current_parts = current_path.relative_to(root).parts
         except ValueError:
             current_parts = current_path.parts
-        dirs[:] = sorted(
-            d for d in dirs
-            if d not in IGNORED_DIRS
-            and not is_host_skill_tree_parts((*current_parts, d))
-            and not path_is_linklike(current_path / d)
-        )
+        kept: list[str] = []
+        for d in sorted(dirs):
+            child_parts = (*current_parts, d)
+            child_rel = "/".join(child_parts)
+            if d in IGNORED_DIRS or is_host_skill_tree_parts(child_parts) or is_host_worktree_tree_parts(child_parts):
+                continue
+            if path_is_linklike(current_path / d):
+                continue
+            if exclusions and matches_exclusion(child_rel, exclusions):
+                continue
+            # A directory below the root that carries its own .git entry, file or
+            # directory, is another repository: a vendored clone, a submodule, or a
+            # linked worktree. Its files describe that tree, not this one.
+            if (current_path / d / ".git").exists():
+                if skipped_nested_repositories is not None:
+                    skipped_nested_repositories.append(child_rel + "/")
+                continue
+            kept.append(d)
+        dirs[:] = kept
         for name in sorted(names):
             path = current_path / name
             if path_is_linklike(path) or is_ignored(path, root):
+                continue
+            if exclusions and matches_exclusion(rel(path, root), exclusions):
                 continue
             files.append(path)
             if len(files) >= max_files:
@@ -1105,6 +1196,7 @@ def current_source_identity(repo: Path) -> dict[str, Any]:
         "-z", "--", ".",
         ":(exclude).agents/skills/**",
         ":(exclude).claude/skills/**",
+        ":(exclude).claude/worktrees/**",
         ":(exclude).gemini/skills/**",
         ":(exclude).codex/skills/**",
         ":(exclude).anti-dark-code/**",
@@ -1275,11 +1367,11 @@ def add_conventional_commands(
              "source":"conventional candidate from go.mod", "confidence":"inferred", "timeout_seconds":900,
              "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]},
             [item for item in manifest_paths if Path(item).name == "go.mod"])
-    if any(name.endswith(".sln") or name.endswith(".csproj") for name in manifests):
+    if any(name.endswith((".sln", ".csproj", ".vbproj", ".fsproj")) for name in manifests):
         add({"id":"dotnet-test", "level":3, "argv":["dotnet", "test"], "enabled":False,
              "source":"conventional candidate from .NET manifest", "confidence":"inferred", "timeout_seconds":1200,
              "resource_class":"heavy", "cwd":".", "include_globs":[], "exclude_globs":[]},
-            [item for item in manifest_paths if item.endswith((".sln", ".csproj"))])
+            [item for item in manifest_paths if item.endswith((".sln", ".csproj", ".vbproj", ".fsproj"))])
     if terraform_paths or "terraform" in profile.get("repo_types", []):
         add({"id":"terraform-fmt", "level":0, "argv":["terraform", "fmt", "-check", "-recursive"], "enabled":False,
              "source":"conventional candidate from Terraform files", "confidence":"inferred", "timeout_seconds":180,
@@ -1287,12 +1379,24 @@ def add_conventional_commands(
             terraform_paths)
 
 
-def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_000) -> dict[str, Any]:
+def probe_repo(
+    repo: Path,
+    max_files: int = 50_000,
+    content_scan_limit: int = 4_000,
+    exclude: Sequence[str] | None = None,
+) -> dict[str, Any]:
     repo = repo.resolve()
     if not repo.exists() or not repo.is_dir():
         raise SystemExit(f"Repo directory not found: {repo}")
 
-    files, truncated = iter_repo_files(repo, max_files=max_files)
+    exclusions = normalize_exclusions(exclude)
+    skipped_nested: list[str] = []
+    files, truncated = iter_repo_files(
+        repo,
+        max_files=max_files,
+        exclusions=exclusions,
+        skipped_nested_repositories=skipped_nested,
+    )
     ext_counts: collections.Counter[str] = collections.Counter()
     lang_counts: collections.Counter[str] = collections.Counter()
     source_count = 0
@@ -1315,6 +1419,9 @@ def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_
             "content_scan_limit": content_scan_limit,
             "ignored_directories": sorted(IGNORED_DIRS),
             "ignored_skill_trees": sorted("/".join(parts) + "/" for parts in HOST_SKILL_TREE_PREFIXES),
+            "ignored_worktree_trees": sorted("/".join(parts) + "/" for parts in HOST_WORKTREE_TREE_PREFIXES),
+            "skipped_nested_repositories": sorted(skipped_nested),
+            "requested_exclusions": exclusions,
         },
         "repo_types": [],
         "languages": [],
@@ -1437,6 +1544,27 @@ def probe_repo(repo: Path, max_files: int = 50_000, content_scan_limit: int = 4_
         "total_bytes": total_bytes,
         "extensions": dict(ext_counts.most_common(30)),
     }
+    # An allow-list inventory must say what it declined to count. An unlisted
+    # extension that outnumbers every recognized language is a language the
+    # profiler cannot see, and the classification above is incomplete without it.
+    largest_recognized = max(lang_counts.values(), default=0)
+    residue_threshold = max(10, largest_recognized)
+    unrecognized = {
+        ext: count for ext, count in ext_counts.most_common()
+        if ext != "<none>"
+        and count >= residue_threshold
+        and ext not in SOURCE_EXTENSIONS
+        and ext not in TEXT_EXTENSIONS
+        and ext not in KNOWN_NON_SOURCE_EXTENSIONS
+    }
+    if unrecognized:
+        profile["counts"]["unrecognized_source_extensions"] = unrecognized
+        listed = ", ".join(f"{ext} ({count})" for ext, count in unrecognized.items())
+        profile["notes"].append(
+            f"Unrecognized extension(s) with large counts were not counted as source: {listed}. "
+            "Language and repo-type classification are incomplete until the profiler recognizes them "
+            "or an owner confirms they are not source."
+        )
 
     # Add conventional candidates only after type classification.
     terraform_paths = sorted(rel(path, repo) for path in files if path.suffix.lower() == ".tf")
@@ -3988,7 +4116,12 @@ def validate_skill(skill: Path, mode: str = "auto") -> tuple[list[str], list[str
 
 def command_probe(args: argparse.Namespace) -> int:
     repo = Path(args.repo).expanduser().resolve()
-    profile = probe_repo(repo, max_files=args.max_files, content_scan_limit=args.content_scan_limit)
+    profile = probe_repo(
+        repo,
+        max_files=args.max_files,
+        content_scan_limit=args.content_scan_limit,
+        exclude=getattr(args, "exclude", None),
+    )
     if args.write:
         path = write_profile(repo, profile)
         print(f"WROTE {path}")
@@ -4017,18 +4150,36 @@ def profile_is_fresh(repo: Path, profile: dict[str, Any]) -> bool:
     )
 
 
-def load_or_probe(repo: Path) -> dict[str, Any]:
+def recorded_exclusions(profile: dict[str, Any]) -> list[str]:
+    scan = profile.get("scan")
+    recorded = scan.get("requested_exclusions") if isinstance(scan, dict) else None
+    if not isinstance(recorded, list):
+        return []
+    return normalize_exclusions([str(item) for item in recorded])
+
+
+def load_or_probe(repo: Path, exclude: Sequence[str] | None = None) -> dict[str, Any]:
+    """Return the stored profile while it is fresh, otherwise re-probe.
+
+    A re-probe reuses the exclusions the stored profile was made with unless the
+    caller names new ones, so a plan does not silently widen the scan the owner
+    narrowed. Naming different exclusions makes the stored profile stale by intent.
+    """
     path = safe_calibration_dir(repo, "repository profile read") / "repo-profile.json"
+    requested = normalize_exclusions(exclude) if exclude is not None else None
     if path.exists():
         data = read_json(path)
-        if data.get("generated_at_utc") and profile_is_fresh(repo, data):
+        recorded = recorded_exclusions(data)
+        effective = recorded if requested is None else requested
+        if data.get("generated_at_utc") and profile_is_fresh(repo, data) and effective == recorded:
             return data
-    return probe_repo(repo)
+        return probe_repo(repo, exclude=effective)
+    return probe_repo(repo, exclude=requested or [])
 
 
 def command_plan(args: argparse.Namespace) -> int:
     repo = Path(args.repo).expanduser().resolve()
-    profile = load_or_probe(repo)
+    profile = load_or_probe(repo, exclude=getattr(args, "exclude", None))
     plan = build_plan(profile)
     if args.write:
         write_profile(repo, profile)
@@ -4144,7 +4295,12 @@ def command_bootstrap(args: argparse.Namespace) -> int:
         rebind_calibration=args.rebind_calibration,
     )
     if not args.apply:
-        profile = probe_repo(repo, max_files=args.max_files, content_scan_limit=args.content_scan_limit)
+        profile = probe_repo(
+            repo,
+            max_files=args.max_files,
+            content_scan_limit=args.content_scan_limit,
+            exclude=getattr(args, "exclude", None),
+        )
         install_plan["bootstrap_calibration_preview"] = preview_bootstrap_calibration(
             repo,
             source.resolve(),
@@ -4155,7 +4311,12 @@ def command_bootstrap(args: argparse.Namespace) -> int:
         print("DRY RUN: bootstrap did not write or execute repo code. Add --apply to install and generate calibration.")
         return 0
     print(json.dumps(install_plan, indent=2))
-    profile = probe_repo(repo, max_files=args.max_files, content_scan_limit=args.content_scan_limit)
+    profile = probe_repo(
+        repo,
+        max_files=args.max_files,
+        content_scan_limit=args.content_scan_limit,
+        exclude=getattr(args, "exclude", None),
+    )
     profile_path = write_profile(repo, profile)
     plan = build_plan(profile)
     plan_path, gate_path, added = write_plan(repo, profile, plan, add_gate_suggestions=True)
@@ -4710,6 +4871,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="Print full JSON")
     p.add_argument("--max-files", type=int, default=50_000)
     p.add_argument("--content-scan-limit", type=int, default=4_000)
+    p.add_argument("--exclude", action="append", metavar="PATH_OR_GLOB", help="Repo-relative path or glob to leave out of the scan. Repeatable. Recorded in the profile and reused when the plan re-probes.")
     p.set_defaults(func=command_probe)
 
     p = sub.add_parser("plan", help=f"Evaluate all {CAPABILITY_COUNT} verification capabilities")
@@ -4717,6 +4879,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write", action="store_true", help="Write verification plan and proposed gates")
     p.add_argument("--json", action="store_true", help="Print full JSON")
     p.add_argument("--no-gate-suggestions", action="store_true")
+    p.add_argument("--exclude", action="append", metavar="PATH_OR_GLOB", help="Repo-relative path or glob to leave out of the scan. Repeatable. Recorded in the profile and reused when the plan re-probes.")
     p.set_defaults(func=command_plan)
 
     p = sub.add_parser("install", help="Install or update the managed core in a repo")
@@ -4745,6 +4908,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--hosts", choices=("auto", "all", "none"), default="auto")
     p.add_argument("--max-files", type=int, default=50_000)
     p.add_argument("--content-scan-limit", type=int, default=4_000)
+    p.add_argument("--exclude", action="append", metavar="PATH_OR_GLOB", help="Repo-relative path or glob to leave out of the scan. Repeatable. Recorded in the profile and reused when the plan re-probes.")
     p.set_defaults(func=command_bootstrap)
 
     p = sub.add_parser("gates", help="Dry-run or execute reviewed deterministic gates")

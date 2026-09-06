@@ -1,6 +1,10 @@
 # Content-hashed public inputs must retain canonical bytes across platforms.
 anti-dark-code/** text eol=lf
 anti-dark-code/incoming/*.md text eol=lf
+# The inbox is a runtime-only review quarantine. It never ships: not in a
+# managed install, not in a release, and not in the source archive a tag
+# download produces, which is what the clean-distribution job extracts.
+anti-dark-code/incoming export-ignore
 metrics/ledger/*.json text eol=lf
 metrics/summary.json text eol=lf
 docs/data/*.json text eol=lf

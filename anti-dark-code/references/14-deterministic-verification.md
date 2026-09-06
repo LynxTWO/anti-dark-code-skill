@@ -35,7 +35,7 @@ Read:
 python .agents/skills/anti-dark-code/scripts/adc.py probe --repo . --write
 ```
 
-The probe reads file names, manifests, selected small configuration files, and bounded code indicators. It does not execute application code. It records evidence paths and scan limits so the result does not pretend to be a full architecture review. It excludes host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/` so tooling does not pollute product-code classification or evidence.
+The probe reads file names, manifests, selected small configuration files, and bounded code indicators. It does not execute application code. It records evidence paths and scan limits so the result does not pretend to be a full architecture review. It excludes host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`, agent worktrees under `.claude/worktrees/`, and any nested directory with its own `.git` entry, so tooling and other checkouts do not pollute product-code classification or evidence. Pass `--exclude <path-or-glob>` for anything else that should not count; the profile records it and `plan` reuses it. When the profile reports `counts.unrecognized_source_extensions`, a language the probe cannot see outnumbers every language it can, and the classification is incomplete.
 
 ## Step 2: Evaluate All 20 Capabilities
 
