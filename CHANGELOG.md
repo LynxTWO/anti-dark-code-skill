@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2026.09.05-unified.10
 
 ### Shadow Evidence Campaign
 
