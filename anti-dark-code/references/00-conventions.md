@@ -22,6 +22,10 @@ Use exactly these three labels. Do not invent intermediates.
 
 Downgrade rather than flatten. If a check would force `inferred`, do not write `verified`.
 
+### Claims that crossed a context boundary
+
+A claim carried across a summary, a handoff, or a session boundary loses the thing that made it a finding, which is the act of having looked. It arrives as a sentence with a file and a line number attached, indistinguishable in form from a claim that was verified in this session. Such a claim carries no confidence label until it is re-measured here, and it is re-measured before it is written anywhere durable. The cost of re-checking is seconds; the cost of a wrong citation in a committed document is that a reader trusts it, and the document's other claims inherit the doubt when it is found. When a re-check refutes an inherited claim, record it as refuted in the same document, with what was actually found, so the same wrong lead cannot be reopened later as though it were new. In one dogfeeding session five inherited defects were re-checked before filing: three held, one was worse than recorded, and two with precise-looking line citations did not exist in the named files.
+
 ### Negative-search evidence
 
 Every negative search records:
@@ -34,6 +38,8 @@ Every negative search records:
 Name the counting unit. Report matching-file count when repeated hits in one file could mislead, and occurrence count when multiple matches on one line matter. Never compare unlike units across passes.
 
 Zero candidate files means the surface was not examined. Record it as `unknown` or `unscanned`; never translate it into "clean," "absent," "pure managed," or another negative claim. A nonzero candidate count with zero findings proves only that the searched pattern was absent from those candidates.
+
+An availability claim inherits the blind spots of the channel it looked at. Before reporting that something is unavailable, enumerate which channels could carry it and say which were checked; an absence is reportable only with its scope stated. An ecosystem mid-migration between distribution channels makes a single-channel survey systematically negative: in one survey a target platform showed close to zero support on the projects' release pages while over ninety percent of the same projects published artifacts for it on the package index they had moved to, and the clearest case built those artifacts in continuous integration on every change and attached none of them to any release.
 
 Verify that the search command opens candidate files. Do not pipe a filename listing into a content search and treat the result as a content scan. Search the scoped tree directly with matching globs, or pass enumerated paths as file arguments through a delimiter-safe mechanism. Spot-check a known-positive fixture or sentinel before trusting a whole-repo zero.
 
@@ -203,6 +209,15 @@ Use the repo's existing convention first. Fall back to these only when the repo 
 | Approval packets | `docs/review/approval-packets.md` |
 | Maintenance harness | `docs/review/maintenance-harness.md` |
 | Unknowns | `docs/unknowns/<pass-name>.md` |
+
+## Commit hygiene (cross-pass)
+
+- Stage explicit paths. Do not use a sweep flag that stages everything modified.
+- Never combine a sweep commit with an environment override that changes how the working tree is compared to the index, such as a line-ending normalization override. The status view that was checked beforehand ran under a different rule than the commit, so the review cannot catch what the commit sweeps in.
+- Let the attribute file decide line endings. A text path no attribute rule pins is the one a normalization override rewrites whole.
+- Read the diff stat of every commit against its base before pushing. A commit meant to change four lines that reports fifty-eight files is a rewrite, not a change.
+
+The failure shape this prevents: a release commit made on a normalizing checkout with an override and a sweep flag listed 58 changed files and roughly 10,000 line deltas, all whole-file line-ending rewrites, after a pre-commit status had shown four files. It was caught from the pull-request file list and rebuilt from the intended paths as 8 files, 10 insertions, 10 deletions.
 
 ## Writing rules (cross-pass)
 
