@@ -1,9 +1,9 @@
 {
   "generator": "Chrome 152.0.7977.66 headless print-to-pdf (Windows)",
-  "normalized_pdf_sha256": "0c856eeaec4eed607cb5897689fe2a59351922f46e2688aa28b9fcbab7d7c46a",
-  "pdf_sha256": "2997658b5eb129be8efb8012d6616f696e32bb2c80a95ade9f6b2d46dd3776dc",
+  "normalized_pdf_sha256": "78172ffd8d18c36525336e13593231d4c8667979d79715b4ec07eb2c3487a624",
+  "pdf_sha256": "7374acd8e68ccccae8fdb11ec2a67c9631a34c4c6ac96735599a0b1f0584882d",
   "schema_version": 1,
-  "source_sha256": "d188729ebfc6cf9768a0394f844e85f9badcddb152c3d7706417d171ffa01c17",
+  "source_sha256": "3cae3f3b5401d125cb8723d729e71d2849e90b9e74ca6afa14369dff5dabf12c",
   "validated_with": null,
-  "version": "2026.09.05-unified.10"
+  "version": "2026.09.06-unified.11"
 }
