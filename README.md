@@ -140,7 +140,7 @@ If this saves you real time and you feel like covering some of my build costs, t
 - Gives Claude Code a thin adapter instead of a second editable policy tree.
 - Lets Codex and Gemini CLI use the canonical `.agents/skills` copy.
 - Uses local deterministic scripts for profiling, planning, changed-slice routing, exact gate execution, real exit codes, compact summaries, failure packets, checksums, validated flow-back staging, and opt-in efficiency receipts.
-- Excludes repo-level host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/` from repository evidence so tooling does not distort repo classification.
+- Excludes repo-level host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`, agent worktrees under `.claude/worktrees/`, and nested checkouts with their own `.git` entry from repository evidence so tooling and other trees do not distort repo classification. `--exclude` covers what no rule can know, and a large unrecognized-extension residue is reported as an unknown.
 - Returns exit code `2` when a gate plan is blocked, including dry runs, and terminates timed-out gate process trees on a best-effort basis.
 - Keeps source-side repo calibration out of every installation.
 - Prevents repo-local lessons from silently rewriting the shared skill.
