@@ -12,7 +12,9 @@ Receipts are community-self-reported. A self-hash detects modification, not host
 
 ## Privacy and recording
 
-Measurement requires explicit invocation and --opt-in. The efficiency helper makes no network calls, discovers no logs/source/prompts/responses/traces, uploads nothing, rejects unknown fields and writes only caller-selected receipt/summary paths. Python bytecode caching is host-controlled.
+Receipt recording requires explicit invocation and --opt-in. The efficiency helper makes no network calls, discovers no logs/source/prompts/responses/traces, uploads nothing, rejects unknown fields and writes only caller-selected receipt/summary paths. Python bytecode caching is host-controlled.
+
+For passive observation of normal work, use the separate [real-world usage collector](real-world-usage.md). It reads only explicitly configured local host logs after opt-in, retains numerical metadata, and cannot create controlled-pair evidence. Its model and effort strata describe usage; [model selection](model-selection.md) is a separate host-dependent policy.
 
 Keep private receipts in an ignored .anti-dark-code/efficiency/ directory. The main wrapper supplies skill version and managed-core digest. From a package checkout, the command shape is:
 

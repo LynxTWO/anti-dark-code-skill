@@ -25,6 +25,8 @@ A comprehensive audit composes Understand, Investigate, and Verify with an expli
 
 Load specialist references when observed code, runtime boundaries, or requested risk meets their named trigger. Installation and maintenance operations have separate [operator instructions](references/13-calibrated-local-mode.md). Load [host mechanics](references/host-adapters.md) only when discovery or tool support needs clarification.
 
+When economical model routing is authorized and host controls exist, load [model selection](references/model-selection.md). For explicitly opted-in observation or trigger feedback, load [real-world usage](references/real-world-usage.md). Neither requires repeating completed work.
+
 ## Authority
 
 Carry forward the user's authorization within its operation, targets, and reviewed side effects. Prepare a concrete proposal before requesting missing permission. Reopen approval when those bindings change.
@@ -61,7 +63,7 @@ Never copy secrets or personal payloads into comments, logs, fixtures, screensho
 
 Documentation work preserves behavior, directives, stable identifiers, schemas, and persisted user prose. Diagnostics must not become authoritative inputs. Keep generated, vendored, mirrored, serialized, and binary artifacts out of comment churn.
 
-Managed core updates use a clean universal source. Calibration belongs to one repository; binding proves identity continuity, not freshness. Local managed/calibration/run paths must not traverse links. Flow-back remains human-reviewed proposal-only. Efficiency collection is explicit opt-in and local; no automatic telemetry or prompt collection.
+Managed core updates use a clean universal source. Calibration belongs to one repository; binding proves identity continuity, not freshness. Local managed/calibration/run paths must not traverse links. Flow-back remains human-reviewed proposal-only. Efficiency collection is explicit opt-in and local; no default collection, transcript retention, or uploads.
 
 ## Completion and recovery
 

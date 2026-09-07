@@ -4593,6 +4593,22 @@ def command_validate_incoming(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_usage_tools(args: argparse.Namespace) -> int:
+    """Local observation/policy helpers never execute repository or model work."""
+    helper_path = Path(__file__).with_name(args.helper_name)
+    spec = importlib.util.spec_from_file_location(helper_path.stem, helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit("Could not load local usage helper")
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
+    return int(module.main(args.helper_args))
+
+
 def load_efficiency_helper() -> Any:
     helper_path = Path(__file__).with_name("adc_efficiency.py")
     spec = importlib.util.spec_from_file_location("adc_efficiency", helper_path)
@@ -5073,6 +5089,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("efficiency_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_efficiency)
 
+    for name, helper, description in (
+        ("usage", "adc_usage.py", "Observe opted-in local usage and task feedback without model calls"),
+        ("model-select", "adc_model_policy.py", "Recommend an eligible model using an offline policy"),
+    ):
+        p = sub.add_parser(name, help=description, add_help=False)
+        p.add_argument("helper_args", nargs=argparse.REMAINDER)
+        p.set_defaults(func=command_usage_tools, helper_name=helper)
+
     p = sub.add_parser("shadow", help="Build and read shadow evidence records for the routing campaign")
     p.add_argument("shadow_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_shadow)
@@ -5100,6 +5124,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    forwarded = list(sys.argv[1:] if argv is None else argv)
+    helpers = {"usage": "adc_usage.py", "model-select": "adc_model_policy.py"}
+    if forwarded and forwarded[0] in helpers:
+        return command_usage_tools(argparse.Namespace(
+            helper_name=helpers[forwarded[0]], helper_args=forwarded[1:]))
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

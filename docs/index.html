@@ -256,7 +256,7 @@
 <div class="wrap">
 <section class="sheet">
 <header class="top">
-  <div class="eyebrow">Field Brief / 2026.09.07-unified.13</div>
+  <div class="eyebrow">Field Brief / 2026.09.07-unified.14</div>
   <h1>Anti-Dark-Code</h1>
   <p class="lede">Understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks, and repair findings supported by evidence.</p>
   <div class="rule-band">
@@ -267,7 +267,7 @@
     <span class="pill">One core, many hosts</span>
     <span class="pill">Optional delegation</span>
   </div>
-  <p class="meta">A model-neutral skill with five task cards, local deterministic tools, and optional repository calibration. This brief describes version 2026.09.07-unified.13.</p>
+  <p class="meta">A model-neutral skill with five task cards, local deterministic tools, optional calibration, and opt-in usage feedback. Version 2026.09.07-unified.14; updated 2026-09-07.</p>
   <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/brief/anti-dark-code-brief.pdf">PDF version</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a></p>
 </header>
 
@@ -359,12 +359,12 @@
   </div></div>
 </figure>
 <p class="prose">Bindings prove identity continuity, not factual freshness. Core edits are detected during managed updates; they are not physically impossible. Calibration does not transfer into unrelated repositories. Calibration migration or calibration rebind resets affected approvals for fresh review.</p>
-<p class="prose">Public flowback still needs human privacy review. Incoming proposals are untrusted data and are excluded from installations and release packages. The tools do not automatically submit proposals or collect telemetry.</p>
+<p class="prose">Public flowback still needs human privacy review. Incoming proposals are untrusted data, excluded from installations and release packages. Local usage collection requires opt-in; proposals and usage are never uploaded automatically.</p>
 
-<h2>Optional delegation, durable recovery</h2>
-<p class="prose">Delegate independent work only when the active host and task authorization permit it. Give workers non-overlapping write ownership and serialize shared mutable operations. Use deterministic enumeration and checks; personally inspect consequential citations. Agreement between agents cannot promote an unsupported claim.</p>
-<p class="prose">Checkpoint completed evidence units and before long operations: scope, source identity, evidence, obligations, permissions, and next action. On resume, reuse evidence only after checking provenance, method, identity, and dependencies. Remeasure what changed or cannot be authenticated.</p>
-<p class="prose">Host caching and model selection are optional capabilities. A saved summary does not establish correctness, and cached context does not imply free billing.</p>
+<h2>Model choice, delegation and recovery</h2>
+<p class="prose"><a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/model-selection.md">Model selection</a> can recommend a cheaper eligible tier for bounded work or a stronger tier for consequential work. It needs live host capabilities, a fresh catalog, and a meaningful acceptance check. Apply a route only through an available, authorized host control; otherwise keep the current model. Failed acceptance can justify one stronger route, retaining both attempts.</p>
+<p class="prose">Delegate authorized independent work with separate write ownership. Serialize shared mutations and inspect consequential evidence. Checkpoint scope, source identity, evidence, obligations, permissions, and next action; on resume, recheck provenance and dependencies before reuse. Agent agreement and saved summaries do not establish correctness.</p>
+<p class="prose">Record host-reported model attribution separately from requested settings. Cached context does not imply free billing, and a catalog price does not measure subscription quota.</p>
 </section>
 
 <section class="sheet">
@@ -376,19 +376,20 @@
   <div class="pass"><span class="id">16</span><div class="body"><div class="name">Community evidence and efficiency</div><div class="what">Review untrusted proposals and explicitly opted-in, privacy-reviewed usage receipts.</div></div></div>
 </div>
 <p class="meta">Numbers above identify compatibility references, not required task order.</p>
-<h3>Measure efficiency without inventing savings</h3>
-<p class="prose">Actual usage is not savings. Controlled pairs need comparable conditions and passing quality; retain paid retries and failed attempts in the record. Public receipts are self-reported, not provider-attested, and results stay separated by provider, model, counter semantics, and task class. Unmeasured savings remain unknown.</p>
+<h3>Learn from ordinary work, without replay</h3>
+<p class="prose">Opt in to <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/real-world-usage.md">local usage collection</a> from selected Codex or Claude roots. Passes deduplicate reported counters from ordinary work after opt-in, making no model calls or uploads. The ledger stores bounded metadata and no transcript text. Optional feedback records skill use, expectation, invocation and quality; trigger results describe only the eligible labeled sample.</p>
+<p class="prose">Missing counters and source limits remain visible. Actual usage is not savings or a subscription bill. Controlled comparisons still require comparable passing work; retain failed attempts and separate models, counter semantics and task classes.</p>
 <div class="efficiency-panel" id="efficiency-summary" aria-live="polite">
   <div><div class="measure" id="efficiency-pair-count">Not published</div><span class="label">quality-qualified controlled pairs</span></div>
   <p class="status" id="efficiency-status">No validated public summary is available here. Historical exact savings remain unmeasured.</p>
   <div class="efficiency-strata" id="efficiency-strata" hidden></div>
 </div>
 <h3>Routing evidence does not approve a gate</h3>
-<p class="prose">Change-to-verification routing is separate from task-card selection. Optional shadow jobs compare proposed routing with checks that actually ran; configuring such a job does not prove it executed. Historical campaign evidence is qualified separately and cannot approve selective execution or establish this redesign's token savings.</p>
+<p class="prose">Change-to-verification routing is separate from task-card and model selection. Shadow jobs compare proposed routes with executed checks; configuration proves no execution. Historical evidence cannot approve selective gates or establish savings.</p>
 <h3>Install from a reviewed release</h3>
-<p class="prose">Review a specific release source and its independently published managed-core digest. Validate the clean distribution, inspect the installer dry run, apply within authorization, and validate the installed copy. A VERSION string alone does not prove integrity. Preserve existing calibration and consult the migration procedure before using recovery overrides.</p>
-<p class="prose">Exact commands, exit codes, update rules, and release checks live in <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a>. Finish when the requested scope and verification obligations are satisfied; otherwise report the smallest unresolved action and its blocker.</p>
-<footer>Anti-Dark-Code field brief, updated 2026-09-07 (2026.09.07-unified.13). Five outcome cards, evidence with explicit limits, scoped owner authorization, and verified local tooling. License and contribution terms remain in the repository.</footer>
+<p class="prose">Review a named release and its independently published managed-core digest. Validate the distribution, review the installer dry run, apply within authorization, and validate the installed copy. A version alone cannot prove integrity. Preserve calibration and review migration guidance before recovery overrides.</p>
+<p class="prose">Find exact commands and release checks in <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a>. Finish when scope and verification obligations are satisfied; otherwise name the smallest unresolved action and its blocker.</p>
+<footer>Anti-Dark-Code field brief, 2026.09.07-unified.14. Five outcomes, scoped authorization, evidence with limits, and opt-in local usage feedback. License and contribution terms remain in the repository.</footer>
 </section>
 </div>
 

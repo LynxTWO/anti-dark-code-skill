@@ -21,3 +21,5 @@ Use saved artifacts or supported session recovery only after rechecking source i
 For OpenAI-style reported usage, normalize total input, top-level output and provider total as supplied by the host. Cached input is an optional input subset; reasoning is an optional output subset. Do not add subsets again. Missing breakdowns remain null; preserve the exact reported total.
 
 Pin usage_semantics and adapter version to the inspected source format, especially when reading transcripts. Source formats can change independently of the skill. [Efficiency rules](16-community-feedback-and-efficiency.md) govern opt-in, quality comparisons and publication.
+
+The [passive collector](real-world-usage.md) supports inspected Codex 0.153.0 per-response records, with cumulative mirrors ignored. Turn-context attribution is explicitly weaker than a reported serving model. Include available child and approval-review logs. For authorized routing, [model selection](model-selection.md) uses live host controls; a catalog does not establish availability or permission. Keep requested and reported attribution distinct after host reroutes.

@@ -17,7 +17,7 @@
 
 Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
-**Version**: `2026.09.07-unified.13` (see [release history](CHANGELOG.md)).
+**Version**: `2026.09.07-unified.14` (see [release history](CHANGELOG.md)).
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
@@ -61,13 +61,21 @@ A clean universal core can install into many repositories. Each repository owns 
 
 Local general lessons move upward only as reviewed proposals. Incoming proposals are untrusted quarantine, excluded from installed copies and release packages. There is no automatic policy promotion or telemetry submission.
 
-Use [Operations](OPERATIONS.md) for install, migrate, cleanup, flowback, intake, release and efficiency workflows. Detailed migration and contribution procedures remain in [MIGRATION.md](MIGRATION.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+Use [Operations](OPERATIONS.md) for install, migrate, cleanup, flowback, intake, release and usage workflows. Detailed migration and contribution procedures remain in [MIGRATION.md](MIGRATION.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Learn from ordinary work
+
+[Local usage collection](anti-dark-code/references/real-world-usage.md) is opt-in. Choose local Codex or Claude source roots and a private ledger, then collect reported counters from ordinary work after the opt-in time. Repeated collection passes deduplicate observed usage; they make no model calls, replay no tasks and upload nothing. The ledger retains numeric usage, bounded metadata and hashed identifiers, not transcript text. Missing counters and unsupported source formats stay visible.
+
+Optional structured task feedback records whether the skill was used, whether it was expected, how it was invoked and whether quality passed. Trigger feedback describes only the labeled, eligible task sample. Natural usage across models does not establish savings, subscription spend or remaining quota.
+
+[Conditional model selection](anti-dark-code/references/model-selection.md) can suggest a cheaper eligible model for bounded work or a stronger tier for consequential work. It requires a meaningful acceptance check, current host capabilities and a fresh catalog. The helper returns a recommendation; the assistant applies it only through an available, authorized host control. Unknown requirements or unsupported controls keep the current model. A failed acceptance check can justify one stronger route with both attempts retained.
 
 ## Project and evidence
 
 [VERSION](anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [HTML overview](docs/index.html), [PDF brief](brief/anti-dark-code-brief.pdf) and [public site](https://lynxtwo.github.io/anti-dark-code-skill/) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
 
-Efficiency receipts require explicit local opt-in. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
+Efficiency receipts remain a separate opt-in evidence workflow. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
 
 Contributions are reviewed as executable instructions and accepted under the project license; see [CONTRIBUTING.md](CONTRIBUTING.md). License terms and release conversion details are in [LICENSE.md](LICENSE.md).
 

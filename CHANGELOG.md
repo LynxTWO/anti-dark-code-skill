@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.09.07-unified.14
+
+- Add opt-in passive local usage collection in `scripts/adc_usage.py` and versioned Codex/Claude adapters in `scripts/adc_usage_sources.py`. Collect reported counters from ordinary work after opt-in, resume bounded reads and deduplicate observed requests without provider calls, task replay, transcript storage or uploads. Preserve missing counters, source diagnostics and attribution limits.
+- Add structured feedback for observed tasks: skill use, expectation, invocation, quality and task class. Report trigger feedback only for the eligible labeled implicit-use sample; natural usage does not establish causal savings, subscription spend, remaining quota or population accuracy.
+- Add the offline recommendation helper `scripts/adc_model_policy.py`, dated `assets/model-policy.json` and `references/model-selection.md`. Filter by caller-supplied live capabilities and an acceptance check before suggesting a tier. Apply changes only through an available, authorized host control; keep the current model when required evidence is unknown and retain failed work when taking one stronger route.
+- Document collection and feedback in `references/real-world-usage.md`; update `references/host-codex.md`, `references/host-claude-code.md` and `references/16-community-feedback-and-efficiency.md` while preserving the separate controlled-pair contract. Update `README.md`, `OPERATIONS.md`, the HTML overview and six-page PDF brief for the implemented behavior.
+
 ## 2026.09.07-unified.13
 
 - Replace mandatory numbered routing with a compact `SKILL.md` and five `references/tasks/` cards. Preserve numbered reference entry points and move specialist obligations to conditional recipes; every reference has a per-file word budget checked in `tests/test_documentation_contract.py`.
