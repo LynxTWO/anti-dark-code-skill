@@ -125,9 +125,9 @@ The original skill was already strong in several areas:
 
 Its main gap was that deterministic verification lived mostly as guidance. It did not yet have a capability planner, repo-local calibration installer, exact generic gate schema, compact failure packet runner, or safe flow-back process.
 
-### chronicle-anti-dark-code.zip
+### Repository-calibrated archive
 
-The Chronicle archive added:
+The repository-calibrated archive added:
 
 - `DOGFEEDING.md`
 - `LEARNINGS.md`

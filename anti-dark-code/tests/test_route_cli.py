@@ -841,12 +841,23 @@ class ShadowDominanceCliTests(_RoutedGateCliFixture):
         runner does. D-011 is not relaxed by an approval-time act."""
         calibration, summary = self._dominance_calibration(reads_prose=False)
         gates = json.loads((calibration / "gates.json").read_text(encoding="utf-8"))
-        gates["execution_policy"]["owner_confirmed_safe_to_execute"] = False
-        (calibration / "gates.json").write_text(json.dumps(gates, indent=2),
-                                                encoding="utf-8")
-        done, _ = self._probe(calibration, summary, "--allow-exec")
-        self.assertEqual(2, done.returncode)
-        self.assertIn("does not record owner confirmation", done.stdout)
+        marker = Path(self.tmp.name) / "unauthorized-probe-ran"
+        gates["gates"][0]["argv"] = [sys.executable, "-c",
+            f"from pathlib import Path; Path({str(marker)!r}).write_text('ran')"]
+        policies = [{"owner_confirmed_safe_to_execute": value}
+                    for value in (False, "false", "true", 1, 0, None, [True],
+                                  {"approved": True})]
+        policies += [None, True, "true", [True], {}]
+        for policy in policies:
+            with self.subTest(policy=policy):
+                marker.unlink(missing_ok=True)
+                gates["execution_policy"] = policy
+                (calibration / "gates.json").write_text(json.dumps(gates, indent=2),
+                                                        encoding="utf-8")
+                done, _ = self._probe(calibration, summary, "--allow-exec")
+                self.assertEqual(2, done.returncode, done.stdout + done.stderr)
+                self.assertIn("does not record owner confirmation", done.stdout)
+                self.assertFalse(marker.exists(), "probe launched an unauthorized gate")
 
     def test_the_probe_refuses_a_dirty_tree(self) -> None:
         calibration, summary = self._dominance_calibration(reads_prose=False)

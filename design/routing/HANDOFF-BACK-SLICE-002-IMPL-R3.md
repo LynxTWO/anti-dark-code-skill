@@ -1,10 +1,12 @@
 # Handoff back: the policy store, the dominance probe, and the release
 
-Date: 2026-09-04. From: Opus 5, which implemented `HANDOFF-OPUS-SLICE-002-R3.md` and stopped at its stop point. For: the owner, then Jeremy for M11, then Sonnet 5 for the periodic ingest and summary.
+> Privacy edition: external repository and owner identities are withheld. Case labels below refer to anonymized historical observations; they are not measurements of the illustrative example configuration. Source-specific permissions do not transfer to that example or any other repository. This document records ADC history, not a current instruction or authorization to act.
+
+Date: 2026-09-04. From: Opus 5, which implemented `HANDOFF-OPUS-SLICE-002-R3.md` and stopped at its stop point. For: the owner, then the historical consumer owner for M11, then Sonnet 5 for the periodic ingest and summary.
 
 ## 1. Terminal outcome
 
-M8, M9 and M10 are built, tested and committed. M11, 1st-downs' pull request, is deliberately not opened: the handoff's stop point is after the release is checked and before that pull request, which the owner and Jeremy open.
+M8, M9 and M10 are built, tested and committed. M11, case-b's pull request, is deliberately not opened: the handoff's stop point is after the release is checked and before that pull request, which the owner and the historical consumer owner open.
 
 Two decisions were recorded rather than made silently, and one of them is the owner's own answer to a question this build raised.
 
@@ -37,7 +39,7 @@ The probe is built and exercised: a fixture class no gate reads comes back **dom
 
 It cannot run in this repository, and the reason is not a defect. Every gate here carries `argv: None`, and the calibration says why in its own note: *"Gate ids mirror the jobs in `.github/workflows/tests.yml`. The router names gates; it does not run them."* `owner_confirmed_safe_to_execute` is false for the same reason. So the probe refuses twice and there is nothing local to execute.
 
-The owner was given three options and chose the third now and the second later, which D-137 records: this repository's `docs-only` class is approvable by neither path, that is written down rather than engineered around, and dominance as a CI act belongs to SLICE-003's design. The first repository to exercise either path is a consumer whose gates are real commands, which is 1st-downs.
+The owner was given three options and chose the third now and the second later, which D-137 records: this repository's `docs-only` class is approvable by neither path, that is written down rather than engineered around, and dominance as a CI act belongs to SLICE-003's design. The first repository to exercise either path is a consumer whose gates are real commands, which is case-b.
 
 One consequence to state plainly: M9 removed the construction PR #38's canary used, deliberately, so that class now has neither a live canary nor a dominance record. PR #38 stays open as the record of the key it belongs to.
 
@@ -53,9 +55,9 @@ Two things are deliberately absent from the brief: the four spots that would sho
 
 ## 6. Open, and for whom
 
-- **The owner and Jeremy.** M11: 1st-downs' pull request, exactly as `design/routing/consumers/JeremyABurton-1st-downs/README.md` walks it, after the tag exists, because the installer refuses an untagged source.
+- **The owner and the historical consumer owner.** M11: case-b's historical pull-request plan, reviewed by its own owners; `design/routing/consumers/example-consumer/README.md` now retains only an unbound illustration, after the tag exists, because the installer refuses an untagged source.
 - **The owner.** Whether the brief's four document-showing spots and the superpowers section land in a later release.
-- **Sonnet 5.** The periodic ingest and summary, here and for 1st-downs once it has records.
+- **Sonnet 5.** The periodic ingest and summary, here and for case-b once it has records.
 - **The next authoritative replay.** M152 to M158 carry `pending` and no host records.
 - **Measured, not assumed, and still open:** whether a fork pull request's read-only token can upload the artifact. Unchanged since the first handoff.
 

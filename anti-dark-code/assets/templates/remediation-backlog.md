@@ -23,9 +23,9 @@ For canonical confidence levels, risk levels, and item status values, see `refer
 - **Evidence found:** <files, lines, doc references>
 - **Confidence:** <verified | inferred | unknown>
 - **Approval needed:** <yes | no>
-- **Recommended next pass:** <03 | 04 | 06 | 07 | 08 | 10 | 11 | 13 | 14 | 15>
+- **Recommended next pass:** <task card or explicit operator action; legacy pass IDs remain readable>
 - **Smallest safe next step:** <the minimum action that moves the item forward>
-- **Verification capability ids:** <V01 through V20 that apply>
+- **Verification capability ids:** <applicable IDs from assets/verification-capabilities.json>
 - **Reproducer:** <seed, trace, failing test, exact diff, invariant, or "not yet reproduced">
 - **Verification plan:** <exact gate level and how we confirm the fix actually closed the hole>
 - **Failure packet:** <path or n/a>

@@ -1,53 +1,23 @@
-# Reference: Combined 03 + 06 Loop (Critical-Path Comments with Hygiene)
+# Bounded critical-comment campaign
 
-Use this reference when you want a slice-by-slice comment loop that adds explanatory comments and immediately cleans the touched text before each commit.
+Compatibility pointer for the former combined `03` + `06` loop. Use [Document](tasks/document.md) when the user requests several slices of critical-path comments with immediate writing cleanup. Apply [core scope, authority and recovery](../SKILL.md). This optional composition creates no required numbered-pass sequence or exclusive interleaving rule.
 
-**Mode:** comment-only on application code, text-only cleanup on touched docs and summaries.
+## Inputs and procedure
 
-This is a runnable loop, not a numbered pass. It is useful when the next best move is comment-only clarification rather than behavior changes.
+Use current evidence for the selected paths and an existing ledger when the campaign needs one. Choose the next authorized slice by risk and explain its invariant, trust boundary, failure mode and uncovered scope using [critical-path comments](03-critical-path-comments.md). Immediately apply [writing hygiene](06-writing-hygiene.md) to touched comments, docs and summaries; review the final diff for the allowed-text boundary.
 
-## Goal
+For source-backed language, authored-content or saved-text risks, load [language boundaries](12-transcreation-boundary.md) before the corresponding edit. Do not create missing code or invent behavioral facts to fill a comment plan.
 
-Run `03-critical-path-comments.md` and `06-writing-hygiene.md` together on a single slice so the comments land, the text stays clean, and the commit boundary stays tight.
+Checkpoint the completed slice with evidence/source identity, checks actually run, unresolved obligations and next action. Update existing authorized ledger/unknowns artifacts rather than creating a second permanent format. Commit only when the active task authorizes commits; keep each commit a bounded meaningful unit.
 
-## How the loop runs
+## Stop conditions
 
-1. Pick the next slice from the coverage ledger.
-2. Read `03-critical-path-comments.md` and apply its rules to that slice only.
-3. Read `06-writing-hygiene.md` and apply its rules to every touched comment, doc, unknowns file, and task summary.
-4. Commit the slice as one bounded unit.
-5. Update the coverage ledger and `docs/unknowns/critical-paths.md`.
-6. Repeat on the next slice.
+Stop the dependent edit when it becomes a behavior change, touches newly unapproved protected scope, or rests on stale/insufficient evidence. Refresh that dependency or return a concrete blocker, while continuing independent authorized work. Existing permission persists within its source/scope binding.
 
-If the slice involves language, locale, authored content, generated prose, or saved text, also check `12-transcreation-boundary.md` before writing comments.
+For an authorized multi-commit campaign, checkpoint at least every 10 commits and stop at 20 for review unless the user supplied another bound or authorized continuation. Finish sooner when the requested scope is done. These limits do not authorize repository-wide continuation or require commits.
 
-## Bounded execution
+## Preservation and result
 
-- review checkpoint every 10 commits
-- hard stop after 20 commits unless the user says continue
-- stop sooner if the slice touches a protected area, reveals stale maps, or turns into something bigger than comment-only clarification
-- stop sooner if evidence goes soft or a map turns out to be out of date
+No logic, control-flow, import, signature, dependency/configuration change, unrelated formatting, toolchain-sensitive comment edit or generated/vendored/mirrored/minified/binary/engine-serialized churn belongs in this loop. Preserve authored content and meaning; a vague syntax restatement cannot replace a load-bearing warning.
 
-## After each slice, return
-
-- what code path was clarified
-- which invariants or edge cases the new comments explain
-- which language boundaries the new comments protect, if any
-- what remains unclear
-- which next slice should run
-- whether the repo is still in comment-only mode or now needs a behavior-preserving cleanup pass
-
-## Do not
-
-- bundle multiple slices into one commit
-- edit logic, control flow, imports, signatures, dependencies, or config
-- touch generated, vendored, mirrored, minified, serialized, or engine-owned artifacts
-- alter toolchain-sensitive comments (pragmas, linter directives, type-affecting docblocks, SQL hints, engine metadata)
-- rewrite a comment into a vague restatement
-- let hygiene cleanup drift into content changes that were not the original intent
-
-## Rationale
-
-Running 03 then 06 back-to-back on one slice keeps the commit reviewable, keeps the text voice consistent, and prevents "clean-up passes" from smearing across the repo. It also avoids a common failure mode where an agent adds comments, moves on, and the text never gets the tone pass.
-
-This loop is the only sanctioned interleave under the "no parallel passes" rule in `SKILL.md`. It works because `06` is text-cleanup of work `03` just produced, not a separate pass with its own deliverable.
+Return clarified paths, explained invariants and language boundaries, exact checks, remaining uncertainty and the next useful slice if work remains. State whether the result stayed comment-only; a need for remediation is a separate finding, not permission to switch modes silently.

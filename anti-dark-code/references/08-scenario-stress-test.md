@@ -1,10 +1,10 @@
 # Reference: Scenario Stress-Test
 
-Use this reference when testing the current repo understanding against synthetic repo shapes and edge cases before later passes harden the wrong story.
+Compatibility reference `08`. Use with [Investigate](tasks/investigate.md) when the request requires synthetic challenges to current repo understanding. For actual behavioral scenario checks, use [Verify](tasks/verify.md) and an input/state/expected-outcome oracle. No preceding numbered pass is required.
 
 **Mode:** read-only review of current repo docs and instructions.
 
-For confidence levels and the unknowns entry shape, see `00-conventions.md`. For an output example, see `example-stress-test-report.md`.
+Apply [core evidence and authority](../SKILL.md). For a deliberately synthetic output example, see [example report](example-stress-test-report.md).
 
 ## Goal
 
@@ -14,7 +14,7 @@ Find places where the current rules or docs would overclaim, miss a hidden entry
 
 ## Inputs to review
 
-At minimum:
+Read the relevant current inputs that exist for the requested scope:
 - the steering files
 - the system map
 - the coverage ledger
@@ -46,12 +46,12 @@ Good scenario families:
 
 ## Deliverables
 
-Create or update:
+When durable artifacts are useful and authorized, reuse:
 - `docs/review/scenario-stress-test.md`
 - `docs/review/scenario-scorecard.md`
 - `docs/unknowns/scenario-stress-test.md`
 
-Update the coverage ledger when this pass reveals a real blind spot.
+Return a scoped report when no persistent artifact is needed. Update an authorized ledger only when repository evidence confirms a real blind spot; a hypothetical scenario alone does not prove one.
 
 ## What to record in `docs/review/scenario-stress-test.md`
 
@@ -82,7 +82,7 @@ For each low score, name the exact rule or prompt change that would raise it.
 
 ## What to record in `docs/unknowns/scenario-stress-test.md`
 
-Use the unknowns entry shape from `00-conventions.md`.
+Use [core evidence](../SKILL.md#evidence) and the existing artifact shape.
 
 ## Stress-test checks
 
@@ -135,3 +135,5 @@ The result should:
 - catch missing approval gates, hidden live entrypoints, or hidden control-plane paths
 - catch language or copy surfaces that quietly became runtime truth
 - improve the docs or rules without inventing systems that are not there
+
+Synthetic scenario scores evaluate the instructions or claimed model, not product runtime correctness. Record proposed versus executed probes separately, including zero executed checks and unsupported native/remote prerequisites. A replayable concern still needs causal evidence before becoming a verified root cause. Broad guarantees use the matching [assurance recipe](assurance-contracts.md).

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_note": "Both gates live in the one job `test`, as named steps.",
+  "_note": "Illustrative historical job and step names, unbound and unverified for any current repository. Derive the actual mapping from target-owned CI before use.",
   "gates": {
     "ci-test": {
       "jobs": [

@@ -1,293 +1,33 @@
-# Reference: Deterministic Verification Planner
+# Deterministic verification planning
 
-Use this pass to make the local computer perform every safe, exact verification task it can, while reserving agent tokens for judgment.
+Compatibility reference `14`. Use with [Verify](tasks/verify.md) to select defensible checks for the declared repository or change. Apply [core execution and evidence](../SKILL.md). Planning does not install tools or authorize gate execution; session authority already granted remains valid within its scope.
 
-**Mode:** planning and harness work by default. Gate execution requires explicit permission and the repo's normal safety rules.
+## Profile the actual scope
 
-## Important Distinction
+Read current relevant calibration, invariants/map, package scripts, CI/test/architecture configuration and changed paths. When a trusted shared ADC tool, supported runtime and authorized read access are available, use its `probe --repo <path>` and `plan --repo <path>` if their outputs answer the task. Omit `--write` unless durable artifact creation is authorized. Resolve the actual tool path rather than assuming a host installation directory.
 
-The 22 items in this system are verification capabilities, not 22 tests that every repo should run.
+The probe reads names, manifests, selected bounded config/code indicators without executing application code. Its profile records evidence paths, scan limits, exclusions, `evidence_classes` and `documentation_only`. It excludes host skill trees, agent worktrees and nested repositories with their own `.git`; reviewed `--exclude` entries propagate to planning. Inspect reported dominant unrecognized source extensions, which can make classification incomplete.
 
-Some are test techniques. Some are architecture controls, execution controls, evidence packaging, or review separation. Evaluate all 22 for every repo, then mark each one:
+Prose about billing, simulation or security does not prove implementation. Documentation-only non-core matches remain candidates pending source evidence. Missing scanner signals are unknown where the scan cannot prove absence. If tool/runtime/permission is unavailable, name the blocker, perform a bounded manual inventory, and identify lost machine checks. If output is large, inspect its summary and named evidence fields, expanding for specific unresolved questions.
 
-- `selected` - evidence shows it belongs now
-- `candidate` - useful if a named condition is confirmed
-- `deferred` - useful later, with a reason and trigger
-- `not_applicable` - current repo evidence does not support it
+## Select capabilities without blanket prose loads
 
-Blindly installing every technique would waste machine time, dependencies, and developer attention. The planner's job is to choose the smallest defensible verification set.
+Use the existing [machine catalog](../assets/verification-capabilities.json) for capability IDs, statuses, selection rules and default levels. A comprehensive plan screens **every catalog entry**, retaining a recoverable status, reason, evidence, level, deterministic work and remaining judgment per entry. Review selected/candidate entries and every exclusion/default materially affecting risk or coverage.
 
-## Inputs
+A narrow task may assess an explicit subset; label it scoped and do not call it a complete repository plan. [Capability index](verification-capabilities.md) and [repo profiles](repo-verification-profiles.md) are optional interpretation aids. Open specialist detail only for selected risks or unresolved dispositions. Suggestions do not authorize dependency installation.
 
-Read:
+Statuses remain `selected`, `candidate`, `deferred`, `not_applicable`. Keep planned/selected/configured/executed/passed separate in reports; no executed tests means no tested result.
 
-- `calibration/repo-profile.json`, or generate it with `adc.py probe`
-- `calibration/invariants.md`
-- `calibration/system-map.md`
-- package scripts, CI workflows, test configs, and architecture rules
-- recent changed files or the planned slice
-- `assets/verification-capabilities.json`
-- `references/repo-verification-profiles.md`
+## Configure and verify the selected work
 
-## Step 1: Generate a Deterministic Repo Profile
+Use the existing four-level ladder: L0 cheap static/schema/type/lint/architecture checks; L1 affected unit/contract/integration/replay; L2 selected property/fuzz/model/mutation/performance/fault checks; L3 full-suite/soak/migration/platform/broad campaigns. Change levels only with a measured cost/risk rationale. Run cheap blockers first; batch independent checks only when side effects permit.
 
-```bash
-python .agents/skills/anti-dark-code/scripts/adc.py probe --repo . --write
-```
+For actual gate definitions, source rebinding and execution load [exact gate contract](specialist-exact-gate-contract.md). For configured-runner/frozen-lock/count obligations use [gate environment](specialist-gate-environment.md). For changed-path selection include semantic edges through contracts, configuration, content, generated outputs, deployment and control planes. Unknown impact requires conservative selection; intent routing does not alter the existing `route` command or enable new selective execution.
 
-The probe reads file names, manifests, selected small configuration files, and bounded code indicators. It does not execute application code. It records evidence paths and scan limits so the result does not pretend to be a full architecture review. It excludes host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`, agent worktrees under `.claude/worktrees/`, and any nested directory with its own `.git` entry, so tooling and other checkouts do not pollute product-code classification or evidence. Pass `--exclude <path-or-glob>` for anything else that should not count; the profile records it and `plan` reuses it. When the profile reports `counts.unrecognized_source_extensions`, a language the probe cannot see outnumbers every language it can, and the classification is incomplete. Every signal records `evidence_classes` (`source`, `config`, `structure`, `prose`) and a `documentation_only` flag. A steering file, a design note, or a user guide that mentions billing or simulation is not evidence that the product does either; the planner holds a non-core capability whose matched signals are all documentation-only at `candidate` and names the signals in the reason, so the owner confirms the behavior in code before tooling is planned for it.
+Choose triggered recipes for [audited producers](specialist-audited-producers.md), [restricted builds](specialist-restricted-builds.md), [falsifiable detectors](specialist-verifier-falsifiability.md), [mutation restoration](specialist-mutation-restoration.md), or [strong assurance](assurance-contracts.md). Deterministic gates settle facts before additional model opinions; use [adversarial review](07-adversarial-review.md) for judgment-heavy findings.
 
-## Step 2: Evaluate All 22 Capabilities
+## Result and stop
 
-```bash
-python .agents/skills/anti-dark-code/scripts/adc.py plan --repo . --write
-```
+Return the scoped plan, exact proposed/configured commands, approval/prerequisite state and actual results. Preserve bounded redacted failure packets with first bad event, invariant, expected/actual, source/environment identity, seed/start state/trace, producer exit code, replay command and retained-log path. Keep green output compact and minimize reproduced regressions into fixtures/corpus where practical.
 
-The planner must produce one row for every capability, including a reason, evidence, confidence-ladder level, local deterministic work, and the remaining agent judgment.
-
-Do not install dependencies from the plan. A tool suggestion is not approval to add it.
-
-## Step 3: Build a Confidence Ladder
-
-Use four levels so fast feedback stays fast.
-
-### Level 0: every meaningful edit
-
-Prefer checks measured in seconds:
-
-- formatting or format check
-- affected type check
-- affected lint
-- schema and policy checks
-- static architecture rules
-- generated-file drift checks
-
-### Level 1: completed task or bounded slice
-
-Run:
-
-- affected unit and contract tests
-- focused integration tests
-- relevant replay regressions
-- boundary and invariant checks
-
-### Level 2: before merge or for elevated risk
-
-Run selected:
-
-- property and metamorphic tests
-- short fuzz campaigns
-- short random or model-based UI exploration
-- changed-module mutation tests
-- performance smoke checks
-- targeted fault injection
-
-### Level 3: scheduled, release, or high-risk change
-
-Run selected:
-
-- full suite
-- long fuzz or monkey campaigns
-- full or broad mutation testing
-- memory and leak soak
-- save or schema migration matrix
-- cross-platform matrix
-- long statistical canaries
-- broader fault injection
-
-A repo may move one capability up or down a level based on measured cost and risk. Record why.
-
-## Step 4: Configure Exact Gates
-
-Store reviewed commands as argument arrays in `calibration/gates.json`. Do not store vague prose such as "run the tests."
-
-A gate bound to source files (`source_files` plus `source_definition_sha256`) is bound to one tree. When those files change, on a commit or on a branch switch, the runner refuses the gate until the binding is reviewed. The targeted repair is `adc.py gates --repo . --rebind GATE --note "why the files changed"`: it recomputes that one gate's binding, keeps the previous digest under `previous_definition_sha256`, appends the note to `owner_notes`, and touches nothing else. It refuses without a note, for an unknown gate, and when nothing drifted. Rerunning the planner also rebinds, and it also replaces the repo profile and the verification plan; use it only when no reviewed plan exists yet. A refusal must name a repair that does not destroy something else, so the runner names the targeted rebind first and the planner second.
-
-Good gate entry:
-
-```json
-{
-  "id": "typecheck",
-  "level": 0,
-  "argv": ["npm", "run", "typecheck"],
-  "enabled": true,
-  "review_status": "approved",
-  "source": "package.json#scripts.typecheck",
-  "source_definition_sha256": "<hash captured by the deterministic probe>",
-  "inherit_env": true,
-  "env": {"DOTNET_CLI_TELEMETRY_OPTOUT": "1"},
-  "timeout_seconds": 180,
-  "include_globs": ["src/**/*.ts", "src/**/*.tsx"],
-  "resource_class": "light"
-}
-```
-
-Use `include_globs` and `exclude_globs` for change impact. Keep full-suite and soak gates marked heavy. Record hardware restrictions, remote runners, and commands that reach external systems.
-
-Never put secrets in command arguments or failure packets.
-
-`inherit_env` defaults to `true`. Set it to `false` only when the command has been proven to run in a deliberately sparse environment. The optional `env` object accepts a bounded set of reviewed, non-sensitive string overrides; secret-like variable names are refused. Run artifacts record the overlay key names and an opaque fingerprint of execution-relevant environment state, never the raw overlay values. If a child prints an overlay value, the retained log replaces that literal value before preservation.
-
-Two gate-authoring cautions on comparisons and handoffs:
-
-- Equality assertions over records that contain collections can silently compare references instead of contents. In runtimes where a record or value type delegates member equality to the collection's default equality, two structurally identical payloads compare unequal, and the gate's verdict stops tracking content. Compare serialized canonical forms or compare element-wise, and prove the comparison with a fixture pair that is structurally equal but reference-distinct.
-- A value produced in a child context must cross the boundary as an artifact. When verification runs part of its work in a separate process, container, sandbox, or shell, a result assigned to a variable inside the child dies with the child, and the parent then reports whatever its own scope held. Hand results back as a file, an exit code, or a serialized stream the parent reads, and prove the handoff with a case that fails when the artifact is absent.
-
-### Adding a producer to an audited evidence family
-
-Where an audit certifies gate evidence as a set rather than gate by gate, a new gate is not done when it passes. It is done when the audit validates the new record inside the set and the newcomer obeys the same publication law as the incumbents. Until then its pass is a producer claim the release decision cannot use.
-
-Three obligations land in the same change as the gate itself:
-
-- audit-side validation of the new record: its schema, its shape, and the counts it asserts, so a record the audit cannot read cannot silently join the set
-- producer-side invalidation of any standing audit before the new evidence is written, because a record written after an audit attempt is unaudited and a stale audit must not keep certifying a set that no longer exists
-- conformance to the family's evidence canon: whatever the incumbents obey for encoding, line discipline, atomic publication, exclusion, and cleanup
-
-Derive that canon by reading one incumbent producer end to end. Enumerating obligations from the failures that happen to surface leaves the rest silently missing, and the missing ones are exactly the invariants no sequential run can disprove.
-
-Where producers serialize evidence mutation through a shared lease, the newcomer participates in it or its evidence is unserialized regardless of how green its own run looks. A lease is exclusive only if acquisition is an exclusive create; prove it with a contention run against a foreign receipt, requiring the gate to fail closed and leave both the lock and the standing evidence byte-intact, and with a mutation that weakens the exclusive create to a truncating open, requiring that same run to go red.
-
-Verified case, two incidents on one gate. A seventh gate joined a six-gate audited sweep. The audit was extended to validate its record and the gate was given the standing-audit invalidation the incumbents already had, but the first full sweep still failed: the platform's serializer emitted carriage returns where the family's canon is line-feed only, and the audit held the newcomer to the incumbent law. Normalizing the writer produced the first audit certifying it inside the set. An independent review then found the same gate had skipped the family's writer lease, its invalidation order, its atomic publication, and its receipt-bound task cleanup, because the obligation list had been assembled from the one failure already observed rather than from an incumbent. Every sequential run had passed throughout; only the concurrency invariant was false, and only a contention run could show it.
-
-### Capability-restricting build flags
-
-A build flag chosen for release can remove a runtime capability from every build, including builds that never ship. The code still compiles, so the loss surfaces only when a dependent line executes.
-
-Verified case: an ahead-of-time-compilation opt-in, set for the shipped target, also wrote a reflection-disabled feature switch into the debug runtime configuration, and reflection-based serialization then threw in ordinary debug runs. Three separate code paths failed on that one flag within two days of adoption, each surfaced by a live run rather than a build error, the last one inside a commit path. The test host did not carry the switch, so no gate could reproduce any of the three.
-
-Treat a capability-restricting build flag as a repo-wide change, not a release setting. When one is adopted or changed:
-
-- name the restricted capability and the exact switch that carries it, read from the generated runtime or build configuration rather than from the flag's documentation
-- check whether the test and tooling hosts run under that same switch; a gate running in the permissive mode cannot fail on the restriction
-- run a one-shot deterministic sweep for every use of that capability across source, test, and script trees, and confirm the sweep separates the restricted form from the safe form before trusting its count
-- migrate every site the sweep found, then add a Level 0 gate that fails when an unmigrated site reappears
-- either run the selected gates in the same capability mode as the shipped artifact, or adopt the restricted mode as the baseline for every build and every target that shares the code
-
-The second option is not free. Restricted modes often disable the dynamic-code features that debuggers, hot reload, and mocking frameworks depend on. Prefer it when the shared code has more build targets than gates, and record what the restriction costs the inner loop.
-
-How much the compiler helps depends on the ecosystem. Where the restriction arrives as a runtime switch rather than a compile-time condition, a restricted capability still compiles and fails only when its line executes, so without the sweep discovery is one runtime failure at a time.
-
-## Step 5: Run Deterministically and Keep Output Small
-
-Dry run:
-
-```bash
-python .agents/skills/anti-dark-code/scripts/adc.py gates --repo . --level 1
-```
-
-Execute only after permission:
-
-```bash
-python .agents/skills/anti-dark-code/scripts/adc.py gates --repo . --level 1 --allow-exec
-```
-
-Optional changed-slice selection:
-
-```bash
-python .agents/skills/anti-dark-code/scripts/adc.py gates --repo . --level 1 --allow-exec --changed-from HEAD~1
-```
-
-The runner must:
-
-- use real process exit codes
-- return `2` for a blocked plan even when execution was not requested
-- execute command arrays without a shell
-- run only enabled, individually approved, applicable gates
-- block package-script gates when the approved source definition changed
-- retain pattern-redacted output in local run artifacts
-- print a compact success summary
-- emit a bounded failure packet on failure
-- return nonzero when a gate fails
-- launch each executed gate in its own process group
-- make a best-effort attempt to terminate the gate's process tree on timeout
-- apply only reviewed, non-sensitive environment overlays and record a bounded opaque environment fingerprint when command resolution depends on inherited state
-
-Top-level exit codes are `0` for a valid dry run or all-green execution, `1` for executed gate failures, `2` for a refused plan or execution, and `130` for operator interruption. A timed-out gate is recorded with exit `124` inside its failure packet and makes the overall run fail.
-
-On POSIX systems timeout handling signals the process group. On Windows it uses a new process group and falls back to `taskkill /T /F`. This limits orphaned helpers, but it is not a security sandbox and cannot guarantee termination of a process that deliberately detaches itself.
-
-Do not send full green logs to an agent.
-
-### Shell exit-code contract
-
-Judge a gate by the producer's real exit code. The shell composition that collapses a gate to a one-line result is itself a trust boundary, and two ordinary idioms cross it silently. Both produce output that reads like completion while something did not happen.
-
-- A pipeline reports its last command, so `gate | tail`, `gate | grep`, and similar summaries turn failure into success. Capture output to a file and retain the producer status, use the shell's explicit pipeline-status facility, or execute an argument array without a shell.
-- A conjunction short-circuits, so `gate && cleanup` skips every later link when an earlier one fails. Cleanup, revert, and restore steps sit at the end of a chain precisely because they matter, which makes them the first casualties. Run them unconditionally through the shell's exit handler rather than chaining them behind the step that can fail.
-
-The two compose into a worse third case. Piping a failing gate into a summarizer masks its status, which then lets a following conjunction proceed: the chain reports success and the cleanup appears to have run, while the red result is gone. One idiom loses the verdict and the other loses the safety step, so no single fix covers both. Preserve the status and detach the cleanup.
-
-Test the failure path of every wrapper that summarizes gate output, and confirm the cleanup runs when the gate fails, not only when it passes. Then assert the working tree is clean before creating the artifact the chain exists to produce. Detached cleanup can still fail, and a scratch file or a locally modified harness that survives into a commit reproduces only on the machine that made it: local runs stay green while every shared lane goes red. The assertion is what turns a cleanup that was supposed to run into one that demonstrably did.
-
-### Mutation-testing calibration
-
-Start with the smallest high-stakes pure semantic module that has a stable oracle. Record source lines, test count, mutant count, elapsed time, survivors, no-coverage mutants, timeouts, and errors before expanding scope. A whole-repo first run can hide useful signal in cost.
-
-Keep semantic decisions separate from presentation catalogs, labels, descriptors, and compatibility metadata. Mutating a display-only declaration can create equivalent or low-value mutants that inflate the denominator. Test catalog shape directly, but target mutation gates at behavior whose changed outcome can be falsified.
-
-Report absolute counts beside the score. A perfect score over a tiny denominator is narrow evidence, while a lower score may be dominated by equivalent or no-coverage mutants. Classify each survivor as missing assertion, missing reachability, equivalent mutation, excluded presentation surface, timeout, or tool error before changing thresholds.
-
-Treat unexpectedly fast incremental mutation runs as suspect after fixture-only or data-only test edits. Clean the mutation cache and rerun when the tool cannot prove that test content invalidated prior verdicts.
-
-Typecheck newly authored test batteries separately when the runner transpiles without type information. Passing transformed tests can still assert against shapes the production type system rejects.
-
-### Canonical-output determinism
-
-Ordering keyed on a parsed or normalized value is not total over raw representations. Two distinct raw spellings can parse equal (a timestamp with a different offset, a number with trailing zeros, a case-folded key), so a shuffle-stability test can pass while output order inside the equal class still follows input order. Tie-break canonical comparators on the raw representation after the parsed comparison, or reject equivalent-but-distinct representations at the input boundary, and never let the choice fall through silently. Every determinism suite includes a fixture pair of distinct raw representations of one parsed value and requires byte-identical canonical output across shuffles.
-
-## Step 6: Convert Failures into Memory
-
-For a reproduced failure, preserve the smallest practical combination of:
-
-- seed
-- starting state or fixture hash
-- action sequence
-- first bad event
-- violated invariant
-- expected and actual value
-- build or commit identity
-- replay command
-- full-log path
-- minimized regression test or corpus entry
-
-Random exploration becomes valuable when every failure is replayable. Without replay, it produces anecdotes.
-
-## Step 7: Size Agent Verification by Finding Class
-
-Do not give every finding the same number of agent votes.
-
-- A deterministic failing test or exact diff usually needs one strong verifier plus the gate result.
-- A claim about economy, incentives, emergent behavior, or statistical balance needs multiple independent refuters or an aggregate probe.
-- A presentation or adapter drift claim should compare against the canonical rule implementation.
-- A suspected architecture violation should use a dependency graph or AST rule before debate.
-- A performance claim needs a baseline and budget, not an impression.
-- A security or data-boundary claim needs a concrete source-to-sink trace.
-
-Verifiers receive the claim and evidence, not the finder's persuasive narrative.
-
-## Token and Credit Rules
-
-- Enumerate with scripts, not agents.
-- Cache byte-stable inputs and outputs where the harness supports it.
-- Summarize success in one line.
-- Expand only the first failure and the smallest supporting context.
-- Read the relevant source slice, not the whole repo.
-- Let gates settle facts before requesting another model opinion.
-- Do not ask a high-tier agent to count files, collect imports, deduplicate findings, or monitor a run.
-- Run independent cheap gates in parallel when safe.
-- Do not run expensive gates after a cheap blocking failure already settled the outcome.
-
-## Acceptance Checklist
-
-Pass `14` is complete when:
-
-- all 22 capabilities have a status and reason
-- repo-type adaptations are named
-- confidence levels are assigned
-- exact gates are proposed or configured
-- execution safety and machine limits are recorded
-- change-impact rules prevent needless full-suite runs
-- successful output is compact
-- failure packets are bounded and replay-oriented
-- any gate added to an audited evidence family carries audit-side validation, stale-audit invalidation, and the family's publication law in the same change
-- no dependency was added merely because the planner mentioned it
+Finish when selected obligations have results or named blockers and all requested coverage is dispositioned. No dependency, permission, source binding or stored enum changes merely to make the plan look complete.

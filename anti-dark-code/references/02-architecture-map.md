@@ -1,260 +1,31 @@
-# Reference: Architecture Inventory and Trust-Boundary Map
+# Architecture and trust-boundary map
 
-Use this reference when mapping a repo before any code changes. This is the baseline anti-dark-code inventory pass.
+Compatibility reference `02`. Use with [Understand](tasks/understand.md) when the requested outcome needs runtime, ownership, data, or trust-boundary evidence. It does not require an earlier numbered pass. Apply the [core contract](../SKILL.md); application code stays read-only and documentation writes stay within the active authority.
 
-**Mode:** read-only for application code. Docs may be created or updated.
+## Inputs and method
 
-For confidence levels, the unknowns entry shape, and default deliverable paths, see `00-conventions.md`.
+Use existing current maps and the requested scope. Inspect manifests, lockfiles, start/build/test configurations, deployment and CI files, schemas, API definitions, migrations, integration tests, scripts and ownership records. Prefer a useful trusted read-only probe under the core execution rule; retain scan limits and contradictions. Missing code in a scaffold stays proposed or `TBD`.
 
-## Goal
+Choose branches from source/runtime evidence. A mixed repository needs a row for each runtime unit, not one winning classification. For large or interrupted work, use [coverage slicing](05-coverage-slicing.md). When source demonstrates quiet operational paths or specialty runtimes, use [hidden control planes](specialist-hidden-control-planes.md).
 
-Create a clear map of the repo so a new engineer can understand what exists, how the system is entered, what data it stores, what it depends on, where trust changes, and which areas are still unclear.
+## Map contract
 
-Use the large-repo slicing pass (`05-coverage-slicing.md`) when one map would be too broad to trust.
+Record compact tables or flow notes with evidence locators:
 
-Use the adversarial edge-case review (`07-adversarial-review.md`) after the first map when the repo has many exceptions, hidden runtimes, or protected areas.
+- **Runtime unit:** purpose, repo location, entry/start command, caller/trigger, dependencies, owner, data and side effects. Include services, workers, jobs, public libraries, clients and live scripts/tools.
+- **Interface:** route, topic, public API, UI action, CLI/task target or hook; validation/authentication, privileges, reads/writes and downstream systems.
+- **Data:** stores, entities, important relationships, retention/deletion behavior supported by code, and operational use. Include browser/device storage, saves, caches, vector/model stores and remote infrastructure state where present; avoid exhaustive field dumps.
+- **Dependencies/configuration:** why each external system is used, dependent units, required/optional/environment-specific key names, failure/retry/fallback/dead-letter/manual recovery evidence. Record secret names only.
+- **Trust edge:** incoming authority, validation, assumptions, privilege changes and failure consequences. Include native bridges, tool execution, deploy runners and vendor consoles when observed.
+- **Critical flow:** trigger, participating units, stores, jobs, external calls, irreversible effects, ordering/idempotency and recovery.
+- **Rule authority:** canonical implementation, downstream adapters/views/migrations, divergence guard, approved duplicate owner and expiry. State whether diagnostics are observational; authoritative reads from telemetry are a boundary.
+- **Language:** ownership, truth/display/mixed, persistence and dependencies on IDs, hashes, replay, ranking, access, pricing or policy. Use [language boundaries](12-transcreation-boundary.md) when present.
+- **Operational and external gaps:** deployment, flags, locks, backfills, manual release steps, missing owners and evidence outside this checkout. Submodules, sibling repos and vendor dashboards retain separate unresolved obligations.
 
-## Pick the repo branch that fits
+A claim that code is dead, unreferenced, imported or reachable must name its graph. Load [native/dynamic reachability](specialist-native-reachability.md) for the implementation-to-build-to-package-to-loader-to-selection-to-invocation chain and target-specific terminal descriptions. A clean-checkout missing generated binary does not establish a blocker.
 
-Inspect the repo type first. Use only the branches that match verified repo evidence. A mixed repo may need more than one branch.
+## Output and stop
 
-**For a service or web app:** inventory services, routes, jobs, data stores, secrets, third-party systems.
+Return the scoped map and unresolved obligations using [core evidence](../SKILL.md#evidence). Reuse `docs/architecture/system-map.md` or `service-map.md` and `docs/unknowns/architecture-pass.md` when durable artifacts are useful and authorized; otherwise a report is sufficient.
 
-**For a monorepo:** inventory apps, packages, shared libraries, deployment units, internal dependencies, ownership edges.
-
-**For a frontend-only repo:** inventory pages, UI entrypoints, state stores, API clients, browser storage, analytics hooks, feature flags, build outputs, route copy ownership, and locale or translation boundaries when present.
-
-**For a library or SDK:** inventory public APIs, extension points, code generation, build targets, release steps, test harnesses, external integrations.
-
-**For a game repo:** inventory client runtime, authoritative server pieces, scenes or levels, prefabs or actors, save and load paths, asset pipelines, economy logic, authored text versus mechanic truth, entitlement checks, platform services, analytics, live-ops flags, crash reporting, and anti-cheat boundaries when present. Treat editor scripts, build scripts, import pipelines, and engine-owned metadata as part of the repo shape when they affect live behavior.
-
-**For a mobile or native app:** inventory app entrypoints, navigation, local storage, permissions, sync paths, push messaging, background tasks, crash reporting, analytics, secure storage, provisioning hooks, native bridges.
-
-**For an infra-as-code repo:** inventory modules, stacks, accounts or projects, state backends, IAM boundaries, secret stores, controllers, runners, deployment workflows, ingress, DNS, network edges, storage. Treat bootstrap scripts, import or migration steps, plan or apply helpers, and environment overlays as first-class runtime or control-plane paths when they can change live state.
-
-**For an AI or data system:** inventory jobs, notebooks, pipelines, feature stores, vector stores, model registries, eval paths, prompt templates, safety filters, routing layers, tool execution, batch backfills, labeling flows, data lineage edges. Treat notebooks, experiment runners, and offline jobs as live entrypoints when they touch production data, models, or user content.
-
-**For a new repo:** write a proposed system map from scaffolding, manifests, ADRs, and roadmaps. Mark undecided areas as `TBD`. Do not invent routes, tables, jobs, scenes, or pipelines that do not exist.
-
-## Sources to inspect
-
-At minimum:
-- root docs and READMEs
-- package manifests and lockfiles
-- build and test configs
-- container or deployment files
-- CI workflows
-- environment examples
-- migration files and schema files
-- queue or job configs
-- API definitions
-- infra-as-code files when present
-- integration tests and smoke tests
-- package scripts, task runners, Makefiles, npm scripts, editor scripts, notebooks, admin tools, support scripts, one-shot ops scripts when present
-- app manifests, platform config, engine config, entitlement files, crash or analytics setup, provisioning files, CI or CD workflows, release automation, remote-config hooks, feature-flag integration points when present
-- copy, content, locale, transcreation, text-lint, generated-prose, prompt, and template docs when present
-
-## Deliverables
-
-Create or update:
-- `docs/architecture/system-map.md` (or `service-map.md` if the repo already uses that filename)
-- `docs/unknowns/architecture-pass.md`
-
-Use a coverage ledger or nested ledgers when one flat map would hide gaps.
-
-Use the `system-map.md` template under `assets/templates/` for structure.
-
-## What to put in `docs/architecture/system-map.md`
-
-### 1. System summary
-
-Short summary:
-- what the repo is
-- main runtime model
-- main data stores
-- main external dependencies
-- main high-risk domains
-- likely non-obvious live entrypoints and control-plane paths, if verified
-
-### 2. Runtime units and entrypoints
-
-List every runtime unit you can confirm: web app, API service, worker, scheduled job, queue consumer, CLI, serverless function, mobile app, browser extension, batch job, data pipeline, game client, authoritative server, editor tool, notebook or ops script that hits live systems, CI or CD job with live side effects, release or migration runner.
-
-For each:
-- what it does in one sentence
-- where it lives in the repo
-- how it starts
-- what it depends on
-- who calls it or what triggers it
-- what data or side effects it owns
-
-### 2a. Dependency, shipping, and reachability graphs
-
-Mixed and plugin-based repositories have several different graphs. Name the graph before calling a project, library, module, plugin, codec, binary, model, or optional feature referenced, unreferenced, reachable, imported, or dead:
-
-- solution or workspace membership, including configuration and architecture mappings
-- static project, package, module, or source references
-- dynamic discovery through registries, reflection, manifests, dependency injection, or directory scans
-- copy, package, publish, deployment, or release rules
-- runtime native-library, external-process, driver, model, asset, or SDK dependencies
-
-A node outside one graph may remain live through another. Do not infer a build blocker merely because a generated binary is absent from a clean checkout. Trace its source, build target, pinned dependency, preparation step, expected output, and packaging consumer.
-
-#### End-to-end reachability proof
-
-Trace every applicable link before assigning a terminal reachability label:
-
-1. implementation source and language or native boundary, including candidate-file and finding counts for negative searches
-2. build target, configuration, framework, and architecture mapping
-3. copy, package, publish, or deployment rule
-4. discovery, registration, reflection, manifest, or loader path
-5. native library, external process, driver, model, asset, or SDK dependency and expected location
-6. default and user-controlled enablement or selection
-7. invocation from a real entrypoint
-8. observed build, package, load, selection, and invocation for the exact target tuple
-
-Stop at the first broken or unproven link and name it. Text can prove configuration, but a behavioral reachability claim remains `inferred` until observed. Failure in one target tuple does not prove the feature unreachable in every supported tuple.
-
-Use these terminal descriptions:
-
-- `reachable-observed` - every applicable link, including link 8, was observed for the named tuple
-- `configured-not-observed` - links 1 through 7 are evidenced, but link 8 was not observed
-- `blocked-at-link-N` - a required link is proven absent or failed for the named tuple
-- `unknown-at-link-N` - evidence for the link was unavailable
-- `not-applicable` - the link genuinely does not apply; state why
-
-### 3. Interface surface
-
-Map the ways the system is entered: REST routes, GraphQL operations, gRPC methods, message topics and consumers, webhooks, CLI commands, scheduled tasks, UI actions that trigger backend flows, public library APIs, package scripts or task targets that touch live systems, notebooks or support tools that can read or write live state, editor import or build hooks when they affect shipped behavior, CI or CD jobs, release scripts, migration runners that can deploy, seed, migrate, backfill, or repair live state.
-
-For each entrypoint:
-- method or trigger
-- path, topic, command, target, or function name
-- what it does
-- whether auth or special privileges are required
-- what data it reads or writes
-- what downstream systems it touches
-
-### 4. Data stores and schemas
-
-List each data store: SQL tables, NoSQL collections, object storage buckets, search indexes, cache keys or namespaces, vector stores, local device storage, save files or cloud saves, feature-flag config, files on disk that matter at runtime, remote state for infra, model registries and eval artifacts.
-
-For each:
-- what it stores
-- key entities or fields
-- important relationships
-- retention or deletion notes if visible in code
-- anything non-obvious about how it is used
-
-Do not dump every field. Keep the map readable.
-
-### 4a. Language and rendered-text surfaces
-
-If the repo has player-facing or user-facing text, map the surfaces that could blur display and truth: UI copy, authored content, templates, prompts, localized files, generated prose, saved summaries, email text, notifications, policy text, and test snapshots that lock wording.
-
-For each:
-- owning layer or package
-- whether it is display, truth, or mixed
-- whether it is persisted
-- whether it feeds ids, hashes, replay, ranking, permissions, billing, analytics, migrations, or validation
-- what docs, tests, or validators protect the boundary
-
-### 5. External dependencies
-
-List every external system the repo talks to: identity providers, payment providers, email or SMS services, storage providers, search services, analytics and telemetry vendors, error tracking, AI providers, platform commerce APIs, internal company APIs outside the repo, cloud control planes and secret stores.
-
-For each:
-- why the repo uses it
-- how it is configured
-- which runtime units depend on it
-- what breaks if it is down
-- any retry, fallback, dead-letter, or manual recovery behavior you can confirm
-
-### 6. Secrets and configuration
-
-List every environment variable, secret name, key config file, config input, and out-of-repo control surface the system needs.
-
-Rules:
-- include key names only
-- do not include values
-- note which runtime unit, control-plane path, or external system uses each one
-- note whether it is required, optional, or environment-specific when the code makes that clear
-- call out remote config, feature-flag vendors, CMS-backed behavior, app-store or platform consoles, and similar out-of-repo inputs when they change live behavior
-
-### 7. Trust boundaries and privilege edges
-
-Mark where trust changes: internet to API, browser to backend, public user to authenticated user, standard user to admin user, app server to database, service to third-party API, worker consuming untrusted messages, game client to authoritative server, mobile app to native bridge or secure storage, repo runner to cloud control plane, CI or CD system to deploy target or migration target, release tooling to app-store or platform console, model or agent layer to tool execution.
-
-For each boundary:
-- what validation or auth happens there
-- what assumptions the code makes
-- what can go wrong if the boundary is handled loosely
-
-### 8. Critical data flows
-
-Document applicable critical flows at a high level. Examples: signup to first successful login, checkout or billing event, file upload and processing, match or ranking or recommendation generation, admin action with side effects, user deletion or export, message send or notification fanout, third-party webhook ingestion, save or restore of game or mobile state, model prompt to tool call to result storage, infra plan, apply, import, or drift repair path.
-
-For each flow:
-- the trigger
-- the main entrypoints involved
-- which data stores are read or written
-- which background jobs or queues are used
-- which external systems are hit
-- key trust boundaries crossed
-
-### 8a. Rule authority and diagnostics
-
-For each important rule, name:
-
-- the canonical implementation
-- downstream views, adapters, migrations, or compatibility layers
-- the guard that detects divergence
-- any approved duplicate and its expiry or ownership
-
-Also state whether diagnostics, black boxes, tracing, analytics, and test probes are observational only. If authoritative behavior reads diagnostic state, treat that as a trust boundary and explain why.
-
-### 9. Operational notes
-
-Capture anything verifiable about deployment topology, feature flags, retries and backoff, idempotency, locking or concurrency controls, cleanup jobs, backfills or scheduled maintenance, package scripts or notebook flows used for prod support, CI or CD automation and release tooling that can change live behavior, remote config or feature-flag surfaces outside the repo, manual recovery steps that appear in repo docs or scripts.
-
-### 10. Known gaps and rough edges
-
-If something is messy, say so. If ownership is unclear, say that. If one clean path hides a second path through a script, tool, notebook, or admin task, name both.
-
-## What to put in `docs/unknowns/architecture-pass.md`
-
-Record anything you cannot confidently explain. Use the unknowns entry shape from `00-conventions.md`.
-
-## Worked example: a runtime-unit row
-
-A useful row names what runs, where it starts, and what it owns. Both rows below describe the same worker; the first is enough to act on, the second is filler.
-
-```markdown
-| Unit | What it does | Where it lives | How it starts | Depends on | Triggered by | Data/side effects |
-|---|---|---|---|---|---|---|
-| billing-worker | retries failed Stripe charges; writes idempotency keys | services/billing-worker | systemd unit `billing-worker.service` (prod); `pnpm dev:billing` (local) | Stripe API, Postgres `billing_attempts`, Redis lock keys | scheduler in cron-runner | writes `billing_attempts`; emits `billing.retry` events |
-| billing-worker | handles billing | apps/billing | runs in production | the system | scheduler | various |
-```
-
-The first row can survive a code change. The second cannot.
-
-## Rules
-
-- No application code changes. No inline comments in this pass.
-- Prefer tables and short lists over long prose.
-- Use the repo's real names for systems and modules.
-- Do not let one clean runtime path hide a second entrypoint with side effects.
-- Do not flatten out-of-repo control surfaces, submodules, sibling repos, or vendor dashboards into full local coverage.
-
-## Acceptance checklist
-
-The result should let a new teammate answer:
-- what runs here
-- how requests, jobs, commands, scripts, or tools enter the system
-- where important data lives
-- which third parties matter
-- which secrets and config inputs exist
-- where the trust boundaries are
-- which non-obvious live entrypoints and control-plane paths exist
-- which out-of-repo boundaries still shape behavior
-- what is still unclear
+Finish when every declared unit and boundary has evidence or an explicit gap with impact and next check. Do not let one clean path stand in for a parallel script, native target, sibling repository or remote control plane. Commenting, remediation and harness installation are separate requested outcomes.

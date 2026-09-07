@@ -159,7 +159,7 @@ jobs:
           python -c "import locale, sys, tempfile; print('locale', locale.getpreferredencoding(False)); print('fsenc', sys.getfilesystemencoding()); print('tmp', tempfile.gettempdir())"
           python -m pytest anti-dark-code/tests -q -n auto
 
-  mutation-replay:
+  mutation-replay-shards:
     # Linux is the required replay host, and this is the first time the
     # mutation matrix runs anywhere but a developer's machine.
     #
@@ -175,9 +175,13 @@ jobs:
     # what the host could not observe rather than what the code does. Linux
     # can observe all of it: the suite runs with no skips. Windows and macOS
     # keep their suite legs above and are deliberately not replay hosts.
-    name: Mutation replay (Linux)
+    name: Mutation replay shard ${{ matrix.shard }} (Linux)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
 
     steps:
       - name: Check out the candidate
@@ -196,13 +200,41 @@ jobs:
           set -euo pipefail
           python -m pip install --disable-pip-version-check --quiet pytest
 
-      - name: Replay every mutant
+      - name: Replay this partition of the complete matrix
         shell: bash
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
         run: |
           set -euo pipefail
           # No --write. The committed matrix is the record under review, and a
           # job that rewrites it would be grading its own homework.
-          python design/routing/mutants/replay.py --jobs 2
+          python -u - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          rows = json.loads(Path("design/routing/mutants/matrix.json").read_text(encoding="utf-8"))
+          identifiers = [row["id"] for row in rows]
+          if (not identifiers or any(not isinstance(value, str) or not value or value.startswith("-")
+                                     for value in identifiers)
+                  or len(set(identifiers)) != len(identifiers)):
+              raise ValueError("matrix IDs must be nonempty and unique")
+          partitions = [identifiers[index::4] for index in range(4)]
+          flattened = [value for partition in partitions for value in partition]
+          if (len(flattened) != len(identifiers) or len(set(flattened)) != len(flattened)
+                  or set(flattened) != set(identifiers)):
+              raise ValueError("shards must cover every matrix ID exactly once")
+          index = int(os.environ["SHARD_INDEX"])
+          if not 0 <= index < len(partitions) or not partitions[index]:
+              raise ValueError("invalid or empty matrix shard")
+          selected = partitions[index]
+          print(f"Shard {index + 1}/{len(partitions)}: {len(selected)}/{len(identifiers)} matrix IDs: {selected}", flush=True)
+          result = subprocess.run([sys.executable, "-u", "design/routing/mutants/replay.py",
+                                   "--jobs", "2", *selected], check=False)
+          raise SystemExit(result.returncode)
+          PY
 
       - name: Refuse a run that did not put the source back
         shell: bash
@@ -233,6 +265,24 @@ jobs:
   # job that must pass. That is the point. It now lives beside the jobs it
   # governs, changes in the same commit, and shows up in review, instead of
   # sitting in a settings page no diff ever touches.
+  mutation-replay:
+    name: Mutation replay (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [mutation-replay-shards]
+    if: always()
+    steps:
+      - name: Refuse unless every mutation shard succeeded
+        shell: bash
+        env:
+          MUTATION_SHARDS_RESULT: ${{ needs.mutation-replay-shards.result }}
+        run: |
+          set -euo pipefail
+          echo "mutation shards=${MUTATION_SHARDS_RESULT}"
+          if [ "$MUTATION_SHARDS_RESULT" != "success" ]; then
+            exit 1
+          fi
+
   shadow:
     # SLICE-002. Records what the proposed routing rules would have skipped on
     # this change and whether anything they skipped failed. It is deliberately

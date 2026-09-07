@@ -1623,8 +1623,7 @@ def command_dominance(args: argparse.Namespace, adc_module=None) -> int:
     gates_source = json.loads(
         (calibration / "gates.json").read_text(encoding="utf-8"))
 
-    if not gates_source.get("execution_policy", {}).get(
-            "owner_confirmed_safe_to_execute"):
+    if not adc.owner_execution_confirmed(gates_source):
         print("REFUSED: the dominance probe runs every gate, and gates.json "
               "does not record owner confirmation. Review the commands, then "
               "set execution_policy.owner_confirmed_safe_to_execute to true.")
