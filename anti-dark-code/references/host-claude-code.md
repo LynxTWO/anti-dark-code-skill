@@ -23,3 +23,5 @@ Treat any saved run or cache feature as an optional host facility. On resume, in
 For Claude-style reported counters, normalized input is uncached input plus cache creation plus cache read; normalized output is the reported output. Provider total is normalized input plus output under that declared counter contract. Cache counters are input subsets after normalization, not additional totals.
 
 Keep absent counters null, inspect the exact source format, and pin usage_semantics and adapter version. UI quotas and estimates are not reported token counts. Apply [efficiency rules](16-community-feedback-and-efficiency.md) before recording, comparing or publishing results.
+
+The [passive collector](real-world-usage.md) deduplicates message IDs and accepts a single matching message-iteration mirror. Unsupported compaction/fallback iterations remain coverage gaps. Without established user-task boundaries, Claude request units do not enter trigger scores. [Model selection](model-selection.md) accepts a caller-supplied provider catalog; use only the active host's authorized model controls and record actual attribution.

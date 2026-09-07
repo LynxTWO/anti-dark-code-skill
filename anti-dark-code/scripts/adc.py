@@ -2685,16 +2685,9 @@ def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: floa
     }
 
     if os.name == "nt":
-        break_event = getattr(signal, "CTRL_BREAK_EVENT", None)
-        if break_event is not None and proc.poll() is None:
-            try:
-                proc.send_signal(break_event)
-                result["graceful_signal_sent"] = True
-            except (OSError, ValueError) as exc:
-                result["errors"].append(f"CTRL_BREAK_EVENT failed: {exc}")
-        try:
-            proc.wait(timeout=grace_seconds)
-        except subprocess.TimeoutExpired:
+        # Kill the tree while its root still identifies it. CTRL_BREAK can exit
+        # only the parent, leaving a descendant holding the raw output handle.
+        if proc.poll() is None:
             try:
                 taskkill = subprocess.run(
                     ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
@@ -2708,12 +2701,12 @@ def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: floa
                 result["taskkill_exit_code"] = taskkill.returncode
             except (FileNotFoundError, OSError, subprocess.TimeoutExpired) as exc:
                 result["errors"].append(f"taskkill failed: {exc}")
-            if proc.poll() is None:
-                try:
-                    proc.kill()
-                    result["forced_kill_sent"] = True
-                except OSError as exc:
-                    result["errors"].append(f"direct kill failed: {exc}")
+        if proc.poll() is None:
+            try:
+                proc.kill()
+                result["forced_kill_sent"] = True
+            except OSError as exc:
+                result["errors"].append(f"direct kill failed: {exc}")
         try:
             proc.wait(timeout=grace_seconds)
         except subprocess.TimeoutExpired:
@@ -4593,6 +4586,22 @@ def command_validate_incoming(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_usage_tools(args: argparse.Namespace) -> int:
+    """Local observation/policy helpers never execute repository or model work."""
+    helper_path = Path(__file__).with_name(args.helper_name)
+    spec = importlib.util.spec_from_file_location(helper_path.stem, helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit("Could not load local usage helper")
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
+    return int(module.main(args.helper_args))
+
+
 def load_efficiency_helper() -> Any:
     helper_path = Path(__file__).with_name("adc_efficiency.py")
     spec = importlib.util.spec_from_file_location("adc_efficiency", helper_path)
@@ -5073,6 +5082,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("efficiency_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_efficiency)
 
+    for name, helper, description in (
+        ("usage", "adc_usage.py", "Observe opted-in local usage and task feedback without model calls"),
+        ("model-select", "adc_model_policy.py", "Recommend an eligible model using an offline policy"),
+    ):
+        p = sub.add_parser(name, help=description, add_help=False)
+        p.add_argument("helper_args", nargs=argparse.REMAINDER)
+        p.set_defaults(func=command_usage_tools, helper_name=helper)
+
     p = sub.add_parser("shadow", help="Build and read shadow evidence records for the routing campaign")
     p.add_argument("shadow_args", nargs=argparse.REMAINDER)
     p.set_defaults(func=command_shadow)
@@ -5100,6 +5117,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    forwarded = list(sys.argv[1:] if argv is None else argv)
+    helpers = {"usage": "adc_usage.py", "model-select": "adc_model_policy.py"}
+    if forwarded and forwarded[0] in helpers:
+        return command_usage_tools(argparse.Namespace(
+            helper_name=helpers[forwarded[0]], helper_args=forwarded[1:]))
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

@@ -90,6 +90,9 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def init_git_repo(self, root: Path) -> None:
         subprocess.run(["git", "init", "-q", str(root)], check=True)
+        # Git can detach automatic maintenance after the first fixture commit,
+        # racing TemporaryDirectory cleanup on newer Git releases.
+        subprocess.run(["git", "-C", str(root), "config", "maintenance.auto", "false"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.email", "tests@example.invalid"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.name", "Anti Dark Code Tests"], check=True)
         subprocess.run(["git", "-C", str(root), "add", "."], check=True)
@@ -465,13 +468,10 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
     def test_windows_forced_tree_kill_is_exercised_when_the_graceful_signal_fails(self) -> None:
         """The Windows escalation carries its own claim and needs its own test.
 
-        terminate_gate_process_tree tries CTRL_BREAK_EVENT first and only falls
-        through to `taskkill /T` when the gate outlives the grace period. On this
-        platform the graceful signal already takes the console process group with
-        it, so the orphan test above passes whether or not `/T` is present:
-        deleting the flag leaves the suite green, which makes the forced path
-        untested rather than proven. Disabling the graceful signal forces the
-        escalation and puts the tree-kill under the same assertion.
+        A direct parent can exit after CTRL_BREAK_EVENT while a descendant keeps
+        the inherited raw-log handle open. The timeout path must kill the tree
+        while the parent PID still identifies it, rather than treating the
+        direct-parent exit as evidence that the tree is gone.
         """
         if os.name != "nt":
             self.skipTest("Windows termination escalation")
@@ -480,7 +480,8 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             marker = repo / "orphan-survived.txt"
             spawner = (
                 "import subprocess, sys, time\n"
-                f"subprocess.Popen([sys.executable, '-c', \"import time; time.sleep(6); "
+                f"subprocess.Popen([sys.executable, '-c', \"import signal, time; "
+                "signal.signal(signal.SIGBREAK, signal.SIG_IGN); time.sleep(6); "
                 # as_posix, because this path is embedded two string levels deep and
                 # the outer level is not raw. A Windows temp path under C:/Users reaches
                 # the gate's parser as a truncated unicode escape, and the gate dies of a
@@ -491,18 +492,12 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 "time.sleep(120)\n"
             )
             self.gate_repo(repo, [sys.executable, "-c", spawner], 2)
-            real_break = getattr(signal, "CTRL_BREAK_EVENT", None)
-            try:
-                if real_break is not None:
-                    delattr(signal, "CTRL_BREAK_EVENT")
-                with contextlib.redirect_stdout(io.StringIO()):
-                    self.assertEqual(
-                        adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1
-                    )
-            finally:
-                if real_break is not None:
-                    signal.CTRL_BREAK_EVENT = real_break
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    adc.run_gates(repo, 0, allow_exec=True, changed_from=None, keep_going=False), 1
+                )
             self.assert_timed_out(repo)
+            self.assertEqual(list((repo / ".anti-dark-code" / "runs").rglob(".*.raw.tmp")), [])
             time.sleep(9)
             self.assertFalse(
                 marker.exists(),

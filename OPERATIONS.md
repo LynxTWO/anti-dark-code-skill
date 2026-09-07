@@ -11,6 +11,8 @@ These workflows are explicit maintenance or publication engagements. They are no
 | Intake community proposals/receipts | [CONTRIBUTING.md](CONTRIBUTING.md), [community evidence](anti-dark-code/references/16-community-feedback-and-efficiency.md) |
 | Prepare a release | Release validation below and [CHANGELOG.md](CHANGELOG.md) |
 | Measure efficiency | [Efficiency evidence](anti-dark-code/references/16-community-feedback-and-efficiency.md) |
+| Collect ordinary local usage and task feedback | [Real-world usage](anti-dark-code/references/real-world-usage.md), procedure below |
+| Select an eligible model for the next task | [Model selection](anti-dark-code/references/model-selection.md) |
 | Measure candidate routing | [Shadow evidence](anti-dark-code/references/shadow-evidence.md) |
 | Configure host discovery | [Host adapters](anti-dark-code/references/host-adapters.md) |
 
@@ -58,6 +60,40 @@ python3 .agents/skills/anti-dark-code/scripts/adc.py gates --repo . --level 1
 Runner exit codes: 0 means a valid dry run, no applicable gates or all executed gates passed; 1 means executed failure, including timeout 124; 2 means refused binding/approval/source/confirmation; 130 means operator interruption. Report planned and executed counts separately. Timeout process-tree termination is best-effort containment, not a sandbox.
 
 route selects change-to-verification requirements; it is not the task-card selector. Preserve conservative routing when dependency/control-plane impact is unknown. Shadow evidence does not enable selective execution.
+
+## Opt-in local usage and task feedback
+
+The passive helper reads only explicitly selected local Codex or Claude source roots. It records usage from the opt-in time onward in a separate private ledger. It makes no provider calls, replays no tasks, stores no transcript text and uploads nothing. It reads source rows in memory to extract counters and bounded metadata; this is local source access, not a promise that transcripts are never read.
+
+From the package repository, choose absolute source and ledger paths that do not overlap:
+
+~~~text
+python anti-dark-code/scripts/adc_usage.py init --directory <private-ledger> --source codex=<absolute-session-root> --opt-in
+python anti-dark-code/scripts/adc_usage.py collect --directory <private-ledger>
+python anti-dark-code/scripts/adc_usage.py summary --directory <private-ledger>
+~~~
+
+Use `--source claude=<absolute-session-root>` for Claude, or supply both hosts once. Initialization records the start time; it does not install a background watcher. Run another collection pass after ordinary work, or through an explicitly authorized host integration. Passes resume bounded reads and deduplicate observed requests. A reported backlog needs another pass; malformed, unsupported or incomplete records appear in diagnostics. Inspect known subtotals and missing-event counts together. Disabling collection retains history:
+
+~~~text
+python anti-dark-code/scripts/adc_usage.py disable --directory <private-ledger>
+~~~
+
+The summary lists observed task identifiers. Add optional structured feedback against one of those identifiers:
+
+~~~text
+python anti-dark-code/scripts/adc_usage.py feedback --directory <private-ledger> --task-id <observed-task-id> --used yes --expected yes --invocation implicit --quality passed --task-class audit
+~~~
+
+Use `unknown` where evidence is missing. Label explicit invocations as explicit; the trigger feedback calculation includes only eligible turn scopes with known implicit-use and expectation labels. Its precision and recall describe that labeled sample, not population accuracy. Quality feedback is an operator label, not an independent oracle or permission. See [real-world usage](anti-dark-code/references/real-world-usage.md) for source coverage, metadata, task grouping and limits.
+
+Natural task usage stays separate from controlled efficiency receipts. It does not establish causal savings, billing totals, subscription dollars or remaining quota. Requested model settings and host-reported attribution are distinct; keep unknown attribution and counter breakdowns unknown.
+
+## Conditional host model selection
+
+The [model policy helper](anti-dark-code/references/model-selection.md) uses caller-supplied live models and capabilities plus a dated catalog to recommend a route for the next real task. It does not switch a host setting or call a model. The assistant may apply a recommendation through an exposed host control within existing authorization; unsupported hosts keep the current route.
+
+Bounded, directly checkable work can use an economy tier; routine scoped work uses a standard tier; consequential or ambiguous work uses a strong tier. Candidate controls and exact effort must satisfy the task. Unknown requirements, missing acceptance checks or stale catalogs keep the current model. After a real acceptance failure, retain the failure evidence and both attempts if selecting one stronger eligible route. Do not replay successful tasks to compare models. Catalog prices and relative ranks are dated guidance, not measured quality or the user's subscription bill.
 
 ## Flowback and intake
 

@@ -1,14 +1,14 @@
 {
   "generator": "Chrome 152.0.7977.66 headless print-to-pdf (Windows)",
-  "normalized_pdf_sha256": "0fbcc3aa20585f057707e680812b41d98c979ad0dc95ff82adedc54f98b938a6",
-  "pdf_sha256": "28cf9f9eec4b1847fb2d3b0f10d44ad1c8d17b9d4366fdb6cbbea8593c05e7c1",
+  "normalized_pdf_sha256": "0d6a909bcb8b4b628dabb6351679681797001484c5c114a7e1303f22376b12fe",
+  "pdf_sha256": "4ef49a58fc177283c0a4799843e64cb14924d9e446ba080b65f32c7c854802b3",
   "schema_version": 1,
-  "source_sha256": "c2598ecffb662dd2dbd0bc5ac0194477d4e56301b241757d2215b261184f4eec",
+  "source_sha256": "b2c1ceec6d00b6915c68c8e91997bcee8058dbecb51661be2de86a9cfde52f60",
   "validated_with": {
     "page_count": 6,
-    "render": "Poppler pdftoppm PNG; release header/footer visually reviewed, other four pages pixel-identical to reviewed candidate",
-    "text": "pypdf extracted release version on last page",
-    "version": "2026.09.07-unified.13"
+    "render": "Poppler pdftoppm PNG; pages 1, 5 and 6 visually reviewed; pages 2-4 pixel-identical to previous release",
+    "text": "pypdf extracted current version; all previous link destinations and page locations retained",
+    "version": "2026.09.07-unified.14"
   },
-  "version": "2026.09.07-unified.13"
+  "version": "2026.09.07-unified.14"
 }
