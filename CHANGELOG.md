@@ -13,6 +13,8 @@
 - Replace identifying consumer case-study names with explicitly qualified generic examples, preserve design decision IDs, and keep illustrative gates disabled/proposed. Real repositories retain their own calibration.
 - Disable automatic Git maintenance only in disposable efficiency-test repositories. Git 2.55 detached pack writers reproduced a cleanup race; the same 400-case stress passed after the fixture change, with assertions and cleanup checks unchanged (`tests/test_efficiency.py`).
 
+- Partition all mutation-matrix IDs across four required Linux jobs after the single job exceeded its 25-minute limit. Keep the existing replay, per-shard restoration checks, and stable required aggregate. Workflow contracts prove complete, disjoint coverage and failure propagation (`.github/workflows/tests.yml`, `tests/test_route.py`).
+
 ### Reference and template migration inventory
 
 The task cards and conditional specialist recipes hold the extracted obligations. Numbered entries remain compatible, with repeated rules delegated to the core; host mechanics and assurance contracts have their own references. The following references and templates changed in this release:

@@ -6472,17 +6472,87 @@ class RequirementTraceabilityTests(unittest.TestCase):
 
 
 class WorkflowParallelContractTests(unittest.TestCase):
+    def _shard_block(self) -> str:
+        text = (REPO_ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        return text.split("\n  mutation-replay-shards:", 1)[1].split(
+            "\n  mutation-replay:", 1)[0]
+
+    def _invoke_shard(self, rows, index, returncode=0):
+        block = self._shard_block()
+        script = block.split("python -u - <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
+        script = "\n".join(line[10:] for line in script.splitlines())
+        with mock.patch.dict(os.environ, {"SHARD_INDEX": str(index)}), \
+                mock.patch.object(Path, "read_text", return_value=json.dumps(rows)), \
+                mock.patch.object(subprocess, "run") as run, \
+                contextlib.redirect_stdout(io.StringIO()):
+            run.return_value.returncode = returncode
+            try:
+                exec(compile(script, "<workflow-shard>", "exec"), {})
+            except SystemExit as outcome:
+                self.assertEqual(returncode, outcome.code)
+            except ValueError:
+                run.assert_not_called()
+                raise
+            else:
+                self.fail("the shard discarded the replay exit status")
+        run.assert_called_once()
+        command = run.call_args.args[0]
+        self.assertEqual([sys.executable, "-u", "design/routing/mutants/replay.py",
+                          "--jobs", "2"], command[:5])
+        self.assertEqual({"check": False}, run.call_args.kwargs)
+        return command[5:]
+
     def test_workflow_uses_proven_parallel_verification(self) -> None:
         text = (REPO_ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
         self.assertEqual("adopted", json.loads((REPO_ROOT / "design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json").read_text())["adoption"])
         self.assertEqual(2, text.count("pip install --disable-pip-version-check --quiet pytest pytest-xdist"))
         self.assertGreaterEqual(text.count("python -m pytest anti-dark-code/tests -q -n auto"), 2)
-        replay = re.findall(r"^\s*(python design/routing/mutants/replay\.py[^\n]*)$", text, re.M)
-        self.assertEqual(["python design/routing/mutants/replay.py --jobs 2"], replay)
-        self.assertNotIn("--id", replay[0])
-        self.assertNotIn("--write", replay[0])
-        # A selector is not an equivalent parallel replay command.
-        self.assertNotEqual(replay[0], "python design/routing/mutants/replay.py --jobs 2 --id M01")
+        shards = self._shard_block()
+        self.assertIn("fail-fast: false", shards)
+        self.assertIn("timeout-minutes: 25", shards)
+        self.assertIn("SHARD_INDEX: ${{ matrix.shard }}", shards)
+        self.assertIn('if [ -n "$(git status --porcelain)" ]; then', shards)
+        self.assertIn("exit 1", shards)
+
+    def test_every_matrix_row_runs_once_across_the_actual_workflow_legs(self) -> None:
+        block = self._shard_block()
+        indices = json.loads(re.search(r"shard: (\[[^\n]+\])", block).group(1))
+        self.assertEqual([0, 1, 2, 3], indices)
+        rows = json.loads(MATRIX.read_text(encoding="utf-8"))
+        expected = [row["id"] for row in rows]
+        partitions = [self._invoke_shard(rows, index) for index in indices]
+        for index, selected in zip(indices, partitions):
+            self.assertEqual(expected[index::len(indices)], selected)
+        flattened = [identifier for partition in partitions for identifier in partition]
+        self.assertEqual(len(expected), len(flattened))
+        self.assertEqual(len(flattened), len(set(flattened)))
+        self.assertEqual(set(expected), set(flattened))
+
+    def test_invalid_matrix_or_shard_cannot_start_a_replay(self) -> None:
+        for rows in ([], [{"id": "M01"}, {"id": "M01"}], [{"id": ""}],
+                     [{"id": 1}], [{"id": "--write"}]):
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                self._invoke_shard(rows, 0)
+        rows = [{"id": f"M{index}"} for index in range(4)]
+        for index in (-1, 4, "invalid"):
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                self._invoke_shard(rows, index)
+
+    def test_replay_failures_remain_failures(self) -> None:
+        rows = [{"id": f"M{index}"} for index in range(4)]
+        for returncode in (1, 2, -9):
+            with self.subTest(returncode=returncode):
+                self._invoke_shard(rows, 0, returncode)
+
+    def test_stable_aggregate_requires_all_shards(self) -> None:
+        text = (REPO_ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        aggregate = text.split("\n  mutation-replay:", 1)[1].split("\n  shadow:", 1)[0]
+        self.assertIn("name: Mutation replay (Linux)\n", aggregate)
+        self.assertIn("needs: [mutation-replay-shards]", aggregate)
+        self.assertIn("if: always()", aggregate)
+        self.assertIn("MUTATION_SHARDS_RESULT: ${{ needs.mutation-replay-shards.result }}", aggregate)
+        self.assertIn('if [ "$MUTATION_SHARDS_RESULT" != "success" ]; then', aggregate)
+        self.assertIn("exit 1", aggregate)
 
 
 @unittest.skipUnless(MATRIX.is_file(), "mutation matrix is not part of this tree")
