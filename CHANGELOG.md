@@ -11,6 +11,7 @@
 - Preserve CLI dry-run defaults, execution reviews, approval drift checks, source binding and proposal-only flow-back. Qualification records distinguish permission-limited checks from executed coverage; no timeouts or assertions were weakened.
 - Update `README.md`, `OPERATIONS.md`, the HTML overview and regenerated PDF to describe the implemented workflow. Preserve the original ASCII banner, Sponsor text, palette, metrics script and PDF navigation.
 - Replace identifying consumer case-study names with explicitly qualified generic examples, preserve design decision IDs, and keep illustrative gates disabled/proposed. Real repositories retain their own calibration.
+- Disable automatic Git maintenance only in disposable efficiency-test repositories. Git 2.55 detached pack writers reproduced a cleanup race; the same 400-case stress passed after the fixture change, with assertions and cleanup checks unchanged (`tests/test_efficiency.py`).
 
 ### Reference and template migration inventory
 
