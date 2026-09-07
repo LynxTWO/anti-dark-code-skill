@@ -8,6 +8,7 @@
 - Document collection and feedback in `references/real-world-usage.md`; update `references/host-codex.md`, `references/host-claude-code.md` and `references/16-community-feedback-and-efficiency.md` while preserving the separate controlled-pair contract. Update `README.md`, `OPERATIONS.md`, the HTML overview and six-page PDF brief for the implemented behavior.
 - Reject common credential-shaped values in model, provider and effort metadata while retaining usage with unknown attribution (`tests/test_usage_sources.py`). This filter does not establish that arbitrary metadata is secret-free.
 - Disable detached automatic Git maintenance in the remaining disposable Git fixtures (`tests/test_adc.py`). Git 2.55 tracing reproduced 135 cleanup failures in 400 baseline runs; all 100 fixed runs passed without a maintenance process. Existing cleanup and behavior assertions remain intact.
+- On Windows, force termination of a timed-out gate's process tree before its parent exits. A descendant ignoring the console break signal previously survived the parent and retained the raw output handle. The regression in `tests/test_adc.py` checks timeout failure, raw-output removal and descendant survival; termination remains best effort and cannot earn a passing gate result.
 
 ## 2026.09.07-unified.13
 

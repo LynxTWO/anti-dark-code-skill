@@ -2685,16 +2685,9 @@ def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: floa
     }
 
     if os.name == "nt":
-        break_event = getattr(signal, "CTRL_BREAK_EVENT", None)
-        if break_event is not None and proc.poll() is None:
-            try:
-                proc.send_signal(break_event)
-                result["graceful_signal_sent"] = True
-            except (OSError, ValueError) as exc:
-                result["errors"].append(f"CTRL_BREAK_EVENT failed: {exc}")
-        try:
-            proc.wait(timeout=grace_seconds)
-        except subprocess.TimeoutExpired:
+        # Kill the tree while its root still identifies it. CTRL_BREAK can exit
+        # only the parent, leaving a descendant holding the raw output handle.
+        if proc.poll() is None:
             try:
                 taskkill = subprocess.run(
                     ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
@@ -2708,12 +2701,12 @@ def terminate_gate_process_tree(proc: subprocess.Popen[Any], grace_seconds: floa
                 result["taskkill_exit_code"] = taskkill.returncode
             except (FileNotFoundError, OSError, subprocess.TimeoutExpired) as exc:
                 result["errors"].append(f"taskkill failed: {exc}")
-            if proc.poll() is None:
-                try:
-                    proc.kill()
-                    result["forced_kill_sent"] = True
-                except OSError as exc:
-                    result["errors"].append(f"direct kill failed: {exc}")
+        if proc.poll() is None:
+            try:
+                proc.kill()
+                result["forced_kill_sent"] = True
+            except OSError as exc:
+                result["errors"].append(f"direct kill failed: {exc}")
         try:
             proc.wait(timeout=grace_seconds)
         except subprocess.TimeoutExpired:
