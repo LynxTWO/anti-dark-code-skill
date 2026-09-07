@@ -6613,7 +6613,7 @@
     "suite": [
       "anti-dark-code/tests/test_route_cli.py"
     ],
-    "old": "    if not gates_source.get(\"execution_policy\", {}).get(\n            \"owner_confirmed_safe_to_execute\"):",
+    "old": "    if not adc.owner_execution_confirmed(gates_source):",
     "new": "    if False:",
     "verdict": "pending",
     "pytest": "",

@@ -1,5 +1,7 @@
 # Assurance Router Decision Log
 
+> Privacy edition: external repository and owner identities are withheld. Case labels below refer to anonymized historical observations; they are not measurements of the illustrative example configuration. Source-specific permissions do not transfer to that example or any other repository. This document records ADC history, not a current instruction or authorization to act.
+
 Version: 1.0. Date: 2026-08-30. Status: Audited.
 Companion documents: ARCHITECTURE.md, ENGINEERING.md, SLICE-001-route-shadow.md.
 
@@ -4238,11 +4240,11 @@ Area: D-125, D-127, SLICE-002 sections 2, 5, 6 and 13, `adc_shadow.py`, R-061, R
 Context:
 D-127 replayed today's router over merge commits. The field study measured
 what that population contains, and the challenge of this revision re-derived
-it like for like. On vitejs/vite, lint concluded failure on none of 216 push
+it like for like. On case-c, lint concluded failure on none of 216 push
 runs for merges and in 57 of 309 pull-request CI runs. Of the 57, 36
 co-occur with a matrix failure and would be inconclusive under section 2,
 one is unmeasurable, and of the 20 miss-shaped runs 19 force full under the
-study policy and one, run 33323484002 with a failed type check, is a routed
+study policy and one, run <historical-run-id> with a failed type check, is a routed
 miss the merge population could not show, against the twelve clean records
 it did show for the same route. A merge is a change whose pull-request run
 passed the checks that gated it. Grading a candidate against it cannot see
@@ -4374,12 +4376,12 @@ Area: D-011, D-064, SLICE-002 sections 6, 8, 12 and 13, SLICE-003, `FIELD-STUDY-
 
 Context:
 Four repositories measured the same thing. Where a skip saves real minutes,
-the maintainers already skip by hand: vite's ten-line `changed-files`
+the maintainers already skip by hand: case-c's ten-line `changed-files`
 filter takes out 1084 machine-minutes across 216 merges and the router adds
 51, all of it lint. Where the router is safe, it saves a lint job. And the
 class a hand filter skips is unmeasurable by that filter's own doing: all 36
-of vite's `docs-only` records read `ci-test=skipped`. The blind spot is not
-vite's. It is what any selective execution does to the measurement that
+of case-c's `docs-only` records read `ci-test=skipped`. The blind spot is not
+case-c's. It is what any selective execution does to the measurement that
 justified it, and SLICE-003 would do it here on the first day.
 
 Decision:
@@ -4664,9 +4666,9 @@ Area: D-130, D-131, SLICE-002 sections 5 and 12, `references/shadow-evidence.md`
 Context:
 D-130 named routing's product as audit and said conclusions come from
 repositories with two or more authors. The field study measured five;
-1st-downs is the only one that can meet criterion 4: two authors, 45 pull
-requests, every record measurable, seven clean, no miss. The owner has
-Jeremy's consent to install the shadow job there. What a consumer needs and
+case-b is the only one that can meet criterion 4: two authors, 45 pull
+requests, every record measurable, seven clean, no miss. The original consent
+record is withheld and grants no permission for the illustrative example. What a consumer needs and
 where its evidence goes were never decided, and the shipped skill carries
 `adc_shadow.py` with no reference explaining it.
 
@@ -4701,10 +4703,11 @@ Documenting the campaign as a pass would put it in every audit's router; it
 belongs to the maintainer who installs it.
 
 Consequences:
-1st-downs' pull request adds four files and one job. The field study's
-1st-downs calibration is the starting point and is kept under
-`design/routing/consumers/JeremyABurton-1st-downs/` as the proposal that
-pull request copies, every rule `proposed` and execution unconfirmed. The
+case-b's historical proposal planned four files and one job. The directory
+`design/routing/consumers/example-consumer/` now preserves only an unbound
+illustration of that shape, with disabled/proposed gates and execution
+unconfirmed. It carries neither the original calibration binding nor any
+owner approval and must not be transplanted into another repository. The
 two-author requirement is met by pull request authorship, which ingest
 already records. The shipped skill needs a version that names the new
 reference and templates in its notes, because `release-check` reports a
@@ -4794,7 +4797,7 @@ current key, because M9 removed the construction PR #38's canary used, and
 it has no dominance record, because the probe cannot run here. Nothing is
 approved on this repository's evidence. The first repository where either
 path is exercised is a consumer whose gates are real commands, which is
-1st-downs (D-135). Dominance as a CI act, a dispatch that applies each probe
+case-b (D-135). Dominance as a CI act, a dispatch that applies each probe
 and runs the real jobs, is the owner's chosen second step and belongs to
 SLICE-003's design, not to this slice: it changes what CI does, and D-011
 keeps that behind the evidence this campaign is still gathering.

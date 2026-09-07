@@ -39,6 +39,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = SKILL_ROOT / "assets" / "verification-capabilities.json"
 CALIBRATION_TEMPLATE_DIR = SKILL_ROOT / "assets" / "templates" / "calibration"
 VERSION = (SKILL_ROOT / "VERSION").read_text(encoding="utf-8").strip() if (SKILL_ROOT / "VERSION").exists() else "unknown"
+PROBE_METHOD_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+PROBE_RUNTIME = {"executable": sys.executable, "version": sys.version, "platform": sys.platform}
 SOURCE_SCOPE_FILENAME = "SOURCE-SCOPE.json"
 SOURCE_SCOPE_KIND = "anti-dark-code-core"
 SOURCE_SCOPE_VALUE = "universal"
@@ -870,6 +872,15 @@ def validate_calibration_templates(template_dir: Path) -> list[str]:
     return errors
 
 
+def owner_execution_confirmed(config: Any) -> bool:
+    """Recognize only literal JSON true in the owner-controlled execution record."""
+    if not isinstance(config, dict):
+        return False
+    policy = config.get("execution_policy")
+    return (isinstance(policy, dict)
+            and policy.get("owner_confirmed_safe_to_execute") is True)
+
+
 def inspect_gate_config_for_migration(path: Path) -> dict[str, Any]:
     result = {
         "present": path.exists(),
@@ -893,7 +904,7 @@ def inspect_gate_config_for_migration(path: Path) -> dict[str, Any]:
     if duplicate_ids:
         result.update({"valid": False, "error": f"gates.json contains duplicate ids: {', '.join(duplicate_ids)}"})
         return result
-    result["owner_confirmed"] = bool(data.get("execution_policy", {}).get("owner_confirmed_safe_to_execute"))
+    result["owner_confirmed"] = owner_execution_confirmed(data)
     for gate in data.get("gates", []):
         if not isinstance(gate, dict):
             result.update({"valid": False, "error": "gates.json contains a non-object gate"})
@@ -1438,6 +1449,8 @@ def probe_repo(
     profile: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "generated_by": f"anti-dark-code {VERSION} adc.py probe",
+        "probe_method_sha256": PROBE_METHOD_SHA256,
+        "probe_runtime": dict(PROBE_RUNTIME),
         "generated_at_utc": utc_now(),
         "repo_root": ".",
         "source_identity": current_source_identity(repo),
@@ -1546,7 +1559,7 @@ def probe_repo(
 
     if "pnpm-workspace.yaml" in manifest_basenames or any(name in manifest_basenames for name in {"turbo.json", "nx.json"}) or sum(1 for m in manifests if m.endswith("package.json")) > 2:
         type_hints.add("monorepo")
-    if "project.godot" in manifest_basenames or any(name.endswith(".uproject") for name in manifest_basenames) or "ProjectSettings/ProjectVersion.txt" in all_rel or "assets" in top_parts:
+    if "project.godot" in manifest_basenames or any(name.endswith(".uproject") for name in manifest_basenames) or "ProjectSettings/ProjectVersion.txt" in all_rel:
         type_hints.add("game-simulation")
     if any(path.suffix.lower() == ".tf" for path in files) or any(r.startswith(("terraform/", "infra/", "infrastructure/", "k8s/", "helm/")) for r in all_rel):
         type_hints.add("infra-as-code")
@@ -3123,7 +3136,7 @@ def run_gates(repo: Path, level: int, allow_exec: bool, changed_from: str | None
         print("DRY RUN: add --allow-exec only after command behavior, repo ownership, and machine cost are reviewed.")
         return 0
 
-    owner_confirmed = bool(config.get("execution_policy", {}).get("owner_confirmed_safe_to_execute"))
+    owner_confirmed = owner_execution_confirmed(config)
     if not owner_confirmed:
         print("REFUSED: gates.json does not record owner confirmation. Review commands, then set execution_policy.owner_confirmed_safe_to_execute to true.")
         return 2
@@ -4241,6 +4254,10 @@ def command_probe(args: argparse.Namespace) -> int:
 
 
 def profile_is_fresh(repo: Path, profile: dict[str, Any]) -> bool:
+    if (profile.get("generated_by") != f"anti-dark-code {VERSION} adc.py probe"
+            or profile.get("probe_method_sha256") != PROBE_METHOD_SHA256
+            or profile.get("probe_runtime") != PROBE_RUNTIME):
+        return False
     recorded = profile.get("source_identity")
     if not isinstance(recorded, dict):
         return False
@@ -4248,6 +4265,12 @@ def profile_is_fresh(repo: Path, profile: dict[str, Any]) -> bool:
     # For a non-git directory, a cheap identity is unavailable. Re-probe rather
     # than treating old absence evidence as current truth.
     if current.get("git_commit") is None:
+        return False
+    # Porcelain records paths and states, not dirty file contents. Matching
+    # status hashes cannot prove that an already-dirty or untracked file is
+    # unchanged; only reuse profiles captured from and compared with clean trees.
+    if (recorded.get("worktree_clean") is not True
+            or current.get("worktree_clean") is not True):
         return False
     return (
         recorded.get("git_commit") == current.get("git_commit")

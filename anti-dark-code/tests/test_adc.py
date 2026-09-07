@@ -330,6 +330,49 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             }],
         }), encoding="utf-8")
 
+    def test_execution_requires_literal_boolean_owner_confirmation(self) -> None:
+        """Truthy JSON values cannot grant permission to launch a command."""
+        cases = [
+            (True, 0, True), (False, 2, False), ("false", 2, False),
+            ("true", 2, False), (1, 2, False), (0, 2, False),
+            (None, 2, False), ([], 2, False), ([True], 2, False),
+            ({"approved": True}, 2, False),
+        ]
+        policies = [({"owner_confirmed_safe_to_execute": value}, code, launched)
+                    for value, code, launched in cases]
+        policies += [(value, 2, False) for value in (None, True, "true", [True])]
+        policies.append(({}, 2, False))
+        for policy, expected_code, launched in policies:
+            with self.subTest(policy=policy), tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                self.gate_repo(repo, [sys.executable, "-c",
+                    "from pathlib import Path; Path('launched').write_text('yes')"], 10)
+                config_path = repo / ".agents/skills/anti-dark-code/calibration/gates.json"
+                config = json.loads(config_path.read_text(encoding="utf-8"))
+                config["execution_policy"] = policy
+                config_path.write_text(json.dumps(config), encoding="utf-8")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    result = adc.run_gates(repo, 0, True, None, False)
+                self.assertEqual(expected_code, result)
+                self.assertEqual(launched, (repo / "launched").exists())
+                self.assertEqual(launched, (repo / ".anti-dark-code/runs").exists())
+
+    def test_migration_does_not_coerce_owner_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "gates.json"
+            cases = [(True, True), (False, False), ("false", False),
+                     ("true", False), (1, False), (0, False), (None, False),
+                     ([True], False), ({"approved": True}, False)]
+            policies = [({"owner_confirmed_safe_to_execute": value}, confirmed)
+                        for value, confirmed in cases]
+            policies += [(value, False) for value in (None, True, "true", [True], {})]
+            for policy, confirmed in policies:
+                with self.subTest(policy=policy):
+                    config_path.write_text(json.dumps({
+                        "execution_policy": policy, "gates": []}), encoding="utf-8")
+                    inspection = adc.inspect_gate_config_for_migration(config_path)
+                    self.assertIs(confirmed, inspection["owner_confirmed"])
+
     def only_packet(self, repo: Path) -> dict:
         packets = list((repo / ".anti-dark-code" / "runs").rglob("ADC-FAIL-*.json"))
         self.assertEqual(len(packets), 1, "expected exactly one failure packet")
@@ -882,11 +925,11 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_repository_name_variants_keeps_real_tokens_and_drops_generic_ones(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "chronicle-engine"
+            repo = Path(tmp) / "sampleproduct-engine"
             repo.mkdir()
             variants = {item.lower() for item in adc.repository_name_variants(repo)}
             # A distinctive token must survive, or a proposal leaks the project name.
-            self.assertIn("chronicle", variants)
+            self.assertIn("sampleproduct", variants)
             # Generic words and short tokens must not become redaction targets.
             self.assertNotIn("core", variants)
             self.assertNotIn("app", variants)
@@ -911,12 +954,12 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_sanitize_for_proposal_redacts_without_explicit_names(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "chronicle-engine"
+            repo = Path(tmp) / "sampleproduct-engine"
             repo.mkdir()
-            text = f"built chronicle-engine at {repo} for chronicle work"
+            text = f"built sampleproduct-engine at {repo} for sampleproduct work"
             sanitized = adc.sanitize_for_proposal(text, repo)
             self.assertNotIn(str(repo), sanitized)
-            self.assertNotIn("chronicle", sanitized.lower())
+            self.assertNotIn("sampleproduct", sanitized.lower())
             self.assertIn("<repo>", sanitized)
 
     def test_managed_source_files_never_follows_links_into_the_distributed_core(self) -> None:
@@ -1618,6 +1661,27 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             changed = adc.changed_files(repo, "HEAD")
             self.assertEqual(changed, ["tracked.txt", "untracked.txt"])
 
+    def test_load_or_probe_rejects_unknown_or_changed_probe_method(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            for field, value in (("generated_by", "older probe"),
+                                 ("probe_method_sha256", None),
+                                 ("probe_method_sha256", "0" * 64),
+                                 ("probe_runtime", "older runtime")):
+                with self.subTest(field=field, value=value):
+                    profile = adc.probe_repo(repo, exclude=["generated"])
+                    profile["repo_types"] = ["game-simulation"]
+                    if value is None:
+                        profile.pop(field, None)
+                    else:
+                        profile[field] = value
+                    adc.write_profile(repo, profile)
+                    refreshed = adc.load_or_probe(repo)
+                    self.assertNotIn("game-simulation", refreshed["repo_types"])
+                    self.assertEqual(["generated"], refreshed["scan"]["requested_exclusions"])
+
     def test_profile_freshness_detects_worktree_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -1627,6 +1691,72 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertTrue(adc.profile_is_fresh(repo, profile))
             (repo / "app.py").write_text("value = 2\n", encoding="utf-8")
             self.assertFalse(adc.profile_is_fresh(repo, profile))
+
+    def test_profile_freshness_rejects_changed_bytes_with_unchanged_dirty_status(self) -> None:
+        for tracked in (True, False):
+            with self.subTest(tracked=tracked), tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+                manifest = repo / "package.json"
+                if tracked:
+                    manifest.write_text('{"scripts": {}}', encoding="utf-8")
+                self.init_git_repo(repo)
+                manifest.write_text('{"scripts": {"lint": "eslint ."}}', encoding="utf-8")
+                profile = adc.probe_repo(repo)
+                manifest.write_text('{"scripts": {"test": "jest"}}', encoding="utf-8")
+                current = adc.current_source_identity(repo)
+                self.assertFalse(current["worktree_clean"])
+                self.assertEqual(profile["source_identity"]["worktree_status_sha256"],
+                                 current["worktree_status_sha256"])
+                self.assertFalse(adc.profile_is_fresh(repo, profile))
+
+    def test_profile_freshness_requires_recorded_clean_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            profile = adc.probe_repo(repo)
+            for clean in (False, None, 1, "true"):
+                with self.subTest(clean=clean):
+                    profile["source_identity"]["worktree_clean"] = clean
+                    self.assertFalse(adc.profile_is_fresh(repo, profile))
+
+    def test_profile_freshness_refuses_non_git_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            profile = adc.probe_repo(repo)
+            self.assertFalse(adc.profile_is_fresh(repo, profile))
+
+    def test_load_or_probe_refreshes_dirty_bytes_and_preserves_exclusions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            manifest = repo / "package.json"
+            manifest.write_text('{"scripts": {}}', encoding="utf-8")
+            generated = repo / "generated"
+            generated.mkdir()
+            (generated / "noise.py").write_text("noise = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            manifest.write_text('{"scripts": {"lint": "eslint ."}}', encoding="utf-8")
+            profile = adc.probe_repo(repo, exclude=["generated"])
+            adc.write_profile(repo, profile)
+            manifest.write_text('{"scripts": {"test": "jest"}}', encoding="utf-8")
+            refreshed = adc.load_or_probe(repo)
+            self.assertEqual(["generated"], refreshed["scan"]["requested_exclusions"])
+            self.assertEqual(0, refreshed["counts"]["source_files"])
+            self.assertIn("npm-test", [gate["id"] for gate in refreshed["exact_commands"]])
+            self.assertNotIn("npm-lint", [gate["id"] for gate in refreshed["exact_commands"]])
+
+    def test_load_or_probe_reuses_a_clean_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "app.py").write_text("value = 1\n", encoding="utf-8")
+            self.init_git_repo(repo)
+            profile = adc.probe_repo(repo)
+            profile["generated_at_utc"] = "2000-01-01T00:00:00Z"
+            adc.write_profile(repo, profile)
+            reused = adc.load_or_probe(repo)
+            self.assertEqual("2000-01-01T00:00:00Z", reused["generated_at_utc"])
 
     def test_profile_identity_ignores_anti_dark_code_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1711,7 +1841,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_public_flowback_validates_and_withholds_source_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            project_name = "Chron" + "icle Engine"
+            project_name = "Sample" + "product Engine"
             repo = Path(tmp) / project_name
             repo.mkdir()
             (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
@@ -1724,7 +1854,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             slash_variant = str(repo).replace("\\", "/").upper()
             (calibration / "upstream-candidates.md").write_text(
                 "# Upstream Candidates\n\n"
-                "## ADC-CHRONICLE-900: " + project_name + " proposal boundary\n\n"
+                "## ADC-FIXTURE-900: " + project_name + " proposal boundary\n\n"
                 "- Status: ready\n"
                 "- Scope: repo-agnostic\n"
                 f"- Lesson: Replace {project_name} and private roots such as {slash_variant}; password=hunter2\n"
@@ -1749,7 +1879,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertNotIn(str(head), text)
             self.assertNotIn(str(repo).lower(), text.lower())
             self.assertNotIn(project_name.lower(), text.lower())
-            self.assertNotIn(("chron" + "icle").lower(), text.lower())
+            self.assertNotIn(("sample" + "product").lower(), text.lower())
             self.assertNotIn("hunter2", text)
             self.assertIn("<repo>", text)
             self.assertIn("## ADC-LOCAL-001: <project> proposal boundary", text)
@@ -2896,19 +3026,6 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
                 adc.flowback(repo, parent=parent, stage_to_parent=True, mark_staged=False, public=True)
             self.assertEqual(victim.read_text(encoding="utf-8"), "unchanged\n")
 
-    def test_operational_guidance_contains_no_project_specific_migration(self) -> None:
-        skill_root = Path(__file__).resolve().parents[1]
-        package_root = skill_root.parent
-        paths = [
-            skill_root / "SKILL.md",
-            skill_root / "references" / "13-calibrated-local-mode.md",
-            skill_root / "references" / "15-dogfeeding-flowback.md",
-        ]
-        paths.extend(path for path in (package_root / "MIGRATION.md", package_root / "README.md") if path.exists())
-        forbidden_project_name = "chron" + "icle"
-        for path in paths:
-            self.assertNotIn(forbidden_project_name, path.read_text(encoding="utf-8").lower(), str(path))
-
     def test_pdf_normalization_collapses_only_generation_timestamps(self) -> None:
         # Fixture pair: identical documents rendered at different wall-clock times.
         # Raw bytes differ, normalized bytes must not. If normalize_pdf_bytes were
@@ -3037,6 +3154,32 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             refreshed = json.loads((cal / "repo-profile.json").read_text(encoding="utf-8"))
             self.assertEqual(refreshed["scan"]["requested_exclusions"], ["generated"])
             self.assertEqual(refreshed["counts"]["source_files"], 1)
+
+    def test_probe_assets_alone_do_not_select_game_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "assets").mkdir()
+            (repo / "assets" / "logo.svg").write_text("<svg/>\n", encoding="utf-8")
+            (repo / "Cargo.toml").write_text('[package]\nname = "audio-tools"\nversion = "0.1.0"\n', encoding="utf-8")
+            profile = adc.probe_repo(repo)
+            self.assertNotIn("game-simulation", profile["repo_types"])
+            self.assertNotEqual(adc.build_plan(profile)["primary_repo_type"], "game-simulation")
+            self.assertEqual(profile["counts"]["total_files"], 2)
+
+    def test_probe_game_manifests_still_select_game_verification(self) -> None:
+        for marker in ("project.godot", "Example.uproject", "ProjectSettings/ProjectVersion.txt"):
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                path = repo / marker
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("{}\n", encoding="utf-8")
+                self.assertIn("game-simulation", adc.probe_repo(repo)["repo_types"])
+
+    def test_probe_game_dependency_still_selects_game_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "package.json").write_text(json.dumps({"dependencies": {"phaser": "3"}}), encoding="utf-8")
+            self.assertIn("game-simulation", adc.probe_repo(repo)["repo_types"])
 
     def test_probe_counts_visual_basic_and_binds_the_dotnet_candidate_to_vbproj(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

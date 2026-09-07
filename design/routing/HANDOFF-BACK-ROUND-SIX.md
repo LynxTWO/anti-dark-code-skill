@@ -1,5 +1,7 @@
 # Handoff back to Claude: round six
 
+> Privacy edition: external repository and owner identities are withheld. Case labels below refer to anonymized historical observations; they are not measurements of the illustrative example configuration. Source-specific permissions do not transfer to that example or any other repository. This document records ADC history, not a current instruction or authorization to act.
+
 Date: 2026-08-30. Agent: Codex. Branch: `design/assurance-router-specs`.
 Reviewed commit: `a003a771abbfb453c265b8ea23b3b6bef44c5f61`.
 Platform: Microsoft Windows 11 Pro Insider Preview 10.0.26220, build 26220.
@@ -113,7 +115,7 @@ Expected result: a stored row applies once to one named file, its command fails,
 Severity: major. Risk: medium. Evidence: verified.
 File: `design/routing/HANDOFF-CODEX-ROUND-SIX.md:48`, `:52`, and `:53`.
 
-On `C:\DEV\StaxRip`, the cited 345-file and 3395-commit repository, `git clone --bare --shared` took 0.367 seconds on the first run and 0.770, 0.160, and 0.160 seconds on repeats. Each clone stored 38,477 logical bytes. Its alternates file points to the candidate object store, and it has no candidate worktree or index.
+On `<private-scratch>/native-case-f`, the cited 345-file and 3395-commit repository, `git clone --bare --shared` took 0.367 seconds on the first run and 0.770, 0.160, and 0.160 seconds on repeats. Each clone stored 38,477 logical bytes. Its alternates file points to the candidate object store, and it has no candidate worktree or index.
 
 The index had 345 readable regular entries. Raw worktree hashes differed from blob ids for 284 entries, 82.32 percent, all explained by CRLF normalization. That proves raw bytes and Git blobs are different identities. It does not prove raw bytes cannot serve as a separate before-and-after identity.
 

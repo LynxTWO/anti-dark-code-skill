@@ -15,470 +15,60 @@
               *         (____________)     no dark corners.
 ```
 
-A skill that teaches AI coding assistants (Claude Code, Codex, Gemini CLI, and others) to work on codebases from evidence instead of guesswork: map what actually runs, prove claims or record them as unknowns, hold risky changes behind approval gates, and verify work with deterministic checks instead of confident prose.
+Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
-- **Plain-language overview**: https://lynxtwo.github.io/anti-dark-code-skill/
-- **Version**: `2026.09.06-unified.12` (see `CHANGELOG.md`)
+**Version**: `2026.09.07-unified.13` (see [release history](CHANGELOG.md)).
 
-One model-neutral core, repo-local calibration, and deterministic local tooling. No automatic network calls, telemetry, or submission, and no dependencies beyond Python 3.12 or newer for the optional tooling, standard library only. Optional efficiency receipts are created only by an explicit local command and remain local until a person exports and submits one.
+Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
-## Quick start if you are new to all of this
+One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 or newer runs the standard-library tools. Start with the outcome you need:
 
-You do not need to understand any of the machinery. If you use an AI coding assistant, paste this into it (one line):
+| Request | Task |
+| --- | --- |
+| What runs here, and what is unknown? | [Understand](anti-dark-code/references/tasks/understand.md) |
+| Audit logging, concurrency, test strength or readiness | [Investigate](anti-dark-code/references/tasks/investigate.md) |
+| Explain this critical path without changing behavior | [Document](anti-dark-code/references/tasks/document.md) |
+| Establish or improve the checks for this change/repository | [Verify](anti-dark-code/references/tasks/verify.md) |
+| Fix these supported findings | [Remediate](anti-dark-code/references/tasks/remediate.md) |
 
-```text
-Install the anti-dark-code skill for me: download https://github.com/LynxTWO/anti-dark-code-skill to a temporary folder, place its inner anti-dark-code folder into my assistant's skills directory (~/.claude/skills/ for Claude Code, ~/.agents/skills/ for Codex or Gemini), delete the downloaded copy, and confirm by reading the skill's VERSION file. Then tell me what it can do.
-```
+A comprehensive audit combines Understand, Investigate and Verify under an explicit coverage contract. A focused request stays focused. Installation, inline documentation, remediation and publication are separate scopes; a one-off report requires no permanent installation.
 
-Your assistant will ask permission to run a download command and a copy command. That is normal for this one-time install; approve them. If your assistant says it cannot download things, do the by-hand steps below yourself, then tell it where you put the folder.
+The [skill core](anti-dark-code/SKILL.md) defines the workflow and safety contract. Older numbered reference names remain compatibility entry points, not an order every engagement must follow.
 
-Prefer doing it by hand? Open https://github.com/LynxTWO/anti-dark-code-skill in your browser, click the green **Code** button, then **Download ZIP**. Unzip it and copy the inner `anti-dark-code` folder so you end up with:
+## Start from a reviewed release
 
-| Your assistant | Final result |
-|---|---|
-| Claude Code | `~/.claude/skills/anti-dark-code/SKILL.md` exists |
-| Codex or Gemini | `~/.agents/skills/anti-dark-code/SKILL.md` exists |
+Skill text becomes instructions followed with an assistant's operator authority. Review the source you install. Use a named release tag or its clean archive and verify the published managed-core digest; a VERSION string alone does not establish source integrity. Avoid branch-tip download/copy shortcuts.
 
-Three by-hand pitfalls, named so you can dodge them:
+An instruction you can give your assistant:
 
-- `~` means your home folder (on Windows, `C:\Users\<you>`). Folders starting with a dot are hidden by default: press Cmd+Shift+. in the Mac Finder or Ctrl+H in most Linux file managers to reveal them.
-- If the `skills` folder does not exist yet, create it.
-- If you end up with `anti-dark-code` inside another `anti-dark-code`, move the inner one up a level. A double-nested copy fails silently, with no error anywhere.
+> Install Anti-Dark-Code from a specific reviewed release of LynxTWO/anti-dark-code-skill. Verify the release source and published core digest, show the installer dry run for this repository, then apply within my authorization and validate the installed copy. Preserve existing calibration and keep gates unexecuted until their exact commands are reviewed.
 
-If any of that sounds tedious: use the paste method above instead. That is what it is for.
+[Operations](OPERATIONS.md) gives the source, dry-run and validation procedure. The installer refuses dirty/untagged Git sources and unsafe calibration by default. Recovery overrides require deliberate review and are never defaults.
 
-Then close your assistant and open it again inside the folder of the project you care about (skills are discovered when a session starts), and ask things like:
+The canonical repository copy is .agents/skills/anti-dark-code/. [Host adapters](anti-dark-code/references/host-adapters.md) explain discovery and tools for Claude Code, Codex, Gemini CLI and other harnesses. Host capabilities vary; verify the active session's discovery rather than assuming a copied directory was loaded.
 
-- "Use anti-dark-code to map this project and tell me what actually runs."
-- "Audit this codebase with anti-dark-code before I change anything."
-- "What do we NOT know about this repo? Record the unknowns."
-- "Set up automatic checks for this project and walk me through approving them."
+## What the evidence means
 
-Four things to know, in plain terms:
+Confidence labels are verified, inferred and unknown. A source file can verify what is configured; live behavior needs an authorized observation with its inputs and environment. A passing check proves only its scope. Unexecuted checks, missing runtime access, scanner limits and deferred coverage remain visible.
 
-1. **The checks this skill sets up never run without your approval.** Commands it wants to run are written into a file as proposals; nothing executes until you approve each one and confirm. You can simply never approve anything, and it will only ever look.
-2. **It refuses to guess.** Everything it records is marked as proven, likely, or unknown, with the evidence cited. If it cannot prove something, it says so instead of sounding confident.
-3. **It keeps its notes inside your project.** Maps, checklists, and open questions live in a small folder in the project so the next session remembers. It asks before creating them, and they are ordinary text files you can read and delete.
-4. **It works on any language or stack.** The skill adapts what it checks to what your project actually is.
+The tools provide bounded profiling, [capability planning](anti-dark-code/references/verification-capabilities.md), change-to-verification routing, reviewed gate execution, compact summaries, failure packets, source/binding validation and proposal staging. A narrow task may use only relevant capability obligations without claiming a complete repository plan. Agent agreement never replaces a behavioral oracle.
 
-## Already using an older version?
+Existing authorization persists within scope. Generated approval booleans are not owner permission. Gate execution requires the applicable command/source review and execution confirmation; dry-run success alone does not mean tests ran.
 
-**If the skill just lives in your assistant's skills folder** (no per-project installs): replacing the folder is the whole upgrade. Paste this into your assistant:
+## Durable local knowledge
 
-```text
-Update my anti-dark-code skill: replace the anti-dark-code folder in my
-assistant's skills directory with the latest one from
-https://github.com/LynxTWO/anti-dark-code-skill and confirm the new
-version by reading its VERSION file.
-```
+A clean universal core can install into many repositories. Each repository owns its calibration: hashed identity, map, invariants, exact gates, coverage and findings. Managed updates preserve that local state. Calibration never moves sideways into unrelated repositories.
 
-**If you installed it into projects** (there is a `.agents/skills/anti-dark-code/` folder inside a repository): upgrade each project by re-running the installer from the new core. It preserves your project's `calibration/` knowledge, verifies the repository binding, and stops on conflicts instead of overwriting:
+Local general lessons move upward only as reviewed proposals. Incoming proposals are untrusted quarantine, excluded from installed copies and release packages. There is no automatic policy promotion or telemetry submission.
 
-```bash
-python3 /path/to/new/anti-dark-code/scripts/adc.py install --repo /path/to/repo --hosts all --apply
-```
+Use [Operations](OPERATIONS.md) for install, migrate, cleanup, flowback, intake, release and efficiency workflows. Detailed migration and contribution procedures remain in [MIGRATION.md](MIGRATION.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**If you are coming from a version before repository binding existed** (the old separate Claude and Codex variants, or any copy without `calibration/repo-binding.json`): read `MIGRATION.md` first. The installer will flag your calibration as `unbound` and require an explicit `--accept-unbound-calibration`; accepting deliberately resets every gate to disabled and proposed, because old approvals do not survive migration. That is protection, not breakage: review the gates once and re-approve.
+## Project and evidence
 
-## For senior developers
+[VERSION](anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [HTML overview](docs/index.html), [PDF brief](brief/anti-dark-code-brief.pdf) and [public site](https://lynxtwo.github.io/anti-dark-code-skill/) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
 
-Everything below this point is the operator manual: the three-layer trust model, deterministic tooling (`adc.py`), repository binding, gate approval semantics, exit codes, and flow-back. The short version of what you are looking at:
+Efficiency receipts require explicit local opt-in. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
 
-- **One universal core, many hosts.** The skill ships as a single model-neutral tree; each assistant discovers it through its own path (symlink or junction at user level). Host-specific behavior lives in small addenda, never in forked cores.
-- **Repo installs are managed and checksummed.** `adc.py bootstrap` places a checksummed core copy (local edits are detected and block the next upgrade rather than being prevented outright) plus a repo-owned `calibration/` overlay (invariants, system map, exact gates, ledgers) that survives core upgrades. Installation and profiling never execute repository code.
-- **Calibration is bound to one repository** by hashed identity. Foreign or unbound calibration is refused for gate execution and flow-back; migration resets all gate approvals by design.
-- **Gates are exact argv arrays with three locks** (per-gate approval, recorded owner confirmation, an explicit exec flag), real exit codes, bounded failure packets, and process-tree timeout kills. Blocked plans exit `2` even in dry runs, so CI can tell clean from blocked.
-- **Knowledge flows one way.** Core flows down into repos; repo lessons flow up only as sanitized, content-hashed proposals into `incoming/` for human review. A compromised repo cannot rewrite the shared skill.
-- **The design rule underneath**: never spend model intelligence on work a compiler, schema, diff, seed, or reviewed deterministic command can settle exactly. Agents do judgment; the computer does mechanics and evidence.
-
-Read next: `anti-dark-code/SKILL.md` (the pass router and evidence rules), `anti-dark-code/references/` (one file per pass), `MIGRATION.md` (adopting or upgrading existing installations), `AUDIT-AND-DESIGN.md` (why it is shaped this way).
-
-### Multi-machine pattern
-
-Clone this repository once per machine, point each host's user-level skills path at the clone's `anti-dark-code/` directory (symlink on Linux and macOS, junction on Windows), and let git be the transport:
-
-```text
-laptop clone  <->  this repository  <->  desktop clone
-     |                                        |
-user-level symlinks                 user-level junctions
-     |                                        |
-repo installs via adc.py            repo installs via adc.py
-     \_______ flowback proposals to incoming/ ______/
-```
-
-Set `ADC_PARENT_SKILL` to your clone's `anti-dark-code/` path so `flowback --stage-to-parent --public` needs no `--parent` argument. Do not use file-sync services (OneDrive, Dropbox) on the clone; partial syncs and conflict copies corrupt git repositories and will fail this skill's clean-source validation.
-
-## Contributing, and a note on trust
-
-Issues and pull requests are welcome. `main` is protected: all changes land by pull request and are reviewed by the maintainer alone.
-
-People using the skill in other repositories can contribute generalized lessons without granting their assistant access to this repository. Generate a sanitized proposal locally, stage it into an `anti-dark-code-skill` fork, review it as plain text, and submit the one new file under `anti-dark-code/incoming/`. The trusted-base pull-request check parses that file as data and never executes contributor scripts. See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact workflow and public-data boundary.
-
-Community members may also submit opt-in, privacy-stripped efficiency receipts. Actual usage is not called savings; only quality-qualified controlled pairs can report a token delta, and public results stay separated by provider, model, adapter/counter semantics, and task class. Historical exact savings before this protocol are unmeasured. The live summary appears in the [public brief](https://lynxtwo.github.io/anti-dark-code-skill/) and its source is under [`metrics/`](metrics/).
-
-Be aware of what this repository is: **skill text becomes instructions executed by AI assistants with their operator's authority.** A malicious or careless change here would run, in effect, with the hands of everyone who installs it. Contributions are therefore reviewed as executable code, strictly. The same caution applies to you: if you fork this skill, review what you ship.
-
-Contributions are accepted under the project license (inbound equals outbound): by submitting a pull request you license your changes under FSL-1.1-MIT.
-
-## License
-
-**FSL-1.1-MIT** (Functional Source License, a Fair Source license): free for internal use, professional work on commercial codebases, education, research, and redistribution under the license terms. What it restricts: for the first two years after a release is made available, you may not offer that release, or substantially similar functionality built from it, as a competing commercial product or service. On its second anniversary each release automatically converts to plain MIT. During those first two years this is source-available Fair Source, not open source; after conversion it is permissive open source. Full text in [LICENSE.md](LICENSE.md).
-
-Every version is tagged as a GitHub release so its availability date, and therefore its MIT conversion date, is publicly unambiguous.
+Contributions are reviewed as executable instructions and accepted under the project license; see [CONTRIBUTING.md](CONTRIBUTING.md). License terms and release conversion details are in [LICENSE.md](LICENSE.md).
 
 If this saves you real time and you feel like covering some of my build costs, there is a Sponsor button on the repo. Donations are welcome and never required.
-
----
-
-## What It Does
-
-- Evaluates all 22 verification capabilities for every repository.
-- Selects, defers, or rejects capabilities instead of forcing every technique into every project.
-- Installs one canonical repo-local copy at `.agents/skills/anti-dark-code/`.
-- Keeps repo-specific learning under `calibration/` so it survives managed-core updates.
-- Binds calibration to one hashed repository identity to prevent accidental cross-repo transfer.
-- Gives Claude Code a thin adapter instead of a second editable policy tree.
-- Lets Codex and Gemini CLI use the canonical `.agents/skills` copy.
-- Uses local deterministic scripts for profiling, planning, changed-slice routing, exact gate execution, real exit codes, compact summaries, failure packets, checksums, validated flow-back staging, and opt-in efficiency receipts.
-- Excludes repo-level host skill trees under `.agents/skills/`, `.claude/skills/`, `.gemini/skills/`, and `.codex/skills/`, agent worktrees under `.claude/worktrees/`, and nested checkouts with their own `.git` entry from repository evidence so tooling and other trees do not distort repo classification. `--exclude` covers what no rule can know, and a large unrecognized-extension residue is reported as an unknown.
-- Returns exit code `2` when a gate plan is blocked, including dry runs, and terminates timed-out gate process trees on a best-effort basis.
-- Keeps source-side repo calibration out of every installation.
-- Prevents repo-local lessons from silently rewriting the shared skill.
-
-## The Three-Layer Model
-
-```text
-clean universal shared core
-        |
-        v
-managed repo-local core
-        |
-        v
-one-repository calibration
-```
-
-The shared core may flow downward into many repositories.
-
-Calibration never flows sideways from one repository to another.
-
-General lessons may flow upward only as reviewed proposals.
-
-## Package Layout
-
-```text
-anti-dark-code-skill/
-  README.md
-  AUDIT-AND-DESIGN.md
-  MIGRATION.md
-  CHANGELOG.md
-  anti-dark-code/
-    SKILL.md
-    VERSION
-    SOURCE-SCOPE.json
-    agents/openai.yaml
-    references/
-    assets/
-    scripts/adc.py
-    scripts/adc_efficiency.py
-    tests/test_adc.py
-    tests/test_efficiency.py
-```
-
-`SOURCE-SCOPE.json` identifies the directory as a clean universal source core. A populated top-level `calibration/` directory does not belong in that shared source.
-
-## Recommended Shared Installation
-
-Keep one version-controlled shared core and let each host discover that same directory.
-
-```text
-~/.agents/skills/anti-dark-code/    canonical shared core for Codex and Gemini CLI
-~/.claude/skills/anti-dark-code/    symlink or thin adapter to the same core
-```
-
-On systems that support directory symlinks:
-
-```bash
-SHARED=/path/to/shared/anti-dark-code
-mkdir -p "$HOME/.agents/skills" "$HOME/.claude/skills"
-ln -s "$SHARED" "$HOME/.agents/skills/anti-dark-code"
-ln -s "$SHARED" "$HOME/.claude/skills/anti-dark-code"
-```
-
-Use a directory junction or thin adapter where symlinks are unavailable.
-
-These user-level aliases are only for host discovery of the shared core. Never symlink a repository's `.agents/skills/anti-dark-code/`, its `calibration/`, its Claude adapter, or `.anti-dark-code/` run-artifact paths to the shared core or another location. Repo-local managed paths must be real paths so one repository cannot write into shared or foreign state. The installer fails closed on symbolic-link or Windows-junction components and nested link-like entries.
-
-Do not use a repo-local customized copy as the shared source for another repository.
-
-## Validate the Correct Layer
-
-A release or ZIP candidate must pass strict distribution validation:
-
-```bash
-cd /path/to/package/anti-dark-code
-python3 scripts/adc.py validate --mode distribution
-python3 -m unittest discover -s tests -v
-```
-
-A live shared core may contain reviewed or pending flow-back proposals under `incoming/`. Validate that working copy with:
-
-```bash
-python3 scripts/adc.py validate --mode universal
-```
-
-Universal validation ignores ordinary proposal files in the runtime-only `incoming/` inbox and reports them as a warning. It rejects symlinked or junction-backed inbox entries because proposal staging must not be redirectable. Distribution validation rejects the entire inbox so proposals cannot leak into a shipped package or repo-local installation.
-
-An installed repository copy carries repo-owned calibration and `.adc-managed.json`. Validate it from the repository root with:
-
-```bash
-python3 .agents/skills/anti-dark-code/scripts/adc.py validate \
-  --skill .agents/skills/anti-dark-code \
-  --mode installed
-```
-
-`--mode auto` detects an installed copy when `.adc-managed.json` is present and treats the canonical repo-local `.agents/skills/anti-dark-code/` path as installed. Installed validation checks managed-core hashes, calibration path safety, and the repository binding while treating ordinary `calibration/` files as local state rather than universal-source contamination.
-
-Ordinary `python3` is sufficient. The unit suite builds clean temporary package fixtures, so its own runtime `__pycache__` does not create a false packaging failure. Distribution validation still rejects `__pycache__` and `.pyc` files that are actually present in a release candidate.
-
-## Bootstrap a New Repository
-
-Dry run first:
-
-```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
-  --repo /path/to/repo \
-  --hosts all
-```
-
-Apply after reviewing the plan:
-
-```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
-  --repo /path/to/repo \
-  --hosts all \
-  --apply
-```
-
-Bootstrap does not execute repository code and does not install dependencies. The dry run performs the same bounded, read-only profile used by apply and reports each affected gate, its reason, the total change count, and whether owner confirmation would be reset; it does not write calibration. Approved repo-owned gates survive refresh when their exact source binding still verifies, even when a bounded scan does not rediscover them.
-
-After application, validate the installed copy with `--mode installed` before trusting repo-local calibration or gates.
-
-## Migrate an Existing Repository
-
-Read `MIGRATION.md` before applying changes.
-
-The installer reports whether existing calibration is:
-
-- `new`
-- `match`
-- `unbound`
-- `invalid`
-- `mismatch`
-
-`--accept-unbound-calibration` applies only to reviewed legacy calibration that has no binding. An `invalid` binding is not accepted by that flag. Repair it or quarantine the affected calibration before migration.
-
-Trusted same-repo legacy calibration requires explicit acceptance:
-
-```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
-  --repo /path/to/repo \
-  --accept-unbound-calibration \
-  --apply
-```
-
-A reviewed move, fork, or remote identity change may require:
-
-```bash
---rebind-calibration
-```
-
-Do not use a rebind to legitimize calibration copied from an unrelated repository.
-
-The installer also blocks an unmarked, repo-local, managed-install, or repo-calibrated source by default. `--allow-unsafe-source` exists for advanced recovery after manual review. Even then, source-side calibration is ignored and contaminated templates remain blocked.
-
-When legacy calibration is accepted, moved from the fallback location, or explicitly rebound, all migrated gates are reset to disabled and proposed. Global execution confirmation is reset as well. Old approvals do not survive migration.
-
-## Repo-Local Layout
-
-```text
-.agents/skills/anti-dark-code/
-  SKILL.md
-  VERSION
-  SOURCE-SCOPE.json
-  references/
-  scripts/
-  assets/
-  agents/
-  .adc-managed.json
-  calibration/
-    README.md
-    repo-binding.json
-    repo-profile.json
-    verification-plan.json
-    gates.json
-    invariants.md
-    system-map.md
-    coverage-ledger.md
-    findings-ledger.md
-    upstream-candidates.md
-    upstream.json
-```
-
-The managed core is updated from the clean shared source.
-
-The repository owns `calibration/`.
-
-`repo-binding.json` prevents silent reuse in another repository. It stores hashes, not the raw Git remote or a personal path.
-
-## Install From a Release, Not a Branch Tip
-
-A version string is a claim; only a digest bound to an immutable ref is evidence. Installing from a working tree that has moved past its tag records a version the tag no longer reproduces, and nothing downstream can tell.
-
-The installer therefore refuses a source whose checkout is not at a release tag, or whose working tree is dirty:
-
-```text
-installation source is not at a release tag ...; a moving source records a version
-string the tag does not reproduce. Install from a tag or a clean extract of one,
-or pass --allow-untagged-source after review
-```
-
-Install from a tag, or from a clean extract of one, which is what a release download already is:
-
-```bash
-git -C /path/to/skill-repo archive v<version> | tar -x -C /tmp/adc-src
-python3 /tmp/adc-src/anti-dark-code/scripts/adc.py install \
-  --repo /path/to/repo --source-skill /tmp/adc-src/anti-dark-code --apply \
-  --expect-core-digest <digest published with that release>
-```
-
-`--expect-core-digest` refuses the install unless the source hashes to the digest the release published, so the install is checkable rather than trusted. The resulting `.adc-managed.json` records that digest as `source_core_sha256`, and a reviewer can compare it against the release without rerunning anything. `--allow-untagged-source` exists for deliberate work against an unreleased core; it is a review decision, not a default.
-
-## Verify a Release Before Publishing It
-
-A release is a producer, and its output needs the same audit as any other. `release-check` asks the tag to answer for itself rather than trusting the working tree that produced it:
-
-```bash
-python3 anti-dark-code/scripts/adc.py release-check \
-  --repo . --tag v<version> --expect-core-digest <digest>
-```
-
-It extracts the tag, recomputes the core digest, runs distribution validation against that extract, and reports any file under `references/` or `assets/` that changed since the previous tag without being named in the new release notes. Mechanical version-string churn is ignored so the check stays worth reading. Exit code is nonzero when any part fails.
-
-Run the test suite in a separate extract. Running it inside the directory being validated leaves generated Python artifacts that fail distribution validation, which is the same "keep verification artifacts out of trees tooling indexes" rule this skill applies elsewhere.
-
-## Review the Generated Calibration
-
-The most important files are:
-
-```text
-.agents/skills/anti-dark-code/calibration/repo-binding.json
-.agents/skills/anti-dark-code/calibration/repo-profile.json
-.agents/skills/anti-dark-code/calibration/verification-plan.json
-.agents/skills/anti-dark-code/calibration/gates.json
-.agents/skills/anti-dark-code/calibration/invariants.md
-.agents/skills/anti-dark-code/calibration/system-map.md
-```
-
-The repo probe is bounded. It supplies evidence of presence, not proof of absence. Human-readable steering and architecture work still provide meaning, rule authority, trust boundaries, and external control-plane knowledge.
-
-## Run Gates
-
-Dry run:
-
-```bash
-python3 .agents/skills/anti-dark-code/scripts/adc.py gates \
-  --repo . \
-  --level 1
-```
-
-Before execution, review each proposed gate. For every command you approve, set:
-
-```json
-"enabled": true,
-"review_status": "approved"
-```
-
-After every enabled gate is approved, set:
-
-```json
-"owner_confirmed_safe_to_execute": true
-```
-
-Any new or changed generated gate resets that confirmation. Package-script gates also carry a source fingerprint, so a changed script is blocked until the plan is refreshed and reapproved.
-A repo's `calibration/gates.json` is the owner-controlled trust record, not a tamper-evident signature. Review changes to its command, cwd, environment, globs, level, timeout, enablement, and approval fields as one unit. Never execute gate calibration taken from an untrusted branch merely because its booleans say approved; a writer able to alter the trust record can alter both the command and its approval. Exact source bindings detect later source drift, not malicious rewrites of the approval record itself.
-A dry gate plan returns exit code `2` when an enabled applicable gate is blocked by review status, stale source evidence, or calibration binding. This lets CI and agent harnesses distinguish a clean plan from a blocked plan without executing repository code.
-
-Then run:
-
-```bash
-python3 .agents/skills/anti-dark-code/scripts/adc.py gates \
-  --repo . \
-  --level 1 \
-  --allow-exec
-```
-
-Gate planning and execution are refused if calibration is unbound, invalid, or belongs to another repository identity.
-
-For changed-slice routing:
-
-```bash
-python3 .agents/skills/anti-dark-code/scripts/adc.py gates \
-  --repo . \
-  --level 1 \
-  --changed-from HEAD~1 \
-  --allow-exec
-```
-
-Successful checks collapse to a compact summary. Failures create a bounded JSON packet and retain a pattern-redacted log under `.anti-dark-code/runs/`. When a gate times out, the runner terminates its POSIX process group or Windows process tree on a best-effort basis and records the termination result in the failure packet. Pattern redaction reduces exposure but cannot prove that every sensitive value was removed.
-
-## Gate Runner Exit and Timeout Semantics
-
-The gate runner uses these top-level exit codes:
-
-- `0`: valid dry-run plan, no applicable gates, or all executed gates passed
-- `1`: one or more executed gates failed, including a timeout recorded as gate exit `124`
-- `2`: planning or execution was refused because calibration, approval, source fingerprints, or owner confirmation were unsafe
-- `130`: interrupted by the operator
-
-A timeout launches each gate in its own process group. On POSIX systems the runner signals the process group. On Windows it uses a new process group and falls back to `taskkill /T /F`. This is best-effort containment, not a sandbox. A child that deliberately detaches from the process group may require stronger operating-system isolation.
-
-## Dogfeeding and Flow-Back
-
-Repo-specific facts stay in calibration.
-
-General lessons begin in:
-
-```text
-.agents/skills/anti-dark-code/calibration/upstream-candidates.md
-```
-
-Stage ready lessons as a proposal:
-
-```bash
-python3 .agents/skills/anti-dark-code/scripts/adc.py flowback --repo .
-```
-
-To place a proposal in the clean shared skill's `incoming/` folder:
-
-```bash
-python3 .agents/skills/anti-dark-code/scripts/adc.py flowback \
-  --repo . \
-  --parent /path/to/shared/anti-dark-code \
-  --stage-to-parent \
-  --public
-```
-
-For an outside contribution, point `--parent` at the `anti-dark-code/` directory in your fork, inspect the generated file before publishing it, validate the file directly with `validate-incoming --file ... --public-only`, then commit it and run the separate `--changed-from ... --proposal-only --public-only` pull-request-shape check. Open a pull request containing only that new proposal. Full commands and the privacy checklist are in [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Flow-back requires matching repo calibration and a clean universal parent. It does not edit shared core files. The `incoming/` directory is an untrusted quarantine excluded from installed copies and release packages. Promotion remains a separate human-reviewed change.
-
-## Core Safety Rules
-
-- Never transplant `calibration/` between unrelated repositories.
-- Never use a repo-local fork as another repository's normal installation source.
-- Never import old gates as enabled or approved.
-- Never treat legacy prose as verified truth without current evidence.
-- Never let a local repo write directly into shared core policy.
-- Never spend model intelligence on work a compiler, schema, dependency graph, seed, assertion, diff, checksum, or reviewed deterministic command can perform exactly.
-
-Use agents for judgment. Use the computer for mechanics and evidence.

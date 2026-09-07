@@ -1,5 +1,76 @@
 # Changelog
 
+## 2026.09.07-unified.13
+
+- Replace mandatory numbered routing with a compact `SKILL.md` and five `references/tasks/` cards. Preserve numbered reference entry points and move specialist obligations to conditional recipes; every reference has a per-file word budget checked in `tests/test_documentation_contract.py`.
+- Canonicalize scope-bound authorization, evidence kinds, zero-execution limits, manual tool fallback and evidence reuse after interruption in `SKILL.md`, `references/00-preflight.md` and `references/00-conventions.md`. Keep existing calibration schemas and command meanings.
+- Split README and OPERATIONS; isolate host mechanics, explicit operator workflows and opt-in usage evidence. No published host-compatibility or token-savings claim.
+- Require literal boolean owner confirmation in `scripts/adc.py` and `scripts/adc_shadow.py`, including migration inspection. Regression tests exercise malformed values without granting authority.
+- Reuse cached profiles only when recorded and current worktrees are explicitly clean; matching Git status cannot prove unchanged dirty file bytes. Dirty and non-Git targets re-probe without dropping recorded exclusions.
+- Bind cached profiles to the probe source hash, version and Python runtime; changed or missing method provenance requires a new probe with the recorded exclusions. An `assets/` directory alone no longer selects game verification; game manifests and dependencies remain recognized.
+- Preserve CLI dry-run defaults, execution reviews, approval drift checks, source binding and proposal-only flow-back. Qualification records distinguish permission-limited checks from executed coverage; no timeouts or assertions were weakened.
+- Update `README.md`, `OPERATIONS.md`, the HTML overview and regenerated PDF to describe the implemented workflow. Preserve the original ASCII banner, Sponsor text, palette, metrics script and PDF navigation.
+- Replace identifying consumer case-study names with explicitly qualified generic examples, preserve design decision IDs, and keep illustrative gates disabled/proposed. Real repositories retain their own calibration.
+
+### Reference and template migration inventory
+
+The task cards and conditional specialist recipes hold the extracted obligations. Numbered entries remain compatible, with repeated rules delegated to the core; host mechanics and assurance contracts have their own references. The following references and templates changed in this release:
+
+- `assets/templates/remediation-backlog.md`
+- `assets/verification-capabilities.json`
+- `references/00-conventions.md`
+- `references/00-preflight.md`
+- `references/01-steering.md`
+- `references/02-architecture-map.md`
+- `references/03-critical-path-comments.md`
+- `references/04-logging-audit.md`
+- `references/05-coverage-slicing.md`
+- `references/06-writing-hygiene.md`
+- `references/07-adversarial-review.md`
+- `references/08-scenario-stress-test.md`
+- `references/09-artifact-gc.md`
+- `references/10-maintenance-harness.md`
+- `references/11-remediation-loop.md`
+- `references/12-transcreation-boundary.md`
+- `references/13-calibrated-local-mode.md`
+- `references/14-deterministic-verification.md`
+- `references/15-dogfeeding-flowback.md`
+- `references/16-community-feedback-and-efficiency.md`
+- `references/assurance-claim-proof.md`
+- `references/assurance-contracts.md`
+- `references/assurance-hardware-recovery.md`
+- `references/assurance-native-execution.md`
+- `references/assurance-preservation.md`
+- `references/assurance-publication-integrity.md`
+- `references/assurance-release-closure.md`
+- `references/assurance-runtime-boundaries.md`
+- `references/combined-03-06-loop.md`
+- `references/example-stress-test-report.md`
+- `references/host-adapters.md`
+- `references/host-claude-code.md`
+- `references/host-codex.md`
+- `references/host-gemini-cli.md`
+- `references/host-generic.md`
+- `references/orchestration-mode.md`
+- `references/repo-verification-profiles.md`
+- `references/shadow-evidence.md`
+- `references/specialist-audited-producers.md`
+- `references/specialist-exact-gate-contract.md`
+- `references/specialist-gate-environment.md`
+- `references/specialist-hidden-control-planes.md`
+- `references/specialist-mutation-restoration.md`
+- `references/specialist-native-reachability.md`
+- `references/specialist-process-verdicts.md`
+- `references/specialist-remediation-edges.md`
+- `references/specialist-restricted-builds.md`
+- `references/specialist-verifier-falsifiability.md`
+- `references/tasks/document.md`
+- `references/tasks/investigate.md`
+- `references/tasks/remediate.md`
+- `references/tasks/understand.md`
+- `references/tasks/verify.md`
+- `references/verification-capabilities.md`
+
 ## 2026.09.06-unified.12
 
 ### Six Lessons Promoted

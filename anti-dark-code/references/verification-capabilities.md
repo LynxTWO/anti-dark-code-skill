@@ -1,271 +1,32 @@
-# Reference: The 22 Verification Capabilities
-
-This catalog is the conceptual source for `assets/verification-capabilities.json`. Evaluate every capability, but select only what repo evidence and change risk justify.
-
-## V01 Mutation Testing
-
-**Catches:** tests that execute code without protecting behavior.
-
-**Computer work:** change operators, branches, constants, and return values; rerun affected tests; report surviving mutants.
-
-**Agent work:** choose high-value modules, interpret equivalent mutants, and improve behavior-focused tests.
-
-**Use when:** meaningful tests already exist, the module carries important rules, or AI wrote both code and tests.
-
-**Avoid:** full-repo mutation on every edit, mutation of generated code, or treating mutation score as product correctness.
-
-## V02 Model-Based Stateful Testing
-
-**Catches:** invalid transitions, sequence bugs, workflow dead ends, and failures random clicking rarely reaches deliberately.
-
-**Computer work:** generate action sequences from a state model, execute them, check invariants, shrink failing sequences, and retain seeds.
-
-**Agent work:** define legal actions, preconditions, state abstractions, and meaningful invariants.
-
-**Use when:** the repo has workflows, UI state, games, transactions, permissions, lifecycle transitions, or multi-step protocols.
-
-**Adaptation:** keep the dumb random monkey. Add a stateful monkey that knows legal transitions and an adversarial monkey that targets risky boundaries.
-
-## V03 Executable Invariants
-
-**Catches:** impossible states near the point they are created.
-
-**Computer work:** assert constraints at mutation, serialization, transaction, event, and trust boundaries.
-
-**Agent work:** identify load-bearing truths and decide where a failed invariant should stop, quarantine, or recover.
-
-**Use when:** almost always for non-trivial stateful code.
-
-**Avoid:** assertions that merely restate types, leak secrets, or crash production without a deliberate policy.
-
-## V04 Differential Testing
-
-**Catches:** divergence between implementations that should agree.
-
-**Computer work:** run old versus new, simple versus optimized, server versus client, native versus web, CPU versus GPU, or reference versus production and diff outputs.
-
-**Agent work:** define equivalence, normalize irrelevant differences, and choose the boring reference oracle.
-
-**Use when:** there are parallel implementations, migrations, rewrites, optimizations, compatibility layers, or projections.
-
-**Avoid:** comparing two copies that share the same bug and calling agreement proof.
-
-## V05 Metamorphic Testing
-
-**Catches:** wrong relationships when an exact expected output is difficult to author.
-
-**Computer work:** transform inputs and verify a required relation between outputs.
-
-**Agent work:** define valid transformations and relations.
-
-**Use when:** generators, search, simulation, numerical code, AI or data pipelines, chunking, batching, sorting, scaling, localization, or configuration make exact oracles hard.
-
-**Examples:** save then load preserves state; splitting one time window into equivalent chunks preserves results; adding resistance cannot increase matching damage; reordering independent inputs does not change the result.
-
-## V06 Deterministic Execution Mode
-
-**Catches:** unreplayable failures and hidden dependence on time, randomness, environment, locale, or ordering.
-
-**Computer work:** inject clocks, seeded RNG, stable ids, fixed locale and timezone, captured config, and explicit starting state.
-
-**Agent work:** define which inputs belong in the replay identity and where nondeterminism is intentional.
-
-**Use when:** the repo touches randomness, time, concurrency, simulation, generated content, retries, or distributed ordering.
-
-**Avoid:** pretending every concurrent system can be perfectly deterministic. Capture schedules or bound the claim honestly.
-
-## V07 Record and Replay Regression Corpus
-
-**Catches:** recurrence of failures found by fuzzing, UI exploration, production diagnostics, or manual testing.
-
-**Computer work:** save seed, initial state, action trace, version, and minimized reproducer; replay it in gates.
-
-**Agent work:** decide what becomes a permanent regression and redact sensitive state.
-
-**Use when:** the system has workflows, user interactions, simulations, parsers, protocols, or intermittent failures.
-
-**Rule:** a monkey without replay creates anecdotes. A monkey with replay builds institutional memory.
-
-## V08 Schema and Contract Validation
-
-**Catches:** malformed data before it travels through several subsystems.
-
-**Computer work:** validate API payloads, events, configs, saves, messages, generated content, and environment variables at boundaries.
-
-**Agent work:** decide ownership, compatibility, defaults, migrations, and failure policy.
-
-**Use when:** almost every repo that reads external, persisted, generated, or cross-process data.
-
-**Rule:** parse at the boundary, trust the validated shape inside.
-
-## V09 Static Architecture Enforcement
-
-**Catches:** forbidden imports, cycles, layer violations, direct clock or network access, private API reach-through, and dependency-direction drift.
-
-**Computer work:** dependency graphs, AST rules, import restrictions, ownership checks, and exception expiry.
-
-**Agent work:** define the intended layers and review whether an exception is real debt or a wrong rule.
-
-**Use when:** more than one layer, package, runtime, or trust boundary exists.
-
-**Avoid:** permanent blanket exemptions. Name and track each exception.
-
-## V10 Deterministic Quality Gate
-
-**Catches:** changes that fail known checks and inconsistent agent verification habits.
-
-**Computer work:** run exact reviewed commands, capture real exit codes, save logs, and return a compact verdict.
-
-**Agent work:** choose the gate set and interpret failures that require judgment.
-
-**Use when:** every maintained repo.
-
-**Rule:** successful checks collapse. Failed checks expand only enough to act.
-
-## V11 Change-Impact Analysis
-
-**Catches:** both under-testing and wasteful full-suite execution.
-
-**Computer work:** map changed files through imports, ownership, coverage, schemas, events, and gate globs to affected checks.
-
-**Agent work:** add semantic edges the static graph cannot see, such as shared config or live control planes.
-
-**Use when:** medium or large repos, monorepos, slow suites, or expensive hardware gates.
-
-**Avoid:** assuming import graphs capture data, configuration, deployment, or generated-code dependencies.
-
-## V12 Hermetic Builds and Tests
-
-**Catches:** machine-specific, cache-specific, timezone, locale, network, and undeclared-input failures.
-
-**Computer work:** pin dependencies and toolchains, isolate temp directories, fix locale and timezone, mock networks, clean builds, and compare outputs.
-
-**Agent work:** identify intentional external dependencies and define a usable local substitute.
-
-**Use when:** CI, releases, code generation, native builds, data pipelines, or cross-platform behavior matters.
-
-**Avoid:** claiming hermeticity while hidden downloads, home-directory files, or mutable service state remain.
-
-## V13 Golden and Semantic Snapshot Testing
-
-**Catches:** drift in complex serialized, generated, rendered, migrated, or compiled output.
-
-**Computer work:** compare normalized artifacts to reviewed baselines.
-
-**Agent work:** decide which fields are semantic, review diffs, and reject blind baseline updates.
-
-**Use when:** save formats, API schemas, generated maps, render trees, transcripts, migrations, compilers, reports, or deterministic simulations exist.
-
-**Avoid:** giant noisy snapshots that reviewers approve without understanding.
-
-## V14 Performance and Leak Budgets
-
-**Catches:** correct code that slowly becomes unusable.
-
-**Computer work:** measure latency, throughput, memory, listener counts, queue depth, render count, bundle size, and resource growth against baselines.
-
-**Agent work:** choose user-relevant budgets and distinguish noise from regression.
-
-**Use when:** long-running processes, UI rendering, games, services, mobile apps, data jobs, or constrained devices matter.
-
-**Rule:** a performance claim needs a baseline, workload, and budget.
-
-## V15 Fault Injection
-
-**Catches:** failures caused by the environment rather than the input value.
-
-**Computer work:** simulate timeouts, duplicate events, missing events, partial writes, storage exhaustion, worker death, clock shifts, tab suspension, unavailable services, and interrupted migrations.
-
-**Agent work:** choose realistic faults and acceptable recovery behavior.
-
-**Use when:** persistence, networks, queues, retries, background work, workers, caches, or external services exist.
-
-**Avoid:** destructive testing against live systems without explicit approval and isolation.
-
-## V16 Authoritative Project Map
-
-**Catches:** agents repeatedly rediscovering or misremembering repo shape.
-
-**Computer work:** generate compact manifests, language counts, entrypoint candidates, dependency summaries, test maps, and freshness hashes.
-
-**Agent work:** explain runtime purpose, trust, ownership, rule authority, and external boundaries.
-
-**Use when:** every repo beyond a tiny scaffold.
-
-**Rule:** generate facts where possible. Hand-maintain only meaning the computer cannot derive.
-
-## V17 Separated Builder, Challenger, and Verifier Roles
-
-**Catches:** one agent defining the requirement, writing the code, writing the tests, and grading itself.
-
-**Computer work:** enforce workflow stages and gate results.
-
-**Agent work:** builder implements, challenger attacks assumptions, verifier reviews evidence without editing.
-
-**Use when:** medium or high-risk changes, unfamiliar code, or AI-authored tests.
-
-**Avoid:** spending three agents on a trivial formatting change. Scale separation to stakes.
-
-## V18 Test-Change Policing
-
-**Catches:** fixes that weaken the test instead of correcting the code.
-
-**Computer work:** flag skipped tests, deleted assertions, snapshot updates, timeout increases, broad mocks, coverage drops, mutation-score drops, and production-plus-test changes.
-
-**Agent work:** decide whether the requirement legitimately changed.
-
-**Use when:** any agent may edit tests.
-
-**Rule:** test changes are allowed, but they must explain which behavior contract changed.
-
-## V19 Minimal Failure Packets
-
-**Catches:** token waste and diagnosis drift caused by giant logs.
-
-**Computer work:** emit failure id, first bad event, violated invariant, expected versus actual, command, exit code, seed, version, affected files, replay command, and full-log path.
-
-**Agent work:** read the packet, request only the missing source slice, and decide the next experiment.
-
-**Use when:** every automated gate or exploratory runner.
-
-**Avoid:** placing secrets, raw personal data, or entire state dumps in the packet.
-
-## V20 Confidence Ladder
-
-**Catches:** slow edit loops and risky merges caused by one undifferentiated gate set.
-
-**Computer work:** run Level 0 through Level 3 checks according to change impact and risk.
-
-**Agent work:** assign and revise levels from measured runtime, failure history, and blast radius.
-
-**Use when:** every repo with more than one check.
-
-**Rule:** cheap blockers run first. Expensive checks run only when the change survives and risk justifies them.
-
-## V21 Affected-Unit Testing
-
-**Catches:** regressions in the slice a change touched that a whole-suite run would find late and an untargeted run would not find at all.
-
-**Computer work:** run the unit and module tests owning the changed paths; report the executed set, not the selected set.
-
-**Agent work:** name the ownership edges a path map cannot see, such as a shared contract or a generated client.
-
-**Use when:** any repo with a test suite and more than one owner of behavior. In a small repo the affected set is the whole suite.
-
-**Rule:** a selected test that did not run is not evidence. Record what was executed and what was left out.
-
-## V22 Input Fuzz Testing
-
-**Catches:** parsing, decoding, and boundary defects in code that accepts caller-supplied or persisted bytes.
-
-**Computer work:** generate hostile and malformed inputs against a parser or decoder, then minimize and record any failing input.
-
-**Agent work:** choose the input surfaces worth fuzzing and the properties that must hold, such as never raising, never hanging, and failing closed.
-
-**Use when:** the profile observes serialized, generated, or decoded input, or a public entry point accepts data the product did not produce.
-
-**Rule:** fuzz in-process behind a seam. Never fuzz by launching external tools or touching user files.
-
-## Selection Summary
-
-The planner should normally select a core of V03, V08, V09, V10, V11, V16, V17, V18, V19, V20, and V21 for a non-trivial maintained repo, then conditionally add the rest. It may defer or mark a core capability not applicable when repo evidence provides a real reason.
+# Verification capability index
+
+Use this optional index to interpret a selected capability or an unresolved planning disposition. The authoritative machine definitions, statuses, IDs, defaults and adaptations remain in [verification-capabilities.json](../assets/verification-capabilities.json). This prose does not change its stored semantics.
+
+A comprehensive plan mechanically screens every catalog entry under [verification planning](14-deterministic-verification.md). A narrow task can assess a declared subset without loading all detailed recipes. Apply [core evidence and execution](../SKILL.md): selection is not execution and execution is not a broader guarantee.
+
+| ID | Capability and useful proof | Important limit or trigger |
+|---|---|---|
+| V01 | Mutation: alter important semantic decisions and examine surviving mutants. | Meaningful tests/stable oracle first; [restoration](specialist-mutation-restoration.md), counts and survivor diagnosis matter more than score. |
+| V02 | Model-based stateful tests: legal actions, preconditions, invariants, shrunk traces. | Preserve random exploration; use adversarial sequences for risky transitions. |
+| V03 | Executable invariants at state, event, transaction and trust boundaries. | Avoid type restatements, leaking assertions and accidental production crashes; define failure policy. |
+| V04 | Differential tests against old/simple/native/reference implementations. | Define equivalence and normalization; shared bugs can make two copies agree. |
+| V05 | Metamorphic relations across transformations: chunking, ordering, scaling, round trips. | Assert a valid domain relation; transformation itself may change semantics. |
+| V06 | Deterministic mode with explicit clock, RNG, IDs, locale, configuration and initial state. | Capture schedules or limit concurrency claims; raw-representation ties need [canonical-output proof](specialist-verifier-falsifiability.md). |
+| V07 | Record/replay corpus from minimized seeds, start state, actions and versions. | Redact sensitive state and bind full replay identity. |
+| V08 | Schemas/contracts at external, persisted, generated and process boundaries. | Parse at the boundary; define ownership, compatibility, defaults, migrations and failure policy. |
+| V09 | Static architecture checks for layers, forbidden imports, cycles and ownership. | Track exceptions with owner/expiry; include dynamic and non-import edges. |
+| V10 | Exact reviewed quality gates with real exits and compact verdicts. | Configured checks alone are not observed behavior; see [gate contract](specialist-exact-gate-contract.md). |
+| V11 | Change impact across imports, ownership, coverage, schemas/events and gates. | Add config, content, generated, deployment and control-plane dependencies; incomplete graphs require conservative selection. |
+| V12 | Hermetic builds/tests: pinned tools, isolated temp state, locale/timezone, network substitutes. | Hidden downloads, home files and mutable services invalidate hermeticity claims. |
+| V13 | Reviewed semantic golden/snapshot comparisons. | Normalize irrelevant differences; reject giant noisy snapshots and blind baseline updates. |
+| V14 | Performance/leak budgets for latency, throughput, memory, resources and UI growth. | A claim needs workload, baseline, budget and noise analysis. |
+| V15 | Fault injection for timeouts, duplicate/missing events, partial writes and worker/storage failure. | Use disposable isolation and applicable approval; never infer live-system testing permission. |
+| V16 | Authoritative map from manifests, counts, entrypoints, dependencies and freshness identity. | Agents interpret purpose, rule authority, ownership and external boundaries; generated maps are incomplete evidence. |
+| V17 | Builder/challenger/verifier separation for consequential or unfamiliar work. | Scale to stakes and host support; model voting is not an oracle and trivial edits need no fan-out. |
+| V18 | Test-change review of skips, assertions, snapshots, mocks, timeouts and exceptions. | Name the changed contract; reject weakening solely for green. |
+| V19 | Minimal failure packet with command, real exit, first failure, identity and replay/log locator. | Bound/redact output; never dump secrets or whole sensitive state. |
+| V20 | Confidence ladder from cheap edit checks through task, merge and scheduled checks. | Use existing levels 0-3; measure runtime, failure history and blast radius. |
+| V21 | Affected-unit testing with actual executed ownership set. | Record omitted checks; a selected test that never ran supplies no evidence. |
+| V22 | Hostile/malformed input fuzzing with minimization and a replay corpus. | Fuzz in-process behind a seam; do not launch external tools or touch user files. |
+
+The planner's configured core selection remains recoverable from the machine catalog. Evidence can justify deferral or non-applicability; defaults are starting points, not permission to install every tool. Mixed repositories combine evidence by runtime unit. A single backend or platform result cannot stand for the rest.

@@ -1,129 +1,31 @@
-# Reference: Transcreation And Language Boundary
+# Language, identity, and saved prose
 
-Use this reference when language, locale, UI copy, authored content, saved text, or future transcreation work could hide how runtime truth is produced.
+Compatibility reference `12`. Load when locale/copy/authored-content changes or inspected code connect language to runtime truth. Apply the [core](../SKILL.md) and active task's authorization. Mapping is read-only; documentation and behavior changes need their respective scope.
 
-**Mode:** primarily read-only mapping and docs. Behavior changes need the normal pass rules, tests, and approval gates. Saved-text or hash-semantics changes are protected when the repo treats them as persisted truth.
+## Trace ownership and consumers
 
-For confidence levels, the unknowns entry shape, and the canonical approval-gated areas list, see `00-conventions.md`.
+Inspect the relevant schema, renderer, persistence/receipt contract, tests and existing content rules. Inventory only the requested surfaces: stable IDs/enums/keys, application copy, shared widgets, authored content/templates/prompts, generated summaries/logs, saved prose, compiled locale assets and copy-locking fixtures.
 
-## Goal
+For each surface record owner, truth/display/mixed role, persistence, downstream consumers, allowed overlay fields, protecting check and unknowns. Trace whether text affects hashes, identity, deduplication, replay, ranking, permissions, billing, analytics or migration. English-looking identifiers alone do not prove a display field.
 
-Keep rendered language downstream of structured truth.
+## Preserve the boundary
 
-A repo is transcreation-ready only when a future locale can adapt wording without changing ids, mechanics, saved state, audit history, permissions, prices, rankings, or simulation outcomes.
+- IDs, tags, enums, payload fields, numbers, contracts and persisted state remain truth unless evidence says otherwise. Copy is display unless consumers make it behavioral.
+- Do not translate canonical IDs, parse English to recover state, or make deterministic behavior depend on phrasing, punctuation, word order or grammar. Record existing violations as findings; a copy request does not authorize their repair.
+- Translation cannot invent mechanics, outcomes, motives, legal meaning, prices, stats, permissions or state changes.
+- Keep content overlays keyed by stable IDs and approved fields. Shared widgets receive caller-owned labels or semantic IDs; inspect existing ownership before proposing a boundary change.
+- Preserve exact user-authored bytes unless that content change is explicitly authorized. Saved rendered text used in history, replay, hashes or audits is protected; do not regenerate it from today's locale or normalize it as cleanup.
 
-## When to use this reference
+## Protected decisions
 
-Use it when one or more fit:
-- the repo has player-facing copy, authored content, narrative, emails, policy text, help text, prompts, or generated prose
-- UI components contain literal copy that may need locale ownership later
-- content ids, tags, enums, or mechanic keys are English-looking strings
-- saved rows or event logs store rendered text
-- text feeds deterministic ids, hashes, ranking, routing, permissions, billing, entitlement, or analytics decisions
-- the user mentions localization, i18n, l10n, translation, transcreation, language packs, locale overlays, or copy ownership
+Require explicit authorization covering the concrete change before rewriting saved text; changing receipt/hash/event/audit identity; changing migrations/backfills; changing behavioral/legal meaning in billing, access, entitlement, deletion, retention or compliance copy; adding runtime AI/external translation to a protected path; or adding a remote locale/CMS/flag dependency affecting behavior.
 
-## Start with repo evidence
+Carry existing approval within its reviewed scope. If missing, prepare evidence, proposed diff, compatibility impact and checks, then stop that edit. Continue independent authorized mapping or comments.
 
-Check existing steering and docs first:
-- root and local steering files
-- contract or schema docs
-- content style guides
-- system map or package-boundary docs
-- tests or validators for text, content, locale overlays, saved rows, and renderers
+## Comments and evidence
 
-If the repo has no language-boundary doc, create the smallest useful one near the repo's existing content, architecture, or review docs.
+Only when inline edits are authorized, explain the enforced boundary beside its schema, identity construction, renderer or shared widget. Name the actual field, consumer and consequence. A generic comment that says localization is safe cannot prove it. For proposal-only work, return the comment without editing.
 
-## What to map
+Report source locale if known, canonical truth, display fields, mixed/protected surfaces, saved-text/hash risks, ownership, tests, unknowns and pending decisions. Reuse an existing language/content/architecture document when authorized; otherwise keep the report in the task response. No automatic document creation is required.
 
-List language surfaces by ownership:
-- stable ids, tags, enums, payload keys, route names, table names, and contract fields
-- app-owned UI copy and route chrome
-- shared UI widgets and library components
-- authored content, templates, barks, prompts, lore, emails, notifications, or help text
-- runtime-generated summaries, logs, receipts, reports, or chronicle text
-- persisted text fields
-- derived compiled locale artifacts or generated content
-- test fixtures and snapshots that lock copy
-
-For each surface, mark:
-- whether it is truth, display, or mixed
-- whether it is persisted
-- whether it participates in hashes, ids, dedupe, replay, ranking, permissions, billing, analytics, or migration logic
-- whether it is approved for locale overlays or transcreation
-- what validator or test protects it
-- what remains unknown
-
-## Boundary rules
-
-- Stable ids, tags, enums, payload fields, numbers, contracts, and persisted state are truth unless repo evidence says otherwise.
-- Rendered copy, prose, and locale text are display unless repo evidence says they currently affect behavior.
-- Do not translate, rename, or reinterpret canonical ids to create a locale.
-- Do not parse English strings to recover mechanic truth.
-- Do not make deterministic systems depend on word order, punctuation, translated phrasing, or source-locale grammar.
-- Do not let transcreated prose invent mechanics, outcomes, motives, legal meaning, prices, stats, permissions, or state changes.
-- Treat saved rendered text as protected when it participates in replay, hashes, migrations, audit trails, or user history.
-- Keep shared widgets copy-light when practical. Pass labels, semantic ids, or caller-owned display strings from the owning layer.
-- Keep authored content translation keyed by stable ids and approved fields.
-
-## Comment placement
-
-Add or update nearby comments when code creates or enforces a language boundary:
-- a schema limits locale overlays to approved text fields
-- a renderer keeps prose downstream of receipts or structured facts
-- a shared component receives caller-owned copy to avoid hiding locale policy
-- a saved text field is deliberately not locale-ready yet
-- rendered text participates in a deterministic id, hash, replay path, or duplicate suppression
-
-Good comment shape:
-
-```ts
-// This field is rendered source-locale text, not locale truth. It stays out of
-// overlays until saved receipt identity no longer depends on the summary string.
-summary: z.string(),
-```
-
-Do not add a comment that simply says "localization happens here" unless it names the boundary and the risk.
-
-## Approval gates
-
-Stop for explicit approval before editing when the next step would:
-- rewrite existing saved text in place
-- change event-log, audit-log, receipt, or hash identity
-- change migration or backfill behavior
-- change billing, entitlement, access, deletion, retention, or compliance copy where wording carries product or legal meaning
-- add runtime AI translation or external translation services to a protected path
-- add a new remote locale, CMS, feature flag, or control-plane dependency that affects runtime behavior
-
-Document the finding first. Propose the smallest safe edit. Stop before the protected edit.
-
-## What to document
-
-Use existing repo conventions first. If there is no fit, create one of:
-- `docs/content/transcreation-framework.md`
-- `docs/architecture/language-boundaries.md`
-- `docs/review/transcreation-boundary.md`
-- `docs/unknowns/transcreation-boundary.md`
-
-Record:
-- source locale if known
-- canonical truth surfaces
-- transcreation-approved display surfaces
-- mixed or protected surfaces
-- validators and tests
-- unknowns and next checks
-- approval gates crossed or still pending
-
-## Unknowns
-
-Use the unknowns entry shape from `00-conventions.md`.
-
-## Acceptance checklist
-
-The final result should:
-- separate truth surfaces from display surfaces
-- name saved text and hash risks plainly
-- identify which copy belongs to app, content, shared UI, or runtime generation
-- keep canonical ids and tags language-neutral
-- record unknowns instead of guessing
-- add comments only where they protect a real language boundary
-- say which tests, validators, or docs should move before broad transcreation work
+Before a broader transcreation/replay guarantee, load [claim proof](assurance-claim-proof.md) and [preservation](assurance-preservation.md) for its actual boundaries. Verify that locale changes leave IDs, mechanics, saved state, history and permissions unchanged under the stated contract. Missing runtime or migration evidence remains an explicit limit.

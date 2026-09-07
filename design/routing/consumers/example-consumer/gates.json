@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
-  "_note": "Proposed for 1st-downs (D-135). The two gates are the two verification steps of its single CI job, `pnpm test` and `pnpm replay`, so a candidate can select one and omit the other. Execution is unconfirmed: nothing here is executed by the skill.",
+  "_note": "Illustrative historical configuration for D-135, unbound to any repository. The test and replay gates are examples, disabled and proposed. Derive a target-owned gate set and obtain applicable current authorization before use; no historical approval transfers.",
   "execution_policy": {
     "owner_confirmed_safe_to_execute": false
   },
   "gates": [
     {
       "id": "ci-test",
-      "enabled": true,
-      "review_status": "approved",
+      "enabled": false,
+      "review_status": "proposed",
       "level": 2
     },
     {
       "id": "ci-replay",
-      "enabled": true,
-      "review_status": "approved",
+      "enabled": false,
+      "review_status": "proposed",
       "level": 2
     }
   ],

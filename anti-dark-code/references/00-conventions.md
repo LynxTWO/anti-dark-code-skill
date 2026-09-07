@@ -1,62 +1,19 @@
-# Reference: Conventions, Vocabulary, and Shared Shapes
+# Stored vocabulary and artifact compatibility
 
-Use this reference whenever another pass tells you to record an unknown, label evidence, score risk, or tag coverage status. Every other pass in this skill links here instead of restating the same vocabulary. Keep this file the single source of truth for those shapes.
+Load when reading or updating an existing ledger, calibration record, or unknowns artifact. The [core](../SKILL.md#evidence) is canonical for evidence and authorization; this reference preserves stored shapes. It is not a mandatory startup read.
 
-**Mode:** definitional. No code changes. No deliverables produced from this file alone.
+## Confidence and severity
 
-## Contents
+Confidence remains `verified`, `inferred`, or `unknown` as defined in the core. Claim kind is a separate report field: `source_fact`, `configured_behavior`, `observed_behavior`, or `guarantee`. Do not add unsupported keys to validated JSON; retain these distinctions in the accompanying report or existing evidence fields.
 
-- Confidence and negative-search evidence
-- Risk, status, classification, and diagnostic labels
-- Unknowns, verification capabilities, and sensitive-data shapes
-- Approval gates, calibrated paths, and default paths
-- Writing rules
+Severity expresses plausible consequence:
 
-## Confidence levels
+- `low`: annoyance or local cleanup, recoverable in minutes.
+- `medium`: meaningful regression, slow recovery, scoped impact.
+- `high`: user-visible incident, corruption risk, or exposure within one trust zone.
+- `critical`: money movement, takeover, data loss, privacy breach, irreversible change, or cross-trust-zone exposure.
 
-Use exactly these three labels. Do not invent intermediates.
-
-- `verified` - direct repo evidence supports the claim. Cite the file, line, command, or doc that proves it.
-- `inferred` - repo evidence is consistent with the claim but does not prove it. Name the gap that prevents `verified`.
-- `unknown` - repo evidence is missing, contradictory, or only available outside the repo (vendor console, sibling repo, runtime telemetry).
-
-Downgrade rather than flatten. If a check would force `inferred`, do not write `verified`.
-
-### Claims that crossed a context boundary
-
-A claim carried across a summary, a handoff, or a session boundary loses the thing that made it a finding, which is the act of having looked. It arrives as a sentence with a file and a line number attached, indistinguishable in form from a claim that was verified in this session. Such a claim carries no confidence label until it is re-measured here, and it is re-measured before it is written anywhere durable. The cost of re-checking is seconds; the cost of a wrong citation in a committed document is that a reader trusts it, and the document's other claims inherit the doubt when it is found. When a re-check refutes an inherited claim, record it as refuted in the same document, with what was actually found, so the same wrong lead cannot be reopened later as though it were new. In one dogfeeding session five inherited defects were re-checked before filing: three held, one was worse than recorded, and two with precise-looking line citations did not exist in the named files.
-
-### Negative-search evidence
-
-Every negative search records:
-
-- the exact scope and query
-- the candidate-file count
-- the finding count
-- excluded file types or trees that could hold the same behavior
-
-Name the counting unit. Report matching-file count when repeated hits in one file could mislead, and occurrence count when multiple matches on one line matter. Never compare unlike units across passes.
-
-Zero candidate files means the surface was not examined. Record it as `unknown` or `unscanned`; never translate it into "clean," "absent," "pure managed," or another negative claim. A nonzero candidate count with zero findings proves only that the searched pattern was absent from those candidates.
-
-An availability claim inherits the blind spots of the channel it looked at. Before reporting that something is unavailable, enumerate which channels could carry it and say which were checked; an absence is reportable only with its scope stated. An ecosystem mid-migration between distribution channels makes a single-channel survey systematically negative: in one survey a target platform showed close to zero support on the projects' release pages while over ninety percent of the same projects published artifacts for it on the package index they had moved to, and the clearest case built those artifacts in continuous integration on every change and attached none of them to any release.
-
-Verify that the search command opens candidate files. Do not pipe a filename listing into a content search and treat the result as a content scan. Search the scoped tree directly with matching globs, or pass enumerated paths as file arguments through a delimiter-safe mechanism. Spot-check a known-positive fixture or sentinel before trusting a whole-repo zero.
-
-### Audited-set evidence
-
-Producers passing in sequence and an audit certifying them as a set are different claims. Per-gate evidence proves each producer ran green on its own inputs. Audited-set evidence proves that a separate step checked the set's correspondence (counts match, references resolve, no member is missing or stale) and emitted a durable artifact saying so. Never report a passing sequence as an audited set. Where an audit step exists, cite its artifact; where none exists, the set-level claim stays `inferred` at best.
-
-Ordering is part of the claim. A producer record written after an audit attempt is unaudited, however green that producer's own run was, so require the audit artifact to exist on disk and every producer record to predate it before describing a set as passing. A producer that writes new evidence must invalidate any standing audit first, or a stale artifact keeps certifying a set that no longer exists. Where no audit step exists to carry the ordering, record the run's ordering and completeness explicitly, because no artifact will carry it for you.
-
-## Risk levels
-
-Use exactly these four labels. Pick the one that matches the worst plausible blast radius if the issue is real.
-
-- `low` - annoyance or local cleanup; recoverable in minutes
-- `medium` - meaningful regression, slow recovery, scoped blast radius
-- `high` - user-visible incident, data corruption risk, security exposure within one trust zone
-- `critical` - money movement, account takeover, data loss, privacy breach, irreversible state change, multi-tenant or cross-trust-zone exposure
+Logging exposure categories describe observed or possible reach; they do not replace severity.
 
 ## Status vocabulary
 
@@ -112,7 +69,7 @@ Record the command, target tuple, observed failure, and next best check. A missi
 
 ## Unknowns entry shape
 
-Every pass that records an unknown writes the same entry shape into a file under `docs/unknowns/`. Use this canonical structure. Do not add or rename fields.
+Reuse the existing artifact first. One-off unknowns may remain in the report. When creating a persistent unknowns file, preserve the existing template shape below; the fallback path is `docs/unknowns/<task>.md`. Never create it without write authorization.
 
 ```markdown
 ### <short title of the unknown>
@@ -133,42 +90,11 @@ Pass-specific unknowns files (`docs/unknowns/<pass-name>.md`) follow `assets/tem
 
 ## Verification capability status
 
-Use exactly these four statuses in `calibration/verification-plan.json`:
+`calibration/verification-plan.json` keeps the catalog's `selected`, `candidate`, `deferred`, and `not_applicable` values. Selection is not execution, coverage, or permission. Derive IDs and the capability count from [the catalog](../assets/verification-capabilities.json), not a copied range.
 
-- `selected` - evidence shows the capability belongs in the current plan
-- `candidate` - useful if a named condition or oracle is confirmed
-- `deferred` - useful later; the trigger and reason are recorded
-- `not_applicable` - current repo evidence does not support it
+## Reporting coverage without changing schemas
 
-A status is not permission to install a dependency or execute repo code.
-
-## Sensitive data classes
-
-Treat as high risk wherever they appear (logs, comments, tests, docs, examples, screenshots, commit messages).
-
-- passwords, password hashes, reset tokens, magic links, one-time codes
-- session IDs, cookies, JWTs, API tokens, OAuth tokens, CSRF tokens
-- secrets, API keys, signing keys, encryption keys, private certificates
-- database connection strings
-- raw personal data beyond the minimum safe identifier
-- full request or response bodies that may carry secrets or personal data
-- signed URLs and pre-signed upload data
-- invite or activation codes that grant access
-- biometric, health, financial, legal, location, child, student, psychometric, or otherwise regulated data
-- assessment, survey, scoring, or training answers tied to an identifiable person
-- prompts, model outputs, or tool traces that carry user-entered sensitive data
-
-## Approval-gated areas
-
-Edits to these areas require explicit human approval before any change. Document findings first, propose the smallest safe edit, then stop.
-
-- auth, access control, sessions, secrets, crypto
-- billing, payroll, money movement, purchases, entitlements
-- deletion, retention, export, compliance workflows
-- migrations, backfills, data repair
-- concurrency or locking that can corrupt state
-- privileged CI or CD, release tooling, support tools with production reach
-- repo-specific protected areas already named in steering files
+In prose, distinguish examined, deferred, excluded, and blocked surfaces. For existing ledgers, keep their stored status and describe what was actually examined: `mapped` means architecture inventory, `commented` means comments added, `tested` requires bounded execution evidence. Do not translate `mapped` into tested or reinterpret old records during a text-only upgrade.
 
 ## Calibrated local paths
 
@@ -189,43 +115,8 @@ When the repo carries a local anti-dark-code skill, use:
 
 The shared updater owns the local skill core. The repo owns `calibration/`.
 
-## Default deliverable paths
+## Artifact and writing defaults
 
-Use the repo's existing convention first. Fall back to these only when the repo has none.
+Prefer existing repo documents. Templates under [assets/templates](../assets/templates/) define fallback shapes; load only the one being created. [Writing hygiene](06-writing-hygiene.md) applies to changed text, not an automatic repository-wide rewrite.
 
-| Artifact | Default path |
-|---|---|
-| Steering | `AGENTS.md` and tool-specific siblings at repo root |
-| System map | `docs/architecture/system-map.md` (or `service-map.md` if the repo already uses that name) |
-| Coverage ledger | `docs/architecture/coverage-ledger.md` |
-| Repo slices | `docs/architecture/repo-slices.md` |
-| Logging audit | `docs/security/logging-audit.md` |
-| Adversarial pass | `docs/review/adversarial-pass.md` |
-| Scenario stress-test | `docs/review/scenario-stress-test.md` |
-| Scenario scorecard | `docs/review/scenario-scorecard.md` |
-| Remediation backlog | `docs/review/remediation-backlog.md` |
-| Safe-fix plan | `docs/review/safe-fix-plan.md` |
-| Evidence-gap check | `docs/review/evidence-gap-check.md` |
-| Approval packets | `docs/review/approval-packets.md` |
-| Maintenance harness | `docs/review/maintenance-harness.md` |
-| Unknowns | `docs/unknowns/<pass-name>.md` |
-
-## Commit hygiene (cross-pass)
-
-- Stage explicit paths. Do not use a sweep flag that stages everything modified.
-- Never combine a sweep commit with an environment override that changes how the working tree is compared to the index, such as a line-ending normalization override. The status view that was checked beforehand ran under a different rule than the commit, so the review cannot catch what the commit sweeps in.
-- Let the attribute file decide line endings. A text path no attribute rule pins is the one a normalization override rewrites whole.
-- Read the diff stat of every commit against its base before pushing. A commit meant to change four lines that reports fifty-eight files is a rewrite, not a change.
-
-The failure shape this prevents: a release commit made on a normalizing checkout with an override and a sweep flag listed 58 changed files and roughly 10,000 line deltas, all whole-file line-ending rewrites, after a pre-commit status had shown four files. It was caught from the pull-request file list and rebuilt from the intended paths as 8 files, 10 insertions, 10 deletions.
-
-## Writing rules (cross-pass)
-
-- Plain words. Short sentences. Active voice when it reads cleaner.
-- ASCII punctuation and straight quotes only.
-- Commas, periods, or parentheses instead of long dashes.
-- Name the subject, the risk, and the safeguard directly.
-- Avoid stock transitions, stock wrap-up lines, mirror-contrast slogans, hype, and apology filler.
-- Merge any caller-supplied banned-term list as a hard rule.
-
-Run `06-writing-hygiene.md` after any pass that writes text.
+If commits are authorized, stage explicit paths, preserve attribute-controlled line endings, inspect the diff stat, and avoid sweep staging combined with environment overrides. No task requires commits merely to advance its workflow.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_readme": "Proposed calibration for JeremyABurton/1st-downs, the shadow evidence campaign's first consumer (D-135). Authored for that repository from the read-only field study of 2026-09-03, in which all 45 of its pull requests were measurable; its owners edit it before it lands, and nothing here is copied from another repository's calibration. Every rule is proposed, as D-064 requires, so this policy can only ever describe what a route would have been; a proposed rule never runs less than everything.",
+  "_readme": "Illustrative historical classifier and proposed rules for D-135. This file is unbound to any repository and is not approved calibration. Derive entries from target-owned source and current obligations; do not transplant this example as verified evidence or permission. Every routing rule remains proposed.",
   "classifier": {
     "surfaces": [
       {

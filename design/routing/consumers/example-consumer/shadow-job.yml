@@ -1,7 +1,6 @@
-# The shadow evidence job for 1st-downs, from assets/templates/shadow-job.yml
-# with its placeholders filled. Its one gate job is `test`, which carries both
-# canonical gates as named steps, per shadow-gate-map.json beside this file.
-# It is evidence, never a gate: it is not added to any required check.
+# Illustrative historical workflow fragment; unbound and unapproved.
+# Derive actual jobs, dependencies and permissions from the target workflow.
+# Do not paste this example as an authorized installation or required check.
 
   shadow:
     name: Shadow evidence record
