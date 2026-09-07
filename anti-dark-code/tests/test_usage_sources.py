@@ -19,6 +19,22 @@ def adapter():
 
 
 class UsageSourceTests(unittest.TestCase):
+    def test_credential_shaped_metadata_is_not_retained(self) -> None:
+        credential = "sk-proj-synthetic-example-never-a-real-key"
+        state, events, diagnostics = adapter().parse_rows([
+            {"timestamp": "2026-09-07T19:00:00Z", "type": "session_meta",
+             "payload": {"id": "thread-c", "session_id": "session-c", "model_provider": credential}},
+            {"timestamp": "2026-09-07T19:00:01Z", "type": "turn_context",
+             "payload": {"turn_id": "turn-c", "model": credential, "effort": credential}},
+            {"timestamp": "2026-09-07T19:00:02Z", "type": "token_usage_record",
+             "payload": {"thread_id": "thread-c", "session_id": "session-c", "turn_id": "turn-c",
+                         "response_id": "response-c", "usage": {"input_tokens": 1, "output_tokens": 2}}},
+        ], "codex")
+        self.assertEqual(1, len(events))
+        self.assertNotIn(credential, json.dumps([state, events, diagnostics]))
+        self.assertIsNone(events[0]["model"])
+        self.assertIsNone(events[0]["provider"])
+
     def test_adapter_module_exists(self) -> None:
         """The collector's pure source boundary is a standalone stdlib module."""
         self.assertTrue(SCRIPT.is_file())

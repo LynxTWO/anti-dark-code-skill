@@ -6,6 +6,8 @@
 - Add structured feedback for observed tasks: skill use, expectation, invocation, quality and task class. Report trigger feedback only for the eligible labeled implicit-use sample; natural usage does not establish causal savings, subscription spend, remaining quota or population accuracy.
 - Add the offline recommendation helper `scripts/adc_model_policy.py`, dated `assets/model-policy.json` and `references/model-selection.md`. Filter by caller-supplied live capabilities and an acceptance check before suggesting a tier. Apply changes only through an available, authorized host control; keep the current model when required evidence is unknown and retain failed work when taking one stronger route.
 - Document collection and feedback in `references/real-world-usage.md`; update `references/host-codex.md`, `references/host-claude-code.md` and `references/16-community-feedback-and-efficiency.md` while preserving the separate controlled-pair contract. Update `README.md`, `OPERATIONS.md`, the HTML overview and six-page PDF brief for the implemented behavior.
+- Reject common credential-shaped values in model, provider and effort metadata while retaining usage with unknown attribution (`tests/test_usage_sources.py`). This filter does not establish that arbitrary metadata is secret-free.
+- Disable detached automatic Git maintenance in the remaining disposable Git fixtures (`tests/test_adc.py`). Git 2.55 tracing reproduced 135 cleanup failures in 400 baseline runs; all 100 fixed runs passed without a maintenance process. Existing cleanup and behavior assertions remain intact.
 
 ## 2026.09.07-unified.13
 

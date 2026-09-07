@@ -90,6 +90,9 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def init_git_repo(self, root: Path) -> None:
         subprocess.run(["git", "init", "-q", str(root)], check=True)
+        # Git can detach automatic maintenance after the first fixture commit,
+        # racing TemporaryDirectory cleanup on newer Git releases.
+        subprocess.run(["git", "-C", str(root), "config", "maintenance.auto", "false"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.email", "tests@example.invalid"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.name", "Anti Dark Code Tests"], check=True)
         subprocess.run(["git", "-C", str(root), "add", "."], check=True)

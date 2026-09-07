@@ -24,6 +24,10 @@ USAGE_KEYS = (
 )
 _CONTEXT_LIMIT = 32
 _METADATA_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/:-]{0,127}$")
+_CREDENTIAL_PREFIX = re.compile(
+    r"^(?:sk-|gh[pousr]_|github_pat_|hf_|AKIA[A-Z0-9]{16}|ASIA[A-Z0-9]{16}|eyJ[A-Za-z0-9_-]{8,}\.)",
+    re.IGNORECASE,
+)
 
 
 def _digest(*parts: str) -> str:
@@ -87,7 +91,7 @@ def _metadata(value: object, diagnostics: dict[str, int]) -> str | None:
     text = _string(value)
     if text is None:
         return None
-    if _METADATA_IDENTIFIER.fullmatch(text) is None:
+    if _METADATA_IDENTIFIER.fullmatch(text) is None or _CREDENTIAL_PREFIX.match(text):
         _diagnose(diagnostics, "invalid_metadata")
         return None
     return text
