@@ -22,6 +22,8 @@ Return proposed and executed commands separately, capability dispositions, teste
 
 Keep exploration reproducible with a seed or trace and named oracle. Preserve mutation restoration and cleanup evidence. A hash or receipt binds recorded inputs; it is neither an owner signature nor correctness proof.
 
+For expensive property suites, distinguish requested case counts, observed valid cases, rejected inputs and completed properties. Confirm configuration precedence in the pinned runner instead of assuming an environment override won or lost. Diagnose setup/constructor cost separately from per-case work before changing the test domain. A budget stop leaves unfinished properties incomplete; retained partial successes do not turn the suite green. Generate eligible inputs directly only when the original relation and separate edge-case coverage remain intact.
+
 ## Stop conditions
 
 Stop before unauthorized execution, changed approval bindings, missing prerequisites, or unreliable cleanup. Changed gates invalidate dependent acceptance. Never hide failures through weaker assertions, skips, or inflated timeouts. A plan completes a planning request, but cannot complete a request for executed verification. Report passed obligations and residual uncertainty separately.
