@@ -30,3 +30,7 @@ A comprehensive plan mechanically screens every catalog entry under [verificatio
 | V22 | Hostile/malformed input fuzzing with minimization and a replay corpus. | Fuzz in-process behind a seam; do not launch external tools or touch user files. |
 
 The planner's configured core selection remains recoverable from the machine catalog. Evidence can justify deferral or non-applicability; defaults are starting points, not permission to install every tool. Mixed repositories combine evidence by runtime unit. A single backend or platform result cannot stand for the rest.
+
+For V14 comparisons, require compatible workload size/duration, input identity or generator recipe, quality/options, runtime/build mode and machine identity. Missing comparison metadata means incompatible evidence, including older baselines that remain readable. Record end-to-end wall time separately from summed stage timings, and state warm-up, repetitions and concurrent-load limits. Write diagnostics into fresh outputs with isolated scratch; a diagnostic run must not silently replace the acceptance baseline.
+
+For long recordings, preserve completed work units in fresh, identity-bound partial checkpoints instead of retaining all detailed evidence only in memory until the final write. Keep partial evidence distinguishable from complete results, and test that baseline/acceptance readers reject it. A timeout or interruption leaves the run incomplete even when some units finished successfully; timing evidence alone does not prove output quality.

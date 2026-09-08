@@ -20,6 +20,8 @@ A test file invoked outside its package's configured runner returns a verdict ab
 
 ## Expected work
 
+Inspect the selected test bodies before broadening a runner to ignored, manual, or developer tests. Those labels can include asset generators, baseline writers and user-data tools. Discover names through the configured runner and classify effects; a text search for a test macro may match comments, string literals or the detector itself. Bind an unattended selection to explicit reviewed targets and record excluded obligations. Compilation or listing must not be reported as test execution.
+
 A checked CI box or zero exit code is not enough. Where the repo has tests, multiple targets, plugins, native dependencies, generated outputs, or release packaging, make the gate prove the expected work occurred:
 
 - assert discovered and executed test counts, including a zero-discovery failure
@@ -30,6 +32,8 @@ A checked CI box or zero exit code is not enough. Where the repo has tests, mult
 - retain the real producer exit code instead of a summarizer or output-filter exit code
 
 Keep assertions scoped. A manifest proves its declared shape, not that every feature works. An allowlisted failure is tracked debt, not healthy behavior.
+
+For a release candidate, bind test receipts to the selected source, dependency lock, fixture bytes, build configuration and final artifact bytes. Check source identity again after long producers finish: successful assertions during a changing tree do not establish a coherent release. Reuse a shared build recipe for packaging and its verification when feature selection affects dependency unification; equal version strings and target directories do not prove equal builds. Preserve prior candidates and receipts when producing a replacement.
 
 Calibrate detector thresholds against clean and known-bad fixtures. Record why the threshold separates meaningful drift, keep a positive fixture that crosses it, and review threshold changes as behavior changes.
 
