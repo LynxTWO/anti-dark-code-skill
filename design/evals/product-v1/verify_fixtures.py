@@ -20,6 +20,8 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 
 def verify():
+    files = [ROOT / "cases.json", Path(__file__), *sorted((ROOT / "fixtures").rglob("*.html"))]
+    before = {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
     server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT / "fixtures")))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -99,11 +101,13 @@ def verify():
         server.server_close()
         thread.join(timeout=5)
         assert not thread.is_alive()
-    files = [ROOT / "cases.json", Path(__file__), *sorted((ROOT / "fixtures").rglob("*.html"))]
+    after = {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
+    if before != after:
+        raise RuntimeError("Fixture or harness source changed during browser verification; evidence is incomplete")
     return {"schema": 1, "claim": "Fixture observations only; not agent compliance or participant validation.",
         "agent_trials_executed": 0, "os": platform.platform(), "python": platform.python_version(),
         "playwright": version("playwright"), "chromium": browser_version,
-        "source_sha256": {path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest() for path in files},
+        "source_sha256": after, "source_unchanged_during_run": True,
         "observations": observations, "complete": True}
 
 

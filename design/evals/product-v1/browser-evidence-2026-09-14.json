@@ -8,10 +8,11 @@
   "chromium": "151.0.7922.34",
   "source_sha256": {
     "cases.json": "3f397734604b9609802d10b6a000aa7483017087f733c11a2cba3c680b3bf4ad",
-    "verify_fixtures.py": "f6205381751543f4b0b640f92a2fe1ad55784e21d5f6c73094eb1f5ab3b6c7f8",
+    "verify_fixtures.py": "214c1c307551ccc87ee9de371a430e5ceb83a0bd1acdf3b94e7c732d62e2d9eb",
     "fixtures/broken/index.html": "db02a81d6336617a6e299f4956d6649b964f543cc4dcb15f4cf2f33700c86c57",
     "fixtures/clean/index.html": "e32da5d01669e8af1050294ebeb199c606e288844e54436824daa23f39061b69"
   },
+  "source_unchanged_during_run": true,
   "observations": [
     {
       "fixture": "broken",
