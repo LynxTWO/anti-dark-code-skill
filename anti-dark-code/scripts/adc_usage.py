@@ -55,9 +55,13 @@ def _json(path):
 def _windows_command(path, script):
     system_root = os.environ.get("SystemRoot", r"C:\Windows")
     executable = Path(system_root) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    # PowerShell 7 hosts can pass modules that Windows PowerShell 5.1 cannot load.
+    # These fixed ACL scripts need only modules shipped with this executable.
+    child_env = {**os.environ, "ADC_PRIVACY_CHECK_PATH": str(path),
+                 "PSModulePath": str(executable.parent / "Modules")}
     try:
         result = subprocess.run([str(executable), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
-            env={**os.environ, "ADC_PRIVACY_CHECK_PATH": str(path)}, capture_output=True,
+            env=child_env, capture_output=True,
             timeout=15, check=False)
         return result.returncode == 0 and result.stdout.strip() == b"private"
     except (OSError, subprocess.TimeoutExpired):

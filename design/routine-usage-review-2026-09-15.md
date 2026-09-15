@@ -81,3 +81,30 @@ Operations now documents a narrow extra writable root for workspace-write sessio
 read-only sessions can leave labels pending. Activation preserved sandbox modes
 and added only the selected private ledger root where needed. Existing .14 skill
 discovery remains separate from the pinned .15 candidate collector/helper runtime.
+
+## Native Windows module-path finding
+
+The native Windows hook reached the helper with valid string lifecycle, session
+and turn fields but failed the private-ledger preflight. A temporary diagnostic in
+the owned synthetic project retained only input types, byte counts, code locations
+and a redacted error from the fixed permission-check script. It stored no prompt
+or raw native identity. Windows PowerShell reported that `Get-Acl` was found in
+Microsoft.PowerShell.Security but the module could not load. The native host's
+PowerShell 7 module path was inherited by the explicitly selected Windows
+PowerShell 5.1 checker; direct SSH checks used a different parent environment.
+
+Remedy: scope PSModulePath to the checker executable's own system Modules folder
+for that child process only. Preserve the caller's environment and all owner/ACL
+requirements. Add a Windows regression with an incompatible module path and verify
+the native hook again. Do not weaken permissions, accept an unchecked ledger or
+increase timeouts to mask this failure. Temporary diagnostics are confined to the
+synthetic project and must be removed after the investigation.
+
+The discriminating Windows regression failed on the preceding source at the
+private-ACL assertion and passed with scoped module resolution (10.61 s and
+21.50 s). It covers both checking and initializing a private ledger while leaving
+the inherited environment unchanged. The first fixture did not reproduce the
+failure because omitting the built-in module path lets Windows PowerShell prepend
+it; that non-discriminating run is retained but is not evidence for the fix.
+The corrected fixture places an unloadable module ahead of the built-in path, as
+in the native host. Native diagnostics were removed from project hook discovery.
