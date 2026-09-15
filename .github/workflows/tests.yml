@@ -60,8 +60,16 @@ jobs:
           # against the pristine checkout, and use -B so it writes none itself.
           python -B anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal
 
+      - name: Check the Windows diagnostic observer
+        shell: bash
+        run: python -B -m pytest tools/test_windows_setup_probe.py -q
+
       - name: Run the deterministic suite
         shell: bash
+        env:
+          # Observe real calls in the existing Windows leg. Never retry or relax
+          # a permission check; retain only bounded failure categories and timing.
+          PYTEST_PLUGINS: ${{ runner.os == 'Windows' && 'tools.windows_setup_probe' || '' }}
         run: |
           set -euo pipefail
           # No pipe into a summarizer here. A pipeline reports its last stage, so

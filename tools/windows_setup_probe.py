@@ -1,4 +1,4 @@
-"""Temporary CI observer for intermittent Windows ledger setup failures.
+"""CI observer for intermittent Windows ledger setup failures.
 
 Observe the real subprocess call without retries or changing its arguments.
 Only fixed classifications, durations and return codes leave the test process.
