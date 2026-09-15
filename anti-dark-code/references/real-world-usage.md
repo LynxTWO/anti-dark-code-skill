@@ -27,7 +27,10 @@ owner-only permissions are checked before sensitive writes; files are created
 with mode 0600. Existing shared directories are refused with a remedy, never
 silently chmodded. Windows requires a verified current-user-owned ACL allowing
 only that user, SYSTEM and Administrators; unknown ACLs or unavailable PowerShell
-refuse initialization. These checks do not protect against the same OS user,
+refuse initialization. Newly created empty files receive current-user ownership
+before writes; Windows may otherwise assign the process token's group owner.
+Inherited private access rules and the strict reopen check are preserved.
+These checks do not protect against the same OS user,
 administrators, or a hostile process racing filesystem operations.
 
 Older schema-1 ledgers remain readable after their permissions meet this rule.

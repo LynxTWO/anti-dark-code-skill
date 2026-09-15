@@ -120,9 +120,28 @@ def _check_private(path):
 
 
 def _private_create(path):
-    """Exclusive creation with restrictive POSIX mode; Windows inherits checked ACL."""
+    """Create an empty private file; verify Windows ownership before any write."""
     path = _safe_path(path)
-    return os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8")
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        if os.name == "nt":
+            # Access rules inherit from the checked parent, but ownership comes
+            # from the process token and may default to Administrators. Change
+            # only this exclusively created empty file, before exposing a writer.
+            if not _windows_command(path, r'''
+$ErrorActionPreference = 'Stop'
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = Get-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH
+$acl.SetOwner($sid)
+Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
+'private'
+'''):
+                raise ValueError("cannot assign private file ownership; no sensitive data was written")
+            _check_private(path)
+        return os.fdopen(descriptor, "w", encoding="utf-8")
+    except BaseException:
+        os.close(descriptor)
+        raise
 
 
 def _config(directory):

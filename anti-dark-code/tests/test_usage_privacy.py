@@ -113,6 +113,33 @@ class UsagePrivacyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "privacy"):
                 self.adc.collect(self.ledger)
 
+    @unittest.skipUnless(os.name == "nt", "Windows file ownership requires Windows")
+    def test_new_file_is_private_before_writes_and_existing_file_is_preserved(self):
+        self.ledger.mkdir()
+        self.adc._secure_new_windows_stage(self.ledger)
+        path = self.ledger / "new.txt"
+        with self.adc._private_create(path) as stream:
+            self.adc._check_private(path)
+            self.assertEqual(b"", path.read_bytes())
+            stream.write("synthetic content")
+        with self.assertRaises(FileExistsError):
+            self.adc._private_create(path)
+        self.assertEqual("synthetic content", path.read_text(encoding="utf-8"))
+
+    @unittest.skipUnless(os.name == "nt", "Windows file ownership requires Windows")
+    def test_new_file_owner_or_privacy_failure_closes_empty_file(self):
+        self.ledger.mkdir()
+        self.adc._secure_new_windows_stage(self.ledger)
+        for failure in ("owner", "privacy"):
+            with self.subTest(failure=failure):
+                path = self.ledger / (failure + ".txt")
+                mocked = (patch.object(self.adc, "_windows_command", return_value=False)
+                    if failure == "owner" else patch.object(self.adc, "_check_private", side_effect=ValueError("privacy unverified")))
+                with mocked, self.assertRaises(ValueError):
+                    self.adc._private_create(path)
+                self.assertEqual(b"", path.read_bytes())
+                path.unlink()  # Windows refuses this if the write descriptor leaked.
+
     def test_each_staged_file_failure_is_retryable_without_removing_unrelated_files(self):
         original = self.adc._private_create
         for failed_name in ("usage.sqlite3", ".gitignore", "config.json"):
