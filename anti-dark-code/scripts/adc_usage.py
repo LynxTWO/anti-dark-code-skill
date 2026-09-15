@@ -292,6 +292,11 @@ def _upsert_event(db, event):
             new[key] = event[key]
     if old.get("role") == "unknown" and event.get("role") != "unknown":
         new["role"] = event["role"]
+    # Bind reviews only to this response's retained task, never a later fork/copy.
+    if new["task_id"] == event["task_id"]:
+        for key in ("host_thread_hash", "host_turn_hash"):
+            if new.get(key) is None and event.get(key) is not None:
+                new[key] = event[key]
     for key in ("provider", "model", "effort", "host_version"):
         if new.get(key) is None and event.get(key) is not None:
             new[key] = event[key]
@@ -449,12 +454,20 @@ def collect(directory, *, max_bytes=32 * MAX_LINE):
             db.execute("INSERT INTO diagnostics VALUES (?,?) ON CONFLICT(id) DO UPDATE SET count=count+excluded.count", (key, value))
         db.execute("INSERT OR REPLACE INTO metadata VALUES ('last_collection',?)",
                    (json.dumps({"timestamp": _now(), "backlog": result["backlog"], "diagnostics": dict(diagnostics)}),))
+        _review_helper().reconcile(db)
     result["diagnostics"] = dict(diagnostics)
     return result
 
 
 def _task_key(event):
     return event["root_task_id"] if event["usage_semantics"].startswith("codex-") else event["task_id"]
+
+
+def _review_helper():
+    spec = importlib.util.spec_from_file_location("adc_usage_review", Path(__file__).with_name("adc_usage_review.py"))
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    return helper
 
 
 def record_feedback(directory, task_id, *, used="unknown", expected="unknown", invocation="unknown",
@@ -503,7 +516,9 @@ def summary(directory):
             dimensions = ("provider", "model", "model_source", "effort", "usage_semantics", "role", "host_version")
             identity = {key: event.get(key) for key in dimensions}
             identity.update(task_class=labels.get("task_class", "other"), quality=labels.get("quality", "unknown"),
-                            skill_used=labels.get("used", "unknown"))
+                            skill_used=labels.get("used", "unknown"), reviewer=labels.get("reviewer", "unknown"),
+                            quality_basis=labels.get("basis", "unknown"),
+                            reported_skill_version=labels.get("reported_skill_version"))
             key = json.dumps(identity, sort_keys=True)
             stratum = strata.setdefault(key, {**identity, "events": 0, "usage": _empty_totals()})
             stratum["events"] += 1
@@ -518,9 +533,24 @@ def summary(directory):
             task["last_seen"] = max(task["last_seen"], event["timestamp"])
             task["events"] += 1
             _add_usage(task["usage"], event["usage"])
+        review_coverage = _review_helper().coverage(db, tasks)
+    by_reviewer = {name: _trigger_feedback(tasks, feedback, name)
+                   for name in ("agent-self-review", "human-review", "unknown")}
+    return {"schema": SCHEMA, "enabled": config["enabled"], "since": config["since"], "events": count,
+            "claim": "Observed local usage and reported feedback; no causal savings, billing attestation, or population trigger accuracy.",
+            "savings": None, "subscription_cost": None, "quota_remaining": None,
+            "strata": list(strata.values()), "tasks": sorted(tasks.values(), key=lambda task: task["last_seen"], reverse=True),
+            "trigger_feedback": _trigger_feedback(tasks, feedback),
+            "trigger_feedback_by_reviewer": by_reviewer, "review_coverage": review_coverage,
+            "diagnostics": diagnostics, "last_collection": json.loads(collection[0]) if collection else None}
+
+
+def _trigger_feedback(tasks, feedback, reviewer=None):
     score = dict(tp=0, fp=0, fn=0, tn=0, labeled_implicit=0, excluded=len(tasks))
     for task_id, task in tasks.items():
         label = feedback.get(task_id, {})
+        if reviewer is not None and label.get("reviewer", "unknown") != reviewer:
+            continue
         if (task["scope"] not in {"turn", "root-turn"} or label.get("invocation") != "implicit"
                 or label.get("used") not in {"yes", "no"} or label.get("expected") not in {"yes", "no"}):
             continue
@@ -531,12 +561,7 @@ def summary(directory):
         score["excluded"] -= 1
     score["precision"] = score["tp"] / (score["tp"] + score["fp"]) if score["tp"] + score["fp"] else None
     score["recall"] = score["tp"] / (score["tp"] + score["fn"]) if score["tp"] + score["fn"] else None
-    return {"schema": SCHEMA, "enabled": config["enabled"], "since": config["since"], "events": count,
-            "claim": "Observed local usage and feedback; no causal savings, billing attestation, or population trigger accuracy.",
-            "savings": None, "subscription_cost": None, "quota_remaining": None,
-            "strata": list(strata.values()), "tasks": sorted(tasks.values(), key=lambda task: task["last_seen"], reverse=True),
-            "trigger_feedback": score, "diagnostics": diagnostics,
-            "last_collection": json.loads(collection[0]) if collection else None}
+    return score
 
 
 def disable(directory):
@@ -563,7 +588,7 @@ def export_summary(directory, output):
             raise ValueError("export destination must be outside the ledger and source roots")
     _check_private(output.parent)
     result = summary(directory)
-    result["export_scope"] = "All summary tasks, usage strata, feedback, and fixed diagnostics; excludes source roots, file cursors, transcripts and per-response records."
+    result["export_scope"] = "All summary tasks, usage strata, feedback, review coverage, reviewer breakdowns and fixed diagnostics; excludes source roots, file cursors, transcripts, review correction history and per-response records."
     with _private_create(output) as stream:
         json.dump(result, stream, indent=2, ensure_ascii=True)
         stream.write("\n")
@@ -573,6 +598,9 @@ def export_summary(directory, output):
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "review":
+        return _review_helper().main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("init", "collect", "summary", "feedback", "disable", "export"):

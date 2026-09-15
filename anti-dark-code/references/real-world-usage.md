@@ -76,6 +76,9 @@ Subscription cost, included quota and savings remain unknown. Dated API rates do
 
 ## Label normal reviews
 
+For opted-in host reminders, pending coverage and task-bound labels, use
+[routine task review](routine-task-review.md). Collection alone does not supply labels.
+
 During an already-needed review, take the hashed task ID from the recent summary and record what was observed:
 
 ```sh

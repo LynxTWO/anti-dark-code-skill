@@ -79,7 +79,29 @@ Use `--source claude=<absolute-session-root>` for Claude, or supply both hosts o
 python anti-dark-code/scripts/adc_usage.py disable --directory <private-ledger>
 ~~~
 
-The summary lists observed task identifiers. Add optional structured feedback against one of those identifiers:
+For routine Codex reviews, enable the additional opt-in and connect the host:
+
+~~~text
+python anti-dark-code/scripts/adc_usage.py review enable --directory <private-ledger> --opt-in
+python anti-dark-code/scripts/adc_usage.py review pending --directory <private-ledger>
+~~~
+
+Follow [routine task review](anti-dark-code/references/routine-task-review.md) to
+pin the helper, preserve existing hooks, satisfy native trust and verify delivery
+in a fresh session. Enabling the ledger alone does not install hooks. Each observed
+turn gets its own ticket and a closeout reminder, including tasks where the skill
+did not activate. Stop records completion without grading or forcing continuation.
+Delayed usage is reconciled later; ambiguous joins and independent feedback
+conflicts remain unresolved. Check missing labels and usage groups without tickets,
+not only successful submissions. Separate agent self-reviews from human reviews.
+The reminder consumes task tokens; it does not call a separate grading model.
+
+Pause scheduled writers and take a consistent private backup before upgrading an
+existing collector or its permissions. Preserve its counters and consent start
+time. The additive review table can remain on rollback; `review disable` retains
+history. Remove only the selected hook definitions separately.
+
+For manual reviews or other hosts, the summary lists observed task identifiers:
 
 ~~~text
 python anti-dark-code/scripts/adc_usage.py feedback --directory <private-ledger> --task-id <observed-task-id> --used yes --expected yes --invocation implicit --quality passed --task-class audit

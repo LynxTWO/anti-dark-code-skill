@@ -6,6 +6,7 @@
 - Partition HTML scripts, handlers, controls, prose and inert data. Recognize framework-free browser apps and declared Python CLI entrypoints. Separate runtime family, source-file size and unknown maturity; distinguish fixtures, examples, catalogs and quoted Python strings from runtime evidence. Preserve representative locators for contributing evidence classes.
 - Refuse shared/wrong-owner usage-ledger paths before sensitive writes. Create private files and verify POSIX modes or Windows ACLs. Assign current-user ownership to new empty Windows files before writes, since the token's default group owner need not match the parent. Initialize under a private sibling and publish the completed directory; retry after interruption without deleting unrelated files. Existing ledgers retain their schema and require the documented private permissions.
 - Add private, exclusive summary export with explicit scope, feedback correction guidance and a manual history-removal workflow. Collection remains opt-in. No automatic purge or retention period, live-log collection, upload, release or installation is introduced.
+- Add opted-in routine Codex task reviews through reviewed native UserPromptSubmit and Stop hooks. Observe private hashed tickets independently of skill activation; reconcile delayed parent usage without borrowing another task or overwriting independent feedback. Retain missing labels, delivery gaps, failed-attempt reports and correction history. Split reported trigger results by reviewer class; Stop never grades a task or forces a model continuation. Other hosts retain manual feedback.
 - Share pinned test dependencies across local setup and CI, with pytest-xdist only for parallel execution. Add contrasting regression fixtures and a versioned product evaluation set with browser observations; no agent-compliance percentage is claimed.
 - Integrate PR #56 at `050cc959c3207c5cadf58c0d21939628462f2edb`: exact test selection, property case accounting, coherent source/artifact evidence and comparable performance recordings.
 - Adapt PR #57 at `b6d756645bb0e839ca82330b1fa3dbf40a497253`: observe the runtime target of cached/repository-bound tools and test two checkouts with one executable. The original private reproduction is contributor-reported; the new probe regression is independently executed on synthetic repositories. The incoming proposal is not copied into the distribution.
@@ -18,6 +19,7 @@
 - `assets/templates/calibration/findings-ledger.md`
 - `assets/templates/calibration/system-map.md`
 - `assets/templates/coverage-ledger.md`
+- `assets/templates/codex-review-hooks.json`
 - `assets/templates/product-contract.md`
 - `assets/templates/system-map.md`
 - `assets/verification-capabilities.json`
@@ -25,6 +27,8 @@
 - `references/assurance-contracts.md`
 - `references/quality-tests.md`
 - `references/real-world-usage.md`
+- `references/routine-task-review.md`
+- `references/host-codex.md`
 - `references/repo-verification-profiles.md`
 - `references/specialist-gate-environment.md`
 - `references/specialist-native-reachability.md`

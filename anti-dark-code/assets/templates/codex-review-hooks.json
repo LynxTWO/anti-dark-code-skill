@@ -1,0 +1,31 @@
+{
+  "description": "Opt-in private routine review. Replace placeholders and review native hook trust before use.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<approved-python> -B <pinned-review-helper> hook --directory <private-ledger>",
+            "commandWindows": "<approved-python> -B <pinned-review-helper> hook --directory <private-ledger>",
+            "timeout": 30,
+            "statusMessage": "Preparing local task review"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<approved-python> -B <pinned-review-helper> hook --directory <private-ledger>",
+            "commandWindows": "<approved-python> -B <pinned-review-helper> hook --directory <private-ledger>",
+            "timeout": 30,
+            "statusMessage": "Recording local review coverage"
+          }
+        ]
+      }
+    ]
+  }
+}
