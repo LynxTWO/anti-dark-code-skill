@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026.09.14-unified.15-rc.1 (unreleased)
+## 2026.09.15-unified.15
 
 - Add scoped quality tests, product principles, a product-contract template and the Improve task card. Preserve audit-only work, owner authority and stable capability/status IDs. Apply relevant user journeys without turning technical tests into usability or fairness claims.
 - Partition HTML scripts, handlers, controls, prose and inert data. Recognize framework-free browser apps and declared Python CLI entrypoints. Separate runtime family, source-file size and unknown maturity; distinguish fixtures, examples, catalogs and quoted Python strings from runtime evidence. Preserve representative locators for contributing evidence classes.

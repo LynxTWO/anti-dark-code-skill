@@ -133,6 +133,24 @@ commands use these same pinned test dependency files; review updates together.
 
 Do not run tests inside the clean distribution being validated, where bytecode/build artifacts contaminate packaging evidence. Record test platform, source identity, failures/skips and validation results. Passing checks prepare a reviewable release; they do not authorize tagging, publishing or deployment.
 
+Before upgrading an opted-in `.14` collector, inspect its existing ledger without
+changing consent or history. On POSIX, a private parent does not replace the new
+per-file checks: the directory needs mode 0700 and configuration/database files
+need mode 0600, owned by the current user. On Windows, the conservative checker
+accepts explicit current-user, SYSTEM and Administrators allow entries. An
+`OWNER RIGHTS` entry is outside that allowlist even when the present owner is the
+current user; review an equivalent explicit-user ACL before upgrading. Do not
+weaken the checker or initialize over an existing ledger to bypass a refusal.
+
+When authorized to apply an upgrade, pause its scheduler and wait for the active
+collector to exit, preserve a consistent private backup, review only the selected
+ledger's permissions, then run `usage summary` with the candidate. Confirm the
+same events, task groups and stratified counters before resuming the scheduler.
+A successful summary does not prove the next collection tick works: confirm its
+exit status and `last_collection` after resumption. Rollback keeps the ledger and
+opt-in timestamp and restores the prior reviewed collector path. No transcript
+replay, new source authorization or historical skill-use labels are implied.
+
 Keep migration/rollback instructions and the published digest with the release evidence. Do not install an experimental redesign automatically or silently reinterpret existing calibration schemas, statuses or approvals.
 
 ## Multi-machine layout
