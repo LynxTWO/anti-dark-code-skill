@@ -66,3 +66,18 @@ An earlier development full-suite run passed 712 tests, with 4 Windows-only skip
 and 550 subtests; source changed during that run, so it is not final source-bound
 release evidence. Final native Windows delivery and clean-source campaigns remain
 required before the two-machine activation and release-readiness claims.
+
+The first clean-source 5950X Windows run completed at `438bfbcd549b402d51c25885c8072416d4ef5670`:
+706 passed, six cleanup failures and four POSIX-only skips. All six failures were
+WinError 32 while removing the synthetic ledger. The new test inspection helper
+used a SQLite transaction context without closing its connection. It now uses
+`contextlib.closing`; production review functions already close their handles.
+No cleanup assertion, runtime timeout or privacy check was relaxed. The original
+failure log is retained with the private campaign evidence. A clean-source rerun
+is required before readiness; the earlier failures are not counted as passes.
+
+The label command needs ledger write access under the current host sandbox.
+Operations now documents a narrow extra writable root for workspace-write sessions;
+read-only sessions can leave labels pending. Activation preserved sandbox modes
+and added only the selected private ledger root where needed. Existing .14 skill
+discovery remains separate from the pinned .15 candidate collector/helper runtime.

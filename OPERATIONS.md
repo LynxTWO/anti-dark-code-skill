@@ -88,8 +88,13 @@ python anti-dark-code/scripts/adc_usage.py review pending --directory <private-l
 
 Follow [routine task review](anti-dark-code/references/routine-task-review.md) to
 pin the helper, preserve existing hooks, satisfy native trust and verify delivery
-in a fresh session. Enabling the ledger alone does not install hooks. Each observed
-turn gets its own ticket and a closeout reminder, including tasks where the skill
+in a fresh session. Enabling the ledger alone does not install hooks. Submitting
+labels also needs write access to that private ledger under the
+session's existing permissions. For workspace-write Codex sessions, narrowly add
+the ledger with `--add-dir` or the reviewed `sandbox_workspace_write.writable_roots`
+setting. Preserve other roots and sandbox settings. Read-only sessions may leave
+labels pending; never disable a sandbox or force approval merely to record them.
+Each observed turn gets its own ticket and a closeout reminder, including tasks where the skill
 did not activate. Stop records completion without grading or forcing continuation.
 Delayed usage is reconciled later; ambiguous joins and independent feedback
 conflicts remain unresolved. Check missing labels and usage groups without tickets,

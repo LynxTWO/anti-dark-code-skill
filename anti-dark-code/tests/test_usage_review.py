@@ -1,5 +1,6 @@
 """Observed lifecycle and delayed usage, with contrasting review outcomes."""
 import hashlib
+from contextlib import closing
 import importlib.util
 import json
 from pathlib import Path
@@ -66,7 +67,7 @@ class RoutineReviewTests(unittest.TestCase):
         return self.usage.collect(self.directory)
 
     def records(self):
-        with sqlite3.connect(self.directory / "usage.sqlite3") as db:
+        with closing(sqlite3.connect(self.directory / "usage.sqlite3")) as db:
             return {key: json.loads(value) for key, value in db.execute("SELECT id,value FROM reviews")}
 
     def test_usage_opt_in_does_not_silently_enable_review_collection(self):
