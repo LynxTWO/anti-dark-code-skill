@@ -17,7 +17,7 @@
 
 Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
-**Version**: `2026.09.07-unified.14` (see [release history](CHANGELOG.md)).
+**Version**: `2026.09.14-unified.15-rc.1` (unreleased candidate; see [release history](CHANGELOG.md)).
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
@@ -30,8 +30,15 @@ One model-neutral skill works with local deterministic tooling and optional repo
 | Explain this critical path without changing behavior | [Document](anti-dark-code/references/tasks/document.md) |
 | Establish or improve the checks for this change/repository | [Verify](anti-dark-code/references/tasks/verify.md) |
 | Fix these supported findings | [Remediate](anti-dark-code/references/tasks/remediate.md) |
+| Build or carry improvements through acceptance | [Improve](anti-dark-code/references/tasks/improve.md) |
 
 A comprehensive audit combines Understand, Investigate and Verify under an explicit coverage contract. A focused request stays focused. Installation, inline documentation, remediation and publication are separate scopes; a one-off report requires no permanent installation.
+
+For product work, the [quality tests](anti-dark-code/references/quality-tests.md) and
+[product principles](anti-dark-code/references/product-principles.md) add relevant
+user journeys, consent, accessible interaction, recovery and data-control checks.
+The [versioned evaluation set](design/evals/product-v1/README.md) distinguishes
+fixture behavior from measured assistant behavior.
 
 The [skill core](anti-dark-code/SKILL.md) defines the workflow and safety contract. Older numbered reference names remain compatibility entry points, not an order every engagement must follow.
 

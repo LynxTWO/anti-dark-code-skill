@@ -14,7 +14,9 @@ from pathlib import Path
 import re
 import sqlite3
 import stat
+import subprocess
 import sys
+import tempfile
 
 
 FIELDS = ("input_tokens", "cache_read_input_tokens", "cache_write_input_tokens",
@@ -50,8 +52,102 @@ def _json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _windows_command(path, script):
+    system_root = os.environ.get("SystemRoot", r"C:\Windows")
+    executable = Path(system_root) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    try:
+        result = subprocess.run([str(executable), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
+            env={**os.environ, "ADC_PRIVACY_CHECK_PATH": str(path)}, capture_output=True,
+            timeout=15, check=False)
+        return result.returncode == 0 and result.stdout.strip() == b"private"
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def _windows_private(path):
+    """Conservative local ACL check. Unknown ACLs fail closed; no ACL is changed.
+
+    The current user, SYSTEM and local Administrators may have allow entries.
+    Do not infer safety from denies or translate localized account names.
+    """
+    return _windows_command(path, r'''
+$ErrorActionPreference = 'Stop'
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = Get-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH
+$owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
+$allowed = @($sid.Value, 'S-1-5-18', 'S-1-5-32-544')
+$rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
+$private = ($owner -eq $sid.Value) -and ($rules.Count -gt 0)
+foreach ($rule in $rules) {
+  if ($rule.AccessControlType -eq 'Allow' -and $rule.IdentityReference.Value -notin $allowed) {
+    $private = $false
+  }
+}
+if ($private) { 'private' } else { 'unverified' }
+''')
+
+
+def _secure_new_windows_stage(path):
+    # Only called for this initializer's newly created empty stage. Existing
+    # user directories are checked, never repaired or assigned a different ACL.
+    if not _windows_command(path, r'''
+$ErrorActionPreference = 'Stop'
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = New-Object System.Security.AccessControl.DirectorySecurity
+$acl.SetOwner($sid)
+$acl.SetAccessRuleProtection($true, $false)
+$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+$acl.AddAccessRule($rule)
+Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
+'private'
+'''):
+        raise ValueError("cannot create a private Windows staging directory; no sensitive files were written")
+
+
+def _check_private(path):
+    path = _safe_path(path)
+    info = path.stat()
+    if os.name == "posix":
+        if info.st_uid != os.getuid():
+            raise ValueError("ledger owner must be the current user")
+        if stat.S_IMODE(info.st_mode) & 0o077:
+            raise ValueError("ledger must be private; use an owner-only directory (0700) or file (0600)")
+    elif os.name == "nt":
+        if not _windows_private(path):
+            raise ValueError("ledger privacy unverified; use a current-user-owned directory with an owner-only ACL (SYSTEM/Administrators permitted)")
+    else:
+        raise ValueError("ledger privacy cannot be verified on this platform")
+
+
+def _private_create(path):
+    """Create an empty private file; verify Windows ownership before any write."""
+    path = _safe_path(path)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        if os.name == "nt":
+            # Access rules inherit from the checked parent, but ownership comes
+            # from the process token and may default to Administrators. Change
+            # only this exclusively created empty file, before exposing a writer.
+            if not _windows_command(path, r'''
+$ErrorActionPreference = 'Stop'
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = Get-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH
+$acl.SetOwner($sid)
+Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
+'private'
+'''):
+                raise ValueError("cannot assign private file ownership; no sensitive data was written")
+            _check_private(path)
+        return os.fdopen(descriptor, "w", encoding="utf-8")
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 def _config(directory):
     directory = _safe_path(directory)
+    _check_private(directory)
+    _check_private(directory / "config.json")
     config = _json(directory / "config.json")
     if (not isinstance(config, dict) or config.get("schema") != SCHEMA
             or type(config.get("enabled")) is not bool
@@ -73,8 +169,12 @@ def _config(directory):
 def _connect(directory, *, create=False):
     for name in ("usage.sqlite3", "usage.sqlite3-journal", "usage.sqlite3-wal", "usage.sqlite3-shm"):
         _safe_path(directory / name)
+    if create:
+        with _private_create(directory / "usage.sqlite3"):
+            pass
     if not create and not (directory / "usage.sqlite3").is_file():
         raise ValueError("initialized ledger is missing; usage is unknown")
+    _check_private(directory / "usage.sqlite3")
     db = sqlite3.connect(directory / "usage.sqlite3", timeout=5)
     db.execute("PRAGMA trusted_schema=OFF")
     if not create:
@@ -106,16 +206,34 @@ def init_ledger(directory, sources, *, opt_in=False):
         if source == directory or source in directory.parents or directory in source.parents:
             raise ValueError("source and ledger directories must not overlap")
         roots[host] = str(source)
-    if directory.exists() and any(directory.iterdir()):
-        raise ValueError("choose a new or empty private ledger directory")
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if directory.exists():
+        _check_private(directory)
+        if any(directory.iterdir()):
+            raise ValueError("choose a new or empty private ledger directory")
+    directory.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # Build under a private sibling, then publish the complete directory. A crash
+    # before rename leaves the requested target absent or empty, so normal retry
+    # works. Failed staging trees remain private for inspection; never recursively
+    # delete a directory that could contain unrelated files.
+    stage = Path(tempfile.mkdtemp(prefix=".adc-init-", dir=directory.parent))
+    if os.name == "nt":
+        _secure_new_windows_stage(stage)
+    _check_private(stage)
     config = {"schema": SCHEMA, "enabled": True, "since": _now(), "sources": roots}
-    with (directory / "config.json").open("x", encoding="utf-8") as stream:
+    with closing(_connect(stage, create=True)):
+        pass
+    with _private_create(stage / ".gitignore") as stream:
+        stream.write("*\n")
+    with _private_create(stage / "config.json") as stream:
         json.dump(config, stream, indent=2)
         stream.write("\n")
-    (directory / ".gitignore").write_text("*\n", encoding="ascii")
-    with closing(_connect(directory, create=True)):
-        pass
+        stream.flush()
+        os.fsync(stream.fileno())
+    _safe_path(directory)
+    if directory.exists():
+        _check_private(directory)
+        directory.rmdir()  # Only empty targets; never remove existing content.
+    os.rename(stage, directory)
     return {"status": "enabled", "since": config["since"], "hosts": sorted(roots)}
 
 
@@ -425,17 +543,39 @@ def disable(directory):
     directory, config = _config(directory)
     config["enabled"] = False
     temp = _safe_path(directory / "config.disabled.tmp")
-    with temp.open("x", encoding="utf-8") as stream:
+    with _private_create(temp) as stream:
         json.dump(config, stream, indent=2)
         stream.write("\n")
     os.replace(temp, _safe_path(directory / "config.json"))
     return {"status": "disabled", "history": "retained"}
 
 
+def export_summary(directory, output):
+    """Write the declared summary scope privately, without source paths or offsets.
+
+    Export is explicit and exclusive. A failed write may leave a partial JSON file;
+    it cannot overwrite an older export and must not be described as complete.
+    """
+    directory, config = _config(directory)
+    output = _safe_path(output)
+    for root in (directory, *(Path(value) for value in config["sources"].values())):
+        if output == root or root in output.parents:
+            raise ValueError("export destination must be outside the ledger and source roots")
+    _check_private(output.parent)
+    result = summary(directory)
+    result["export_scope"] = "All summary tasks, usage strata, feedback, and fixed diagnostics; excludes source roots, file cursors, transcripts and per-response records."
+    with _private_create(output) as stream:
+        json.dump(result, stream, indent=2, ensure_ascii=True)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    return {"status": "exported", "scope": "summary", "tasks": len(result["tasks"]), "events": result["events"]}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("init", "collect", "summary", "feedback", "disable"):
+    for name in ("init", "collect", "summary", "feedback", "disable", "export"):
         command = sub.add_parser(name)
         command.add_argument("--directory", required=True, type=Path)
         if name == "init":
@@ -443,6 +583,8 @@ def main(argv=None):
             command.add_argument("--opt-in", action="store_true")
         elif name == "summary":
             command.add_argument("--task-limit", type=int, default=20, help="Maximum recent tasks to display; aggregate totals always cover all records")
+        elif name == "export":
+            command.add_argument("--output", required=True, type=Path, help="New JSON file in an existing private directory outside sources and ledger")
         elif name == "feedback":
             command.add_argument("--task-id", required=True)
             command.add_argument("--used", choices=("yes", "no", "unknown"), default="unknown")
@@ -463,6 +605,8 @@ def main(argv=None):
         elif args.command == "feedback":
             result = record_feedback(args.directory, args.task_id, used=args.used, expected=args.expected,
                 invocation=args.invocation, quality=args.quality, task_class=args.task_class)
+        elif args.command == "export":
+            result = export_summary(args.directory, args.output)
         elif args.command == "summary":
             if args.task_limit < 0:
                 raise ValueError("task limit must not be negative")

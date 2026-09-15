@@ -6,6 +6,11 @@ Use deterministic inventory for file facts. Use this document for meaning, owner
 
 ## Runtime Units and Entrypoints
 
+For relevant product journeys record intended users, affected people, constraints,
+prerequisites, core outcome, authoritative state, failure/repair/refusal/exit and
+observable acceptance. Reuse the product-contract template in this map. Record
+data purpose, access, duration, correction, export/removal and justified limits.
+
 | Unit | Purpose | Entrypoints | Owner | Confidence | Evidence |
 |---|---|---|---|---|---|
 

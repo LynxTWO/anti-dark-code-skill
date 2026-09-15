@@ -89,6 +89,10 @@ Use `unknown` where evidence is missing. Label explicit invocations as explicit;
 
 Natural task usage stays separate from controlled efficiency receipts. It does not establish causal savings, billing totals, subscription dollars or remaining quota. Requested model settings and host-reported attribution are distinct; keep unknown attribution and counter breakdowns unknown.
 
+See [privacy, recovery and ownership](anti-dark-code/references/real-world-usage.md#privacy-recovery-and-ownership)
+for private-directory prerequisites, retry after interrupted setup, the scoped
+`usage export` command, feedback correction and owner-controlled history removal.
+
 ## Conditional host model selection
 
 The [model policy helper](anti-dark-code/references/model-selection.md) uses caller-supplied live models and capabilities plus a dated catalog to recommend a route for the next real task. It does not switch a host setting or call a model. The assistant may apply a recommendation through an exposed host control within existing authorization; unsupported hosts keep the current route.
@@ -111,11 +115,21 @@ From the package repository:
 python3 anti-dark-code/scripts/adc.py release-check --repo . --tag v<version> --expect-core-digest <digest>
 ~~~
 
-The tool extracts the tag, recomputes its core digest, validates that extract and checks changed references/assets against release notes. Run the unit suite in a separate authorized test copy:
+The tool extracts the tag, recomputes its core digest, validates that extract and checks changed references/assets against release notes. Runtime helpers use only the standard library. Tests also invoke pytest; install test dependencies before the campaign, in a separate environment and authorized test copy:
 
 ~~~bash
-python3 -m unittest discover -s anti-dark-code/tests -v
+python3 -m venv /path/to/adc-test-env
+/path/to/adc-test-env/bin/python -m pip install -r requirements-test.txt
+/path/to/adc-test-env/bin/python -m pip check
+/path/to/adc-test-env/bin/python -m pytest --version
+/path/to/adc-test-env/bin/python -B -m unittest discover -s anti-dark-code/tests -v
 ~~~
+
+On Windows use the environment's `Scripts/python.exe`. For the parallel CI
+command install `requirements-test-parallel.txt`, then run
+`python -B -m pytest anti-dark-code/tests -q -n auto` with that environment's
+interpreter. pytest-xdist is needed only for parallel execution. CI and local
+commands use these same pinned test dependency files; review updates together.
 
 Do not run tests inside the clean distribution being validated, where bytecode/build artifacts contaminate packaging evidence. Record test platform, source identity, failures/skips and validation results. Passing checks prepare a reviewable release; they do not authorize tagging, publishing or deployment.
 

@@ -8,11 +8,13 @@ or execution flag is supplied.
 from __future__ import annotations
 
 import argparse
+import ast
 import collections
 import copy
 import datetime as dt
 import fnmatch
 import hashlib
+from html.parser import HTMLParser
 import importlib.util
 import io
 import json
@@ -26,6 +28,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import tomllib
 import unicodedata
 from collections.abc import Mapping
 from pathlib import Path
@@ -72,7 +75,7 @@ TEXT_EXTENSIONS = SOURCE_EXTENSIONS | {
     ".json", ".jsonc", ".yaml", ".yml", ".toml", ".xml", ".md", ".txt", ".ini",
     ".cfg", ".conf", ".properties", ".gradle", ".graphql", ".gql", ".proto", ".csproj",
     ".vbproj", ".fsproj", ".vcxproj",
-    ".sln", ".props", ".targets", ".html", ".css", ".scss", ".less", ".csv",
+    ".sln", ".props", ".targets", ".html", ".htm", ".css", ".scss", ".less", ".csv",
 }
 
 # Extensions the profiler knows are not source and never counts as such. A file
@@ -1258,11 +1261,112 @@ PROSE_EXTENSIONS = {".md", ".markdown", ".rst", ".adoc", ".txt", ".html", ".htm"
 
 
 def evidence_class_for(path: Path) -> str:
+    parts = {part.lower() for part in path.parts}
+    if parts & {"tests", "test", "fixtures", "__tests__", "testdata", "mutants", "evals", "evaluations"} or likely_test(path):
+        return "test"
+    if parts & {"examples", "example", "samples", "demo", "demos"}:
+        return "example"
+    if "catalog" in path.stem.lower() or "catalogs" in parts or path.name == "verification-capabilities.json":
+        return "catalog"
     if path.name in STEERING_NAMES or path.suffix.lower() in PROSE_EXTENSIONS:
         return "prose"
     if path.suffix.lower() in SOURCE_EXTENSIONS:
         return "source"
     return "config"
+
+
+class HTMLSignals(HTMLParser):
+    """Partition a bounded HTML container; never fetch scripts or execute markup.
+
+    This is advisory lexical evidence, not a browser parse or reachability proof.
+    Template contents and unknown script types need source confirmation.
+    """
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.segments: dict[str, list[str]] = collections.defaultdict(list)
+        self.script_class: str | None = None
+        self.template_depth = 0
+        self.interactive = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "template":
+            self.template_depth += 1
+        if self.template_depth:
+            self.segments["inert"].append(self.get_starttag_text())
+            return
+        if tag == "script":
+            kind = (attrs.get("type") or "").strip().lower().split(";", 1)[0]
+            executable = kind in {"", "module", "text/javascript", "application/javascript",
+                                   "text/ecmascript", "application/ecmascript"}
+            self.script_class = "source" if executable and not attrs.get("src") else "inert"
+            if executable:
+                self.interactive = True
+                self.segments["config"].append("script " + (attrs.get("src") or ""))
+            return
+        if tag in {"button", "input", "select", "textarea", "form", "dialog", "details"} or "contenteditable" in attrs:
+            self.interactive = True
+            self.segments["source"].append("ui " + tag)
+        for name, value in attrs.items():
+            if name.startswith("on") and value:
+                self.interactive = True
+                self.segments["source"].append(value)
+            elif name in {"href", "action"} and value and value.lstrip().lower().startswith("javascript:"):
+                self.interactive = True
+                self.segments["source"].append(value)
+
+    def handle_endtag(self, tag):
+        if tag == "template":
+            self.template_depth = max(0, self.template_depth - 1)
+        elif tag == "script":
+            self.script_class = None
+
+    def handle_data(self, data):
+        kind = "inert" if self.template_depth else self.script_class or "prose"
+        self.segments[kind].append(data)
+
+    def handle_comment(self, data):
+        self.segments["prose"].append(data)
+
+
+def runtime_signal(entry: dict[str, Any]) -> bool:
+    classes = entry.get("evidence_classes")
+    # Older profiles did not classify evidence. Preserve their vocabulary while
+    # freshness checks require re-probing with the changed method digest.
+    return bool(entry.get("present") and (not classes or set(classes) & {"source", "config", "structure"}))
+
+
+def python_cli_entrypoint(text: str) -> bool:
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError):
+        return False
+    imports = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
+    imports.update(node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom))
+    guard = any(isinstance(node, ast.If) and isinstance(node.test, ast.Compare)
+        and isinstance(node.test.left, ast.Name) and node.test.left.id == "__name__"
+        and len(node.test.ops) == 1 and isinstance(node.test.ops[0], ast.Eq)
+        and len(node.test.comparators) == 1 and isinstance(node.test.comparators[0], ast.Constant)
+        and node.test.comparators[0].value == "__main__" for node in tree.body)
+    return guard and bool(imports & {"argparse", "click", "typer", "sys"})
+
+
+def python_signal_segments(text: str) -> dict[str, str]:
+    """Keep quoted examples, regex catalogs and docstrings out of code evidence.
+
+    SQL and other executable strings still need call-site interpretation. Retain
+    them as candidate evidence rather than guessing their meaning from keywords.
+    """
+    try:
+        tree = ast.parse(text)
+        literals = [node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)]
+        class WithoutText(ast.NodeTransformer):
+            def visit_Constant(self, node):
+                return ast.copy_location(ast.Constant(value=""), node) if isinstance(node.value, str) else node
+        code = ast.unparse(WithoutText().visit(tree))
+        return {"source": code, "source_text": "\n".join(literals)}
+    except (SyntaxError, ValueError, RecursionError):
+        return {"uncertain": text}
 
 
 def add_evidence(
@@ -1275,10 +1379,18 @@ def add_evidence(
     entry = signals.setdefault(signal, {"present": False, "evidence": [], "evidence_classes": {}})
     entry["present"] = True
     classes = entry.setdefault("evidence_classes", {})
-    if evidence not in entry["evidence"]:
-        classes[evidence_class] = classes.get(evidence_class, 0) + 1
-    if evidence not in entry["evidence"] and len(entry["evidence"]) < limit:
-        entry["evidence"].append(evidence)
+    by_class = entry.setdefault("evidence_by_class", {})
+    locators = by_class.setdefault(evidence_class, [])
+    # Callers aggregate a file's segments per class before adding it. Counts are
+    # file/class observations, not matching words or distinct runtime features.
+    classes[evidence_class] = classes.get(evidence_class, 0) + 1
+    if evidence not in locators and len(locators) < limit:
+        locators.append(evidence)
+    ordered = sorted(by_class, key=lambda key: (key not in {"source", "config", "structure"}, key))
+    representative = list(dict.fromkeys(by_class[key][0] for key in ordered if by_class[key]))
+    for key in ordered:
+        representative.extend(item for item in by_class[key] if item not in representative)
+    entry["evidence"] = representative[:limit]
 
 
 def signal_is_documentation_only(entry: dict[str, Any]) -> bool:
@@ -1543,10 +1655,34 @@ def probe_repo(
             continue
         scanned += 1
         r = rel(path, repo)
-        evidence_class = evidence_class_for(path)
-        for signal, patterns in CONTENT_PATTERNS.items():
-            if any(pattern.search(text) for pattern in patterns):
-                add_evidence(signals, signal, r, evidence_class=evidence_class)
+        evidence_class = evidence_class_for(Path(r))
+        segments = {evidence_class: text}
+        if path.suffix.lower() in {".html", ".htm"}:
+            html = HTMLSignals()
+            html.feed(text)
+            html.close()
+            if evidence_class not in {"test", "example", "catalog"}:
+                segments = {kind: "\n".join(values) for kind, values in html.segments.items()}
+                if html.interactive:
+                    profile["_type_hints"].add("frontend")
+                    segments["source"] = "ui\n" + segments.get("source", "")
+        if evidence_class == "source" and path.suffix.lower() == ".py":
+            segments = python_signal_segments(text)
+            if python_cli_entrypoint(text):
+                profile["_type_hints"].add("cli-desktop")
+                add_evidence(signals, "cli_entrypoint", r, evidence_class="source")
+        if evidence_class == "config" and path.name == "pyproject.toml":
+            try:
+                project = tomllib.loads(text).get("project", {})
+                if isinstance(project, dict) and isinstance(project.get("scripts"), dict) and project["scripts"]:
+                    profile["_type_hints"].add("cli-desktop")
+                    add_evidence(signals, "cli_entrypoint", r, evidence_class="config")
+            except (tomllib.TOMLDecodeError, AttributeError):
+                pass
+        for kind, segment in segments.items():
+            for signal, patterns in CONTENT_PATTERNS.items():
+                if any(pattern.search(segment) for pattern in patterns):
+                    add_evidence(signals, signal, r, evidence_class=kind)
     profile["scan"]["files_scanned_for_indicators"] = scanned
     if scanned >= content_scan_limit and len(files) > scanned:
         profile["notes"].append("Indicator content scan reached its bound. Signals are evidence of presence, not proof of absence.")
@@ -1577,6 +1713,14 @@ def probe_repo(
         type_hints.add("mixed")
 
     profile["repo_types"] = sorted(type_hints)
+    profile["characteristics"] = {
+        "runtime_families": sorted(type_hints - {"small-new", "mixed", "monorepo"}),
+        "size_band": "small" if source_count < 25 else "large" if source_count > 250 else "medium",
+        "size_basis": "recognized source-file count; not complexity or age",
+        "maturity": "unknown",
+        "maintenance_evidence": sorted(set(ci_files + [r for r in all_rel if Path(r).name.lower().startswith("changelog")])),
+    }
+    profile["notes"].append("Runtime families and domain keywords are advisory. Confirm entrypoints and domain behavior semantically; size does not establish maturity.")
     profile["languages"] = [{"name": name, "source_files": count} for name, count in lang_counts.most_common()]
     profile["manifests"] = sorted(set(manifests))
     profile["ci_files"] = sorted(set(ci_files))
@@ -1621,6 +1765,7 @@ def probe_repo(
     for entry in profile["signals"].values():
         entry.setdefault("evidence_classes", {})
         entry["documentation_only"] = signal_is_documentation_only(entry)
+        entry["runtime_evidence"] = runtime_signal(entry)
     profile["signals"] = {name: profile["signals"][name] for name in sorted(profile["signals"])}
     return profile
 
@@ -1666,7 +1811,7 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
     repo_types = profile.get("repo_types") or ["mixed"]
     primary = select_primary_repo_type(repo_types)
     source_count = int(profile.get("counts", {}).get("source_files", 0) or 0)
-    high_risk_present = any(signals.get(name, {}).get("present") for name in (
+    high_risk_present = any(runtime_signal(signals.get(name, {})) for name in (
         "security_sensitive", "financial_or_entitlement", "persistence", "release_sensitive",
         "emergent_or_simulation", "external_dependencies"
     ))
@@ -1679,9 +1824,19 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
         matched_risks = [s for s in selection.get("risks_any", []) if signals.get(s, {}).get("present")]
         # A signal backed only by documentation is a question, not an observation.
         prose_only = [s for s in matched_signals + matched_risks if signal_is_documentation_only(signals.get(s, {}))]
-        code_backed = [s for s in matched_signals + matched_risks if s not in prose_only]
+        code_backed = [s for s in matched_signals + matched_risks if runtime_signal(signals.get(s, {}))]
+        contextual = [s for s in matched_signals + matched_risks if s not in code_backed]
         evidence: list[str] = []
-        for name in matched_signals + matched_risks:
+        evidence_by_signal = {}
+        for name in code_backed + contextual:
+            entry = signals.get(name, {})
+            representatives = {kind: values[0] for kind, values in entry.get("evidence_by_class", {}).items() if values}
+            evidence_by_signal[name] = representatives
+            for kind in sorted(representatives, key=lambda key: key not in {"source", "config", "structure"}):
+                item = representatives[kind]
+                if item not in evidence and len(evidence) < 12:
+                    evidence.append(item)
+        for name in code_backed + contextual:
             for item in signals.get(name, {}).get("evidence", []):
                 if item not in evidence and len(evidence) < 12:
                     evidence.append(item)
@@ -1697,16 +1852,16 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
             reason = f"Selected because the deterministic profile observed: {matched}."
             if prose_only:
                 reason += f" Documentation alone also mentions: {', '.join(prose_only)}."
-        elif prose_only:
+        elif contextual:
             status = "candidate"
-            matched = ", ".join(prose_only)
+            matched = ", ".join(contextual)
             reason = (
-                f"Candidate. Only documentation mentions: {matched}. "
-                "Confirm the behavior in source or configuration before selecting."
+                f"Candidate. Only documentation, test/example, catalog, quoted or unresolved content mentions: {matched}. "
+                "Confirm application behavior in source or runtime configuration before selecting."
             )
         elif primary == "small-new" and cap.get("cost") == "high":
             status = "deferred"
-            reason = "Deferred for the small or new repo profile until the named trigger appears."
+            reason = "Deferred for the small unclassified repo profile until the named trigger appears; maturity is unknown."
         elif selection.get("candidate_if_missing"):
             status = "candidate"
             reason = "Candidate. Confirm the needed workflow, oracle, boundary, or risk before adding tooling."
@@ -1740,6 +1895,7 @@ def build_plan(profile: dict[str, Any]) -> dict[str, Any]:
             "repo_type": primary,
             "adaptation": cap.get("adaptations", {}).get(primary) or cap.get("adaptations", {}).get("mixed"),
             "evidence": evidence,
+            "evidence_by_signal": evidence_by_signal,
             "deterministic_work": cap["local_work"],
             "agent_judgment": cap["agent_work"],
             "dependency_policy": "Do not install tools automatically. Prefer existing repo tooling; propose additions for human review.",

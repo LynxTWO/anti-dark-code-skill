@@ -8,6 +8,11 @@ Requested scope, repo instructions, relevant maps and calibration, source identi
 
 ## Procedure
 
+For product work, map intended users, promises, affected parties, core journeys,
+constraints and observable acceptance using the [product contract](../../assets/templates/product-contract.md).
+Keep assumed needs separate from observed needs. An operator/runtime map alone
+does not establish user-level behavior or usability.
+
 1. Check existing evidence and invalidation dependencies. Reuse unchanged observations; inspect changed boundaries. For non-Git directories without a cheap identity, record hashes of inspected files instead of declaring prior evidence fresh.
 2. Use the trusted read-only probe when available and useful. Its summary identifies indicators, not complete architecture. Inspect scan bounds, ignored trees, requested exclusions, nested repositories, and unknowns before interpreting negative signals. If unavailable, enumerate manifests and entry points manually and name the missing machine checks.
 3. Follow each in-scope entry point through authoritative state, transformations, persistence, external calls, and output. Separate runtime, deployment, and ownership boundaries. Shared language does not prove shared runtime or deployment.

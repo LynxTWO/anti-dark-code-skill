@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Pocket Notes evaluation</title>
+<main><h1>Pocket Notes</h1>
+<label for="draft">Your note</label><textarea id="draft"></textarea>
+<button id="save">Save note</button><button id="clear">Clear note</button><button id="undo" disabled>Undo clear</button>
+<p id="status" role="status"></p>
+<label><input id="analytics" type="checkbox">Optional usage analytics</label>
+<button id="settings">Save preferences</button>
+<section aria-label="Sync offer"><p id="price">Sync offer: $60 charged annually ($5/month equivalent). Not available in this local demo.</p><button id="decline">Keep using local notes</button></section>
+</main><script>
+const draft = document.querySelector('#draft');
+const status = document.querySelector('#status');
+let previous = '';
+try { draft.value = localStorage.getItem('note') || ''; document.querySelector('#analytics').checked = localStorage.getItem('notes-analytics') === 'yes'; } catch { status.textContent = 'Saved notes could not be loaded. You can still write a draft.'; }
+document.querySelector('#save').onclick = () => { try { localStorage.setItem('note', draft.value); status.textContent = 'Saved'; } catch { status.textContent = 'Could not save. Your draft is still here. Try again when storage is available.'; } };
+document.querySelector('#clear').onclick = () => { previous = draft.value; try { localStorage.removeItem('note'); draft.value = ''; document.querySelector('#undo').disabled = false; status.textContent = 'Note cleared. Undo is available until you leave this page.'; } catch { status.textContent = 'Could not clear. Your note is still here.'; } };
+document.querySelector('#undo').onclick = () => { try { localStorage.setItem('note', previous); draft.value = previous; document.querySelector('#undo').disabled = true; status.textContent = 'Note restored'; } catch { status.textContent = 'Could not restore. Try again when storage is available.'; } };
+document.querySelector('#settings').onclick = () => { try { localStorage.setItem('notes-analytics', document.querySelector('#analytics').checked ? 'yes' : 'no'); status.textContent = 'Preferences saved'; } catch { status.textContent = 'Could not save preferences. Try again when storage is available.'; } };
+document.querySelector('#decline').onclick = () => { document.querySelector('section').hidden = true; };
+</script></html>

@@ -17,6 +17,12 @@ Question, requested breadth, symptom or invariant, relevant map fragments, sourc
 
 ## Evidence and output
 
+For user-facing paths, include ordinary mistakes, consent/refusal, accessibility,
+recovery, data control and incentives under the [product principles](../product-principles.md).
+Classify findings as defect, justified improvement, hypothesis or preference
+separately from severity and confidence. Preserve evidence of sound behavior;
+unsupported accusations are review failures too.
+
 Each finding names severity (`low`, `medium`, `high`, `critical`), statement, kind, confidence, trigger, consequence, source evidence, counterevidence, scope, next check, and proposed action. Exposure and evidence categories do not replace severity. Group manifestations only when a shared root cause is demonstrated.
 
 Rank by plausible consequence and evidence, not match counts. Separate source defects from unexercised paths, toolchain/native blockers, unavailable capabilities, and external-state blockers. An unavailable SDK is not a product defect.

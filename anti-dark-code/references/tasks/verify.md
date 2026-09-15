@@ -18,9 +18,17 @@ Claim or changed behavior, source identity, runtime/platform tuple, test and con
 
 ## Evidence and output
 
+For product journeys verify truthful status, consent/refusal, relevant keyboard
+and assistive-technology interaction, recoverable mistakes and exit/data-control
+paths. Tie these obligations to the [product contract](../../assets/templates/product-contract.md)
+and existing capabilities. Keep static, simulated, browser, device, participant
+and provider evidence distinct; one cannot silently substitute for another.
+
 Return proposed and executed commands separately, capability dispositions, tested scope, observations, limits, and next checks. Cite obligation-specific evidence and source identity for guarantees. Record unavailable targets instead of extrapolating across hosts. Managed wrappers cannot prove native behavior without reaching the native implementation.
 
 Keep exploration reproducible with a seed or trace and named oracle. Preserve mutation restoration and cleanup evidence. A hash or receipt binds recorded inputs; it is neither an owner signature nor correctness proof.
+
+For expensive property suites, distinguish requested case counts, observed valid cases, rejected inputs and completed properties. Confirm configuration precedence in the pinned runner instead of assuming an environment override won or lost. Diagnose setup/constructor cost separately from per-case work before changing the test domain. A budget stop leaves unfinished properties incomplete; retained partial successes do not turn the suite green. Generate eligible inputs directly only when the original relation and separate edge-case coverage remain intact.
 
 ## Stop conditions
 
