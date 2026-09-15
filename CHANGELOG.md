@@ -9,6 +9,7 @@
 - Share pinned test dependencies across local setup and CI, with pytest-xdist only for parallel execution. Add contrasting regression fixtures and a versioned product evaluation set with browser observations; no agent-compliance percentage is claimed.
 - Integrate PR #56 at `050cc959c3207c5cadf58c0d21939628462f2edb`: exact test selection, property case accounting, coherent source/artifact evidence and comparable performance recordings.
 - Adapt PR #57 at `b6d756645bb0e839ca82330b1fa3dbf40a497253`: observe the runtime target of cached/repository-bound tools and test two checkouts with one executable. The original private reproduction is contributor-reported; the new probe regression is independently executed on synthetic repositories. The incoming proposal is not copied into the distribution.
+- Adapt PR #55 at `f678454d6a60a4cabe4719d9cb147d5acdf22025`: separate server readiness, client endpoint acquisition and on-device candidate identity before a physical-client review handoff. Keep server-only scope and existing evidence statuses. The contributor's physical-device incident remains contributor-reported; a loopback transport counterexample is narrower evidence, not device or agent validation.
 
 
 ### Reference and template inventory
@@ -21,10 +22,12 @@
 - `assets/templates/system-map.md`
 - `assets/verification-capabilities.json`
 - `references/product-principles.md`
+- `references/assurance-contracts.md`
 - `references/quality-tests.md`
 - `references/real-world-usage.md`
 - `references/repo-verification-profiles.md`
 - `references/specialist-gate-environment.md`
+- `references/specialist-native-reachability.md`
 - `references/tasks/improve.md`
 - `references/tasks/investigate.md`
 - `references/tasks/remediate.md`

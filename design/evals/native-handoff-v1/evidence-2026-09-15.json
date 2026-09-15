@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "python": "3.12.3",
+  "platform": "Linux",
+  "claim": "Healthy server checks and matching HTTP status/route do not identify a client's selected target.",
+  "source_sha256": "2ac1b79d5ea67a8f3b552f4b2e4d2891faac608b3db7fb2ab467b29a07c250d4",
+  "source_unchanged": true,
+  "fixture_servers_closed": true,
+  "server_check": {
+    "status": 200,
+    "candidate": "candidate-a",
+    "route": "review"
+  },
+  "wrong_client_target": {
+    "status": 200,
+    "candidate": "candidate-b",
+    "route": "review"
+  },
+  "corrected_client_target": {
+    "status": 200,
+    "candidate": "candidate-a",
+    "route": "review"
+  },
+  "physical_device_trials": 0,
+  "agent_trials": 0,
+  "complete": true
+}

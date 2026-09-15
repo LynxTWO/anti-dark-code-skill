@@ -1,6 +1,6 @@
 # Native and dynamic reachability
 
-Trigger: a finding calls a module, plugin, codec, binary, model, or optional feature reachable, dead, unavailable, or a build blocker.
+Trigger: a finding calls a module, plugin, codec, binary, model, or optional feature reachable, dead, unavailable, or a build blocker; or a handoff claims a physical client can open a server-backed live target for review.
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
 
@@ -38,6 +38,36 @@ Use these terminal descriptions:
 - `not-applicable` - the link genuinely does not apply; state why
 
 For platform or architecture branches, inspect every else branch for assumptions about an unlisted third target. Distinguish a portable fallback from a sibling-specific capability. Name built/tested targets; unlisted targets must refuse unsupported operations and report unavailable observations honestly. A generated binary absent from a clean checkout is not by itself a build blocker.
+
+#### Physical-client handoff
+
+When a handoff claims a physical client can open a server-backed live target,
+separate these observations:
+
+1. The server exposes the expected listener, manifest or bundle for the candidate.
+2. The client acquires the exact current endpoint through its supported mechanism,
+   such as a QR code, deep link or manual entry. Generating a link or QR code alone
+   does not show that the client received it.
+3. On the named device, the client opens the intended initial route and shows a
+   candidate-bound identity marker, or equivalent evidence that rules out a stale
+   build or a different target. An HTTP 200 alone does not identify the target.
+
+Record the device/client, candidate identity, transfer method, observed route and
+observation time in the existing verification record. Use redacted endpoint
+identifiers; do not retain credential-bearing URLs or QR codes as public evidence.
+
+Server checks cannot substitute for the client observation. A browser or emulator
+run proves only that tested scope. If the physical client cannot be observed,
+keep its result `configured-not-observed` or `unknown-at-link-8`, as supported by
+the evidence; do not report that handoff READY. Preserve the separately proven
+server result. A client failure does not erase a valid server-only check.
+
+Apply this requirement only to a physical-client handoff claim. Server-only work
+does not require a device, and a successful initial opening does not prove other
+routes, account flows or full product readiness. Offline or standalone targets
+use the applicable reachability links above, without an endpoint-transfer step.
+Existing authorization still
+governs endpoint transfer and device interaction.
 
 For native ABI or staged-host assurance use [native execution](assurance-native-execution.md).
 
