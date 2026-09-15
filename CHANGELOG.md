@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026.09.14-unified.15-rc.1 (unreleased)
+
+- Add scoped quality tests, product principles, a product-contract template and the Improve task card. Preserve audit-only work, owner authority and stable capability/status IDs. Apply relevant user journeys without turning technical tests into usability or fairness claims.
+- Partition HTML scripts, handlers, controls, prose and inert data. Recognize framework-free browser apps and declared Python CLI entrypoints. Separate runtime family, source-file size and unknown maturity; distinguish fixtures, examples, catalogs and quoted Python strings from runtime evidence. Preserve representative locators for contributing evidence classes.
+- Refuse shared/wrong-owner usage-ledger paths before sensitive writes. Create private files and verify POSIX modes or Windows ACLs. Initialize under a private sibling and publish the completed directory; retry after interruption without deleting unrelated files. Existing ledgers retain their schema and require the documented private permissions.
+- Add private, exclusive summary export with explicit scope, feedback correction guidance and a manual history-removal workflow. Collection remains opt-in. No automatic purge or retention period, live-log collection, upload, release or installation is introduced.
+- Share pinned test dependencies across local setup and CI, with pytest-xdist only for parallel execution. Add contrasting regression fixtures and a versioned product evaluation set with browser observations; no agent-compliance percentage is claimed.
+- Integrate PR #56 at `050cc959c3207c5cadf58c0d21939628462f2edb`: exact test selection, property case accounting, coherent source/artifact evidence and comparable performance recordings.
+- Adapt PR #57 at `b6d756645bb0e839ca82330b1fa3dbf40a497253`: observe the runtime target of cached/repository-bound tools and test two checkouts with one executable. The original private reproduction is contributor-reported; the new probe regression is independently executed on synthetic repositories. The incoming proposal is not copied into the distribution.
+
+
+### Reference and template inventory
+
+- `assets/templates/calibration/coverage-ledger.md`
+- `assets/templates/calibration/findings-ledger.md`
+- `assets/templates/calibration/system-map.md`
+- `assets/templates/coverage-ledger.md`
+- `assets/templates/product-contract.md`
+- `assets/templates/system-map.md`
+- `assets/verification-capabilities.json`
+- `references/product-principles.md`
+- `references/quality-tests.md`
+- `references/real-world-usage.md`
+- `references/repo-verification-profiles.md`
+- `references/specialist-gate-environment.md`
+- `references/tasks/improve.md`
+- `references/tasks/investigate.md`
+- `references/tasks/remediate.md`
+- `references/tasks/understand.md`
+- `references/tasks/verify.md`
+- `references/verification-capabilities.md`
+
 ## 2026.09.07-unified.14
 
 - Add opt-in passive local usage collection in `scripts/adc_usage.py` and versioned Codex/Claude adapters in `scripts/adc_usage_sources.py`. Collect reported counters from ordinary work after opt-in, resume bounded reads and deduplicate observed requests without provider calls, task replay, transcript storage or uploads. Preserve missing counters, source diagnostics and attribution limits.

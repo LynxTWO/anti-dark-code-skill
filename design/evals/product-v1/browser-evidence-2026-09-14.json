@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "claim": "Fixture observations only; not agent compliance or participant validation.",
+  "agent_trials_executed": 0,
+  "os": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "playwright": "1.62.0",
+  "chromium": "151.0.7922.34",
+  "source_sha256": {
+    "cases.json": "3f397734604b9609802d10b6a000aa7483017087f733c11a2cba3c680b3bf4ad",
+    "verify_fixtures.py": "f6205381751543f4b0b640f92a2fe1ad55784e21d5f6c73094eb1f5ab3b6c7f8",
+    "fixtures/broken/index.html": "db02a81d6336617a6e299f4956d6649b964f543cc4dcb15f4cf2f33700c86c57",
+    "fixtures/clean/index.html": "e32da5d01669e8af1050294ebeb199c606e288844e54436824daa23f39061b69"
+  },
+  "observations": [
+    {
+      "fixture": "broken",
+      "case": "unicode-persistence",
+      "contract_holds": true
+    },
+    {
+      "fixture": "broken",
+      "case": "false-save-success",
+      "contract_holds": false
+    },
+    {
+      "fixture": "broken",
+      "case": "analytics-refusal-ignored",
+      "contract_holds": false
+    },
+    {
+      "fixture": "broken",
+      "case": "clear-unrelated-data",
+      "contract_holds": false
+    },
+    {
+      "fixture": "broken",
+      "case": "clear-without-undo",
+      "contract_holds": false
+    },
+    {
+      "fixture": "broken",
+      "case": "keyboard-actions",
+      "contract_holds": false
+    },
+    {
+      "fixture": "broken",
+      "case": "hidden-annual-total",
+      "contract_holds": false
+    },
+    {
+      "fixture": "broken",
+      "case": "shaming-refusal",
+      "contract_holds": false,
+      "method": "expected copy; comprehension untested"
+    },
+    {
+      "fixture": "broken",
+      "case": "startup-storage-failure",
+      "contract_holds": false
+    },
+    {
+      "fixture": "clean",
+      "case": "unicode-persistence",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "false-save-success",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "analytics-refusal-ignored",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "clear-unrelated-data",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "clear-without-undo",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "keyboard-actions",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "hidden-annual-total",
+      "contract_holds": true
+    },
+    {
+      "fixture": "clean",
+      "case": "shaming-refusal",
+      "contract_holds": true,
+      "method": "expected copy; comprehension untested"
+    },
+    {
+      "fixture": "clean",
+      "case": "startup-storage-failure",
+      "contract_holds": true
+    }
+  ],
+  "complete": true
+}

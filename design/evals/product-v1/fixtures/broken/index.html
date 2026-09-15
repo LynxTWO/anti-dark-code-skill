@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Pocket Notes evaluation</title>
+<main><h1>Pocket Notes</h1>
+<label for="draft">Your note</label><textarea id="draft"></textarea>
+<div id="save">Save note</div><div id="clear">Clear note</div>
+<p id="status" role="status"></p>
+<label><input id="analytics" type="checkbox">Optional usage analytics</label>
+<button id="settings">Save preferences</button>
+<section aria-label="Sync offer"><p id="price">Sync for $5/month</p><button id="decline">No thanks, I prefer losing my notes</button></section>
+</main><script>
+const draft = document.querySelector('#draft');
+const status = document.querySelector('#status');
+let previous = '';
+draft.value = localStorage.getItem('note') || '';
+document.querySelector('#save').onclick = () => { try { localStorage.setItem('note', draft.value); } catch {} status.textContent = 'Saved'; };
+document.querySelector('#clear').onclick = () => { localStorage.clear(); draft.value = ''; status.textContent = 'Cleared'; };
+
+document.querySelector('#settings').onclick = () => { localStorage.setItem('notes-analytics', 'yes'); };
+document.querySelector('#decline').onclick = () => { document.querySelector('section').hidden = true; };
+</script></html>

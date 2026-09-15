@@ -18,6 +18,12 @@ Finding, current evidence, expected behavior or invariant, affected files and co
 
 ## Evidence and output
 
+For consequential choices compare expected outcome, complexity, compatibility,
+migration burden and regression risk. Use the smallest coherent repair; explain
+when a broader change removes the cause. Stop preference-only rewrites once
+acceptance is met. Relevant user outcomes under the [quality tests](../quality-tests.md)
+remain verification obligations, not optional copy polish.
+
 Return the finding, current trigger, change, rationale, actual checks with counts and limits, and unresolved behavior. A fix is verified only for its observed scope. Targeted success cannot establish whole-repository readiness or external deployment state.
 
 For multiple findings, maintain a compact queue with current status and next discriminating action, using existing backlog statuses. Checkpoint completed evidence units and pending approvals in an authorized location. Resume from checked evidence rather than promoting narrative summaries to proof.

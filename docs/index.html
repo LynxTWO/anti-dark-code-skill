@@ -239,6 +239,9 @@
     .sheet { font-size: 10.5pt; }
     .sheet p { orphans: 3; widows: 3; }
     .sheet footer { margin-top: 1rem; }
+    .sheet:nth-of-type(2) .passes { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+    .sheet:last-of-type p { margin-top: 0.45rem; margin-bottom: 0.45rem; }
+    .sheet:last-of-type footer { margin-top: 0.5rem; padding-top: 0.5rem; }
     .sheet .pass { padding: 0.45rem 0.75rem; }
     .sheet .pass .body .what { font-size: 0.86rem; }
     .sheet .pass .body .name { font-size: 0.94rem; }
@@ -256,7 +259,7 @@
 <div class="wrap">
 <section class="sheet">
 <header class="top">
-  <div class="eyebrow">Field Brief / 2026.09.07-unified.14</div>
+  <div class="eyebrow">Field Brief / 2026.09.14-unified.15-rc.1</div>
   <h1>Anti-Dark-Code</h1>
   <p class="lede">Understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks, and repair findings supported by evidence.</p>
   <div class="rule-band">
@@ -267,7 +270,7 @@
     <span class="pill">One core, many hosts</span>
     <span class="pill">Optional delegation</span>
   </div>
-  <p class="meta">A model-neutral skill with five task cards, local deterministic tools, optional calibration, and opt-in usage feedback. Version 2026.09.07-unified.14; updated 2026-09-07.</p>
+  <p class="meta">A model-neutral skill with six task cards, local deterministic tools, optional calibration, and opt-in usage feedback. Unreleased candidate 2026.09.14-unified.15-rc.1; updated 2026-09-14.</p>
   <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/brief/anti-dark-code-brief.pdf">PDF version</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a></p>
 </header>
 
@@ -282,13 +285,14 @@
 </section>
 
 <section class="sheet">
-<h2>Five outcomes, selected by the task</h2>
+<h2>Six outcomes, selected by the task</h2>
 <div class="passes">
   <div class="pass"><span class="id">U</span><div class="body"><div class="name">Understand</div><div class="what">Map entry points, runtime units, ownership, data movement, and trust boundaries. Name the parts that remain unknown.</div></div></div>
   <div class="pass"><span class="id">I</span><div class="body"><div class="name">Investigate</div><div class="what">Examine a supported risk or readiness question. Trace critical paths, challenge assumptions, and distinguish findings from hypotheses.</div></div></div>
   <div class="pass"><span class="id">D</span><div class="body"><div class="name">Document</div><div class="what">Explain evidence-backed behavior while preserving directives, identifiers, schemas, runtime behavior, and saved user prose.</div></div></div>
   <div class="pass"><span class="id">V</span><div class="body"><div class="name">Verify</div><div class="what">Identify relevant verification obligations, review exact checks, and report what was actually executed, passed, skipped, or blocked.</div></div></div>
   <div class="pass"><span class="id">R</span><div class="body"><div class="name">Remediate</div><div class="what">Repair supported findings within authorization, preserve a regression case, and verify the affected behavior.</div></div></div>
+  <div class="pass"><span class="id">+</span><div class="body"><div class="name">Improve</div><div class="what">Carry requested product work through a contract, supported changes, verification and final acceptance.</div></div></div>
 </div>
 <p class="prose">Load the matching task card. Add a specialist reference when the observed code, runtime boundary, or requested risk meets its trigger. Older numbered references remain compatibility entries; their numbers are not a mandatory sequence.</p>
 <figure>
@@ -304,6 +308,19 @@
     <div class="fnode signal"><span class="txt">Evidence, result, limits, and next action</span><span class="sub">Remediate when requested and authorized; reopen approval when its bindings change.</span></div>
   </div></div>
 </figure>
+</section>
+
+<section class="sheet">
+<h2>Review the product as well as the code</h2>
+<p class="prose">For building, broad improvement, user-facing behavior or readiness, establish intended users, core journeys, affected people, constraints and observable acceptance. Keep assumed needs separate from evidence.</p>
+<h3>Five quality tests</h3>
+<ul><li>Does this hold up against its stated problem and constraints?</li><li>Can the user understand it and complete the task?</li><li>Would a person say this or expect this behavior?</li><li>Where does it break, including ordinary mistakes and refusal?</li><li>Does it earn the user's time and advance their intended outcome?</li></ul>
+<h3>Five product principles</h3>
+<ul><li><strong>Make truth easier:</strong> status, limits and costs match actual behavior.</li><li><strong>Make repair normal:</strong> preserve work and support safe retry or correction.</li><li><strong>Make dignity default:</strong> use accessible controls and understandable, neutral remedies.</li><li><strong>Make ownership unavoidable:</strong> define practical data control and responsibility for errors.</li><li><strong>Make manipulation unnecessary:</strong> respect refusal and make choices and exits clear.</li></ul>
+<p class="prose">Apply only relevant obligations. A local tool without accounts does not need an account service. Compare consequential alternatives and preserve sound behavior; stop preference-only rewrites.</p>
+<div class="callout"><h3>Keep the evidence honest</h3><p>Separate defects, justified improvements, hypotheses and preferences. Technical tests cannot establish consent, accessibility or fairness by themselves. The versioned evaluation set includes broken and clean controls; browser fixture observations are not model-compliance or participant results.</p></div>
+<h3>Private local usage, recoverable setup</h3>
+<p class="prose">Usage collection remains opt-in. Setup checks directory privacy, publishes a complete ledger and allows retry after interruption. Scoped summary exports stay private and do not replace older files. No automatic retention period or purge is introduced.</p>
 </section>
 
 <section class="sheet">
@@ -389,7 +406,7 @@
 <h3>Install from a reviewed release</h3>
 <p class="prose">Review a named release and its independently published managed-core digest. Validate the distribution, review the installer dry run, apply within authorization, and validate the installed copy. A version alone cannot prove integrity. Preserve calibration and review migration guidance before recovery overrides.</p>
 <p class="prose">Find exact commands and release checks in <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a>. Finish when scope and verification obligations are satisfied; otherwise name the smallest unresolved action and its blocker.</p>
-<footer>Anti-Dark-Code field brief, 2026.09.07-unified.14. Five outcomes, scoped authorization, evidence with limits, and opt-in local usage feedback. License and contribution terms remain in the repository.</footer>
+<footer>Anti-Dark-Code field brief, 2026.09.14-unified.15-rc.1. Six outcomes, scoped authorization, evidence with limits, and opt-in local usage feedback. License and contribution terms remain in the repository.</footer>
 </section>
 </div>
 

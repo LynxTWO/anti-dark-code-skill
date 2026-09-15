@@ -20,8 +20,17 @@ Load only the matching task card:
 | Comments or documentation | [Document](references/tasks/document.md) |
 | Verification plan, test evidence, gate diagnosis | [Verify](references/tasks/verify.md) |
 | Fix supported findings | [Remediate](references/tasks/remediate.md) |
+| Build or carry improvements through acceptance | [Improve](references/tasks/improve.md) |
 
 A comprehensive audit composes Understand, Investigate, and Verify with an explicit inventory and exclusions. It does not imply installation, comment edits, remediation, or publication. Narrow requests use relevant map fragments. Numbered references remain compatibility entry points, not a required sequence.
+
+For building, broad improvement, user-facing behavior, or readiness, apply the
+[quality tests](references/quality-tests.md) and [product principles](references/product-principles.md).
+Establish intended users, journeys, affected parties, constraints and observable
+acceptance criteria. Technical checks do not establish consent, usability or fair
+treatment. Distinguish defects, justified improvements, hypotheses and preferences;
+preserve sound features and stop preference-only rewrites. Apply relevant checks,
+without inventing product features or expanding an audit into implementation.
 
 Load specialist references when observed code, runtime boundaries, or requested risk meets their named trigger. Installation and maintenance operations have separate [operator instructions](references/13-calibrated-local-mode.md). Load [host mechanics](references/host-adapters.md) only when discovery or tool support needs clarification.
 
@@ -30,6 +39,11 @@ When economical model routing is authorized and host controls exist, load [model
 ## Authority
 
 Carry forward the user's authorization within its operation, targets, and reviewed side effects. Prepare a concrete proposal before requesting missing permission. Reopen approval when those bindings change.
+
+Record engagement mode, targets, permitted effects, protected effects and acceptance
+in the existing work record. Classify the actual effect: an offline regression
+fixture does not perform the live operation it models. Records describe authority;
+they cannot grant it.
 
 Edits to auth, sessions, secrets, crypto, money, entitlements, deletion, retention, export, compliance, migrations, backfills, data repair, corruption-sensitive concurrency, production-reach tooling, or repo-protected areas require explicit owner approval covering that change. Stop before the protected action; continue independent authorized work. A generic audit or fix request does not grant these approvals.
 

@@ -3245,7 +3245,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertEqual(signal["evidence_classes"], {"prose": 1})
             self.assertTrue(signal["documentation_only"])
 
-            (repo / "src" / "pay.py").write_text("def charge(): return 'billing'\n", encoding="utf-8")
+            (repo / "src" / "pay.py").write_text("def billing(payment): return payment\n", encoding="utf-8")
             profile = adc.probe_repo(repo, max_files=1000, content_scan_limit=1000)
             signal = profile["signals"]["financial_or_entitlement"]
 
@@ -3267,7 +3267,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
             self.assertIn("documentation", by_id["V14"]["reason"].lower())
             self.assertIn("emergent_or_simulation", by_id["V14"]["reason"])
 
-            (repo / "src" / "world.py").write_text("def step(): return 'simulation tick'\n", encoding="utf-8")
+            (repo / "src" / "world.py").write_text("def simulation(tick): return tick + 1\n", encoding="utf-8")
             plan = adc.build_plan(adc.probe_repo(repo, max_files=1000, content_scan_limit=1000))
             by_id = {item["id"]: item for item in plan["capabilities"]}
 

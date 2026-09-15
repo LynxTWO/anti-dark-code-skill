@@ -15,6 +15,12 @@ Use the repo's real names for systems, modules, and runtime units. Do not invent
 
 ## 2. Runtime units and entrypoints
 
+For product work, include the relevant product contract in this map: intended
+users, affected parties, core journeys, prerequisites, decisions, authoritative
+state, failure/repair/refusal paths and observed acceptance. Distinguish assumed
+needs from evidence; technical coverage does not establish usability. Reuse
+`assets/templates/product-contract.md` without creating a duplicate ledger.
+
 | Unit | What it does | Where it lives | How it starts | Depends on | Triggered by | Data or side effects owned |
 |---|---|---|---|---|---|---|
 | <name> | <one-sentence summary> | <path> | <trigger> | <deps> | <who or what calls it> | <data read/written> |

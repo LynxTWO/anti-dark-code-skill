@@ -4,6 +4,10 @@ Tracks which areas of the repo have been reviewed under the anti-dark-code workf
 
 Do not claim full coverage unless the evidence in this ledger supports the claim.
 
+For product work include journey/acceptance rows, keeping quality tests and product
+principles separate from technical coverage. Name missing participant, accessible
+interaction, device and provider evidence. Keep existing status values.
+
 For canonical status values, classification labels, and risk levels, see `references/00-conventions.md`.
 
 ## Ledger

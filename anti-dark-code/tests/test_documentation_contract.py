@@ -29,13 +29,16 @@ class DocumentationContractTests(unittest.TestCase):
                 with self.subTest(path=path.relative_to(ROOT.parent).as_posix(), target=target):
                     self.assertTrue(resolved.exists(), f"Missing local link: {target}")
 
-    def test_five_task_cards_are_discoverable_from_core(self):
+    def test_task_cards_and_product_frameworks_are_discoverable_from_core(self):
         core = (ROOT / "SKILL.md").read_text(encoding="utf-8")
-        for name in ("understand", "investigate", "document", "verify", "remediate"):
+        for name in ("understand", "investigate", "document", "verify", "remediate", "improve"):
             with self.subTest(task=name):
                 target = f"references/tasks/{name}.md"
                 self.assertIn(f"]({target})", core)
                 self.assertTrue((ROOT / target).is_file())
+        for target in ("references/quality-tests.md", "references/product-principles.md"):
+            self.assertIn(f"]({target})", core)
+            self.assertTrue((ROOT / target).is_file())
 
 
 if __name__ == "__main__":

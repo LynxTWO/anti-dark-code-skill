@@ -1,14 +1,14 @@
 {
-  "generator": "Chrome 152.0.7977.66 headless print-to-pdf (Windows)",
-  "normalized_pdf_sha256": "0d6a909bcb8b4b628dabb6351679681797001484c5c114a7e1303f22376b12fe",
-  "pdf_sha256": "4ef49a58fc177283c0a4799843e64cb14924d9e446ba080b65f32c7c854802b3",
   "schema_version": 1,
-  "source_sha256": "b2c1ceec6d00b6915c68c8e91997bcee8058dbecb51661be2de86a9cfde52f60",
+  "version": "2026.09.14-unified.15-rc.1",
+  "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Linux",
+  "source_sha256": "97a8c0d1bd3d9b5475cb7ad1aac6635335a7775a81876ab68d930d38a1949c6f",
+  "pdf_sha256": "b1a2aa360c87d903715314f44b312e64d6dbb445a90f7f62380e783011d751d1",
+  "normalized_pdf_sha256": "47184e40d230ff1abaeb3c768e7624a34f47a0acdf4c9000a4d7c50e1fa279d5",
   "validated_with": {
-    "page_count": 6,
-    "render": "Poppler pdftoppm PNG; pages 1, 5 and 6 visually reviewed; pages 2-4 pixel-identical to previous release",
-    "text": "pypdf extracted current version; all previous link destinations and page locations retained",
-    "version": "2026.09.07-unified.14"
-  },
-  "version": "2026.09.07-unified.14"
+    "page_count": 7,
+    "version": "2026.09.14-unified.15-rc.1",
+    "text": "Poppler extracted current version, Improve, and product principles",
+    "render": "All seven pages rendered with Poppler and visually reviewed; no clipped content or orphan spill pages."
+  }
 }

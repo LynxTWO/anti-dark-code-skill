@@ -16,3 +16,19 @@ Use the runtime branches needed to interpret a selected capability or unresolved
 | Small/new | Start with real invariants, boundary schemas, an exact useful gate, compact map, test-change review and failure packets. Add measured ladder levels and other capabilities only when observed behavior and risk justify them. Do not invent missing product paths. |
 
 Cross-profile rules: mutation needs meaningful tests; differential testing needs an independent implementation/oracle; time/randomness/ordering call for explicit replay inputs. Change impact includes configuration, content, generated, schema and deployment/control-plane edges. Snapshots require semantic review. Fault injection stays isolated and authorized. Builder/challenger separation scales to stakes; a model vote cannot replace a deterministic oracle.
+
+For relevant user journeys, layer the [quality tests](quality-tests.md) and
+[product principles](product-principles.md) onto existing methods: stateful consent,
+refusal, recovery and cancellation sequences; contracts for visible status and
+data control; named-control/keyboard checks; fault injection for draft preservation
+and safe retry. Apply these to CLI setup as well as visual interfaces. Declare
+unperformed screen-reader, device, participant and provider checks separately.
+
+Probe families are advisory, size counts are not complexity, and maturity remains
+unknown without contextual evidence. Source/configuration, tests, examples,
+catalogs, inert HTML, quoted Python text and prose have separate evidence classes. A keyword in a
+test or catalog can justify a question, not a claim that the application implements
+that domain. Review representative source locators before accepting selections.
+Python string literals may contain executable SQL or quoted examples; call-site
+interpretation is required. Their keywords remain candidates. Equivalent literal
+partitioning is not implemented for every language; review lexical false positives.

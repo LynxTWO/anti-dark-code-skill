@@ -20,6 +20,49 @@ Collection has a bounded read budget. Inspect `last_collection`, `backlog` and d
 
 `usage disable --directory <private-ledger>` stops reads and retains history. Remove the scheduler separately. No automatic retention deletion is configured.
 
+## Privacy, recovery and ownership
+
+Initialization accepts a new or empty private directory. POSIX ownership and
+owner-only permissions are checked before sensitive writes; files are created
+with mode 0600. Existing shared directories are refused with a remedy, never
+silently chmodded. Windows requires a verified current-user-owned ACL allowing
+only that user, SYSTEM and Administrators; unknown ACLs or unavailable PowerShell
+refuse initialization. These checks do not protect against the same OS user,
+administrators, or a hostile process racing filesystem operations.
+
+Older schema-1 ledgers remain readable after their permissions meet this rule.
+If an older initializer left mode 0644 files, inspect ownership locally and restrict
+the ledger directory to 0700 and its configuration/database files to 0600 before
+reopening. This changes permissions, not stored counters or consent timestamps.
+On Windows review the equivalent ACL; the tool does not silently rewrite existing
+user-directory permissions.
+
+Setup builds in a private `.adc-init-*` sibling and publishes the complete ledger
+by directory rename. After an interrupted setup, repeat the same init command
+against the requested target. Failed staging folders remain for local inspection;
+they are not automatically deleted. Do not point collection at them. A nonempty
+target from an older failed initializer must be retained and inspected; choose a
+new private target to retry. No interrupted setup implies enabled collection.
+
+Use `usage export --directory <private-ledger> --output <private-export-dir>/summary.json`
+to export all summary tasks, feedback, usage strata and fixed diagnostics. The
+destination directory must already be private and outside the ledger and source
+roots. The file is exclusive and private; no previous export is replaced. Scope
+excludes source paths, cursors, per-response records and transcripts. A failed
+write may leave partial JSON; it is not a completed export. Review before sharing.
+
+Feedback can be corrected by repeating the feedback command for the same task.
+Summaries use the current label; corrections can change sample counts and metrics.
+Preserve a dated export if comparing reviews over time. Labels are not authority.
+
+To remove history, first disable collection, remove schedules/hooks, and wait for
+running collectors to exit. Inspect the exact private ledger locally, then remove
+only that owner-selected directory using the OS file manager. Review retained
+exports and `.adc-init-*` folders separately. Host source logs have their own
+lifecycle and are not removed by disabling or exporting this ledger. Automatic
+purge/expiry is deliberately absent: adding it needs a policy for active writers,
+replay cutoffs and retained comparison evidence, not an invented retention period.
+
 ## Account for models honestly
 
 Codex 0.153.0 per-response records are the tested starting contract. Compatibility cumulative notifications are ignored. Context model attribution is labeled `turn-context`; it does not attest to the serving model. Linked reroute or usage metadata has its own attribution. Missing model/effort/cache/reasoning fields remain null. Native host tokens are not a provider invoice.

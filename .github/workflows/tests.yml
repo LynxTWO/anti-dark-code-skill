@@ -47,7 +47,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --quiet pytest pytest-xdist
+          python -m pip install --disable-pip-version-check --quiet -r requirements-test-parallel.txt
+          python -m pip check
 
       - name: Validate the core before anything writes to the tree
         shell: bash
@@ -139,7 +140,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --quiet pytest pytest-xdist
+          python -m pip install --disable-pip-version-check --quiet -r requirements-test-parallel.txt
+          python -m pip check
 
       - name: Run the suite where the platform is unhelpful
         shell: bash
@@ -198,7 +200,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --quiet pytest
+          python -m pip install --disable-pip-version-check --quiet -r requirements-test.txt
+          python -m pip check
 
       - name: Replay this partition of the complete matrix
         shell: bash
