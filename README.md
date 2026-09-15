@@ -17,7 +17,7 @@
 
 Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
-**Version**: `2026.09.14-unified.15-rc.1` (unreleased candidate; see [release history](CHANGELOG.md)).
+**Version**: `2026.09.15-unified.15` (see [release history](CHANGELOG.md)).
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
@@ -74,7 +74,7 @@ Use [Operations](OPERATIONS.md) for install, migrate, cleanup, flowback, intake,
 
 [Local usage collection](anti-dark-code/references/real-world-usage.md) is opt-in. Choose local Codex or Claude source roots and a private ledger, then collect reported counters from ordinary work after the opt-in time. Repeated collection passes deduplicate observed usage; they make no model calls, replay no tasks and upload nothing. The ledger retains numeric usage, bounded metadata and hashed identifiers, not transcript text. Missing counters and unsupported source formats stay visible.
 
-Optional structured task feedback records whether the skill was used, whether it was expected, how it was invoked and whether quality passed. Trigger feedback describes only the labeled, eligible task sample. Natural usage across models does not establish savings, subscription spend or remaining quota.
+Opted-in [routine task reviews](anti-dark-code/references/routine-task-review.md) connect Codex lifecycle hooks to private review tickets, including non-use and failed work. The working agent reports use, expectation, invocation and observed quality; missing labels and missing hook delivery remain visible. Agent self-reviews stay separate from human reviews. Trigger feedback describes only the labeled, eligible task sample. Natural usage across models does not establish savings, subscription spend or remaining quota.
 
 [Conditional model selection](anti-dark-code/references/model-selection.md) can suggest a cheaper eligible model for bounded work or a stronger tier for consequential work. It requires a meaningful acceptance check, current host capabilities and a fresh catalog. The helper returns a recommendation; the assistant applies it only through an available, authorized host control. Unknown requirements or unsupported controls keep the current model. A failed acceptance check can justify one stronger route with both attempts retained.
 

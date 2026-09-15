@@ -23,3 +23,8 @@ For OpenAI-style reported usage, normalize total input, top-level output and pro
 Pin usage_semantics and adapter version to the inspected source format, especially when reading transcripts. Source formats can change independently of the skill. [Efficiency rules](16-community-feedback-and-efficiency.md) govern opt-in, quality comparisons and publication.
 
 The [passive collector](real-world-usage.md) supports inspected Codex 0.153.0 per-response records, with cumulative mirrors ignored. Turn-context attribution is explicitly weaker than a reported serving model. Include available child and approval-review logs. For authorized routing, [model selection](model-selection.md) uses live host controls; a catalog does not establish availability or permission. Keep requested and reported attribution distinct after host reroutes.
+
+Opted-in [routine task reviews](routine-task-review.md) use native UserPromptSubmit
+and Stop hooks independently of skill activation. Verify the host's exact hook
+definitions and trust, then actual delivery. A Stop event never grades the task.
+Reviewers report labels; missing reviews and unobserved lifecycle links stay visible.

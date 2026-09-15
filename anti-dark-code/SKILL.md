@@ -81,6 +81,11 @@ Managed core updates use a clean universal source. Calibration belongs to one re
 
 ## Completion and recovery
 
+When routine feedback is opted in, follow the observed task ticket's
+[review procedure](references/routine-task-review.md) before finishing. Report
+failures and non-activations as observed; keep uncertain labels unknown. Recording
+feedback does not itself count as using this skill.
+
 Checkpoint after a completed evidence unit and before long operations when interruption would lose work. Reuse existing artifacts in an authorized location: scope, source identity, evidence references, open obligations, permissions, next action, and stop reason. One-off results may stay in chat.
 
 On resume, verify saved evidence provenance, method, source identity, and dependencies. Reuse valid evidence; remeasure changed, missing, contradictory, or unauthenticated evidence. Summaries alone cannot upgrade confidence. Incomplete dependencies require conservative invalidation.

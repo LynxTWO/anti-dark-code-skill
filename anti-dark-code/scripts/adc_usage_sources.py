@@ -249,6 +249,8 @@ def _codex_event(
         "event_id": _digest("codex", "response", response_id),
         "task_id": task_id,
         "root_task_id": root_task_id,
+        "host_thread_hash": _native_hash("codex", "thread", payload.get("thread_id")),
+        "host_turn_hash": turn_hash,
         "timestamp": stamp,
         "provider": matched_session.get("provider") if isinstance(matched_session, dict) else None,
         "model": model,

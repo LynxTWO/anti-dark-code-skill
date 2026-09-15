@@ -79,7 +79,34 @@ Use `--source claude=<absolute-session-root>` for Claude, or supply both hosts o
 python anti-dark-code/scripts/adc_usage.py disable --directory <private-ledger>
 ~~~
 
-The summary lists observed task identifiers. Add optional structured feedback against one of those identifiers:
+For routine Codex reviews, enable the additional opt-in and connect the host:
+
+~~~text
+python anti-dark-code/scripts/adc_usage.py review enable --directory <private-ledger> --opt-in
+python anti-dark-code/scripts/adc_usage.py review pending --directory <private-ledger>
+~~~
+
+Follow [routine task review](anti-dark-code/references/routine-task-review.md) to
+pin the helper, preserve existing hooks, satisfy native trust and verify delivery
+in a fresh session. Enabling the ledger alone does not install hooks. Submitting
+labels also needs write access to that private ledger under the
+session's existing permissions. For workspace-write Codex sessions, narrowly add
+the ledger with `--add-dir` or the reviewed `sandbox_workspace_write.writable_roots`
+setting. Preserve other roots and sandbox settings. Read-only sessions may leave
+labels pending; never disable a sandbox or force approval merely to record them.
+Each observed turn gets its own ticket and a closeout reminder, including tasks where the skill
+did not activate. Stop records completion without grading or forcing continuation.
+Delayed usage is reconciled later; ambiguous joins and independent feedback
+conflicts remain unresolved. Check missing labels and usage groups without tickets,
+not only successful submissions. Separate agent self-reviews from human reviews.
+The reminder consumes task tokens; it does not call a separate grading model.
+
+Pause scheduled writers and take a consistent private backup before upgrading an
+existing collector or its permissions. Preserve its counters and consent start
+time. The additive review table can remain on rollback; `review disable` retains
+history. Remove only the selected hook definitions separately.
+
+For manual reviews or other hosts, the summary lists observed task identifiers:
 
 ~~~text
 python anti-dark-code/scripts/adc_usage.py feedback --directory <private-ledger> --task-id <observed-task-id> --used yes --expected yes --invocation implicit --quality passed --task-class audit
@@ -132,6 +159,24 @@ interpreter. pytest-xdist is needed only for parallel execution. CI and local
 commands use these same pinned test dependency files; review updates together.
 
 Do not run tests inside the clean distribution being validated, where bytecode/build artifacts contaminate packaging evidence. Record test platform, source identity, failures/skips and validation results. Passing checks prepare a reviewable release; they do not authorize tagging, publishing or deployment.
+
+Before upgrading an opted-in `.14` collector, inspect its existing ledger without
+changing consent or history. On POSIX, a private parent does not replace the new
+per-file checks: the directory needs mode 0700 and configuration/database files
+need mode 0600, owned by the current user. On Windows, the conservative checker
+accepts explicit current-user, SYSTEM and Administrators allow entries. An
+`OWNER RIGHTS` entry is outside that allowlist even when the present owner is the
+current user; review an equivalent explicit-user ACL before upgrading. Do not
+weaken the checker or initialize over an existing ledger to bypass a refusal.
+
+When authorized to apply an upgrade, pause its scheduler and wait for the active
+collector to exit, preserve a consistent private backup, review only the selected
+ledger's permissions, then run `usage summary` with the candidate. Confirm the
+same events, task groups and stratified counters before resuming the scheduler.
+A successful summary does not prove the next collection tick works: confirm its
+exit status and `last_collection` after resumption. Rollback keeps the ledger and
+opt-in timestamp and restores the prior reviewed collector path. No transcript
+replay, new source authorization or historical skill-use labels are implied.
 
 Keep migration/rollback instructions and the published digest with the release evidence. Do not install an experimental redesign automatically or silently reinterpret existing calibration schemas, statuses or approvals.
 

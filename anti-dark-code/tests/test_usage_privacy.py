@@ -126,6 +126,31 @@ class UsagePrivacyTests(unittest.TestCase):
             self.adc._private_create(path)
         self.assertEqual("synthetic content", path.read_text(encoding="utf-8"))
 
+    @unittest.skipUnless(os.name == "nt", "Windows PowerShell module loading")
+    def test_windows_privacy_check_ignores_incompatible_inherited_modules(self):
+        self.init()
+        modules = self.root / "incompatible-modules"
+        security = modules / "Microsoft.PowerShell.Security"
+        security.mkdir(parents=True)
+        (security / "Microsoft.PowerShell.Security.psd1").write_text(
+            "@{ RootModule='blocked.psm1'; ModuleVersion='7.0'; PowerShellVersion='5.1'; "
+            "FunctionsToExport=@('Get-Acl','Set-Acl') }", encoding="utf-8")
+        (security / "blocked.psm1").write_text(
+            "throw 'Synthetic module cannot load in this engine'\n"
+            "function Get-Acl { throw 'Incompatible synthetic module' }\n"
+            "function Set-Acl { throw 'Incompatible synthetic module' }\n", encoding="utf-8")
+        # A PowerShell 7 parent can similarly supply modules unusable by 5.1.
+        # Check real Windows ACLs without changing the caller's environment.
+        system_modules = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/WindowsPowerShell/v1.0/Modules"
+        # Keep the built-in path present but later, as in the observed host;
+        # otherwise PowerShell can prepend it and hide the incompatible module.
+        inherited = str(modules) + os.pathsep + str(system_modules)
+        with patch.dict(os.environ, {"PSModulePath": inherited}):
+            self.assertTrue(self.adc._windows_private(self.ledger))
+            self.ledger = self.root / "another-ledger"
+            self.assertEqual("enabled", self.init()["status"])
+            self.assertEqual(inherited, os.environ["PSModulePath"])
+
     @unittest.skipUnless(os.name == "nt", "Windows file ownership requires Windows")
     def test_new_file_owner_or_privacy_failure_closes_empty_file(self):
         self.ledger.mkdir()

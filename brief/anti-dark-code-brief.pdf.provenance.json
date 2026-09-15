@@ -1,14 +1,13 @@
 {
   "schema_version": 1,
-  "version": "2026.09.14-unified.15-rc.1",
+  "version": "2026.09.15-unified.15",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Linux",
-  "source_sha256": "97a8c0d1bd3d9b5475cb7ad1aac6635335a7775a81876ab68d930d38a1949c6f",
-  "pdf_sha256": "b1a2aa360c87d903715314f44b312e64d6dbb445a90f7f62380e783011d751d1",
-  "normalized_pdf_sha256": "47184e40d230ff1abaeb3c768e7624a34f47a0acdf4c9000a4d7c50e1fa279d5",
+  "source_sha256": "e72c04583473fcaf2d637d247d440e88072b91982e4dbbe0e4cc3d2386c07d45",
+  "pdf_sha256": "b09d7709b53b9155b263b6c089ee51077b96067f6b85ad77ba553441d4ef8408",
+  "normalized_pdf_sha256": "2d7518b4d4262925db6d92c9498412e076db8b2f0b8c2c7da32748ff6b719f41",
   "validated_with": {
     "page_count": 7,
-    "version": "2026.09.14-unified.15-rc.1",
-    "text": "Poppler extracted current version, Improve, and product principles",
-    "render": "All seven pages rendered with Poppler and visually reviewed; no clipped content or orphan spill pages."
+    "version": "2026.09.15-unified.15",
+    "text": "Poppler extracted current version, Improve, and product principles; visually reviewed all seven rendered pages, with readable text and no clipped content."
   }
 }
