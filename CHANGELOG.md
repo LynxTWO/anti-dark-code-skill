@@ -15,6 +15,9 @@
 - Adapt PR #57 at `b6d756645bb0e839ca82330b1fa3dbf40a497253`: observe the runtime target of cached/repository-bound tools and test two checkouts with one executable. The original private reproduction is contributor-reported; the new probe regression is independently executed on synthetic repositories. The incoming proposal is not copied into the distribution.
 - Adapt PR #55 at `f678454d6a60a4cabe4719d9cb147d5acdf22025`: separate server readiness, client endpoint acquisition and on-device candidate identity before a physical-client review handoff. Keep server-only scope and existing evidence statuses. The contributor's physical-device incident remains contributor-reported; a loopback transport counterexample is narrower evidence, not device or agent validation.
 - Count each model response once in `work_receipt.py`. Claude Code writes one transcript row per content block and repeats the response's usage on each row, so summing rows over-counted; one observed session read about 3.8 times its deduplicated output tokens. Usage is now keyed by `message.id` (largest snapshot kept), tool calls by `tool_use` id, and copied transcripts count once. Rows without ids still count individually, non-object JSON lines count as malformed, and the new `usage_rows` field shows the raw row count. Receipts produced earlier from such transcripts overstate usage.
+- Promote two profiler lessons queued by a consuming repository. A manifest the probe cannot parse is listed under `scan.unparsed_manifests`, noted in the profile and warned about by `probe`, `plan` and `bootstrap`, because silence read as a package with no scripts; a `package.json` that is valid JSON but not an object is recorded the same way instead of stopping the probe. The walk also skips mutation-tool sandboxes such as `.stryker-tmp` and any in-tree directory holding a byte-identical copy of a root project manifest, recorded under `scan.skipped_repository_copies`, so a tool's copy of the project no longer becomes proposed gates. Near-empty manifests and distinct workspace packages are not treated as copies. `14-deterministic-verification.md` describes both fields.
+- Adapt PR #63 at `0aa8f2f4ce2d66485088e2e1041325678adc4cdd`: inventory checkouts, worktree links, shared Git storage and unique files before consolidating a workspace, and check the generated consumers a move strands (`specialist-remediation-edges.md`); record an optional workspace boundary in the map (`02-architecture-map.md`); keep machine-local state separate when verification runs on another host (`specialist-gate-environment.md`). The contributor's evidence remains contributor-reported, and the incoming proposal is not copied into the distribution.
+- Promote a lesson queued by a consuming repository: a change whose effect is slower than any test window leaves the suite green without proving the change inert. Check the cause through the intermediate values it moves, and observe the effect once with a long-horizon probe where that is affordable (`specialist-verifier-falsifiability.md`).
 
 
 ### Reference and template inventory
@@ -42,6 +45,10 @@
 - `references/tasks/understand.md`
 - `references/tasks/verify.md`
 - `references/verification-capabilities.md`
+- `references/02-architecture-map.md`
+- `references/14-deterministic-verification.md`
+- `references/specialist-remediation-edges.md`
+- `references/specialist-verifier-falsifiability.md`
 
 ## 2026.09.07-unified.14
 

@@ -1,6 +1,6 @@
-# External component probes, moves, and TODOs
+# External component probes, moves, workspaces, and TODOs
 
-Trigger: a supported fix concerns an external component, a move/extraction, or deferred work recorded in a TODO.
+Trigger: a supported fix concerns an external component, a move/extraction, a workspace consolidation, or deferred work recorded in a TODO.
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
 
@@ -32,6 +32,12 @@ Before a move or extraction is called done:
 
 A green build after a move proves the symbols resolved. It does not prove the move is complete, and where there is no build step it proves nothing at all.
 
+Moves also strand generated consumers. Autolinking output, compiler caches and generated native manifests can keep old absolute paths, or entries the configuration removed, after an incremental run. Keep generated output out of the text sweep, but find the consumers that execute next: regenerate identified output from current configuration, inspect the final packaged configuration where it matters, and run the affected build or startup before calling the move done. Delete only identified regenerable output. Preserve signing material, private environments, manual native edits and failure evidence, and do not clear every cache for an unrelated change.
+
+## Workspace consolidation
+
+Folder names and dates do not establish that a copy is redundant. Before moving, merging or deleting checkouts, inventory each one: branch and upstream, dirty and untracked work, worktree links and shared Git storage, private inputs and generated output. An older-looking checkout can own the metadata an active worktree depends on, and a retained file can share a current file's name without sharing its bytes. Treat a copy as redundant only with comparison evidence, move worktrees with Git's own commands, and recheck the relationships afterwards. A small single-repository task may need only a status check, and none of this authorizes deleting unique work.
+
 ## TODO lifecycle
 
 A safe fix sometimes has to leave a `TODO` behind because the full fix is approval-gated, blocked on evidence, or larger than the current commit budget. Track every such TODO end-to-end so it does not become the next generation of dark code.
@@ -50,4 +56,4 @@ Lifecycle:
 
 If a TODO outlives the engagement that planted it, the next task touching that obligation rechecks whether its row still makes sense before extending it.
 
-Result: external probes retain exact identity/control evidence, every stale textual reference is edited or dispositioned, and every TODO has a tracked reason and closure path.
+Result: external probes retain exact identity/control evidence, every stale textual reference is edited or dispositioned, generated consumers are regenerated and run after a move, consolidation preserves unique work, and every TODO has a tracked reason and closure path.

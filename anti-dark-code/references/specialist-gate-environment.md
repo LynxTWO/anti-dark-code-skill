@@ -1,6 +1,6 @@
 # Gate environment and runner identity
 
-Trigger: a gate depends on exclusive files, frozen dependency state, generated outputs, a configured test runner, or a cached/repository-bound tool.
+Trigger: a gate depends on exclusive files, frozen dependency state, generated outputs, a configured test runner, a cached/repository-bound tool, or a second host or operating system.
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
 
@@ -31,6 +31,10 @@ content. Verify each result and output belongs to the selected checkout, includi
 nested-workspace and invalid-root cases. Identity checks alone cannot prove all
 downstream I/O respects the target. Preserve unobserved cache/native behavior as
 unknown instead of claiming universal isolation.
+
+## Several hosts
+
+When verification runs on another machine or operating system, synchronize reviewed source through version control and keep dependencies, credentials, databases and caches local to each host. Refuse dirty or unpublished work as input; a checksum-verified bundle serves when the verifying host cannot authenticate to the remote. Name one editing owner, record the exact source identity with every returned result, and return failures as well as passes to the coordinating workspace. Matching source does not make clocks, provider state or cross-OS artifacts equivalent, and an offline snapshot says nothing about fresh remote state.
 
 ## Expected work
 
