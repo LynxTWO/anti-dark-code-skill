@@ -21,6 +21,15 @@ Sweep the whole verification surface once the class is named, and re-sweep after
 
 The exception is a deliberate restatement of a property already proven elsewhere. Such a restatement must cite the probe that proves it, at the restatement. Deterministic gates share this rule; see the gate-authoring cautions in `14-deterministic-verification.md`.
 
+## Effects slower than the test window
+
+A change whose observable effect takes longer than any test or engine window (a decay, a cooldown, a clamped catch-up pass, a multi-day horizon) leaves every gate green. That reads as "nothing changed" when nothing could have been seen, so a byte-identical suite does not prove the change is inert. Gather two kinds of evidence and say which one carries the claim:
+
+- assert the intermediate values the change actually moves, so the cause is checked inside the window;
+- where chaining is affordable, run one long-horizon probe past the window's clamp and diff it against the parent to observe the effect at least once.
+
+Where the long run is not affordable, the intermediate assertions are the whole proof; state that.
+
 ## Canonical output
 
 Ordering keyed on a parsed or normalized value is not total over raw representations. Two distinct raw spellings can parse equal (a timestamp with a different offset, a number with trailing zeros, a case-folded key), so a shuffle-stability test can pass while output order inside the equal class still follows input order. Tie-break canonical comparators on the raw representation after the parsed comparison, or reject equivalent-but-distinct representations at the input boundary, and never let the choice fall through silently. Every determinism suite includes a fixture pair of distinct raw representations of one parsed value and requires byte-identical canonical output across shuffles.
@@ -31,4 +40,4 @@ Collection-bearing records may compare references instead of contents. Compare c
 
 Detector thresholds need clean and known-bad fixtures, a documented separating rationale, and a positive fixture that crosses the threshold. Review threshold changes as behavior changes.
 
-Result: every check has a concrete producible falsifier, negative fixtures exercise comparisons and missing handoffs, and canonical-output tests include equal parsed values with distinct raw forms.
+Result: every check has a concrete producible falsifier, slow effects are shown through their cause or a long-horizon probe, negative fixtures exercise comparisons and missing handoffs, and canonical-output tests include equal parsed values with distinct raw forms.

@@ -21,6 +21,7 @@ Record compact tables or flow notes with evidence locators:
 - **Rule authority:** canonical implementation, downstream adapters/views/migrations, divergence guard, approved duplicate owner and expiry. State whether diagnostics are observational; authoritative reads from telemetry are a boundary.
 - **Language:** ownership, truth/display/mixed, persistence and dependencies on IDs, hashes, replay, ranking, access, pricing or policy. Use [language boundaries](12-transcreation-boundary.md) when present.
 - **Operational and external gaps:** deployment, flags, locks, backfills, manual release steps, missing owners and evidence outside this checkout. Submodules, sibling repos and vendor dashboards retain separate unresolved obligations.
+- **Workspace boundary (optional):** when sibling checkouts, archives or private inputs share a parent folder with the target, record which paths are active source, retained unfinished work, historical evidence, generated output and private material, without copying their contents. A shared parent folder does not make everything active source or a release input, and an index of it is neither a lock nor an authority grant.
 
 A claim that code is dead, unreferenced, imported or reachable must name its graph. Load [native/dynamic reachability](specialist-native-reachability.md) for the implementation-to-build-to-package-to-loader-to-selection-to-invocation chain and target-specific terminal descriptions. A clean-checkout missing generated binary does not establish a blocker.
 

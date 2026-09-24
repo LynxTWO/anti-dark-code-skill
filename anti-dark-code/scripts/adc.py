@@ -62,7 +62,19 @@ IGNORED_DIRS = {
     "node_modules", "bower_components", "vendor", "dist", "build", "out", ".next",
     ".nuxt", ".turbo", "coverage", "target", "bin", "obj", ".gradle", ".terraform",
     "Library", "Temp", "Logs", "DerivedData", "Pods", "__pycache__", ".anti-dark-code",
+    ".stryker-tmp",
 }
+
+# A subdirectory holding a byte-identical copy of one of these root manifests is a
+# copy of this repository made by a tool (a mutation or coverage sandbox, a
+# snapshot, an unpacked archive), not part of it. These files name the project, so
+# a real workspace package does not match its root byte for byte; the minimum size
+# keeps near-empty manifests from matching by accident.
+REPOSITORY_COPY_SIGNATURES = (
+    "package.json", "pyproject.toml", "Cargo.toml", "go.mod", "composer.json",
+    "pubspec.yaml", "mix.exs", "Package.swift",
+)
+MIN_COPY_SIGNATURE_BYTES = 64
 
 SOURCE_EXTENSIONS = {
     ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".go", ".rs", ".java",
@@ -1086,14 +1098,44 @@ def matches_exclusion(rel_posix: str, exclusions: Sequence[str]) -> bool:
     return False
 
 
+def repository_copy_signatures(root: Path) -> dict[str, tuple[int, str]]:
+    signatures: dict[str, tuple[int, str]] = {}
+    for name in REPOSITORY_COPY_SIGNATURES:
+        path = root / name
+        if path_is_linklike(path) or not path.is_file():
+            continue
+        try:
+            data = path.read_bytes()
+        except OSError:
+            continue
+        if len(data) >= MIN_COPY_SIGNATURE_BYTES:
+            signatures[name] = (len(data), sha256_bytes(data))
+    return signatures
+
+
+def is_repository_copy(directory: Path, signatures: Mapping[str, tuple[int, str]]) -> bool:
+    for name, (size, digest) in signatures.items():
+        path = directory / name
+        try:
+            if path_is_linklike(path) or not path.is_file() or path.stat().st_size != size:
+                continue
+            if sha256_bytes(path.read_bytes()) == digest:
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def iter_repo_files(
     root: Path,
     max_files: int = 50_000,
     exclusions: Sequence[str] = (),
     skipped_nested_repositories: list[str] | None = None,
+    skipped_repository_copies: list[str] | None = None,
 ) -> tuple[list[Path], bool]:
     files: list[Path] = []
     truncated = False
+    signatures = repository_copy_signatures(root) if skipped_repository_copies is not None else {}
     for current, dirs, names in os.walk(root, followlinks=False):
         current_path = Path(current)
         try:
@@ -1116,6 +1158,9 @@ def iter_repo_files(
             if (current_path / d / ".git").exists():
                 if skipped_nested_repositories is not None:
                     skipped_nested_repositories.append(child_rel + "/")
+                continue
+            if skipped_repository_copies is not None and signatures and is_repository_copy(current_path / d, signatures):
+                skipped_repository_copies.append(child_rel + "/")
                 continue
             kept.append(d)
         dirs[:] = kept
@@ -1401,9 +1446,14 @@ def signal_is_documentation_only(entry: dict[str, Any]) -> bool:
 
 
 def parse_package_json(path: Path, repo: Path, profile: dict[str, Any]) -> None:
+    # An unreadable manifest is recorded, not skipped: silence would read as a
+    # package with no scripts, when its gates are unknown rather than absent.
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        data = None
+    if not isinstance(data, dict):
+        profile["scan"]["unparsed_manifests"].append(rel(path, repo))
         return
     deps: dict[str, Any] = {}
     for key in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
@@ -1544,11 +1594,13 @@ def probe_repo(
 
     exclusions = normalize_exclusions(exclude)
     skipped_nested: list[str] = []
+    skipped_copies: list[str] = []
     files, truncated = iter_repo_files(
         repo,
         max_files=max_files,
         exclusions=exclusions,
         skipped_nested_repositories=skipped_nested,
+        skipped_repository_copies=skipped_copies,
     )
     ext_counts: collections.Counter[str] = collections.Counter()
     lang_counts: collections.Counter[str] = collections.Counter()
@@ -1576,6 +1628,8 @@ def probe_repo(
             "ignored_skill_trees": sorted("/".join(parts) + "/" for parts in HOST_SKILL_TREE_PREFIXES),
             "ignored_worktree_trees": sorted("/".join(parts) + "/" for parts in HOST_WORKTREE_TREE_PREFIXES),
             "skipped_nested_repositories": sorted(skipped_nested),
+            "skipped_repository_copies": sorted(skipped_copies),
+            "unparsed_manifests": [],
             "requested_exclusions": exclusions,
         },
         "repo_types": [],
@@ -1677,7 +1731,9 @@ def probe_repo(
                 if isinstance(project, dict) and isinstance(project.get("scripts"), dict) and project["scripts"]:
                     profile["_type_hints"].add("cli-desktop")
                     add_evidence(signals, "cli_entrypoint", r, evidence_class="config")
-            except (tomllib.TOMLDecodeError, AttributeError):
+            except tomllib.TOMLDecodeError:
+                profile["scan"]["unparsed_manifests"].append(r)
+            except AttributeError:
                 pass
         for kind, segment in segments.items():
             for signal, patterns in CONTENT_PATTERNS.items():
@@ -1688,6 +1744,18 @@ def probe_repo(
         profile["notes"].append("Indicator content scan reached its bound. Signals are evidence of presence, not proof of absence.")
     if truncated:
         profile["notes"].append("File enumeration reached its bound. Counts and absence claims are partial.")
+    unparsed = sorted(set(profile["scan"]["unparsed_manifests"]))
+    profile["scan"]["unparsed_manifests"] = unparsed
+    if unparsed:
+        profile["notes"].append(
+            f"{len(unparsed)} manifest(s) could not be parsed, so their scripts and dependencies are unknown "
+            "rather than absent: " + ", ".join(unparsed) + ".")
+    if skipped_copies:
+        profile["notes"].append(
+            "Skipped in-tree copies of this repository, each holding a byte-identical root manifest, such as "
+            "a mutation or coverage sandbox: " + ", ".join(sorted(skipped_copies)) + ". Their files describe a "
+            "copy, not this tree. Review the list: a real package whose manifest matches the root byte for "
+            "byte is skipped too.")
 
     manifest_basenames = {Path(m).name for m in manifests}
     type_hints: set[str] = profile.pop("_type_hints")
@@ -4381,6 +4449,12 @@ def validate_skill(skill: Path, mode: str = "auto") -> tuple[list[str], list[str
     return errors, warnings
 
 
+def print_profile_warnings(profile: Mapping[str, Any]) -> None:
+    scan = profile.get("scan") if isinstance(profile.get("scan"), Mapping) else {}
+    for path in scan.get("unparsed_manifests") or []:
+        print(f"WARN manifest could not be parsed; its scripts were not read: {path}")
+
+
 def command_probe(args: argparse.Namespace) -> int:
     repo = Path(args.repo).expanduser().resolve()
     profile = probe_repo(
@@ -4399,6 +4473,7 @@ def command_probe(args: argparse.Namespace) -> int:
         print(f"PROFILE types={','.join(profile['repo_types'])} source_files={profile['counts']['source_files']} tests={profile['counts']['test_like_files']} manifests={len(profile['manifests'])} signals={','.join(present)}")
         if not profile["scan"]["complete"]:
             print("LIMIT: file scan was partial")
+        print_profile_warnings(profile)
     return 0
 
 
@@ -4471,6 +4546,7 @@ def command_plan(args: argparse.Namespace) -> int:
         print("PLAN " + " ".join(f"{k}={v}" for k, v in summary.items()) + f" primary={plan['primary_repo_type']}")
         for cap in plan["capabilities"]:
             print(f"  {cap['id']} {cap['status']}: {cap['name']} - {cap['reason']}")
+        print_profile_warnings(profile)
     return 0
 
 
@@ -4586,6 +4662,7 @@ def command_bootstrap(args: argparse.Namespace) -> int:
         )
         print(json.dumps(install_plan, indent=2))
         print("DRY RUN: bootstrap did not write or execute repo code. Add --apply to install and generate calibration.")
+        print_profile_warnings(profile)
         return 0
     print(json.dumps(install_plan, indent=2))
     profile = probe_repo(
@@ -4601,6 +4678,7 @@ def command_bootstrap(args: argparse.Namespace) -> int:
     print(f"WROTE {plan_path}")
     print(f"UPDATED {gate_path} with {added} gate proposal change(s)")
     print("No repo code was executed and no dependency was installed.")
+    print_profile_warnings(profile)
     return 0
 
 
