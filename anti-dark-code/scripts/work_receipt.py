@@ -13,6 +13,12 @@ with type "tool_use", timestamps as offset-aware ISO 8601 strings). Other
 hosts can emit the same shape or extend this script; the output format is
 host-neutral.
 
+Claude Code writes one row per content block (thinking, text, each tool_use)
+and repeats the whole response's usage on every one of those rows. Usage is
+therefore counted once per message.id, keeping the largest snapshot, and tool
+calls once per tool_use id. Rows without those ids count individually. The
+same ids appearing in a copied transcript are counted once.
+
 No network access, no repository access, no execution of transcript content.
 Transcript text is untrusted data and is never printed.
 """
@@ -36,28 +42,46 @@ def parse_when(value: str) -> datetime:
     return moment
 
 
+USAGE_FIELDS = (
+    ("input_tokens", "input_tokens"),
+    ("cache_write_tokens", "cache_creation_input_tokens"),
+    ("cache_read_tokens", "cache_read_input_tokens"),
+    ("output_tokens", "output_tokens"),
+)
+
+
+def _response_key(message: dict, row: dict, position: str) -> str:
+    """One key per model response; a row with no identity stands alone."""
+    message_id = message.get("id")
+    if isinstance(message_id, str) and message_id:
+        return "message:" + message_id
+    row_id = row.get("uuid")
+    if isinstance(row_id, str) and row_id:
+        return "row:" + row_id
+    return "line:" + position
+
+
 def summarize(paths: list[Path], since: datetime | None, until: datetime | None) -> dict[str, object]:
-    totals = {
-        "messages": 0,
-        "tool_calls": 0,
-        "input_tokens": 0,
-        "cache_write_tokens": 0,
-        "cache_read_tokens": 0,
-        "output_tokens": 0,
-    }
+    responses: dict[str, dict[str, int]] = {}
+    tool_call_ids: set[str] = set()
+    anonymous_tool_calls = 0
+    usage_rows = 0
     first_ts: datetime | None = None
     last_ts: datetime | None = None
     malformed_lines = 0
 
-    for path in paths:
+    for path_index, path in enumerate(paths):
         with path.open("r", encoding="utf-8", errors="replace") as handle:
-            for line in handle:
+            for line_number, line in enumerate(handle, 1):
                 line = line.strip()
                 if not line:
                     continue
                 try:
                     row = json.loads(line)
                 except json.JSONDecodeError:
+                    malformed_lines += 1
+                    continue
+                if not isinstance(row, dict):
                     malformed_lines += 1
                     continue
                 stamp_raw = row.get("timestamp")
@@ -81,17 +105,30 @@ def summarize(paths: list[Path], since: datetime | None, until: datetime | None)
                     continue
                 content = message.get("content")
                 if isinstance(content, list):
-                    totals["tool_calls"] += sum(
-                        1 for item in content if isinstance(item, dict) and item.get("type") == "tool_use"
-                    )
+                    for item in content:
+                        if not isinstance(item, dict) or item.get("type") != "tool_use":
+                            continue
+                        tool_id = item.get("id")
+                        if isinstance(tool_id, str) and tool_id:
+                            tool_call_ids.add(tool_id)
+                        else:
+                            anonymous_tool_calls += 1
                 usage = message.get("usage")
                 if isinstance(usage, dict):
-                    totals["messages"] += 1
-                    totals["input_tokens"] += int(usage.get("input_tokens") or 0)
-                    totals["cache_write_tokens"] += int(usage.get("cache_creation_input_tokens") or 0)
-                    totals["cache_read_tokens"] += int(usage.get("cache_read_input_tokens") or 0)
-                    totals["output_tokens"] += int(usage.get("output_tokens") or 0)
+                    usage_rows += 1
+                    counts = {name: int(usage.get(source) or 0) for name, source in USAGE_FIELDS}
+                    key = _response_key(message, row, f"{path_index}:{line_number}")
+                    previous = responses.get(key)
+                    if previous is None or counts["output_tokens"] > previous["output_tokens"]:
+                        responses[key] = counts
 
+    totals: dict[str, object] = {
+        "messages": len(responses),
+        "usage_rows": usage_rows,
+        "tool_calls": len(tool_call_ids) + anonymous_tool_calls,
+    }
+    for name, _source in USAGE_FIELDS:
+        totals[name] = sum(counts[name] for counts in responses.values())
     totals["billable_new_tokens"] = (
         int(totals["input_tokens"]) + int(totals["cache_write_tokens"]) + int(totals["output_tokens"])
     )
@@ -113,7 +150,8 @@ def format_receipt(totals: dict[str, object]) -> str:
         f"cache_write={totals['cache_write_tokens']} "
         f"cache_read={totals['cache_read_tokens']} "
         f"output={totals['output_tokens']} "
-        f"messages={totals['messages']}"
+        f"messages={totals['messages']} "
+        f"usage_rows={totals['usage_rows']}"
     )
     lines = [work_line, breakdown]
     if totals.get("malformed_lines"):
