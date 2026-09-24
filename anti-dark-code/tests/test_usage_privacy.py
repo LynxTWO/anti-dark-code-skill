@@ -28,6 +28,51 @@ class UsagePrivacyTests(unittest.TestCase):
     def init(self):
         return self.adc.init_ledger(self.ledger, {"codex": self.source}, opt_in=True)
 
+    def windows_helper(self, outcome):
+        """Drive the Windows ACL helper with a synthetic subprocess outcome."""
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append(kwargs)
+            if isinstance(outcome, BaseException):
+                raise outcome
+            return outcome
+        return calls, patch.object(self.adc.subprocess, "run", side_effect=fake_run)
+
+    def test_windows_helper_names_a_timeout_instead_of_a_refusal(self):
+        self.ledger.mkdir()
+        _calls, patched = self.windows_helper(self.adc.subprocess.TimeoutExpired(["powershell.exe"], 60))
+        with patched, self.assertRaisesRegex(ValueError, r"timed out after \d+ s\); no sensitive files were written"):
+            self.adc._secure_new_windows_stage(self.ledger)
+
+    def test_windows_helper_names_a_launch_failure_and_an_unconfirmed_acl(self):
+        self.ledger.mkdir()
+        cases = {
+            "could not start": OSError("synthetic launch failure"),
+            "did not confirm a private ACL": SimpleNamespace(returncode=0, stdout=b"unverified\r\n", stderr=b""),
+        }
+        for reason, outcome in cases.items():
+            with self.subTest(reason=reason):
+                _calls, patched = self.windows_helper(outcome)
+                with patched, self.assertRaisesRegex(ValueError, reason):
+                    self.adc._secure_new_windows_stage(self.ledger)
+
+    def test_windows_helper_timeout_keeps_a_measured_margin(self):
+        # The slowest successful setup call observed took 11.7 s (96 concurrent
+        # calls on one workstation); CI runners reached 10.2 s under the parallel
+        # suite. The old 15 s ceiling turned that tail into refusals. Keep 2:1.
+        self.ledger.mkdir()
+        calls, patched = self.windows_helper(SimpleNamespace(returncode=0, stdout=b"private\r\n", stderr=b""))
+        with patched:
+            self.adc._secure_new_windows_stage(self.ledger)
+        self.assertGreaterEqual(calls[0]["timeout"], 2 * 11.7)
+
+    def test_windows_privacy_error_separates_an_unrunnable_check_from_a_shared_acl(self):
+        # A check that never ran must not tell the user to change a working ACL.
+        self.assertIsNone(self.adc._windows_privacy_error("private"))
+        self.assertIn("unverified", self.adc._windows_privacy_error(self.adc.HELPER_UNCONFIRMED))
+        self.assertIn("could not be checked", self.adc._windows_privacy_error("the permission helper timed out after 60 s"))
+
     @unittest.skipUnless(os.name == "posix", "POSIX mode and ownership checks")
     def test_existing_shared_directory_is_refused_without_writes(self):
         self.ledger.mkdir(mode=0o755)
@@ -103,7 +148,7 @@ class UsagePrivacyTests(unittest.TestCase):
                     args, kwargs = run.call_args
                     self.assertNotIn(str(path), " ".join(args[0]))
                     self.assertEqual(str(path), kwargs["env"]["ADC_PRIVACY_CHECK_PATH"])
-                    self.assertEqual(15, kwargs["timeout"])
+                    self.assertEqual(self.adc.WINDOWS_HELPER_TIMEOUT_SECONDS, kwargs["timeout"])
         with patch.object(self.adc.subprocess, "run", side_effect=OSError()):
             self.assertFalse(self.adc._windows_private(path))
 

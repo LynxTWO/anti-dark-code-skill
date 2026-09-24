@@ -52,7 +52,22 @@ def _json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# Windows PowerShell 5.1 starts in about a second on an idle machine, but its
+# latency grows with CPU contention and cold caches. The draft PR #61 probe
+# measured setup calls of 4.0 to 10.2 s on CI runners during the parallel suite,
+# and a burst of 96 concurrent calls on one workstation reached 11.7 s; every call
+# succeeded when given time. The former 15 s ceiling kept under 1.5:1 margin and
+# turned that tail into intermittent refusals. Keep more than 2:1 while still
+# bounding a helper that hangs.
+WINDOWS_HELPER_TIMEOUT_SECONDS = 60
+HELPER_UNCONFIRMED = "the permission helper did not confirm a private ACL"
+
+
 def _windows_command(path, script):
+    """Run one fixed ACL script. Return "private" or the reason it was not confirmed.
+
+    Only these fixed reasons leave this function, never child output or paths.
+    """
     system_root = os.environ.get("SystemRoot", r"C:\Windows")
     executable = Path(system_root) / "System32/WindowsPowerShell/v1.0/powershell.exe"
     # PowerShell 7 hosts can pass modules that Windows PowerShell 5.1 cannot load.
@@ -62,13 +77,30 @@ def _windows_command(path, script):
     try:
         result = subprocess.run([str(executable), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
             env=child_env, capture_output=True,
-            timeout=15, check=False)
-        return result.returncode == 0 and result.stdout.strip() == b"private"
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+            timeout=WINDOWS_HELPER_TIMEOUT_SECONDS, check=False)
+    except subprocess.TimeoutExpired:
+        return f"the permission helper timed out after {WINDOWS_HELPER_TIMEOUT_SECONDS} s"
+    except OSError:
+        return "the permission helper could not start"
+    if result.returncode == 0 and result.stdout.strip() == b"private":
+        return "private"
+    return HELPER_UNCONFIRMED
+
+
+def _windows_privacy_error(outcome):
+    """Map a privacy-check outcome to the refusal a user can act on, or None."""
+    if outcome == "private":
+        return None
+    if outcome == HELPER_UNCONFIRMED:
+        return "ledger privacy unverified; use a current-user-owned directory with an owner-only ACL (SYSTEM/Administrators permitted)"
+    return f"ledger privacy could not be checked ({outcome})"
 
 
 def _windows_private(path):
+    return _windows_privacy_outcome(path) == "private"
+
+
+def _windows_privacy_outcome(path):
     """Conservative local ACL check. Unknown ACLs fail closed; no ACL is changed.
 
     The current user, SYSTEM and local Administrators may have allow entries.
@@ -94,7 +126,7 @@ if ($private) { 'private' } else { 'unverified' }
 def _secure_new_windows_stage(path):
     # Only called for this initializer's newly created empty stage. Existing
     # user directories are checked, never repaired or assigned a different ACL.
-    if not _windows_command(path, r'''
+    outcome = _windows_command(path, r'''
 $ErrorActionPreference = 'Stop'
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
 $acl = New-Object System.Security.AccessControl.DirectorySecurity
@@ -104,8 +136,9 @@ $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'Ful
 $acl.AddAccessRule($rule)
 Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
 'private'
-'''):
-        raise ValueError("cannot create a private Windows staging directory; no sensitive files were written")
+''')
+    if outcome != "private":
+        raise ValueError(f"cannot create a private Windows staging directory ({outcome}); no sensitive files were written")
 
 
 def _check_private(path):
@@ -117,8 +150,9 @@ def _check_private(path):
         if stat.S_IMODE(info.st_mode) & 0o077:
             raise ValueError("ledger must be private; use an owner-only directory (0700) or file (0600)")
     elif os.name == "nt":
-        if not _windows_private(path):
-            raise ValueError("ledger privacy unverified; use a current-user-owned directory with an owner-only ACL (SYSTEM/Administrators permitted)")
+        error = _windows_privacy_error(_windows_privacy_outcome(path))
+        if error:
+            raise ValueError(error)
     else:
         raise ValueError("ledger privacy cannot be verified on this platform")
 
@@ -132,15 +166,16 @@ def _private_create(path):
             # Access rules inherit from the checked parent, but ownership comes
             # from the process token and may default to Administrators. Change
             # only this exclusively created empty file, before exposing a writer.
-            if not _windows_command(path, r'''
+            outcome = _windows_command(path, r'''
 $ErrorActionPreference = 'Stop'
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
 $acl = Get-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH
 $acl.SetOwner($sid)
 Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
 'private'
-'''):
-                raise ValueError("cannot assign private file ownership; no sensitive data was written")
+''')
+            if outcome != "private":
+                raise ValueError(f"cannot assign private file ownership ({outcome}); no sensitive data was written")
             _check_private(path)
         return os.fdopen(descriptor, "w", encoding="utf-8")
     except BaseException:
