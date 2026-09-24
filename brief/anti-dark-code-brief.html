@@ -182,7 +182,22 @@
 
   footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.03em; }
 
-  @media (max-width: 34rem) { .two { grid-template-columns: 1fr; } }
+  .section-label { font: 600 0.7rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0 0 0.8rem; }
+  .contents { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1.5rem; list-style: none; padding: 0; margin: 0.7rem 0 0; }
+  .contents a { display: flex; gap: 0.6rem; text-decoration: none; padding: 0.25rem 0; font-size: 0.9rem; }
+  .contents span { font: 0.75rem var(--mono); color: var(--muted); padding-top: 0.2rem; }
+  .contents a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .page-footer { display: none; }
+  .task-cards { display: grid; grid-template-columns: 1fr 1fr; }
+  .sheet { scroll-margin-top: 1.5rem; margin: 0; }
+  .sheet + .sheet { margin-top: 3rem; }
+  .sheet > h2:first-of-type { margin-top: 0; }
+  @media (max-width: 40rem) {
+    .two, .contents, .task-cards { grid-template-columns: 1fr; }
+    .pass { grid-template-columns: 2rem 1fr; gap: 0.6rem; }
+    h1 { font-size: 1.9rem; }
+  }
 
   @media print {
     :root {
@@ -191,32 +206,22 @@
       --signal-soft: #2C2016; --verified: #63BF88; --inferred: #D8AB52; --unknown: #949DA4; --node: #1C242B;
     }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    @page { margin: 0; }
+    @page { size: letter; margin: 0; }
     html, body { background: var(--paper) !important; }
-    body { font-size: 11.5pt; padding: 0.5in 0.62in 0.55in; }
+    body { font-size: 10.5pt; padding: 0; }
     .wrap { max-width: 100%; }
-    h2 { margin-top: 1.5rem; }
+    .sheet { position: relative; min-height: 11in; padding: 0.5in 0.62in; break-inside: avoid; }
+    .sheet + .sheet { break-before: page; margin-top: 0; }
+    h2 { margin-top: 1.4rem; padding-top: 1rem; }
+    .sheet > h2:first-of-type { margin-top: 0; border-top: 0; padding-top: 0; }
+    header.top { padding-top: 0; }
+    .sheet p { orphans: 3; widows: 3; }
+    .section-label { margin-bottom: 0.8rem; }
     figure, .callout, .pass, .tiercard, .chart, .two > div, .fnode { break-inside: avoid; }
     h1, h2, h3 { break-after: avoid; }
     .chart { overflow: visible; }
     a { color: var(--accent); text-decoration: none; }
-    footer { break-inside: avoid; }
-  }
-
-  /* Keep the original palette and components; give the revised brief page boundaries. */
-  .sheet { margin: 0; }
-  @media print {
-    @page { size: letter; }
-    body { padding-bottom: 0; }
-    .sheet + .sheet { break-before: page; padding-top: 0.4in; }
-    .sheet > h2:first-child { margin-top: 0; }
-    header.top { padding-top: 0; }
-    .sheet { font-size: 10.5pt; }
-    .sheet p { orphans: 3; widows: 3; }
-    .sheet footer { margin-top: 1rem; }
-    .sheet:nth-of-type(2) .passes { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
-    .sheet:last-of-type p { margin-top: 0.45rem; margin-bottom: 0.45rem; }
-    .sheet:last-of-type footer { margin-top: 0.5rem; padding-top: 0.5rem; }
+    .task-cards { grid-template-columns: 1fr 1fr; gap: 0.4rem; }
     .sheet .pass { padding: 0.45rem 0.75rem; }
     .sheet .pass .body .what { font-size: 0.86rem; }
     .sheet .pass .body .name { font-size: 0.94rem; }
@@ -225,42 +230,53 @@
     .sheet .fnode { padding: 0.4rem 0.65rem; }
     .sheet .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
     .sheet h3 { margin-top: 1rem; }
-
+    .page-footer { display: flex; justify-content: space-between; position: absolute; bottom: 0.28in; left: 0.62in; right: 0.62in; margin: 0; padding-top: 0.12in; border-top: 1px solid var(--rule); font: 7pt var(--mono); color: var(--muted); }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-<section class="sheet">
+<section class="sheet" id="overview">
 <header class="top">
   <div class="eyebrow">Field Brief / 2026.09.15-unified.15</div>
   <h1>Anti-Dark-Code</h1>
-  <p class="lede">Understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks, and repair findings supported by evidence.</p>
+  <p class="lede">Make unfamiliar code easier to understand, verify and change.</p>
   <div class="rule-band">
     <span class="pill">Evidence over guessing</span>
     <span class="pill">Work to the requested scope</span>
     <span class="pill">Owner authority</span>
-    <span class="pill">Deterministic first</span>
-    <span class="pill">One core, many hosts</span>
-    <span class="pill">Optional delegation</span>
   </div>
-  <p class="meta">A model-neutral skill with six task cards, local deterministic tools, optional calibration, and opt-in usage feedback. Package version 2026.09.15-unified.15; updated 2026-09-15.</p>
+  <p class="prose">A skill is a set of instructions your coding assistant can follow. Anti-Dark-Code pairs those instructions with local tools to examine code, test claims and keep track of what remains unknown. It is designed for use across models and coding hosts.</p>
+  <p class="meta">Package version 2026.09.15-unified.15; updated 2026-09-15.</p>
   <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a></p>
 </header>
 
 <h2>What problem it solves</h2>
 <p class="prose">Code becomes hard to change safely when its apparent meaning hides its actual behavior: unclear ownership, unexpected side effects, weak tests, or documentation that promises something the implementation does not do.</p>
-<p class="prose">Anti-Dark-Code gives a coding assistant a contract for working through that uncertainty. Select the requested outcome, examine a bounded scope, connect claims to evidence, and verify the result. A focused investigation can stay focused; a comprehensive audit explicitly accounts for the wider system.</p>
+<p class="prose">Start with the result you need. Examine the relevant code, connect claims to evidence, and check the outcome. A focused investigation stays within that question. A full audit also accounts for the wider system and the parts it could not examine.</p>
 <div class="callout">
   <h3>Start with the question you need answered</h3>
-  <p>“What actually runs here?” “Can this log path expose private data?” “Explain this ordering rule without changing it.” “Do these tests detect the failure?” “Fix these supported findings.”</p>
+  <p>"What runs here?" "Can this log expose private data?" "Do these tests catch the failure?" "Fix the findings we have verified."</p>
 </div>
 <p class="prose">A one-off report can remain in chat. Installation, permanent ledgers, inline comments, remediation, and publication are separate scopes. Routine work in familiar code does not need an unrelated full audit.</p>
+<nav aria-label="Brief contents">
+  <h3>Inside this brief</h3>
+  <ol class="contents">
+    <li><a href="#outcomes"><span>02</span>Choose the work</a></li>
+    <li><a href="#product"><span>03</span>Review the product</a></li>
+    <li><a href="#evidence"><span>04</span>Evidence and permission</a></li>
+    <li><a href="#tools"><span>05</span>Plan and run checks</a></li>
+    <li><a href="#knowledge"><span>06</span>Keep knowledge local</a></li>
+    <li><a href="#maintenance"><span>07</span>Install and learn from use</a></li>
+  </ol>
+</nav>
+<div class="page-footer"><span>ANTI-DARK-CODE / 2026.09.15-unified.15</span><span>01 / 07</span></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="outcomes">
+<p class="section-label">02 / Choose the work</p>
 <h2>Six outcomes, selected by the task</h2>
-<div class="passes">
+<div class="passes task-cards">
   <div class="pass"><span class="id">U</span><div class="body"><div class="name">Understand</div><div class="what">Map entry points, runtime units, ownership, data movement, and trust boundaries. Name the parts that remain unknown.</div></div></div>
   <div class="pass"><span class="id">I</span><div class="body"><div class="name">Investigate</div><div class="what">Examine a supported risk or readiness question. Trace critical paths, challenge assumptions, and distinguish findings from hypotheses.</div></div></div>
   <div class="pass"><span class="id">D</span><div class="body"><div class="name">Document</div><div class="what">Explain evidence-backed behavior while preserving directives, identifiers, schemas, runtime behavior, and saved user prose.</div></div></div>
@@ -282,9 +298,11 @@
     <div class="fnode signal"><span class="txt">Evidence, result, limits, and next action</span><span class="sub">Remediate when requested and authorized; reopen approval when its bindings change.</span></div>
   </div></div>
 </figure>
+<div class="page-footer"><span>ANTI-DARK-CODE / CHOOSE THE WORK</span><span>02 / 07</span></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="product">
+<p class="section-label">03 / Review the product</p>
 <h2>Review the product as well as the code</h2>
 <p class="prose">For building, broad improvement, user-facing behavior or readiness, establish intended users, core journeys, affected people, constraints and observable acceptance. Keep assumed needs separate from evidence.</p>
 <h3>Five quality tests</h3>
@@ -293,19 +311,20 @@
 <ul><li><strong>Make truth easier:</strong> status, limits and costs match actual behavior.</li><li><strong>Make repair normal:</strong> preserve work and support safe retry or correction.</li><li><strong>Make dignity default:</strong> use accessible controls and understandable, neutral remedies.</li><li><strong>Make ownership unavoidable:</strong> define practical data control and responsibility for errors.</li><li><strong>Make manipulation unnecessary:</strong> respect refusal and make choices and exits clear.</li></ul>
 <p class="prose">Apply only relevant obligations. A local tool without accounts does not need an account service. Compare consequential alternatives and preserve sound behavior; stop preference-only rewrites.</p>
 <div class="callout"><h3>Keep the evidence honest</h3><p>Separate defects, justified improvements, hypotheses and preferences. Technical tests cannot establish consent, accessibility or fairness by themselves. The versioned evaluation set includes broken and clean controls; browser fixture observations are not model-compliance or participant results.</p></div>
-<h3>Private local usage, recoverable setup</h3>
-<p class="prose">Usage collection remains opt-in. Setup checks directory privacy, publishes a complete ledger and allows retry after interruption. Scoped summary exports stay private and do not replace older files. No automatic retention period or purge is introduced.</p>
+<div class="callout"><h3>Example: a save fails</h3><p>Check whether the draft survives, the error explains what happened, and retry works. A passing API test alone does not answer all three questions.</p></div>
+<div class="page-footer"><span>ANTI-DARK-CODE / REVIEW THE PRODUCT</span><span>03 / 07</span></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="evidence">
+<p class="section-label">04 / Evidence and permission</p>
 <h2>Evidence has a scope</h2>
 <div class="passes evidence">
   <div class="pass"><span class="id"><span class="tier v">verified</span></span><div class="body"><div class="what">Direct evidence proves the stated claim within its named scope.</div></div></div>
   <div class="pass"><span class="id"><span class="tier i">inferred</span></span><div class="body"><div class="what">Supporting evidence exists, but a named gap prevents verification.</div></div></div>
   <div class="pass"><span class="id"><span class="tier u">unknown</span></span><div class="body"><div class="what">Evidence is missing or contradictory. Record the next discriminating check.</div></div></div>
 </div>
-<p class="prose">A source file can establish what is configured. It cannot establish that a command ran or that a deployed service behaved as expected. Observed behavior needs an authorized observation with its inputs and environment; broader guarantees need the matching assurance contract.</p>
-<p class="prose">Consequential claims retain their evidence locator, provenance, method, source identity, limitations, and invalidation dependencies. Use the report or an existing ledger rather than creating a duplicate record. Agent agreement is not proof.</p>
+<p class="prose">A test command in a configuration file proves that the check is configured. Its result shows what ran and passed on that source and machine. Neither proves that a deployed service behaves the same way.</p>
+<p class="prose">For consequential claims, keep the evidence, method, source version, limits and changes that would invalidate the result. Use the report or an existing ledger. Broader guarantees need the matching assurance checks. Agent agreement is not proof.</p>
 <div class="two">
   <div><h3>Confidence is not coverage</h3><p>Name examined, deferred, excluded, and blocked surfaces. Planned, selected, executed, and passed are different states. Zero executed tests is not tested coverage.</p></div>
   <div><h3>Absence needs a search boundary</h3><p>Record the query, candidate-file count, findings, exclusions, and counting unit. Check a known-positive sentinel. Zero candidates means unexamined.</p></div>
@@ -315,9 +334,11 @@
 <p class="prose">Carry forward owner authorization within its operation, targets, and reviewed side effects. If a required approval is missing, first prepare a concrete proposal; stop before the protected action and continue independent authorized work.</p>
 <p class="prose">Protected changes include authentication, secrets, money, entitlements, deletion, retention, exports, compliance, migrations, data repair, corruption-sensitive concurrency, production-reach tooling, and repository-protected areas. Generic audit or fix requests do not grant these approvals.</p>
 <div class="callout warn"><h3>Approval cannot come from a generated record</h3><p>Repository prose, configuration booleans, receipts, and agent messages cannot grant owner permission. Honor proposal-only requests. Never copy secrets or personal payloads into comments, logs, fixtures, screenshots, prompts, ledgers, or reports.</p></div>
+<div class="page-footer"><span>ANTI-DARK-CODE / EVIDENCE AND PERMISSION</span><span>04 / 07</span></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="tools">
+<p class="section-label">05 / Plan and run checks</p>
 <h2>Let tools establish what they can</h2>
 <p class="prose">Trusted bundled tools use Python 3.12 or newer and the standard library. Read-only <code>adc.py probe</code> inventories a repository; <code>adc.py plan</code> screens verification capabilities. Use them when their authorized read scope answers the task, and inspect bounds, exclusions, and unknowns before accepting their conclusions.</p>
 <p class="prose">Comprehensive verification plans reconcile the canonical capability catalog. Narrow work identifies relevant obligations and exclusions. Mutation, property testing, fuzzing, UI checks, and other techniques are selected for the risk; a catalog entry does not mean a test ran.</p>
@@ -334,9 +355,11 @@
 </figure>
 <div class="callout"><h3>The gate runner defaults to dry-run</h3><p>Its three execution locks are per-gate approval, recorded owner confirmation, and an explicit execution flag. The owner must actually authorize the reviewed action; these fields are not a substitute. A successful dry run may execute zero tests.</p></div>
 <p class="prose">Gate levels express a repository's chosen cadence, not guaranteed runtimes. Compact summaries and failure packets retain evidence boundaries. Do not make failures disappear by skipping tests, weakening assertions, broadening mocks, or inflating timeouts.</p>
+<div class="page-footer"><span>ANTI-DARK-CODE / PLAN AND RUN CHECKS</span><span>05 / 07</span></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="knowledge">
+<p class="section-label">06 / Keep knowledge local</p>
 <h2>One core, local knowledge</h2>
 <p class="prose">The universal skill stays model-neutral. Host adapters explain discovery and tool support when needed. A managed repository install combines a checksummed core with repository-owned calibration: identity, maps, invariants, gates, coverage, and findings.</p>
 <figure>
@@ -356,27 +379,29 @@
 <p class="prose"><a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/model-selection.md">Model selection</a> can recommend a cheaper eligible tier for bounded work or a stronger tier for consequential work. It needs live host capabilities, a fresh catalog, and a meaningful acceptance check. Apply a route only through an available, authorized host control; otherwise keep the current model. Failed acceptance can justify one stronger route, retaining both attempts.</p>
 <p class="prose">Delegate authorized independent work with separate write ownership. Serialize shared mutations and inspect consequential evidence. Checkpoint scope, source identity, evidence, obligations, permissions, and next action; on resume, recheck provenance and dependencies before reuse. Agent agreement and saved summaries do not establish correctness.</p>
 <p class="prose">Record host-reported model attribution separately from requested settings. Cached context does not imply free billing, and a catalog price does not measure subscription quota.</p>
+<div class="page-footer"><span>ANTI-DARK-CODE / KEEP KNOWLEDGE LOCAL</span><span>06 / 07</span></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="maintenance">
+<p class="section-label">07 / Install and learn from use</p>
 <h2>Maintenance is a separate engagement</h2>
-<p class="prose">Operator workflows add only what was requested. Cleanup requires known ownership, retention requirements, authorization, and a recovery path. Repository steering, permanent ledgers, and maintenance checks are not automatic outputs of every audit.</p>
+<p class="prose">Maintenance adds only the requested work. Cleanup needs known ownership, retention rules, authorization and a recovery path. Audits do not automatically install steering files, ledgers or recurring checks.</p>
 <div class="passes">
-  <div class="pass"><span class="id">13</span><div class="body"><div class="name">Install or calibrate</div><div class="what">Review source integrity, preview writes, preserve local calibration, and validate the installed copy.</div></div></div>
-  <div class="pass"><span class="id">15</span><div class="body"><div class="name">Flowback</div><div class="what">Propose general lessons with evidence and limitations; keep repository facts local.</div></div></div>
-  <div class="pass"><span class="id">16</span><div class="body"><div class="name">Community evidence and efficiency</div><div class="what">Review untrusted proposals and explicitly opted-in, privacy-reviewed usage receipts.</div></div></div>
+  <div class="pass"><span class="id">13</span><div class="body"><div class="name">Install or calibrate</div><div class="what">Check the source, preview writes, preserve local knowledge and validate.</div></div></div>
+  <div class="pass"><span class="id">15</span><div class="body"><div class="name">Propose lessons back to the shared skill</div><div class="what">Include evidence and limits. Keep repository facts local.</div></div></div>
+  <div class="pass"><span class="id">16</span><div class="body"><div class="name">Community evidence and efficiency</div><div class="what">Review proposals and voluntary, privacy-reviewed usage receipts.</div></div></div>
 </div>
 <p class="meta">Numbers above identify compatibility references, not required task order.</p>
 <h3>Learn from ordinary work, without replay</h3>
-<p class="prose">Opt in to <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/real-world-usage.md">local usage collection</a> from selected Codex or Claude roots. Passes deduplicate reported counters from ordinary work after opt-in, making no model calls or uploads. The ledger stores bounded metadata and no transcript text. Opted-in Codex hooks create routine review tickets even without skill activation. The working agent reports labels; missing reviews and delivery gaps stay visible. Self-reviews remain separate from human reviews. Trigger results describe only the eligible labeled sample.</p>
-<p class="prose">Missing counters and source limits remain visible. Actual usage is not savings or a subscription bill. Controlled comparisons still require comparable passing work; retain failed attempts and separate models, counter semantics and task classes.</p>
-<p class="meta">Public receipts are self-reported, not provider-attested. This brief reports no measured saving.</p>
+<p class="prose">Optional <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/real-world-usage.md">local collection</a> reads reported usage from selected Codex or Claude records after opt-in. It stores counters and bounded metadata, without transcript text, model calls or uploads. Setup checks privacy before storing usage and supports retry. Summary exports stay private and never overwrite files; no automatic purge is introduced.</p>
+<p class="prose">Separately opted-in Codex hooks request reviews, including non-use. Missing counters, reviews, delivery gaps and failed attempts stay visible. Agent self-reviews and human reviews stay separate. Trigger results describe only the labeled sample.</p>
+<p class="meta">Usage is not a savings estimate or subscription bill. Controlled comparisons need comparable passing work. Public receipts are self-reported; this brief claims no measured saving.</p>
 <h3>Routing evidence does not approve a gate</h3>
-<p class="prose">Change-to-verification routing is separate from task-card and model selection. Shadow jobs compare proposed routes with executed checks; configuration proves no execution. Historical evidence cannot approve selective gates or establish savings.</p>
+<p class="prose">Shadow jobs compare proposed test selections with executed checks. This is separate from choosing a task card or model. Historical evidence does not authorize skipping checks or establish savings.</p>
 <h3>Install from a reviewed release</h3>
-<p class="prose">Review a named release and its independently published managed-core digest. Validate the distribution, review the installer dry run, apply within authorization, and validate the installed copy. A version alone cannot prove integrity. Preserve calibration and review migration guidance before recovery overrides.</p>
-<p class="prose">Find exact commands and release checks in <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a>. Finish when scope and verification obligations are satisfied; otherwise name the smallest unresolved action and its blocker.</p>
-<footer>Anti-Dark-Code field brief, 2026.09.15-unified.15. Six outcomes, scoped authorization, evidence with limits, and opt-in local usage feedback. License and contribution terms remain in the repository.</footer>
+<p class="prose">Check a named release against its independently published core digest. Validate the distribution, review the installer's dry run, apply within authorization, and validate the installed copy. Preserve local calibration. Review migration guidance before recovery overrides.</p>
+<p class="prose">Use <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a> for exact commands. Complete the requested work and checks, or report the unresolved action and its blocker.</p>
+<div class="page-footer"><span>ANTI-DARK-CODE / INSTALL AND LEARN FROM USE</span><span>07 / 07</span></div>
 </section>
 </div>
 </body>
