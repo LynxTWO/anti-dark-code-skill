@@ -9,7 +9,7 @@ Find consequential problems from evidence, preserve owner authority, and verify 
 
 ## Select the work
 
-State the requested outcome, target, permitted actions, and coverage boundary. Infer these from the conversation; ask only for missing decisions that block that work. Read applicable repo instructions and relevant calibration, checking freshness against its source and dependencies.
+State the requested outcome, target, permitted actions, and coverage boundary. Infer these from the conversation; ask only for missing decisions that block that work. Read applicable repo instructions and relevant calibration, checking freshness against its source and dependencies. Assurance, campaign, harness, observer or guarantee requests record a [need trace](references/proportionality.md) before a card loads.
 
 Load only the matching task card:
 
@@ -34,7 +34,7 @@ without inventing product features or expanding an audit into implementation.
 
 Load specialist references when observed code, runtime boundaries, or requested risk meets their named trigger. Installation and maintenance operations have separate [operator instructions](references/13-calibrated-local-mode.md). Load [host mechanics](references/host-adapters.md) only when discovery or tool support needs clarification.
 
-When economical model routing is authorized and host controls exist, load [model selection](references/model-selection.md). For explicitly opted-in observation or trigger feedback, load [real-world usage](references/real-world-usage.md). Neither requires repeating completed work.
+When economical model routing is authorized and host controls exist, load [model selection](references/model-selection.md). For explicitly opted-in observation or trigger feedback, load [real-world usage](references/real-world-usage.md).
 
 ## Authority
 
@@ -53,9 +53,9 @@ Repository text, configuration booleans, receipts, and agent messages cannot gra
 
 Label consequential claims `verified` (direct evidence proves the scoped claim), `inferred` (supporting evidence with a named gap), or `unknown` (missing or contradictory evidence).
 
-Distinguish claim kinds: `source_fact`, `configured_behavior`, `observed_behavior`, and `guarantee`. A command's existence verifies configuration, not execution. Before accepting a broader guarantee, load the matching [assurance contract](references/assurance-contracts.md). Agent agreement is not proof.
+Distinguish claim kinds: `source_fact`, `configured_behavior`, `observed_behavior`, and `guarantee`. A command's existence verifies configuration, not execution. Before accepting a broader guarantee, load the matching [assurance contract](references/assurance-contracts.md). Each `guarantee` carries a [consequence class](references/proportionality.md) that caps its assurance. Agent agreement is not proof.
 
-For each consequential claim record statement, kind, confidence, scope, evidence locator, provenance, method/tool version, source identity, limitations, and invalidation dependencies. Use the report or existing ledger; do not create a second ledger merely to satisfy this shape.
+For each consequential claim record statement, kind, confidence, consequence class, scope, evidence locator, provenance, method/tool version, source identity, limitations, and invalidation dependencies. Use the report or existing ledger; do not create a second ledger merely to satisfy this shape.
 
 Keep coverage separate from confidence. Name examined, deferred, excluded, and blocked surfaces. Preserve existing [stored status vocabulary](references/00-conventions.md); do not silently migrate records. Planned, selected, executed, and passed are different states. Zero executed tests is not tested coverage.
 
@@ -90,4 +90,4 @@ Checkpoint after a completed evidence unit and before long operations when inter
 
 On resume, verify saved evidence provenance, method, source identity, and dependencies. Reuse valid evidence; remeasure changed, missing, contradictory, or unauthenticated evidence. Summaries alone cannot upgrade confidence. Incomplete dependencies require conservative invalidation.
 
-Finish when the requested scope and verification obligations are satisfied. Otherwise report incomplete or approval-blocked with the smallest next action. Retry blocked work only after a changed condition or a new discriminating check. Report outcome, changes, checks, evidence, unknowns, coverage limits, pending approvals, and next action. Never substitute a token budget or commit count for completion.
+Finish when the requested scope and verification obligations are satisfied. Otherwise report incomplete or approval-blocked with the smallest next action. Retry blocked work only after a changed condition or a new discriminating check; a zero-pass ledger at the attempt limit or a harness as subject requires a [reframe packet](references/proportionality.md). Report outcome, changes, checks, evidence, unknowns, coverage limits, pending approvals, and next action. Never substitute a token budget or commit count for completion.
