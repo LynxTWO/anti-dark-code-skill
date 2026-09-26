@@ -103,3 +103,5 @@ remove only the selected hook handlers separately. Rollback can restore the old
 collector while retaining the additive table. Pause writers and keep a consistent
 private backup before changing live collector paths or ledger permissions. No
 new source authorization, history purge or public upload is implied.
+
+Follow this procedure before finishing an observed task. Report failures and non-activations as observed and keep uncertain labels unknown. Recording feedback does not itself count as using the skill.
