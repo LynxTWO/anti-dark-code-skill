@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- List `review` in `adc.py usage --help`. The routine task review commands (`enable`, `disable`, `hook`, `submit`, `pending`) were reachable only through argv dispatch and never appeared in the help that `references/routine-task-review.md` documents. Dispatch is unchanged; `usage review --help` still reaches the helper's own parser. Two tests assert both help outputs (`tests/test_usage_review.py`).
+
 ## 2026.09.15-unified.15
 
 - Add scoped quality tests, product principles, a product-contract template and the Improve task card. Preserve audit-only work, owner authority and stable capability/status IDs. Apply relevant user journeys without turning technical tests into usability or fairness claims.

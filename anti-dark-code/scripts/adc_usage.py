@@ -639,9 +639,14 @@ def export_summary(directory, output):
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == "review":
+        # The review helper owns its own parser (enable, disable, hook, submit,
+        # pending), so `usage review --help` must reach it, not a stub.
         return _review_helper().main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    # Listed here so `usage --help` names the command the documentation describes;
+    # dispatch happens above before this parser runs.
+    sub.add_parser("review", help="Routine task review: enable, disable, hook, submit, pending; run 'review --help' for options")
     for name in ("init", "collect", "summary", "feedback", "disable", "export"):
         command = sub.add_parser(name)
         command.add_argument("--directory", required=True, type=Path)
