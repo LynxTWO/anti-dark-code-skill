@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Repair stale references found in a documentation sweep. Correct the swapped capability labels in `references/product-principles.md` (contracts are V08, invariants V03). Add the Improve card to `references/00-preflight.md`. Replace the fixed `V01 through V20` range in `assets/templates/repo-slices.md` with the catalog. Describe managed files in `references/13-calibrated-local-mode.md` as the whole core except calibration/, incoming/ and caches. Call the installed path canonical, not legacy, in `references/specialist-exact-gate-contract.md`; collapse its blank-line runs and those in `references/assurance-claim-proof.md`. Match the audit marker to the planted `TODO(adc):` marker in `references/specialist-remediation-edges.md`. Point `references/specialist-verifier-falsifiability.md` at the exact gate contract's cautions instead of `14-deterministic-verification.md`, which has none. Replace "this section" with "this recipe" in `references/assurance-hardware-recovery.md` and `references/assurance-preservation.md`. Promote skipped heading levels in `references/assurance-native-execution.md`, `references/assurance-release-closure.md` and `references/specialist-native-reachability.md`. Repair the sentence "No failure signal needs no escalation." in `references/orchestration-mode.md`. No rule, status, identifier or capability changed.
+- Link the references nothing linked to from the place their trigger belongs: steering from `references/tasks/document.md`, shadow routing evidence and artifact cleanup from `references/13-calibrated-local-mode.md`, optional orchestration from `references/host-adapters.md`. Index the vocabularies that specialist references define from `references/00-conventions.md`, note that unknowns entries store the severity scale under `Risk level`, and distinguish flow-back `ready` from item status `ready`. Open `references/assurance-claim-proof.md` with its Trigger paragraph like every other recipe. List the mutation survivor classes once in `references/specialist-mutation-restoration.md`. Add two documentation-contract tests: every reference has an inbound link from the core (the compatibility entry `00-preflight.md` excepted), and the thirteen recipes carry one identical authority sentence.
 
 ### Reference and template inventory
 
@@ -20,6 +21,11 @@
 - `references/specialist-native-reachability.md`
 - `references/specialist-remediation-edges.md`
 - `references/specialist-verifier-falsifiability.md`
+- `references/00-conventions.md`
+- `references/13-calibrated-local-mode.md`
+- `references/host-adapters.md`
+- `references/specialist-mutation-restoration.md`
+- `references/tasks/document.md`
 
 ## 2026.09.15-unified.15
 

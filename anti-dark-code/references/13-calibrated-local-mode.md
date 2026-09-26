@@ -57,3 +57,5 @@ Generate probe/plan artifacts with --write only when authorized. Review exclusio
 gates.json is an owner-controlled trust record, not a signature. Review command, cwd, environment, inputs, timeout, approval and source binding together; untrusted branch booleans grant nothing. Gate planning/execution refuses unsafe binding; applicable enabled gates blocked by review or drift return 2 even without execution. [Flowback](15-dogfeeding-flowback.md) also requires matching binding and a clean universal parent.
 
 Record freshness date, source identity, evidence, invalidators and next checks. Complete when canonical ownership, binding, integrity, reviewed proposals and limitations are recorded; stop at unsafe paths, foreign calibration, unresolved conflicts or unauthorized changes.
+
+Two further operator workflows load only on explicit request: [shadow routing evidence](shadow-evidence.md) for installing or reviewing a routing measurement campaign, and [artifact cleanup](09-artifact-gc.md) for generated logs, snapshots, exports and scratch files.
