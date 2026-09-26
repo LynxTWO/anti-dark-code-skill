@@ -1,10 +1,8 @@
 # Hardware and nested recovery
 
-Trigger: a claim depends on measured device capability, timing, cache behavior, boundary reads, or persisted calibration.
+Trigger: a claim depends on measured device capability, timing, cache behavior, boundary reads, media state, or persisted calibration.
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
-
-Use this recipe when correctness depends on device capability, timing, cache behavior, boundary reads, media state, or persisted calibration.
 
 - Treat newly required calibration as a state migration. Trigger it before the first operation that relies on it, version the record, and refuse assurance when the probe cannot complete.
 - Distinguish positive evidence from failure to observe. Once a device demonstrates a safety-relevant behavior, a later noisy run that does not observe it does not prove disappearance.

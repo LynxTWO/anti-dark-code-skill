@@ -26,6 +26,6 @@ A guard is proven by a controlled failure, not by a green run. When stakes justi
 
 Preserve every affected tracked and untracked file durably before mutation; record original byte hashes and restore in an unconditional finally/exit path. A committed baseline is sufficient only for tracked files. Never use a destructive checkout that overwrites unrelated local work. Keep cleanup bounded, preserve producer exit status, and prove restored bytes match before the final green run on the exact deliverable tree.
 
-A widening fix ships a guard for the newly caught form, with a pre-fix red run and post-fix green run. A one-off probe is not a recurring guard. Repair exactly the gate-named set; a wider sweep must use the gate classifier and its exclusions. Record survivors in the classes named above. Equivalent mutants need a code/ownership diagnosis and an actually load-bearing mutation, not an unexplained waiver.
+The widening-guard and gate-named-repair rules in the [remediation loop](11-remediation-loop.md) apply here unchanged. Record survivors in the classes named above. Equivalent mutants need a code/ownership diagnosis and an actually load-bearing mutation, not an unexplained waiver.
 
 Result: restored source identity and a final green run accompany every completed proof; survivors and hangs remain explicit findings until diagnosed.
