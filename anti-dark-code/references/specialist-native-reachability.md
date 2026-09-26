@@ -37,7 +37,7 @@ Use these terminal descriptions:
 - `unknown-at-link-N` - evidence for the link was unavailable
 - `not-applicable` - the link genuinely does not apply; state why
 
-For platform or architecture branches, inspect every else branch for assumptions about an unlisted third target. Distinguish a portable fallback from a sibling-specific capability. Name built/tested targets; unlisted targets must refuse unsupported operations and report unavailable observations honestly. A generated binary absent from a clean checkout is not by itself a build blocker.
+For platform or architecture branches, inspect every else branch for assumptions about an unlisted third target. Distinguish a portable fallback from a sibling-specific capability. Name built/tested targets; unlisted targets must refuse unsupported operations and report unavailable observations honestly.
 
 ## Physical-client handoff
 

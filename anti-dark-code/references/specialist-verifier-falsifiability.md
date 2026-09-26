@@ -36,7 +36,7 @@ Ordering keyed on a parsed or normalized value is not total over raw representat
 
 ## Equality and handoffs
 
-Collection-bearing records may compare references instead of contents. Compare canonical serialized forms or elements; retain a structurally equal, reference-distinct fixture. Child process/container/shell results must cross the boundary as an artifact, exit code, or serialized stream. Prove the handoff fails when its artifact is missing.
+Collection-bearing equality and child-context handoff follow the cautions in [the exact gate contract](specialist-exact-gate-contract.md). For falsifiability, retain a structurally equal, reference-distinct fixture, and prove the handoff fails when its artifact is missing.
 
 Detector thresholds need clean and known-bad fixtures, a documented separating rationale, and a positive fixture that crosses the threshold. Review threshold changes as behavior changes.
 

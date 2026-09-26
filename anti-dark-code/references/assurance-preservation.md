@@ -4,8 +4,6 @@ Trigger: repair, import, migration, multi-file generation, or output publication
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
 
-Use this recipe for repair, import, output publication, multi-file generation, migrations, or any operation advertised as atomic.
-
 - Resolve canonical source, stage, quarantine, backup, and destination paths. Enforce containment and reject traversal or link-like surprises where the threat model requires it.
 - State the coordination domain: thread, process, session, host, or shared filesystem. A process-local lock does not serialize another process that reaches the same resource.
 - Inventory every shared physical resource, setting, cache, history record, log, stage, and destination. Require identity-bound ownership, same-resource denial, independent cancellation, crash release, and collision-safe publication before claiming safe parallel work.

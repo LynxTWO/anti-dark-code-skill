@@ -13,7 +13,7 @@ Severity expresses plausible consequence:
 - `high`: user-visible incident, corruption risk, or exposure within one trust zone.
 - `critical`: money movement, takeover, data loss, privacy breach, irreversible change, or cross-trust-zone exposure.
 
-Logging exposure categories describe observed or possible reach; they do not replace severity.
+Unknowns entries store this scale under the field name `Risk level`; it is the same scale, not a second one. Logging exposure categories describe observed or possible reach; they do not replace severity.
 
 ## Status vocabulary
 
@@ -66,6 +66,23 @@ Keep validation blockers separate from source findings:
 - `external-state blocker` - proof depends on a vendor console, sibling repo, credential, network service, or other state outside the checked repo
 
 Record the command, target tuple, observed failure, and next best check. A missing prerequisite is not evidence that source is defective, and an unexercised path is not a passing path.
+
+## Vocabularies defined where they are used
+
+These labels are defined in the reference that produces them. Read the defining reference before interpreting a stored record; do not restate or rename the labels here.
+
+| Vocabulary | Defined in |
+|---|---|
+| Logging exposure categories (`active leak`, `likely leak`, `conditional leak`, `needs runtime confirmation`) | [logging audit](04-logging-audit.md) |
+| Finding classes (defect, justified improvement, hypothesis, preference) | [quality tests](quality-tests.md) |
+| Reachability states (`reachable-observed`, `configured-not-observed`, `blocked-at-link-N`, `unknown-at-link-N`, `not-applicable`) | [native reachability](specialist-native-reachability.md) |
+| Calibration binding states (new, match, unbound, invalid, mismatch) and gate enablement (disabled, proposed) | [operator instructions](13-calibrated-local-mode.md) |
+| Flow-back statuses (observing, ready, staged, promoted, rejected) | [dogfeeding flow-back](15-dogfeeding-flowback.md) |
+| Shadow routing outcomes (`clean`, `miss`, `inconclusive`, `no_omission`, `selects_nothing`, `not_measurable`) | [shadow evidence](shadow-evidence.md) |
+| Routine review coverage states (observed, submitted, missing-label, linked, awaiting, ambiguous, conflicting) | [routine task review](routine-task-review.md) |
+| Model routing results (`keep-current`, `host-selection-unavailable`, `request-json-invalid`) and tiers (economy, standard, strong) | [model selection](model-selection.md) |
+
+Flow-back `ready` means eligible for export under that reference; it is not the item status `ready` above. Reachability `not-applicable` is a per-link state; the catalog status remains `not_applicable`.
 
 ## Unknowns entry shape
 

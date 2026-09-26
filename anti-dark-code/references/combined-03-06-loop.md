@@ -14,7 +14,7 @@ Checkpoint the completed slice with evidence/source identity, checks actually ru
 
 Stop the dependent edit when it becomes a behavior change, touches newly unapproved protected scope, or rests on stale/insufficient evidence. Refresh that dependency or return a concrete blocker, while continuing independent authorized work. Existing permission persists within its source/scope binding.
 
-For an authorized multi-commit campaign, checkpoint at least every 10 commits and stop at 20 for review unless the user supplied another bound or authorized continuation. Finish sooner when the requested scope is done. These limits do not authorize repository-wide continuation or require commits.
+Commit bounds for an authorized multi-commit campaign (checkpoint at least every 10 commits, stop at 20 for review unless the user set another bound or authorized continuation) are defined in the [remediation loop](11-remediation-loop.md). Finish sooner when the requested scope is done; the bounds do not authorize repository-wide continuation or require commits.
 
 ## Preservation and result
 

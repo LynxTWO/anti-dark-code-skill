@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Repair stale references found in a documentation sweep. Correct the swapped capability labels in `references/product-principles.md` (contracts are V08, invariants V03). Add the Improve card to `references/00-preflight.md`. Replace the fixed `V01 through V20` range in `assets/templates/repo-slices.md` with the catalog. Describe managed files in `references/13-calibrated-local-mode.md` as the whole core except calibration/, incoming/ and caches. Call the installed path canonical, not legacy, in `references/specialist-exact-gate-contract.md`; collapse its blank-line runs and those in `references/assurance-claim-proof.md`. Match the audit marker to the planted `TODO(adc):` marker in `references/specialist-remediation-edges.md`. Point `references/specialist-verifier-falsifiability.md` at the exact gate contract's cautions instead of `14-deterministic-verification.md`, which has none. Replace "this section" with "this recipe" in `references/assurance-hardware-recovery.md` and `references/assurance-preservation.md`. Promote skipped heading levels in `references/assurance-native-execution.md`, `references/assurance-release-closure.md` and `references/specialist-native-reachability.md`. Repair the sentence "No failure signal needs no escalation." in `references/orchestration-mode.md`. No rule, status, identifier or capability changed.
+- Link the references nothing linked to from the place their trigger belongs: steering from `references/tasks/document.md`, shadow routing evidence and artifact cleanup from `references/13-calibrated-local-mode.md`, optional orchestration from `references/host-adapters.md`. Index the vocabularies that specialist references define from `references/00-conventions.md`, note that unknowns entries store the severity scale under `Risk level`, and distinguish flow-back `ready` from item status `ready`. Open `references/assurance-claim-proof.md` with its Trigger paragraph like every other recipe. List the mutation survivor classes once in `references/specialist-mutation-restoration.md`. Add two documentation-contract tests: every reference has an inbound link from the core (the compatibility entry `00-preflight.md` excepted), and the thirteen recipes carry one identical authority sentence.
+- Give each rule that appeared in two references one canonical home and leave a pointer where the copy lived: commit bounds in `references/11-remediation-loop.md` (pointer from `references/combined-03-06-loop.md`); the widening-guard and gate-named-repair rules in the remediation loop (pointer from `references/specialist-mutation-restoration.md`); collection equality and child-context handoff in `references/specialist-exact-gate-contract.md` (pointer from `references/specialist-verifier-falsifiability.md`); detector thresholds in verifier falsifiability (pointer from `references/specialist-gate-environment.md`); the engagement record in the core's Authority section (`references/tasks/improve.md` defers to it); the alternative comparison in `references/quality-tests.md` (`references/tasks/remediate.md` and `references/tasks/improve.md` apply it); the Codex record contract in `references/real-world-usage.md` (`references/host-codex.md` no longer repeats the version). Remove the generated-binary sentence repeated inside `references/specialist-native-reachability.md` and the trigger sentence repeated inside `references/assurance-hardware-recovery.md` and `references/assurance-preservation.md`, folding hardware recovery's extra item (media state) into its Trigger line. No rule changed; the three catalog-screening pointers that all name `14-deterministic-verification.md` stay as intentional entry points.
 
 ### Reference and template inventory
 
@@ -20,6 +22,16 @@
 - `references/specialist-native-reachability.md`
 - `references/specialist-remediation-edges.md`
 - `references/specialist-verifier-falsifiability.md`
+- `references/00-conventions.md`
+- `references/13-calibrated-local-mode.md`
+- `references/host-adapters.md`
+- `references/specialist-mutation-restoration.md`
+- `references/tasks/document.md`
+- `references/combined-03-06-loop.md`
+- `references/host-codex.md`
+- `references/specialist-gate-environment.md`
+- `references/tasks/improve.md`
+- `references/tasks/remediate.md`
 
 ## 2026.09.15-unified.15
 

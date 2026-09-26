@@ -24,3 +24,5 @@ A host may expose saved runs, cache counters or resumable calls. Verify those me
 For explicit [efficiency studies](16-community-feedback-and-efficiency.md), pin the source counter contract and adapter version. Record only counters actually reported with documented semantics. A quota percentage or UI estimate is not measured token usage. Missing counters remain null. A host adapter describes normalization; it does not establish savings or justify comparisons across unlike provider/model/adapter/semantics/task strata.
 
 Completion means the selected host can reach the same core and required tools, or the report names missing capabilities and their evidence limits. Ordinary tasks do not need every adapter loaded.
+
+When independent work and consequential claims justify delegation and the host permits it, load [optional orchestration](orchestration-mode.md).

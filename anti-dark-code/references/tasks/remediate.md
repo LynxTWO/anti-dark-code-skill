@@ -18,11 +18,11 @@ Finding, current evidence, expected behavior or invariant, affected files and co
 
 ## Evidence and output
 
-For consequential choices compare expected outcome, complexity, compatibility,
-migration burden and regression risk. Use the smallest coherent repair; explain
+For consequential choices apply the alternative comparison in the
+[quality tests](../quality-tests.md): use the smallest coherent repair and explain
 when a broader change removes the cause. Stop preference-only rewrites once
-acceptance is met. Relevant user outcomes under the [quality tests](../quality-tests.md)
-remain verification obligations, not optional copy polish.
+acceptance is met. Relevant user outcomes under those tests remain verification
+obligations, not optional copy polish.
 
 Return the finding, current trigger, change, rationale, actual checks with counts and limits, and unresolved behavior. A fix is verified only for its observed scope. Targeted success cannot establish whole-repository readiness or external deployment state.
 
