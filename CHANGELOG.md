@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- Repair stale references found in a documentation sweep. Correct the swapped capability labels in `references/product-principles.md` (contracts are V08, invariants V03). Add the Improve card to `references/00-preflight.md`. Replace the fixed `V01 through V20` range in `assets/templates/repo-slices.md` with the catalog. Describe managed files in `references/13-calibrated-local-mode.md` as the whole core except calibration/, incoming/ and caches. Call the installed path canonical, not legacy, in `references/specialist-exact-gate-contract.md`; collapse its blank-line runs and those in `references/assurance-claim-proof.md`. Match the audit marker to the planted `TODO(adc):` marker in `references/specialist-remediation-edges.md`. Point `references/specialist-verifier-falsifiability.md` at the exact gate contract's cautions instead of `14-deterministic-verification.md`, which has none. Replace "this section" with "this recipe" in `references/assurance-hardware-recovery.md` and `references/assurance-preservation.md`. Promote skipped heading levels in `references/assurance-native-execution.md`, `references/assurance-release-closure.md` and `references/specialist-native-reachability.md`. Repair the sentence "No failure signal needs no escalation." in `references/orchestration-mode.md`. No rule, status, identifier or capability changed.
+
+### Reference and template inventory
+
+- `assets/templates/repo-slices.md`
+- `references/00-preflight.md`
+- `references/13-calibrated-local-mode.md`
+- `references/assurance-claim-proof.md`
+- `references/assurance-hardware-recovery.md`
+- `references/assurance-native-execution.md`
+- `references/assurance-preservation.md`
+- `references/assurance-release-closure.md`
+- `references/orchestration-mode.md`
+- `references/product-principles.md`
+- `references/specialist-exact-gate-contract.md`
+- `references/specialist-native-reachability.md`
+- `references/specialist-remediation-edges.md`
+- `references/specialist-verifier-falsifiability.md`
+
 ## 2026.09.15-unified.15
 
 - Add scoped quality tests, product principles, a product-contract template and the Improve task card. Preserve audit-only work, owner authority and stable capability/status IDs. Apply relevant user journeys without turning technical tests into usability or fairness claims.

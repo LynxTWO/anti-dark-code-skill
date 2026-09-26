@@ -52,7 +52,7 @@ Lifecycle:
    ```
 2. **Track** - every planted TODO has a matching backlog row (or unknowns row, when evidence is still soft). The row carries the same status vocabulary the rest of the workflow uses (see the existing artifact schema; do not reinterpret stored statuses).
 3. **Clear** - when the underlying work lands, the TODO is removed in the same change that closes the row. The change record names both the TODO removal and the row that closed.
-4. **Audit** - the [maintenance harness](10-maintenance-harness.md) should add a reviewer-checklist item asking whether new `TODO(adc:` lines were planted with backlog references, and whether any cleared TODOs left behind a stale comment.
+4. **Audit** - the [maintenance harness](10-maintenance-harness.md) should add a reviewer-checklist item asking whether new `TODO(adc):` lines were planted with backlog references, and whether any cleared TODOs left behind a stale comment.
 
 If a TODO outlives the engagement that planted it, the next task touching that obligation rechecks whether its row still makes sense before extending it.
 

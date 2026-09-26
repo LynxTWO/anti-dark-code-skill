@@ -4,7 +4,7 @@ Trigger: a claim covers dependency closure, build provenance, signing, SBOMs, or
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
 
-### Dependency and source closure
+## Dependency and source closure
 
 - Discover first-party dependency consumers from declarations. Require the enrolled locked set to equal the observed set.
 - Commit direct and transitive lock closure. Regenerate only through an intentional review, then run locked restores through every build host that consumes the graph.
@@ -15,7 +15,7 @@ Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence
 - Build patched dependencies from an owned identity-bound stage. Keep dependency worktrees immutable and prove restore, build, test, packaging, and release consumers all use the same stage.
 - Keep stage-local generated and compiler output classified as disposable build state. Reject unknown or modified source members.
 
-### Build and release closure
+## Build and release closure
 
 - Distinguish installed component selection, installer inventory, files on disk, and a successful target build. Each proves only its own layer.
 - Record the exact build host, compiler, SDK, target, configuration, and architecture tuple.
@@ -27,7 +27,7 @@ Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence
 - Check native child exit codes immediately. YAML and workflow lint prove structure, not hosted execution or artifact contents.
 - Inspect hosted annotations and downloaded artifacts. A green job does not prove the expected runtime, architecture, license, signature, or final bytes.
 
-### Signing and SBOMs
+## Signing and SBOMs
 
 - Derive the exact first-party signing set from the versioned artifact contract. Keep pinned third-party and platform files untouched.
 - Treat signing as a byte-mutating build phase. Validate unsigned candidates, sign, verify signer and timestamp, regenerate hash manifests, revalidate, then produce provenance, SBOMs, checksums, archives, and publication records.

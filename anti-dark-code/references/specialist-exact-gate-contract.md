@@ -40,8 +40,6 @@ Two local cautions:
 - Equality assertions over records that contain collections can silently compare references instead of contents. In runtimes where a record or value type delegates member equality to the collection's default equality, two structurally identical payloads compare unequal, and the gate's verdict stops tracking content. Compare serialized canonical forms or compare element-wise, and prove the comparison with a fixture pair that is structurally equal but reference-distinct.
 - A value produced in a child context must cross the boundary as an artifact. When verification runs part of its work in a separate process, container, sandbox, or shell, a result assigned to a variable inside the child dies with the child, and the parent then reports whatever its own scope held. Hand results back as a file, an exit code, or a serialized stream the parent reads, and prove the handoff with a case that fails when the artifact is absent.
 
-
-
 ## Execution and result
 
 Dry run:
@@ -83,6 +81,4 @@ On POSIX systems timeout handling signals the process group. On Windows it uses 
 
 Do not send full green logs to an agent.
 
-
-
-Inspect exact argv, cwd, inherited environment, inputs and side effects before execution. The examples use the legacy installed path; resolve the trusted actual tool location for this host. For wrappers/cleanup use [process verdicts](specialist-process-verdicts.md); for assurance beyond best-effort termination use [native execution](assurance-native-execution.md). A hash or an editable approval field is not independent human authority.
+Inspect exact argv, cwd, inherited environment, inputs and side effects before execution. The examples use the canonical installed path; resolve the trusted actual tool location for this host. For wrappers/cleanup use [process verdicts](specialist-process-verdicts.md); for assurance beyond best-effort termination use [native execution](assurance-native-execution.md). A hash or an editable approval field is not independent human authority.
