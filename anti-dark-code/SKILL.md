@@ -11,7 +11,7 @@ Find consequential problems from evidence, preserve owner authority, and verify 
 
 State the requested outcome, target, permitted actions, and coverage boundary. Infer these from the conversation; ask only for missing decisions that block that work. Read applicable repo instructions and relevant calibration, checking freshness against its source and dependencies. Assurance, campaign, harness, observer or guarantee requests record a [need trace](references/proportionality.md) before a card loads.
 
-Load only the matching task card:
+Load the matching task card first:
 
 | Requested outcome | Card |
 |---|---|
@@ -24,17 +24,11 @@ Load only the matching task card:
 
 A comprehensive audit composes Understand, Investigate, and Verify with an explicit inventory and exclusions. It does not imply installation, comment edits, remediation, or publication. Narrow requests use relevant map fragments. Numbered references remain compatibility entry points, not a required sequence.
 
-For building, broad improvement, user-facing behavior, or readiness, apply the
-[quality tests](references/quality-tests.md) and [product principles](references/product-principles.md).
-Establish intended users, journeys, affected parties, constraints and observable
-acceptance criteria. Technical checks do not establish consent, usability or fair
-treatment. Distinguish defects, justified improvements, hypotheses and preferences;
-preserve sound features and stop preference-only rewrites. Apply relevant checks,
-without inventing product features or expanding an audit into implementation.
+For building, broad improvement, user-facing behavior, or readiness, load the [quality tests](references/quality-tests.md) and [product principles](references/product-principles.md). Technical checks do not establish consent, usability, or fair treatment, and an audit does not expand into implementation.
 
 Load specialist references when observed code, runtime boundaries, or requested risk meets their named trigger. Installation and maintenance operations have separate [operator instructions](references/13-calibrated-local-mode.md). Load [host mechanics](references/host-adapters.md) only when discovery or tool support needs clarification.
 
-When economical model routing is authorized and host controls exist, load [model selection](references/model-selection.md). For explicitly opted-in observation or trigger feedback, load [real-world usage](references/real-world-usage.md).
+When economical model routing is authorized and host controls exist, load [model selection](references/model-selection.md). For explicitly opted-in observation or trigger feedback, load [real-world usage](references/real-world-usage.md) and finish through the [review procedure](references/routine-task-review.md).
 
 ## Authority
 
@@ -80,11 +74,6 @@ Documentation work preserves behavior, directives, stable identifiers, schemas, 
 Managed core updates use a clean universal source. Calibration belongs to one repository; binding proves identity continuity, not freshness. Local managed/calibration/run paths must not traverse links. Flow-back remains human-reviewed proposal-only. Efficiency collection is explicit opt-in and local; no default collection, transcript retention, or uploads.
 
 ## Completion and recovery
-
-When routine feedback is opted in, follow the observed task ticket's
-[review procedure](references/routine-task-review.md) before finishing. Report
-failures and non-activations as observed; keep uncertain labels unknown. Recording
-feedback does not itself count as using this skill.
 
 Checkpoint after a completed evidence unit and before long operations when interruption would lose work. Reuse existing artifacts in an authorized location: scope, source identity, evidence references, open obligations, permissions, next action, and stop reason. One-off results may stay in chat.
 
