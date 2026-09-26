@@ -15,7 +15,7 @@ For canonical risk levels, classification labels, and slice status values, see `
 - **Related runtime units or flows:** <which entrypoints or flows this slice participates in>
 - **Blockers:** <anything that prevents this slice from being worked on next>
 - **Exit criteria:** <specific evidence required to call this slice "covered enough" at this stage; name evidence, not mood>
-- **Verification capability ids:** <V01 through V20>
+- **Verification capability ids:** <IDs from assets/verification-capabilities.json>
 - **Confidence-ladder level:** <0 | 1 | 2 | 3>
 - **Exact gate or next check:** <command id, replay, property, or named manual check>
 - **Invalidated by:** <paths, schemas, configs, or control planes>

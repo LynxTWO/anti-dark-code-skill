@@ -28,7 +28,6 @@ A checker satisfied by editing the artifact it checks is a ritual, not evidence;
 
 Prefer substantive properties over a single declarative line: no finding left in an open state, no unresolved verdict language in the document, and a hash binding so any edit is visible. Scope the scan to the whole document, because a live verdict often lives in a different section than the one a first attempt checks, and a check that passes over the section holding the rejection is no better than the literal it replaced. And distinguish a live claim from an accurate historical record: tense is a reliable discriminator, and closing a check must never require deleting true history.
 
-
 Trigger: accepting a `guarantee` about output, isolation, recovery, or review closure. Apply [core evidence and authority](../SKILL.md#evidence); this recipe grants no execution or mutation permission.
 
 Result: a scoped claim with an independent falsifier, observed activation and finalization evidence, or a named unmet obligation. For transactions use [preservation](assurance-preservation.md); for publication use [publication integrity](assurance-publication-integrity.md).

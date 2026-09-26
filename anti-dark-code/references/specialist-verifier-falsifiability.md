@@ -19,7 +19,7 @@ The test for the class is the falsifying input: name the concrete, producible in
 
 Sweep the whole verification surface once the class is named, and re-sweep after remediating it.
 
-The exception is a deliberate restatement of a property already proven elsewhere. Such a restatement must cite the probe that proves it, at the restatement. Deterministic gates share this rule; see the gate-authoring cautions in `14-deterministic-verification.md`.
+The exception is a deliberate restatement of a property already proven elsewhere. Such a restatement must cite the probe that proves it, at the restatement. Deterministic gates share this rule; see the local cautions in [the exact gate contract](specialist-exact-gate-contract.md).
 
 ## Effects slower than the test window
 

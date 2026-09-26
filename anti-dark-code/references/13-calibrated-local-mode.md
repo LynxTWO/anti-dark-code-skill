@@ -4,7 +4,7 @@ Compatibility reference 13. Load for explicit install, update, bootstrap or migr
 
 ## Ownership and layout
 
-The canonical project copy is .agents/skills/anti-dark-code/. Managed files are SKILL.md, VERSION, SOURCE-SCOPE.json, references/, scripts/, assets/, agents/ and .adc-managed.json. Repository-local changes belong in calibration/, not an independently edited core.
+The canonical project copy is .agents/skills/anti-dark-code/. Managed files are everything in the core except calibration/, incoming/ and generated caches; the installer records them in .adc-managed.json. Repository-local changes belong in calibration/, not an independently edited core.
 
 Keep these calibration names and existing schemas:
 

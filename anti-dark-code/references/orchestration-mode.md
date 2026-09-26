@@ -32,7 +32,7 @@ Reject names, versions, owners and product claims imported from ambient host con
 
 After completed evidence units and before long operations, save task/scope, source identity, evidence locators, remaining coverage, authorization limits and next action in existing authorized records. Reuse preserved outputs only after checking identity, freshness and relevant invalidation dependencies. Reinspect uncertain or in-flight work before retrying it; do not blindly repeat side effects.
 
-Run IDs and cache recovery are optional host facilities, not universal billing guarantees. Count paid retries and revalidation in actual usage. At checkpoints, distinguish misunderstanding from incomplete coverage before changing available model/effort settings; record the evidence and decision. No failure signal needs no escalation. Do not interrupt healthy work merely to retrofit a scheduling improvement.
+Run IDs and cache recovery are optional host facilities, not universal billing guarantees. Count paid retries and revalidation in actual usage. At checkpoints, distinguish misunderstanding from incomplete coverage before changing available model/effort settings; record the evidence and decision. Without a failure signal, do not escalate. Do not interrupt healthy work merely to retrofit a scheduling improvement.
 
 Use process/journal tools to monitor progress. Distill scratch results into durable evidence; [cleanup](09-artifact-gc.md) remains subject to its separate scope and recovery rules.
 
