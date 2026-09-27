@@ -232,9 +232,102 @@
     .sheet h3 { margin-top: 1rem; }
     .page-footer { display: flex; justify-content: space-between; position: absolute; bottom: 0.28in; left: 0.62in; right: 0.62in; margin: 0; padding-top: 0.12in; border-top: 1px solid var(--rule); font: 7pt var(--mono); color: var(--muted); }
   }
+  /* Glass belongs to navigation; reading surfaces stay opaque. */
+  .glass-toolbar { display: none; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 1.5rem 0; }
+  .glass-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 0.65rem 1rem; border: 1px solid var(--rule-strong);
+    border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+    font-size: 0.88rem; font-weight: 600; text-decoration: none;
+  }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  @media screen {
+    html { scroll-padding-top: 7rem; }
+    body {
+      background: radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 32rem),
+        radial-gradient(ellipse at 96% 16rem, color-mix(in srgb, var(--signal) 6%, transparent), transparent 35rem), var(--paper);
+      overflow-wrap: anywhere;
+    }
+    .glass-toolbar {
+      position: sticky; top: 1rem; z-index: 10; display: flex; align-items: center;
+      justify-content: space-between; gap: 0.5rem; max-width: 60rem; margin: 1.25rem auto 0;
+      padding: 0.45rem; border: 1px solid color-mix(in srgb, var(--card) 70%, var(--rule-strong));
+      border-radius: 999px; background: var(--card);
+      box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 10%, transparent), inset 0 1px 0 var(--card);
+    }
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .glass-toolbar {
+        background: color-mix(in srgb, var(--card) 86%, transparent);
+        backdrop-filter: blur(22px) saturate(135%); -webkit-backdrop-filter: blur(22px) saturate(135%);
+      }
+    }
+    .glass-brand { padding: 0.5rem 0.9rem; font-size: 0.88rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+    .glass-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.2rem; }
+    .glass-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0.55rem 0.9rem; border-radius: 999px; color: var(--ink); font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+    .glass-links a:hover, .glass-brand:hover { background: var(--accent-soft); color: var(--accent); border-radius: 999px; }
+    .glass-button { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--card) 80%, transparent), 0 3px 10px color-mix(in srgb, var(--ink) 8%, transparent); }
+    .glass-button:hover { background: var(--accent); color: var(--card); }
+    .sheet {
+      background: var(--card); border: 1px solid var(--rule); border-radius: 25px;
+      padding: 2rem; margin-top: 1.5rem; scroll-margin-top: 7rem;
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--ink) 4%, transparent);
+    }
+    .sheet + .sheet { margin-top: 1.5rem; }
+    .sheet > h2:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+    .sheet:first-of-type { background: transparent; border-color: transparent; box-shadow: none; padding-top: 0; }
+    header.top { padding: 2.5rem 0 1.5rem; }
+    h1 { font-size: clamp(2.1rem, 5vw, 3.3rem); letter-spacing: -0.045em; }
+    .lede { max-width: 38rem; font-size: 1.3rem; line-height: 1.5; }
+    .pill { white-space: normal; font-size: 0.7rem; }
+    .callout { border-radius: 16px; }
+    .pass, .tiercard, .two > div, .efficiency-panel { border-radius: 15px; background: var(--paper); }
+    .chart { border-radius: 20px; background: var(--paper); }
+    .fnode { border-radius: 12px; }
+    .fnode.decision { border-radius: 999px; }
+    .contents a { padding: 0.7rem 0.85rem; min-height: 44px; border: 1px solid var(--rule); border-radius: 14px; background: var(--card); }
+    .support-panel { background: var(--accent-soft); border: 1px solid var(--rule); border-radius: 20px; margin-top: 2rem; padding: 1.4rem; scroll-margin-top: 7rem; }
+    .support-panel h2 { margin: 0 0 0.6rem; padding: 0; border: 0; }
+    @media (max-width: 40rem) {
+      body { padding-inline: 0.75rem; }
+      .glass-toolbar { justify-content: center; top: 0.65rem; margin-top: 0.75rem; }
+      .glass-brand { display: none; }
+      .glass-links a { padding-inline: 0.75rem; }
+      .sheet { padding: 1.35rem 1rem; border-radius: 21px; }
+      header.top { padding-top: 2rem; }
+      .two, .efficiency-panel, .efficiency-stratum { grid-template-columns: minmax(0, 1fr); }
+      .pass { min-width: 0; }
+      .support-panel { padding: 1.1rem; }
+      .branch > .flow { min-width: 0; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .glass-toolbar { background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    @media (prefers-contrast: more) {
+      :root { --muted: var(--ink); }
+      .glass-toolbar { background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none; border-color: var(--ink); }
+      .sheet, .pass, .callout, .chart, .two > div { border-color: var(--ink); }
+    }
+    @media (forced-colors: active) {
+      .glass-toolbar { background: Canvas; color: CanvasText; backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid CanvasText; }
+      .glass-button, .glass-links a { color: LinkText; }
+    }
+  }
+  @media print {
+    .glass-toolbar, .hero-actions { display: none; }
+    .callout, .pass, .tiercard, .two > div, .efficiency-panel { border-radius: 12px; }
+    .chart { border-radius: 16px; }
+    .fnode { border-radius: 10px; }
+    .fnode.decision { border-radius: 999px; }
+    .glass-button { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  }
 </style>
 </head>
 <body>
+<nav class="glass-toolbar" aria-label="Primary navigation">
+  <a class="glass-brand" href="#overview">Anti-Dark-Code</a>
+  <div class="glass-links"><a href="#overview">Brief</a><a href="#maintenance">Get started</a><a href="https://github.com/sponsors/LynxTWO">Support</a></div>
+</nav>
 <div class="wrap">
 <section class="sheet" id="overview">
 <header class="top">
@@ -248,7 +341,8 @@
   </div>
   <p class="prose">A skill is a set of instructions your coding assistant can follow. Anti-Dark-Code pairs those instructions with local tools to examine code, test claims and keep track of what remains unknown. It is designed for use across models and coding hosts.</p>
   <p class="meta">Package version 2026.09.27-unified.16; updated 2026-09-27.</p>
-  <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a></p>
+  <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a> · <a href="https://github.com/sponsors/LynxTWO">Optional support</a></p>
+  <div class="hero-actions"><a class="glass-button" href="#outcomes">Explore the workflow</a><a class="glass-button" href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/brief/anti-dark-code-brief.pdf">Read the PDF brief</a></div>
 </header>
 
 <h2>What problem it solves</h2>

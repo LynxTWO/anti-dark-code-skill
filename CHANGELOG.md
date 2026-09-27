@@ -4,6 +4,8 @@
 
 ## 2026.09.27-unified.16
 
+- Apply the approved glass visual direction to the website and screen brief: frosted navigation, rounded opaque reading surfaces, accessible fallbacks and visible workflow/PDF/support links. Keep the seven-page PDF crisp with matching rounded components and refreshed provenance.
+
 - Refresh the version, capability catalog, website and seven-page brief with current plugin installation guidance and source links; regenerate the PDF and its provenance. Surface optional one-time or monthly support through the existing GitHub Sponsors destination in the website and README.
 - Compare historical mutation test identities across the exact `test_route.py` packaging move while preserving their recorded paths. Test classes, names and parameter IDs must still match, and an unskipped survivor remains a failure.
 - Package the single universal core under `skills/anti-dark-code/` for Agent Plugins 1.0, Codex, Claude Code and Gemini CLI; add host manifests and root-relative marketplaces without hooks or automatic collection. Preserve standalone installs and repository-owned calibration. Document the source-path migration in MIGRATION.md and installation in PLUGINS.md. Plugin versions normalize the canonical calendar version to strict SemVer; `adc_packaging.py` detects metadata drift and regenerates the six metadata files explicitly.
