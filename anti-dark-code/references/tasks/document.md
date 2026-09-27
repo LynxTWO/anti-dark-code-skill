@@ -9,7 +9,7 @@ Inspect relevant source before loading style guidance; load writing hygiene for 
 ## Procedure
 
 1. Inspect relevant source and the current diff. Separate directly supported statements from runtime or external claims. Reuse maps only after checking evidence identity and dependencies.
-2. Classify edits before writing. Compiler pragmas, lint/type suppressions, doctests, executable examples, shebangs, generated metadata, skill instructions, release policy, and machine-parsed Markdown can affect behavior. A `.md` suffix or comment syntax does not prove prose-only scope.
+2. Classify edits before writing. Compiler pragmas, lint/type suppressions, doctests, executable examples, shebangs, generated metadata, skill instructions, release policy, and machine-parsed Markdown can affect behavior. A `.md` suffix or comment syntax does not prove prose-only scope. For repository instruction or steering files, load [steering](../01-steering.md).
 3. For critical paths, load [comments](../03-critical-path-comments.md). Explain the invariant, surprising order, ownership, or consequence at its enforcement point. Delete stale or repeated prose first; avoid narrating syntax.
 4. For locale files, display strings, IDs, hashes, saved text, or prompts, load [language boundaries](../12-transcreation-boundary.md) before editing. Distinguish application copy from persisted user prose. Do not normalize, translate, or regenerate saved prose under a comment-cleanup request.
 5. Convert behavior problems discovered while documenting into findings and proposals. Do not silently fix them in the documentation diff. Separately authorized remediation uses [Remediate](remediate.md), with its own verification and approval bindings.

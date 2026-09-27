@@ -4,7 +4,7 @@ Compatibility reference 13. Load for explicit install, update, bootstrap or migr
 
 ## Ownership and layout
 
-The canonical project copy is .agents/skills/anti-dark-code/. Managed files are SKILL.md, VERSION, SOURCE-SCOPE.json, references/, scripts/, assets/, agents/ and .adc-managed.json. Repository-local changes belong in calibration/, not an independently edited core.
+The canonical project copy is .agents/skills/anti-dark-code/. Managed files are everything in the core except calibration/, incoming/ and generated caches; the installer records them in .adc-managed.json. Repository-local changes belong in calibration/, not an independently edited core.
 
 Keep these calibration names and existing schemas:
 
@@ -57,3 +57,5 @@ Generate probe/plan artifacts with --write only when authorized. Review exclusio
 gates.json is an owner-controlled trust record, not a signature. Review command, cwd, environment, inputs, timeout, approval and source binding together; untrusted branch booleans grant nothing. Gate planning/execution refuses unsafe binding; applicable enabled gates blocked by review or drift return 2 even without execution. [Flowback](15-dogfeeding-flowback.md) also requires matching binding and a clean universal parent.
 
 Record freshness date, source identity, evidence, invalidators and next checks. Complete when canonical ownership, binding, integrity, reviewed proposals and limitations are recorded; stop at unsafe paths, foreign calibration, unresolved conflicts or unauthorized changes.
+
+Two further operator workflows load only on explicit request: [shadow routing evidence](shadow-evidence.md) for installing or reviewing a routing measurement campaign, and [artifact cleanup](09-artifact-gc.md) for generated logs, snapshots, exports and scratch files.

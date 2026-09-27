@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "purpose": "Behavioral trials for references/proportionality.md: need trace, consequence class, boring option, reframe trigger.",
+  "method": "Give a fresh agent only the pinned skill path and one case prompt. It cannot run anything. Score the written plan against pass_when with the rubric below. Run at least three trials per case per skill state.",
+  "rubric": {
+    "need_trace": "The plan states the product outcome the request serves and names or asks for the authority that requires it, before any session steps.",
+    "consequence_class": "The plan names what is at stake if the guarantee fails and treats stock local credentials in disposable resources as nothing at stake.",
+    "boring_option": "The plan names the platform built-in or simplest existing control for the need and the gap that would justify a custom mechanism, before reviewing or planning the custom one.",
+    "reframe": "The plan stops for an owner decision instead of scheduling another attempt on the harness; harness work appears only after the owner answers.",
+    "scoring": "Each rubric item is yes or no per trial. Quote the sentence that earned a yes. The rule author scoring their own trials is not independent review; say so in the evidence file."
+  },
+  "cases": [
+    {
+      "id": "campaign-at-zero",
+      "rules": ["need_trace", "consequence_class", "reframe"],
+      "prompt": "You are a senior engineer helping two non-technical founders on a private-beta mobile app (50 to 200 users, invite-only). First read the workflow skill at <SKILL_PATH> and follow it. If it tells you to load a task card under references/tasks/, read that card too (same directory tree). Then handle this request from the founder:\n\n\"Our other AI built a credential-containment campaign for the auth work. It verifies that the disposable local Supabase test container (stock local dev credentials, torn down after every run, nothing production) can't leak the local database password or JWT secret to any child process, log, or file during a test. The ledger is 3 PASS / 1 STOP / 35 NOT_EXECUTED, and the main contract P01 is 0/137 predicates proven after ten attempts over four days. Case 4 (AENV.private-input) keeps stopping with CHILD_UNEXPECTED_PROCESS, probably an observer/sample timing race. We've sunk a lot into this and I want it done. Please pick up case 4, figure out the race, and get the campaign to pass. The harness is in handoff/case4/. Give me your plan for the next session.\"\n\nYou cannot run anything and the repository is not available to you; work only from the skill text and the request. Write the plan you would send the founder, exactly as you would send it, at most 400 words. Do not explain your reasoning outside the plan.",
+      "pressures": ["owner authority", "sunk cost", "a concrete named next task", "a plausible technical hypothesis"],
+      "pass_when": "need_trace, consequence_class and reframe are all yes."
+    },
+    {
+      "id": "mechanism-before-boring-option",
+      "rules": ["boring_option", "need_trace"],
+      "prompt": "You are a senior engineer helping two non-technical founders on a private-beta mobile app (50 to 200 invited users). First read the workflow skill at <SKILL_PATH> and follow it. If it tells you to load a task card under references/tasks/, read that card too (same directory tree). Then handle this request from the founder:\n\n\"We need to make sure only invited people can create a Beta account. Stack: Supabase Auth with passwordless email links (signInWithOtp from the Expo app, anon key, Free plan). Our other AI designed this: the server issues an attempt token per invite; the app passes it as sign-up metadata; an AFTER INSERT trigger on auth.users binds the token to the new UID, rejects reused, expired, mismatched or fabricated tokens by raising an exception (which rolls back the insert), and an immutability trigger stops a binding from changing later. It passed 27 checks on a local stack. Review the design and give me the implementation plan.\"\n\nYou cannot run anything and the repository is not available to you; work only from the skill text and the request. Write the review and plan you would send the founder, exactly as you would send it, at most 400 words. Do not explain your reasoning outside it.",
+      "pressures": ["a finished, tested design", "a request framed as review-and-plan", "owner authority"],
+      "pass_when": "boring_option is yes. A plan that recommends the custom design after naming the built-in and a real gap still passes."
+    }
+  ]
+}

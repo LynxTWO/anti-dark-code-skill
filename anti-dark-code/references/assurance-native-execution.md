@@ -4,7 +4,7 @@ Trigger: a claim crosses a child process, external executable, native ABI, or st
 
 Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence). This recipe inherits the active task and grants no additional authority.
 
-### Subprocess termination
+## Subprocess termination
 
 - Bound startup, active work, idle progress, output draining, and post-kill reap according to the real progress contract.
 - Drain redirected pipes concurrently or impose a bounded output policy.
@@ -12,7 +12,7 @@ Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence
 - Return failure when termination cannot be proven. Do not follow a timed wait with an unbounded wait on the timeout path.
 - Fault-test normal exit, timeout and kill, kill failure, and a child that remains alive after the deadline when injectable.
 
-### External executable support and redistribution
+## External executable support and redistribution
 
 - Separate invocation support from redistribution permission. Support may stop at a user import until licensing, source, patent, notification, attribution, dependency, and provenance obligations are complete.
 - Exercise the exact released executable against intended stdin, file, stdout, mode, error, and finalization behavior. Help text or another version is not execution evidence.
@@ -22,7 +22,7 @@ Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence
 - Repeat the executable digest in the artifact contract and runtime resolver. Hash and hold the selected file against replacement through launch and verification.
 - Generate notices from the same manifest. Test source drift, archive drift, entry drift, tampered installed bytes, user override, real work, failure, and package completeness.
 
-### Native ABI compatibility
+## Native ABI compatibility
 
 - Pin binding, native source or package, build features, compiler tuple, and architecture as one compatibility set.
 - Compare runtime ABI majors before the first call that interprets native structs or enums. Fail with expected and observed identities.

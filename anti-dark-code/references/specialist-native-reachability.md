@@ -14,7 +14,7 @@ Name the graph before calling a project, library, module, plugin, codec, binary,
 
 A node outside one graph may remain live through another. Do not infer a build blocker merely because a generated binary is absent from a clean checkout. Trace its source, build target, pinned dependency, preparation step, expected output, and packaging consumer.
 
-#### End-to-end reachability proof
+## End-to-end reachability proof
 
 Trace every applicable link before assigning a terminal reachability label:
 
@@ -37,9 +37,9 @@ Use these terminal descriptions:
 - `unknown-at-link-N` - evidence for the link was unavailable
 - `not-applicable` - the link genuinely does not apply; state why
 
-For platform or architecture branches, inspect every else branch for assumptions about an unlisted third target. Distinguish a portable fallback from a sibling-specific capability. Name built/tested targets; unlisted targets must refuse unsupported operations and report unavailable observations honestly. A generated binary absent from a clean checkout is not by itself a build blocker.
+For platform or architecture branches, inspect every else branch for assumptions about an unlisted third target. Distinguish a portable fallback from a sibling-specific capability. Name built/tested targets; unlisted targets must refuse unsupported operations and report unavailable observations honestly.
 
-#### Physical-client handoff
+## Physical-client handoff
 
 When a handoff claims a physical client can open a server-backed live target,
 separate these observations:

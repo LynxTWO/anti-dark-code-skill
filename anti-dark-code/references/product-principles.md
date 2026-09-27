@@ -26,8 +26,8 @@ Do not invent a universal retention period, destroy records to satisfy a slogan,
 or preserve sensitive history forever for unspecified accountability. Legal
 obligations require appropriate current sources and qualified review where needed.
 
-Use existing verification methods: stateful journeys (V02), contracts (V03),
-invariants (V07), semantic snapshots (V13), and fault injection (V15). Keep stable
+Use existing verification methods: stateful journeys (V02), contracts (V08),
+invariants (V03), semantic snapshots (V13), and fault injection (V15). Keep stable
 capability IDs. Verify actual outcomes: a declined optional feature stays off,
 an error retains the draft, repeated retry does not duplicate the operation,
 and authorized correction changes only the intended record.

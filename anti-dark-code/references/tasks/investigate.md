@@ -8,7 +8,7 @@ Question, requested breadth, symptom or invariant, relevant map fragments, sourc
 
 ## Procedure
 
-1. State a falsifiable claim or failure condition. Locate the authoritative rule and enforcement path. Record trigger, input, state transition, affected output, and consequence. Classify source facts, configured behavior, observations, and guarantees before selecting proof.
+1. State a falsifiable claim or failure condition. Locate the authoritative rule and enforcement path. Record trigger, input, state transition, affected output, and consequence. Classify source facts, configured behavior, observations, and guarantees before selecting proof. Record the [need trace and consequence class](../proportionality.md) before selecting proof.
 2. Inspect counterevidence: upstream validation, alternate callers, platform branches, ownership boundaries, and existing tests. A keyword hit or plausible story is not a supported defect.
 3. Load specialists by observed risk. Logs, telemetry, or error capture load [logging](../04-logging-audit.md). Hidden authority, concurrency, destructive paths, or an adversarial request load [adversarial review](../07-adversarial-review.md). Requests to challenge maps or steering with hypothetical failures load [scenario stress testing](../08-scenario-stress-test.md). For actual stateful journeys, derive input/state/expected-outcome cases under Verify. Locale keys, labels used as state, or saved prose load [language boundaries](../12-transcreation-boundary.md).
 4. Search scoped source, not a filename listing. Record query, candidate and finding counts, exclusions, and a known-positive check. Zero candidates leaves a surface unexamined. Trace a concrete path before calling a match a supported finding.

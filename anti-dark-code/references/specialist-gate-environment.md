@@ -53,7 +53,7 @@ Keep assertions scoped. A manifest proves its declared shape, not that every fea
 
 For a release candidate, bind test receipts to the selected source, dependency lock, fixture bytes, build configuration and final artifact bytes. Check source identity again after long producers finish: successful assertions during a changing tree do not establish a coherent release. Reuse a shared build recipe for packaging and its verification when feature selection affects dependency unification; equal version strings and target directories do not prove equal builds. Preserve prior candidates and receipts when producing a replacement.
 
-Calibrate detector thresholds against clean and known-bad fixtures. Record why the threshold separates meaningful drift, keep a positive fixture that crosses it, and review threshold changes as behavior changes.
+Detector thresholds are calibrated and reviewed under [verifier falsifiability](specialist-verifier-falsifiability.md).
 
 Required CI jobs keep a measured timeout margin of at least two to one or are split. Re-measure before opening concurrent PRs.
 
