@@ -5475,8 +5475,6 @@ class SelfGradingAuthorityTests(unittest.TestCase):
              "verification-authority", "repository", "normal"),
             ("capability catalog", "**/assets/verification-capabilities.json",
              "schema", "verification-authority", "repository", "normal"),
-            ("plugin source scope marker", "skills/anti-dark-code/SOURCE-SCOPE.json",
-             "schema", "verification-authority", "repository", "normal"),
             ("source scope marker", "anti-dark-code/SOURCE-SCOPE.json",
              "schema", "verification-authority", "repository", "normal"),
             ("calibration", "**/calibration/*.json", "schema",
@@ -5546,6 +5544,23 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             }
             self.assertTrue(expected_entries <= actual,
                             sorted(expected_entries - actual))
+
+    def test_packaging_keeps_existing_consumer_policy_loadable(self) -> None:
+        # The installer preserves calibration. A new package-only path must not
+        # make the previously valid consumer policy unusable after an upgrade.
+        data = json.loads(json.dumps(self.policy_source))
+        data["classifier"]["surfaces"] = [entry for entry in data["classifier"]["surfaces"]
+            if entry.get("glob") != "skills/anti-dark-code/SOURCE-SCOPE.json"]
+        for rule in data["rules"]:
+            rule["review_status"] = "approved"
+        policy = self.route.load_policy(data, self.gates_source, sorted(CAPABILITY_IDS),
+                                        self.gates_source["canonical_full_set"])
+        for path in ("anti-dark-code/scripts/adc.py", "skills/anti-dark-code/scripts/adc.py",
+                     ".agents/skills/anti-dark-code/scripts/adc.py"):
+            with self.subTest(path=path):
+                self.assertTrue(self._route_for(path, policy).force_full)
+        self.assertTrue(self._route_for("skills/anti-dark-code/SOURCE-SCOPE.json",
+                                      self._approved_policy()).force_full)
 
     def test_every_self_grading_path_class_forces_the_full_recipe(self) -> None:
         policy = self._approved_policy()

@@ -973,8 +973,6 @@ AUTHORITY_CLASSIFIERS: tuple[tuple[str, str, str, str, str, str], ...] = (
      "verification-authority", "repository", "normal"),
     ("capability catalog", "**/assets/verification-capabilities.json",
      "schema", "verification-authority", "repository", "normal"),
-    ("plugin source scope marker", "skills/anti-dark-code/SOURCE-SCOPE.json", "schema",
-     "verification-authority", "repository", "normal"),
     ("source scope marker", "anti-dark-code/SOURCE-SCOPE.json", "schema",
      "verification-authority", "repository", "normal"),
     ("calibration", "**/calibration/*.json", "schema",
