@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Add the owner-selected Illuminated code artwork in GitHub-profile-inspired black and gold to Codex plugin and skill metadata, including a simplified composer icon. Keep editable SVG and PNG exports together; treat PNGs as binary across platforms and reject packages with missing or linked artwork. This is pending the next plugin release; published unified.16 assets remain unchanged.
+Add the owner-selected Illuminated code artwork in GitHub-profile-inspired black and gold to Codex plugin and skill metadata, including a simplified composer icon. Keep editable SVG and PNG exports together; treat PNGs as binary across platforms and reject packages with missing or linked artwork. Preserve validation of the original unified.16 package without artwork. This is pending the next plugin release; published unified.16 assets remain unchanged.
 
 - Add the approved progressive frost to website and screen-brief navigation. Decorative inert snapshots blur only within the narrow navigation strip, with scroll/resize synchronization, opaque accessibility fallbacks and print exclusion. Published unified.16 release assets remain unchanged.
 

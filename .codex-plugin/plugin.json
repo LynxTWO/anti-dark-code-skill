@@ -27,11 +27,11 @@
       "Write"
     ],
     "websiteURL": "https://github.com/LynxTWO/anti-dark-code-skill",
-    "brandColor": "#C6A052",
-    "composerIcon": "./skills/anti-dark-code/assets/brand/illuminated-code-small.png",
-    "logo": "./skills/anti-dark-code/assets/brand/illuminated-code.png",
     "defaultPrompt": [
       "Use anti-dark-code to map this repository and identify the next useful checks."
-    ]
+    ],
+    "brandColor": "#C6A052",
+    "composerIcon": "./skills/anti-dark-code/assets/brand/illuminated-code-small.png",
+    "logo": "./skills/anti-dark-code/assets/brand/illuminated-code.png"
   }
 }

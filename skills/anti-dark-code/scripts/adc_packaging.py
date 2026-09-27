@@ -22,7 +22,7 @@ def plugin_version(version: str) -> str:
     return ".".join(str(int(match[i])) for i in (1, 2, 3)) + (match[4] or "")
 
 
-def metadata(version: str) -> dict[str, dict]:
+def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
     shared = {
         "name": "anti-dark-code",
         "version": plugin_version(version),
@@ -41,11 +41,14 @@ def metadata(version: str) -> dict[str, dict]:
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
         "websiteURL": REPOSITORY,
-        "brandColor": "#C6A052",
-        "composerIcon": "./skills/anti-dark-code/assets/brand/illuminated-code-small.png",
-        "logo": "./skills/anti-dark-code/assets/brand/illuminated-code.png",
         "defaultPrompt": ["Use anti-dark-code to map this repository and identify the next useful checks."],
     }
+    if artwork:
+        interface.update({
+            "brandColor": "#C6A052",
+            "composerIcon": "./skills/anti-dark-code/assets/brand/illuminated-code-small.png",
+            "logo": "./skills/anti-dark-code/assets/brand/illuminated-code.png",
+        })
     return {
         "plugin.json": {"$schema": SCHEMA, **shared, "extensions": {"com.openai": {"interface": interface}}},
         ".codex-plugin/plugin.json": {**shared, "skills": "./skills/", "interface": interface},
@@ -84,7 +87,13 @@ def validate_package(repo: Path) -> list[str]:
     if any(linklike(path) for path in (repo / "skills", core)):
         errors.append("plugin skill paths must be real directories")
     try:
-        expected = metadata((core / "VERSION").read_text(encoding="utf-8").strip())
+        version = (core / "VERSION").read_text(encoding="utf-8").strip()
+        brand = core / "assets" / "brand"
+        # The published unified.16 archive predates artwork. Accept that exact
+        # metadata shape only when its artwork directory is absent. A current
+        # manifest with missing artwork still fails the strict comparison.
+        legacy_artwork = version == "2026.09.27-unified.16" and not brand.exists() and not linklike(brand)
+        expected = metadata(version, artwork=not legacy_artwork)
     except (OSError, ValueError):
         return errors + ["missing or invalid canonical VERSION"]
     for relative, wanted in expected.items():
@@ -101,6 +110,8 @@ def validate_package(repo: Path) -> list[str]:
             errors.append(f"{relative}: metadata differs from VERSION or the declared skill-only package")
     interface = expected[".codex-plugin/plugin.json"]["interface"]
     for field in ("composerIcon", "logo"):
+        if field not in interface:
+            continue
         relative = interface[field]
         path = repo / relative
         if any(linklike(part) for part in (path, *path.parents) if part.is_relative_to(repo) and part != repo):
