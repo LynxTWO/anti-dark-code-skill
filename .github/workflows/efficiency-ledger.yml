@@ -61,7 +61,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          python3 -B trusted-base/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
+          python3 -B trusted-base/skills/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
             --repo candidate \
             --changed-from "$BASE_SHA"
 
@@ -72,7 +72,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          python3 -B trusted-base/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
+          python3 -B trusted-base/skills/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
             --repo candidate \
             --changed-from "$BASE_SHA" \
             --allow-workflow-maintenance

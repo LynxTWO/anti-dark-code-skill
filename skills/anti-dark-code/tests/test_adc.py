@@ -3042,7 +3042,7 @@ class AntiDarkCodeToolsTests(unittest.TestCase):
 
     def test_source_release_surfaces_match_canonical_version(self) -> None:
         skill_root = Path(__file__).resolve().parents[1]
-        package_root = skill_root.parent
+        package_root = skill_root.parents[1] if skill_root.parent.name == "skills" else skill_root.parent
         changelog = package_root / "CHANGELOG.md"
         readme = package_root / "README.md"
         if not changelog.exists() and not readme.exists():

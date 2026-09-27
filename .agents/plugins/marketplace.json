@@ -1,0 +1,20 @@
+{
+  "name": "anti-dark-code",
+  "interface": {
+    "displayName": "Anti-Dark-Code"
+  },
+  "plugins": [
+    {
+      "name": "anti-dark-code",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

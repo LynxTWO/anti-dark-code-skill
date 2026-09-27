@@ -147,7 +147,7 @@ def run_suite(workdir: Path, tests: list[str], timeout: int) -> tuple[str, str]:
     try:
         proc = subprocess.run(
             command,
-            cwd=str(workdir / "anti-dark-code" / "tests"),
+            cwd=str(workdir / "skills" / "anti-dark-code" / "tests"),
             capture_output=True, text=True, timeout=timeout, check=False,
         )
     except subprocess.TimeoutExpired:
@@ -158,7 +158,7 @@ def run_suite(workdir: Path, tests: list[str], timeout: int) -> tuple[str, str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Mutate one module and report which mutants survive the tests.")
     parser.add_argument("--repo", default=".", help="Repository root to copy into a scratch tree")
-    parser.add_argument("--target", default="anti-dark-code/scripts/adc.py", help="Module to mutate, repo-relative")
+    parser.add_argument("--target", default="skills/anti-dark-code/scripts/adc.py", help="Module to mutate, repo-relative")
     parser.add_argument("--function", action="append", default=[], help="Limit to these function names; repeatable")
     parser.add_argument("--test", action="append", default=[], help="unittest target to run; repeatable")
     parser.add_argument("--timeout", type=int, default=180, help="Seconds allowed per mutant")

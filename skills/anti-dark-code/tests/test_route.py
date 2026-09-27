@@ -26,7 +26,7 @@ from unittest import mock
 tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = SKILL_ROOT.parent
+REPO_ROOT = SKILL_ROOT.parents[1]
 CAPABILITIES = SKILL_ROOT / "assets" / "verification-capabilities.json"
 
 
@@ -5475,6 +5475,8 @@ class SelfGradingAuthorityTests(unittest.TestCase):
              "verification-authority", "repository", "normal"),
             ("capability catalog", "**/assets/verification-capabilities.json",
              "schema", "verification-authority", "repository", "normal"),
+            ("plugin source scope marker", "skills/anti-dark-code/SOURCE-SCOPE.json",
+             "schema", "verification-authority", "repository", "normal"),
             ("source scope marker", "anti-dark-code/SOURCE-SCOPE.json",
              "schema", "verification-authority", "repository", "normal"),
             ("calibration", "**/calibration/*.json", "schema",
@@ -5828,7 +5830,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # from the list entirely.
         probed = {path for _, path in self.route._self_grading_guard_paths()}
         for leaf in ("gates.json", "routing-policy.json"):
-            path = f"anti-dark-code/assets/templates/calibration/{leaf}"
+            path = f"skills/anti-dark-code/assets/templates/calibration/{leaf}"
             self.assertIn(path, probed)
             self.assertTrue((REPO_ROOT / path).is_file())
 
@@ -6513,7 +6515,7 @@ class WorkflowParallelContractTests(unittest.TestCase):
         self.assertRegex(parallel, r"(?m)^pytest-xdist==[0-9.]+$")
         self.assertRegex(serial, r"(?m)^pytest==[0-9.]+$")
         self.assertNotIn("pytest-xdist", serial)
-        self.assertGreaterEqual(text.count("python -m pytest anti-dark-code/tests -q -n auto"), 2)
+        self.assertGreaterEqual(text.count("python -m pytest skills/anti-dark-code/tests -q -n auto"), 2)
         shards = self._shard_block()
         self.assertIn("fail-fast: false", shards)
         self.assertIn("timeout-minutes: 25", shards)
@@ -6695,7 +6697,7 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
     def test_every_row_names_a_suite_that_exists(self) -> None:
         unknown = []
         for row in self.rows:
-            for path in row.get("suite", ["anti-dark-code/tests/test_route.py"]):
+            for path in row.get("suite", ["skills/anti-dark-code/tests/test_route.py"]):
                 if not (REPO_ROOT / path).is_file():
                     unknown.append(f"{row['id']} names a missing suite: {path}")
         self.assertEqual([], unknown, "; ".join(unknown))

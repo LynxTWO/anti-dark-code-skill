@@ -62,7 +62,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 # The router file by default. A row may name its own suite, because a mutant
 # in one module proves nothing when the tests that hold it are never run, and
 # replaying every module for every row costs minutes per mutant to learn that.
-DEFAULT_SUITE = ("anti-dark-code/tests/test_route.py",)
+DEFAULT_SUITE = ("skills/anti-dark-code/tests/test_route.py",)
 # A worker runs its suite one directory above the owned clone root. Some real
 # tests deliberately launch detached helpers; inheriting a clone cwd would
 # leave a live handle that prevents the coordinator from proving clone cleanup.

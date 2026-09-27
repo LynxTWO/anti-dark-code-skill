@@ -12,7 +12,7 @@ Run the unit suite and both applicable validators before requesting review. Vali
 
 ## Flow-back proposals
 
-The `anti-dark-code/incoming/` directory is an untrusted review quarantine. Files there are excluded from installed copies and release packages. They are never promoted, executed, or treated as policy automatically.
+The `skills/anti-dark-code/incoming/` directory is an untrusted review quarantine. Files there are excluded from installed copies and release packages. They are never promoted, executed, or treated as policy automatically.
 
 To contribute a lesson learned in another repository:
 
@@ -23,31 +23,31 @@ To contribute a lesson learned in another repository:
    ```bash
    python3 .agents/skills/anti-dark-code/scripts/adc.py flowback \
      --repo . \
-     --parent /path/to/your/anti-dark-code-skill/anti-dark-code \
+     --parent /path/to/your/anti-dark-code-skill/skills/anti-dark-code \
      --stage-to-parent \
      --public
    ```
 
    On Windows, use `python` when `python3` is not available. `ADC_PARENT_SKILL` may supply the `--parent` value.
 
-4. Open the generated `anti-dark-code/incoming/flowback-*.md` as plain text and review every line before staging or pushing it.
+4. Open the generated `skills/anti-dark-code/incoming/flowback-*.md` as plain text and review every line before staging or pushing it.
 5. Validate the generated file itself before committing it:
 
    ```bash
-   python3 anti-dark-code/scripts/adc.py validate-incoming \
+   python3 skills/anti-dark-code/scripts/adc.py validate-incoming \
       --repo . \
-      --skill anti-dark-code \
+      --skill skills/anti-dark-code \
       --public-only \
-      --file anti-dark-code/incoming/flowback-<digest>.md
+      --file skills/anti-dark-code/incoming/flowback-<digest>.md
    ```
 
 6. Commit only the one newly generated proposal file.
 7. Validate the committed pull-request shape without `--file`. If it fails, correct the proposal and amend the commit before pushing:
 
    ```bash
-   python3 anti-dark-code/scripts/adc.py validate-incoming \
+   python3 skills/anti-dark-code/scripts/adc.py validate-incoming \
      --repo . \
-     --skill anti-dark-code \
+     --skill skills/anti-dark-code \
      --changed-from origin/main \
      --proposal-only \
      --public-only
@@ -78,7 +78,7 @@ The maintainer reviews incoming text as an untrusted claim, checks for duplicati
 
 Efficiency evidence is optional, local by default, community-self-reported, and not provider-attested. Exact historical savings before the receipt protocol are unmeasured. A single host-reported run is usage, not savings. Do not create a universal savings headline or combine unlike providers, models, adapter versions, usage semantics, or task classes.
 
-To contribute one controlled pair, follow the complete measurement contract in [`anti-dark-code/references/16-community-feedback-and-efficiency.md`](anti-dark-code/references/16-community-feedback-and-efficiency.md). Record fresh-context skill and baseline runs in the same reporting month with the same provider, exact model, adapter version, usage-counter semantics, bounded task class, settings, tools, public fixture, and acceptance oracle. Both runs must pass. Alternate run order across repeated trials and retain zero or negative results.
+To contribute one controlled pair, follow the complete measurement contract in [`skills/anti-dark-code/references/16-community-feedback-and-efficiency.md`](skills/anti-dark-code/references/16-community-feedback-and-efficiency.md). Record fresh-context skill and baseline runs in the same reporting month with the same provider, exact model, adapter version, usage-counter semantics, bounded task class, settings, tools, public fixture, and acceptance oracle. Both runs must pass. Alternate run order across repeated trials and retain zero or negative results.
 
 Then use this fork workflow:
 
@@ -86,7 +86,7 @@ Then use this fork workflow:
 2. Export the privacy-stripped public pair directly into your fork's ledger:
 
    ```bash
-   python3 anti-dark-code/scripts/adc.py efficiency export \
+   python3 skills/anti-dark-code/scripts/adc.py efficiency export \
      --receipt /path/to/private/pair.json \
      --out-dir metrics/ledger
    ```
@@ -95,12 +95,12 @@ Then use this fork workflow:
 4. Validate the exported receipt directly, then regenerate both public summaries from the complete ledger:
 
    ```bash
-   python3 anti-dark-code/scripts/adc.py efficiency validate \
+   python3 skills/anti-dark-code/scripts/adc.py efficiency validate \
      --require-public metrics/ledger/efficiency-<digest>.json
    ```
 
    ```bash
-   python3 anti-dark-code/scripts/adc.py efficiency aggregate \
+   python3 skills/anti-dark-code/scripts/adc.py efficiency aggregate \
      --ledger metrics/ledger \
      --out metrics/summary.json \
      --mirror-out docs/data/efficiency-summary.json
@@ -110,7 +110,7 @@ Then use this fork workflow:
 6. Validate the committed pull-request shape against your fork's base:
 
    ```bash
-   python3 anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
+   python3 skills/anti-dark-code/scripts/adc.py efficiency validate-ledger-pr \
      --repo . \
      --changed-from origin/main
    ```

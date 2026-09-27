@@ -16,6 +16,26 @@ The safety rule is simple:
 
 Never use one repository's customized skill or calibration directory as the starting point for another repository.
 
+## Plugin source layout (unreleased unified.16 work)
+
+New source packages place the universal core at `skills/anti-dark-code/`.
+Existing unified.15 and older release archives keep `anti-dark-code/`. When
+updating a script, change only its source-package path. The consuming repo's
+canonical `.agents/skills/anti-dark-code/` location, calibration, binding and
+optional usage ledger do not move. Do not move or overwrite those directories.
+
+From a clean, reviewed new archive, pass `skills/anti-dark-code` as the
+`--source-skill` directory and the published digest as `--expect-core-digest`.
+Review the dry run before applying. The installer still copies one universal
+core and preserves repository-owned calibration; do not distribute one
+consumer's calibration through a plugin. Rehearse both a new install and an
+upgrade before publishing this layout.
+
+`VERSION` retains its calendar spelling. Plugin metadata uses the equivalent
+strict SemVer spelling with numeric leading zeroes removed; regenerate it with
+`adc_packaging.py --write`. See [PLUGINS.md](PLUGINS.md). Release validation reads
+both source layouts and checks new manifests from the exact archive under test.
+
 ## 1. Back Up Before Changing Anything
 
 Keep a copy of every existing Anti-Dark-Code location until the new installation validates and the repository has completed at least one successful reviewed pass.
@@ -38,7 +58,7 @@ A backup is for recovery and comparison. It is not an approved source for anothe
 
 ## 2. Establish One Clean Shared Core
 
-Place the `anti-dark-code/` directory from this package in one version-controlled shared location.
+Place the `skills/anti-dark-code/` directory from this package in one version-controlled shared location.
 
 A practical layout is:
 
@@ -74,7 +94,7 @@ Distribution mode rejects runtime `incoming/`, repo calibration, managed-install
 Validate a deployed shared core, which may contain staged proposals under `incoming/`, with:
 
 ```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py validate \
+python3 /path/to/shared/skills/anti-dark-code/scripts/adc.py validate \
   --skill /path/to/shared/anti-dark-code \
   --mode universal
 ```
@@ -104,7 +124,7 @@ Never perform a blind multi-repo copy.
 For each repository, run a dry bootstrap from the clean shared source:
 
 ```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
+python3 /path/to/shared/skills/anti-dark-code/scripts/adc.py bootstrap \
   --repo /path/to/repo \
   --hosts all
 ```
@@ -150,7 +170,7 @@ Use this only after confirming the old calibration came from the same repository
 `--accept-unbound-calibration` applies only to the `unbound` state. It does not override an invalid binding or symlink safety failure.
 
 ```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
+python3 /path/to/shared/skills/anti-dark-code/scripts/adc.py bootstrap \
   --repo /path/to/repo \
   --hosts all \
   --accept-unbound-calibration \
@@ -162,7 +182,7 @@ python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
 Use this only when the repository was deliberately moved, forked, or given a new remote and the calibration still applies:
 
 ```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
+python3 /path/to/shared/skills/anti-dark-code/scripts/adc.py bootstrap \
   --repo /path/to/repo \
   --hosts all \
   --rebind-calibration \
@@ -301,7 +321,7 @@ Prefer fixing or replacing the source instead of using the override.
 For a clean repo or a repo with matching calibration:
 
 ```bash
-python3 /path/to/shared/anti-dark-code/scripts/adc.py bootstrap \
+python3 /path/to/shared/skills/anti-dark-code/scripts/adc.py bootstrap \
   --repo /path/to/repo \
   --hosts all \
   --apply

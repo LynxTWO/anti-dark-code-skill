@@ -1,6 +1,8 @@
 ---
 name: anti-dark-code
-description: Model-neutral workflow for mapping, auditing, verifying, and hardening unfamiliar, legacy, fast-growing, or AI-built codebases from evidence instead of guesswork. Use to map architecture and trust boundaries, install repo steering and a calibrated local skill, select deterministic verification capabilities, create compact quality gates and failure packets, audit logging and critical paths, challenge tests and assumptions, preserve localization boundaries, remediate findings safely, dogfeed repo lessons back into the shared skill, accept community proposals, or measure token efficiency honestly. Trigger terms include dark code, anti-dark-code, legacy audit, repo map, verification harness, deterministic testing, mutation testing, fuzzing, UI monkey, unknowns, approval gates, context limits, tokens saved, and reduce AI tokens or credits.
+description: Use for anti-dark-code, unfamiliar or legacy code, architecture maps, code audits, deterministic verification, test-strength review, and authorized improvements. Trace findings to evidence, preserve owner authority and repository knowledge, select proportionate checks, and report coverage limits. Also supports calibrated repo installs and opt-in efficiency measurement without claiming unmeasured savings.
+license: FSL-1.1-MIT; see LICENSE.md for terms.
+compatibility: Instructions need no runtime. Bundled scripts require Python 3.12 or newer; provenance checks also require Git.
 ---
 
 # Anti-Dark-Code

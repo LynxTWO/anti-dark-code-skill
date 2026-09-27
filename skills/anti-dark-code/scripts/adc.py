@@ -12,6 +12,7 @@ import ast
 import collections
 import copy
 import datetime as dt
+import difflib
 import fnmatch
 import hashlib
 from html.parser import HTMLParser
@@ -2251,11 +2252,15 @@ def managed_source_files(source: Path) -> dict[str, Path]:
     return files
 
 
-def only_version_churn(repo: Path, previous: str, tag: str, path: str, versions: set[str]) -> bool:
+def only_version_churn(repo: Path, previous: str, tag: str, path: str, versions: set[str], previous_path: str | None = None) -> bool:
     """True when every changed line in a file carries a release version string."""
     if not versions:
         return False
-    diff = git_output(repo, ["diff", "--unified=0", f"{previous}..{tag}", "--", path]) or ""
+    before = git_output(repo, ["show", f"{previous}:{previous_path or path}"])
+    after = git_output(repo, ["show", f"{tag}:{path}"])
+    if before is None or after is None:
+        return False
+    diff = "\n".join(difflib.unified_diff(before.splitlines(), after.splitlines(), n=0))
     changed = [
         line for line in diff.splitlines()
         if line[:1] in {"+", "-"} and not line.startswith(("+++", "---"))
@@ -2283,11 +2288,29 @@ def changelog_section(text: str, version: str) -> str | None:
     return "\n".join(lines[start:end])
 
 
+def distribution_core(repo: Path) -> Path:
+    """New plugin source layout, with read compatibility for historical tags."""
+    core = repo / "skills" / "anti-dark-code"
+    return core if (core / "VERSION").is_file() else repo / "anti-dark-code"
+
+
+def load_packaging_helper() -> Any:
+    # Load the reviewed helper beside this verifier, never code from the tag.
+    path = SKILL_ROOT / "scripts" / "adc_packaging.py"
+    spec = importlib.util.spec_from_file_location("adc_packaging", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("plugin packaging helper unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def release_check(
     repo: Path,
     tag: str,
     expect_core_digest: str | None = None,
     previous_tag: str | None = None,
+    host_checks: bool = False,
 ) -> dict[str, Any]:
     """Gate a release on its own tag rather than on the working tree that produced it.
 
@@ -2306,6 +2329,9 @@ def release_check(
         "digest_match": None,
         "distribution_valid": None,
         "distribution_errors": [],
+        "packaging_valid": None,
+        "packaging_errors": [],
+        "host_checks": [],
         "undescribed_files": [],
         "errors": [],
         "ok": False,
@@ -2328,9 +2354,9 @@ def release_check(
             findings["errors"].append(f"could not read the tag archive: {exc.__class__.__name__}")
             return findings
 
-        core = extract / "anti-dark-code"
+        core = distribution_core(extract)
         if not (core / "VERSION").exists():
-            findings["errors"].append("the tag does not contain a distributable core at anti-dark-code/")
+            findings["errors"].append("the tag does not contain a distributable core at skills/anti-dark-code/ or legacy anti-dark-code/")
             return findings
 
         findings["core_digest"] = core_digest(managed_source_files(core))
@@ -2340,6 +2366,13 @@ def release_check(
         errors, _warnings = validate_skill(core, "distribution")
         findings["distribution_valid"] = not errors
         findings["distribution_errors"] = list(errors)
+
+        if core.parent.name == "skills":
+            packaging_errors = load_packaging_helper().validate_package(extract)
+            findings["packaging_valid"] = not packaging_errors
+            findings["packaging_errors"] = packaging_errors
+            if host_checks and not packaging_errors and not errors:
+                findings["host_checks"] = load_packaging_helper().check_hosts(extract)
 
         version = (core / "VERSION").read_text(encoding="utf-8").strip()
         findings["version"] = version
@@ -2351,23 +2384,32 @@ def release_check(
             previous = previous_tag or git_output(repo, ["describe", "--tags", "--abbrev=0", f"{tag}^"])
             findings["previous_tag"] = previous
             if previous:
+                previous_prefix = "skills/anti-dark-code"
+                previous_core_version = git_output(repo, ["show", f"{previous}:{previous_prefix}/VERSION"])
+                if previous_core_version is None:
+                    previous_prefix = "anti-dark-code"
+                    previous_core_version = git_output(repo, ["show", f"{previous}:{previous_prefix}/VERSION"])
+                current_prefix = core.relative_to(extract).as_posix()
                 changed = git_output(
-                    repo,
-                    ["diff", "--name-only", f"{previous}..{tag}", "--",
-                     "anti-dark-code/references", "anti-dark-code/assets"],
+                    repo, ["diff", "--name-only", f"{previous}..{tag}", "--",
+                           "anti-dark-code/references", "anti-dark-code/assets",
+                           "skills/anti-dark-code/references", "skills/anti-dark-code/assets"],
                 ) or ""
-                previous_version = None
-                previous_core_version = git_output(repo, ["show", f"{previous}:anti-dark-code/VERSION"])
-                if previous_core_version:
-                    previous_version = previous_core_version.strip()
-                version_tokens = {token for token in (version, previous_version) if token}
-                for path in sorted({line.strip() for line in changed.splitlines() if line.strip()}):
-                    relative = path.split("anti-dark-code/", 1)[-1]
+                version_tokens = {token for token in (version, previous_core_version) if token}
+                relatives = {line.split("anti-dark-code/", 1)[-1]
+                             for line in changed.splitlines() if line.strip()}
+                for relative in sorted(relatives):
+                    before_path = f"{previous_prefix}/{relative}"
+                    after_path = f"{current_prefix}/{relative}"
+                    before = git_bytes(repo, ["show", f"{previous}:{before_path}"])
+                    after = git_bytes(repo, ["show", f"{tag}:{after_path}"])
+                    # A path-only move is documented once in MIGRATION.md; it
+                    # must not hide any substantive edit made during that move.
+                    if before is not None and before == after:
+                        continue
                     if relative in section or Path(relative).name in section:
                         continue
-                    # A mechanical version bump is not a change the notes owe the
-                    # reader; flagging it would train reviewers to ignore this gate.
-                    if only_version_churn(repo, previous, tag, path, version_tokens):
+                    if only_version_churn(repo, previous, tag, after_path, version_tokens, before_path):
                         continue
                     findings["undescribed_files"].append(relative)
 
@@ -2375,6 +2417,8 @@ def release_check(
         not findings["errors"]
         and not findings["undescribed_files"]
         and bool(findings["distribution_valid"])
+        and findings["packaging_valid"] is not False
+        and not any(check["status"] == "failed" for check in findings["host_checks"])
         and findings["digest_match"] is not False
     )
     return findings
@@ -4799,7 +4843,7 @@ def command_flowback(args: argparse.Namespace) -> int:
 
 def command_validate_incoming(args: argparse.Namespace) -> int:
     repo = Path(args.repo)
-    skill = Path(args.skill) if args.skill else repo / "anti-dark-code"
+    skill = Path(args.skill) if args.skill else distribution_core(repo)
     errors, paths = validate_incoming(
         repo,
         skill,
@@ -4916,6 +4960,7 @@ def command_release_check(args: argparse.Namespace) -> int:
         args.tag,
         expect_core_digest=args.expect_core_digest,
         previous_tag=args.previous_tag,
+        host_checks=getattr(args, "host_checks", False),
     )
     print(json.dumps(findings, indent=2))
     if findings["ok"]:
@@ -5341,6 +5386,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--tag", required=True)
     p.add_argument("--expect-core-digest")
     p.add_argument("--previous-tag")
+    p.add_argument("--host-checks", action="store_true", help="Run available read-only plugin validators on the extracted tag")
     p.set_defaults(func=command_release_check)
 
     p = sub.add_parser("validate", help="Validate a distribution, live universal core, or installed repo copy")
