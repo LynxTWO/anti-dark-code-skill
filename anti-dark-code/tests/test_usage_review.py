@@ -264,5 +264,31 @@ class RoutineReviewTests(unittest.TestCase):
         self.assertEqual(0, self.usage.summary(self.directory)["events"])
 
 
+class UsageHelpListsReviewTests(unittest.TestCase):
+    """`usage --help` must name every documented command; review was reachable but unlisted."""
+
+    def run_main(self, module, argv):
+        import contextlib
+        import io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as raised:
+            module.main(argv)
+        self.assertEqual(0, raised.exception.code)
+        return out.getvalue()
+
+    def test_usage_help_lists_review(self):
+        usage = load("adc_usage")
+        text = self.run_main(usage, ["--help"])
+        self.assertIn("review", text)
+        for name in ("init", "collect", "summary", "feedback", "disable", "export"):
+            self.assertIn(name, text)
+
+    def test_usage_review_help_is_the_helper_parser(self):
+        usage = load("adc_usage")
+        text = self.run_main(usage, ["review", "--help"])
+        for name in ("enable", "disable", "hook", "submit", "pending"):
+            self.assertIn(name, text)
+
+
 if __name__ == "__main__":
     unittest.main()
