@@ -3422,6 +3422,29 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
         self.assertEqual("SURVIVED",
                          harness.derive_verdict([caught, missing_identity]))
 
+    def test_packaging_move_preserves_exact_historical_skip_attribution(self) -> None:
+        harness = self._harness("adc_replay_packaging_nodeids")
+        old = "anti-dark-code/tests/test_route.py::Cases::test_symlink[link]"
+        new = f"skills/{old}"
+        for failed, skipped in ((new, old), (old, new)):
+            caught = {"platform": "Linux", "verdict": "caught", "skipped": 0,
+                      "failed_nodeids": [failed], "skipped_nodeids": []}
+            survivor = {"platform": "Windows", "verdict": "SURVIVED", "skipped": 1,
+                        "failed_nodeids": [], "skipped_nodeids": [skipped]}
+            records = [caught, survivor]
+            before = json.dumps(records, sort_keys=True)
+            self.assertEqual("caught elsewhere", harness.derive_verdict(records))
+            self.assertEqual(before, json.dumps(records, sort_keys=True))
+            self.assertEqual("SURVIVED", harness.derive_verdict(
+                [caught, {**survivor, "skipped": 0}]))
+            for unrelated in (skipped.replace("[link]", "[other]"),
+                              skipped.replace("Cases::", "OtherCases::"),
+                              skipped.replace("test_route.py", "test_other.py"),
+                              f"other/{skipped}", f"./{skipped}"):
+                with self.subTest(unrelated=unrelated):
+                    self.assertEqual("SURVIVED", harness.derive_verdict(
+                        [caught, {**survivor, "skipped_nodeids": [unrelated]}]))
+
     def test_replay_collects_exact_failed_and_skipped_nodeids(self) -> None:
         """D-104. Pytest identities, not summary counts, carry host limits."""
         harness = self._harness("adc_replay_exact_outcome_collection")

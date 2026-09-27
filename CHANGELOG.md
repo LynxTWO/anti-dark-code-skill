@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Compare historical mutation test identities across the exact `test_route.py` packaging move while preserving their recorded paths. Test classes, names and parameter IDs must still match, and an unskipped survivor remains a failure.
 - Package the single universal core under `skills/anti-dark-code/` for Agent Plugins 1.0, Codex, Claude Code and Gemini CLI; add host manifests and root-relative marketplaces without hooks or automatic collection. Preserve standalone installs and repository-owned calibration. Document the source-path migration in MIGRATION.md and installation in PLUGINS.md. Plugin versions normalize the canonical calendar version to strict SemVer; `adc_packaging.py` detects metadata drift and regenerates the six metadata files explicitly.
 - Validate new-layout manifests from the tagged release archive, retaining historical standalone release checks and distinguishing pure file moves from undocumented reference changes. Update CI, the active mutation matrix/test pointers and source authority probes for the new layout. Extend `assets/templates/calibration/routing-policy.json` for the plugin source scope marker while retaining legacy and installed paths. Add migration, stale-tag metadata and discovery regressions. Shorten the skill description to put triggering tasks first and declare license/runtime compatibility; activation-rate improvement remains unmeasured.
 
