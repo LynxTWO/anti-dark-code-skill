@@ -1,1 +1,2 @@
 * text=auto eol=lf
+assets/brand/*.png -text -diff -merge

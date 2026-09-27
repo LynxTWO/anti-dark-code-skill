@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Anti-Dark-Code illuminated code, small icon</title>
+  <rect x="4" y="4" width="248" height="248" rx="57" fill="#141414"/>
+  <rect x="6" y="6" width="244" height="244" rx="55" stroke="#D9B566" stroke-opacity=".3" stroke-width="4"/>
+  <path d="m84 85-41 43 41 43m88-86 41 43-41 43" stroke="#E2BC65" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m144 55 23 8-55 138-24-8z" fill="#FFF0BD"/>
+</svg>

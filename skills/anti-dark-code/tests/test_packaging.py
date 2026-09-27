@@ -106,6 +106,31 @@ class PluginPackagingTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 packaging.plugin_version(invalid)
 
+    def test_missing_or_redirected_artwork_is_rejected(self):
+        self.move_core()
+        path = self.core / "assets" / "brand" / "illuminated-code.png"
+        with mock.patch.object(Path, "is_junction", lambda part: part == path.parent):
+            self.assertIn("artwork path must not traverse links", " ".join(packaging.validate_package(self.repo)))
+        path.unlink()
+        self.assertIn("missing plugin artwork", " ".join(packaging.validate_package(self.repo)))
+
+    def test_published_unified16_without_artwork_remains_verifiable(self):
+        self.move_core()
+        shutil.rmtree(self.core / "assets" / "brand")
+        # Deleting the current artwork must fail until the package actually
+        # has the exact original release metadata, not dangling icon paths.
+        self.assertTrue(packaging.validate_package(self.repo))
+        for relative, value in packaging.metadata(self.version, artwork=False).items():
+            (self.repo / relative).write_text(json.dumps(value) + "\n", encoding="utf-8")
+        self.assertEqual(packaging.validate_package(self.repo), [])
+        self.fixture.commit_all(self.repo, "published unified16 metadata")
+        self.git("tag", "published-without-artwork")
+        self.assertTrue(adc.release_check(self.repo, "published-without-artwork")["packaging_valid"])
+        (self.core / "VERSION").write_text("2026.09.28-unified.17\n", encoding="utf-8")
+        for relative, value in packaging.metadata("2026.09.28-unified.17", artwork=False).items():
+            (self.repo / relative).write_text(json.dumps(value) + "\n", encoding="utf-8")
+        self.assertTrue(packaging.validate_package(self.repo))
+
     def test_optional_host_checks_report_unavailable_and_failures(self):
         with mock.patch.object(packaging.shutil, "which", return_value=None):
             results = packaging.check_hosts(self.repo)

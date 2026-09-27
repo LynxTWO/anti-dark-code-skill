@@ -63,6 +63,13 @@ subsequent repository edits, tool executions, or optional usage collection.
 
 ## Metadata and release checks
 
+The next plugin update adds the Illuminated code logo and a simplified composer
+icon. Their editable SVG sources and PNG exports live together in
+`skills/anti-dark-code/assets/brand/`. The portable OpenAI overlay and Codex
+fallback declare the same files; skill metadata uses skill-relative paths to
+those assets. Published unified.16 and installations pinned to that tag retain
+their original metadata until the next release is installed.
+
 `VERSION` inside the core remains canonical. Plugin versions normalize numeric
 calendar components to strict SemVer: `2026.09.15-unified.15` becomes
 `2026.9.15-unified.15`. This is a representation change, not a second release.

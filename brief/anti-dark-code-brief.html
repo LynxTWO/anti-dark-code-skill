@@ -321,9 +321,36 @@
     .fnode.decision { border-radius: 999px; }
     .glass-button { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   }
+  .glass-frost { display: none; }
+  @media screen {
+    .glass-frost { position: fixed; inset: 0 0 auto; z-index: 9; height: var(--frost-height, 100px); pointer-events: none; overflow: hidden; }
+    .glass-frost, .glass-frost-layer { display: block; }
+    .glass-frost-layer { position: absolute; inset: 0; }
+    .glass-frost-sample { position: absolute; inset: -40px; overflow: hidden; background: var(--paper); }
+    .glass-frost-copy { position: absolute; top: 0; left: 0; margin: 0 !important; max-width: none; }
+    /* The original first sheet margin collapses through its static wrapper. */
+    .glass-frost-copy > .sheet:first-child { margin-top: 0; }
+    .glass-frost-layer:nth-child(1) { mask-image: linear-gradient(to top, transparent, black 26%); -webkit-mask-image: linear-gradient(to top, transparent, black 26%); }
+    .glass-frost-layer:nth-child(2) { mask-image: linear-gradient(to top, transparent 12%, black 44%); -webkit-mask-image: linear-gradient(to top, transparent 12%, black 44%); }
+    .glass-frost-layer:nth-child(3) { mask-image: linear-gradient(to top, transparent 28%, black 60%); -webkit-mask-image: linear-gradient(to top, transparent 28%, black 60%); }
+    .glass-frost-layer:nth-child(4) { mask-image: linear-gradient(to top, transparent 42%, black 76%); -webkit-mask-image: linear-gradient(to top, transparent 42%, black 76%); }
+    .glass-frost-layer:nth-child(5) { mask-image: linear-gradient(to top, transparent 58%, black 92%); -webkit-mask-image: linear-gradient(to top, transparent 58%, black 92%); }
+    .glass-frost-layer:nth-child(1) .glass-frost-sample { filter: blur(1px); }
+    .glass-frost-layer:nth-child(2) .glass-frost-sample { filter: blur(3px); }
+    .glass-frost-layer:nth-child(3) .glass-frost-sample { filter: blur(7px); }
+    .glass-frost-layer:nth-child(4) .glass-frost-sample { filter: blur(14px); }
+    .glass-frost-layer:nth-child(5) .glass-frost-sample { filter: blur(28px); }
+    .glass-frost::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, transparent, color-mix(in srgb, var(--paper) 14%, transparent) 25%, color-mix(in srgb, var(--paper) 65%, transparent) 65%, var(--paper)); }
+    @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+      .glass-frost-layer { display: none; }
+      .glass-frost::after { background: var(--paper); }
+    }
+    @media (forced-colors: active) { .glass-frost::after { background: Canvas; } }
+  }
 </style>
 </head>
 <body>
+<div class="glass-frost" aria-hidden="true" inert></div>
 <nav class="glass-toolbar" aria-label="Primary navigation">
   <a class="glass-brand" href="#overview">Anti-Dark-Code</a>
   <div class="glass-links"><a href="#overview">Brief</a><a href="#maintenance">Get started</a><a href="https://github.com/sponsors/LynxTWO">Support</a></div>
@@ -498,5 +525,67 @@
 <div class="page-footer"><span>ANTI-DARK-CODE / INSTALL AND LEARN FROM USE</span><span>07 / 07</span></div>
 </section>
 </div>
+<script>
+  (function () {
+    "use strict";
+    var edge = document.querySelector(".glass-frost");
+    var source = document.querySelector("body > .wrap");
+    var toolbar = document.querySelector(".glass-toolbar");
+    if (!edge || !source || !toolbar || typeof ResizeObserver !== "function") return;
+
+    var screen = window.matchMedia("screen");
+    var simple = window.matchMedia("(prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active)");
+    var copies = [];
+    var dirty = true;
+    var pending = false;
+    var printing = false;
+
+    function enabled() { return screen.matches && !simple.matches && !printing; }
+    function clear() { edge.replaceChildren(); copies = []; dirty = true; }
+    function rebuild() {
+      clear();
+      for (var i = 0; i < 5; i++) {
+        var layer = document.createElement("div");
+        layer.className = "glass-frost-layer";
+        var sample = document.createElement("div");
+        sample.className = "glass-frost-sample";
+        var copy = source.cloneNode(true);
+        copy.classList.add("glass-frost-copy");
+        // Decorative snapshots never own IDs, execute scripts, or accept input.
+        copy.removeAttribute("id");
+        copy.querySelectorAll("[id]").forEach(function (node) { node.removeAttribute("id"); });
+        copy.querySelectorAll("script").forEach(function (node) { node.remove(); });
+        sample.append(copy); layer.append(sample); edge.append(layer); copies.push(copy);
+      }
+      dirty = false;
+    }
+    function render() {
+      pending = false;
+      if (!screen.matches) { clear(); return; }
+      edge.style.setProperty("--frost-height", Math.ceil(toolbar.getBoundingClientRect().bottom + 12) + "px");
+      if (!enabled()) { clear(); return; }
+      if (dirty) rebuild();
+      var bounds = source.getBoundingClientRect();
+      copies.forEach(function (copy) {
+        copy.style.width = bounds.width + "px";
+        copy.style.transform = "translate3d(" + (bounds.left + 40) + "px," + (bounds.top + 40) + "px,0)";
+      });
+    }
+    function schedule() {
+      if (!pending) { pending = true; window.requestAnimationFrame(render); }
+    }
+    function preferencesChanged() { if (!enabled()) clear(); schedule(); }
+    window.addEventListener("scroll", schedule, {passive: true});
+    window.addEventListener("resize", schedule, {passive: true});
+    window.addEventListener("beforeprint", function () { printing = true; clear(); });
+    window.addEventListener("afterprint", function () { printing = false; schedule(); });
+    screen.addEventListener("change", preferencesChanged);
+    simple.addEventListener("change", preferencesChanged);
+    new ResizeObserver(schedule).observe(source);
+    // The public efficiency summary can arrive after initial page rendering.
+    new MutationObserver(function () { dirty = true; schedule(); }).observe(source, {childList: true, subtree: true, characterData: true, attributes: true});
+    schedule();
+  }());
+</script>
 </body>
 </html>
