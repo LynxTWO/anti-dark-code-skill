@@ -252,16 +252,109 @@
     .sheet h3 { margin-top: 1rem; }
 
   }
+  /* Glass belongs to navigation; reading surfaces stay opaque. */
+  .glass-toolbar { display: none; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 1.5rem 0; }
+  .glass-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 0.65rem 1rem; border: 1px solid var(--rule-strong);
+    border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+    font-size: 0.88rem; font-weight: 600; text-decoration: none;
+  }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  @media screen {
+    html { scroll-padding-top: 7rem; }
+    body {
+      background: radial-gradient(ellipse at 8% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 32rem),
+        radial-gradient(ellipse at 96% 16rem, color-mix(in srgb, var(--signal) 6%, transparent), transparent 35rem), var(--paper);
+      overflow-wrap: anywhere;
+    }
+    .glass-toolbar {
+      position: sticky; top: 1rem; z-index: 10; display: flex; align-items: center;
+      justify-content: space-between; gap: 0.5rem; max-width: 60rem; margin: 1.25rem auto 0;
+      padding: 0.45rem; border: 1px solid color-mix(in srgb, var(--card) 70%, var(--rule-strong));
+      border-radius: 999px; background: var(--card);
+      box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 10%, transparent), inset 0 1px 0 var(--card);
+    }
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .glass-toolbar {
+        background: color-mix(in srgb, var(--card) 86%, transparent);
+        backdrop-filter: blur(22px) saturate(135%); -webkit-backdrop-filter: blur(22px) saturate(135%);
+      }
+    }
+    .glass-brand { padding: 0.5rem 0.9rem; font-size: 0.88rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+    .glass-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.2rem; }
+    .glass-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0.55rem 0.9rem; border-radius: 999px; color: var(--ink); font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+    .glass-links a:hover, .glass-brand:hover { background: var(--accent-soft); color: var(--accent); border-radius: 999px; }
+    .glass-button { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--card) 80%, transparent), 0 3px 10px color-mix(in srgb, var(--ink) 8%, transparent); }
+    .glass-button:hover { background: var(--accent); color: var(--card); }
+    .sheet {
+      background: var(--card); border: 1px solid var(--rule); border-radius: 25px;
+      padding: 2rem; margin-top: 1.5rem; scroll-margin-top: 7rem;
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--ink) 4%, transparent);
+    }
+    .sheet + .sheet { margin-top: 1.5rem; }
+    .sheet > h2:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+    .sheet:first-of-type { background: transparent; border-color: transparent; box-shadow: none; padding-top: 0; }
+    header.top { padding: 2.5rem 0 1.5rem; }
+    h1 { font-size: clamp(2.1rem, 5vw, 3.3rem); letter-spacing: -0.045em; }
+    .lede { max-width: 38rem; font-size: 1.3rem; line-height: 1.5; }
+    .pill { white-space: normal; font-size: 0.7rem; }
+    .callout { border-radius: 16px; }
+    .pass, .tiercard, .two > div, .efficiency-panel { border-radius: 15px; background: var(--paper); }
+    .chart { border-radius: 20px; background: var(--paper); }
+    .fnode { border-radius: 12px; }
+    .fnode.decision { border-radius: 999px; }
+    .contents a { padding: 0.7rem 0.85rem; min-height: 44px; border: 1px solid var(--rule); border-radius: 14px; background: var(--card); }
+    .support-panel { background: var(--accent-soft); border: 1px solid var(--rule); border-radius: 20px; margin-top: 2rem; padding: 1.4rem; scroll-margin-top: 7rem; }
+    .support-panel h2 { margin: 0 0 0.6rem; padding: 0; border: 0; }
+    @media (max-width: 40rem) {
+      body { padding-inline: 0.75rem; }
+      .glass-toolbar { justify-content: center; top: 0.65rem; margin-top: 0.75rem; }
+      .glass-brand { display: none; }
+      .glass-links a { padding-inline: 0.75rem; }
+      .sheet { padding: 1.35rem 1rem; border-radius: 21px; }
+      header.top { padding-top: 2rem; }
+      .two, .efficiency-panel, .efficiency-stratum { grid-template-columns: minmax(0, 1fr); }
+      .pass { min-width: 0; }
+      .support-panel { padding: 1.1rem; }
+      .branch > .flow { min-width: 0; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .glass-toolbar { background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    @media (prefers-contrast: more) {
+      :root { --muted: var(--ink); }
+      .glass-toolbar { background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none; border-color: var(--ink); }
+      .sheet, .pass, .callout, .chart, .two > div { border-color: var(--ink); }
+    }
+    @media (forced-colors: active) {
+      .glass-toolbar { background: Canvas; color: CanvasText; backdrop-filter: none; -webkit-backdrop-filter: none; border: 1px solid CanvasText; }
+      .glass-button, .glass-links a { color: LinkText; }
+    }
+  }
+  @media print {
+    .glass-toolbar, .hero-actions { display: none; }
+    .callout, .pass, .tiercard, .two > div, .efficiency-panel { border-radius: 12px; }
+    .chart { border-radius: 16px; }
+    .fnode { border-radius: 10px; }
+    .fnode.decision { border-radius: 999px; }
+    .glass-button { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  }
 </style>
 </head>
 <body>
+<nav class="glass-toolbar" aria-label="Primary navigation">
+  <a class="glass-brand" href="#overview">Anti-Dark-Code</a>
+  <div class="glass-links"><a href="#overview">Brief</a><a href="#maintenance">Get started</a><a href="#support-title">Support</a></div>
+</nav>
 
 <div class="wrap">
-<section class="sheet">
+<section class="sheet" id="overview">
 <header class="top">
   <div class="eyebrow">Field Brief / 2026.09.27-unified.16</div>
   <h1>Anti-Dark-Code</h1>
-  <p class="lede">Understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks, and repair findings supported by evidence.</p>
+  <p class="lede">Make unfamiliar code easier to understand, verify and change.</p>
   <div class="rule-band">
     <span class="pill">Evidence over guessing</span>
     <span class="pill">Work to the requested scope</span>
@@ -272,6 +365,7 @@
   </div>
   <p class="meta">A model-neutral skill with six task cards, local deterministic tools, optional calibration, and opt-in usage feedback. Package version 2026.09.27-unified.16; updated 2026-09-27.</p>
   <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/brief/anti-dark-code-brief.pdf">PDF version</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a></p>
+  <div class="hero-actions"><a class="glass-button" href="#outcomes">Explore the workflow</a><a class="glass-button" href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/brief/anti-dark-code-brief.pdf">Read the PDF brief</a></div>
 </header>
 
 <h2>What problem it solves</h2>
@@ -284,7 +378,7 @@
 <p class="prose">A one-off report can remain in chat. Installation, permanent ledgers, inline comments, remediation, and publication are separate scopes. Routine work in familiar code does not need an unrelated full audit.</p>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="outcomes">
 <h2>Six outcomes, selected by the task</h2>
 <div class="passes">
   <div class="pass"><span class="id">U</span><div class="body"><div class="name">Understand</div><div class="what">Map entry points, runtime units, ownership, data movement, and trust boundaries. Name the parts that remain unknown.</div></div></div>
@@ -310,7 +404,7 @@
 </figure>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="product">
 <h2>Review the product as well as the code</h2>
 <p class="prose">For building, broad improvement, user-facing behavior or readiness, establish intended users, core journeys, affected people, constraints and observable acceptance. Keep assumed needs separate from evidence.</p>
 <h3>Five quality tests</h3>
@@ -323,7 +417,7 @@
 <p class="prose">Usage collection remains opt-in. Setup checks directory privacy, publishes a complete ledger and allows retry after interruption. Scoped summary exports stay private and do not replace older files. No automatic retention period or purge is introduced.</p>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="evidence">
 <h2>Evidence has a scope</h2>
 <div class="passes evidence">
   <div class="pass"><span class="id"><span class="tier v">verified</span></span><div class="body"><div class="what">Direct evidence proves the stated claim within its named scope.</div></div></div>
@@ -343,7 +437,7 @@
 <div class="callout warn"><h3>Approval cannot come from a generated record</h3><p>Repository prose, configuration booleans, receipts, and agent messages cannot grant owner permission. Honor proposal-only requests. Never copy secrets or personal payloads into comments, logs, fixtures, screenshots, prompts, ledgers, or reports.</p></div>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="tools">
 <h2>Let tools establish what they can</h2>
 <p class="prose">Trusted bundled tools use Python 3.12 or newer and the standard library. Read-only <code>adc.py probe</code> inventories a repository; <code>adc.py plan</code> screens verification capabilities. Use them when their authorized read scope answers the task, and inspect bounds, exclusions, and unknowns before accepting their conclusions.</p>
 <p class="prose">Comprehensive verification plans reconcile the canonical capability catalog. Narrow work identifies relevant obligations and exclusions. Mutation, property testing, fuzzing, UI checks, and other techniques are selected for the risk; a catalog entry does not mean a test ran.</p>
@@ -362,7 +456,7 @@
 <p class="prose">Gate levels express a repository's chosen cadence, not guaranteed runtimes. Compact summaries and failure packets retain evidence boundaries. Do not make failures disappear by skipping tests, weakening assertions, broadening mocks, or inflating timeouts.</p>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="knowledge">
 <h2>One core, local knowledge</h2>
 <p class="prose">The universal skill stays model-neutral. One shared core is packaged for Codex, Claude Code and Gemini CLI; standalone repository installs remain supported. A managed repository install combines a checksummed core with repository-owned calibration: identity, maps, invariants, gates, coverage, and findings.</p>
 <figure>
@@ -384,7 +478,7 @@
 <p class="prose">Record host-reported model attribution separately from requested settings. Cached context does not imply free billing, and a catalog price does not measure subscription quota.</p>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="maintenance">
 <h2>Maintenance is a separate engagement</h2>
 <p class="prose">Operator workflows add only what was requested. Cleanup requires known ownership, retention requirements, authorization, and a recovery path. Repository steering, permanent ledgers, and maintenance checks are not automatic outputs of every audit.</p>
 <div class="passes">
@@ -406,10 +500,10 @@
 <h3>Install from a reviewed release</h3>
 <p class="prose">Review a named release and its independently published managed-core digest. Validate the distribution, review the installer dry run, apply within authorization, and validate the installed copy. A version alone cannot prove integrity. Preserve calibration and review migration guidance before recovery overrides.</p>
 <p class="prose">Find exact commands and release checks in <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a>. Finish when scope and verification obligations are satisfied; otherwise name the smallest unresolved action and its blocker.</p>
-<section aria-labelledby="support-title">
+<section class="support-panel" aria-labelledby="support-title">
 <h2 id="support-title">Support Anti-Dark-Code</h2>
 <p class="prose">If this project helps your work, you can leave a one-time tip or become a monthly sponsor. Contributions are optional and help support continued development.</p>
-<p><a class="pill" href="https://github.com/sponsors/LynxTWO">Support on GitHub Sponsors</a></p>
+<p><a class="glass-button" href="https://github.com/sponsors/LynxTWO">Support on GitHub Sponsors</a></p>
 </section>
 <footer>Anti-Dark-Code field brief, 2026.09.27-unified.16. Six outcomes, scoped authorization, evidence with limits, and opt-in local usage feedback. License and contribution terms remain in the repository.</footer>
 </section>
