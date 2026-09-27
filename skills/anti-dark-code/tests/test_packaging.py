@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -57,6 +58,23 @@ class PluginPackagingTests(unittest.TestCase):
         result = adc.release_check(self.repo, "changed-layout", previous_tag="old-layout")
         self.assertFalse(result["ok"])
         self.assertIn("references/14-deterministic-verification.md", result["undescribed_files"])
+
+    def test_incomplete_plugin_core_cannot_fall_back_to_a_legacy_duplicate(self):
+        self.move_core()
+        shutil.copytree(self.core, self.repo / "anti-dark-code")
+        (self.core / "VERSION").unlink()
+        self.fixture.commit_all(self.repo, "incomplete plugin with a valid legacy copy")
+        self.git("tag", "incomplete-plugin")
+        result = adc.release_check(self.repo, "incomplete-plugin", previous_tag="old-layout")
+        self.assertFalse(result["ok"])
+        self.assertIn("distributable core", " ".join(result["errors"]))
+
+    def test_metadata_checks_treat_windows_junctions_as_redirects(self):
+        self.move_core()
+        redirect = self.repo / ".claude-plugin"
+        with mock.patch.object(Path, "is_junction", lambda path: path == redirect):
+            errors = packaging.validate_package(self.repo)
+        self.assertTrue(any("metadata path must not traverse links" in error for error in errors))
 
     def test_tag_metadata_is_checked_instead_of_working_tree(self):
         self.move_core()

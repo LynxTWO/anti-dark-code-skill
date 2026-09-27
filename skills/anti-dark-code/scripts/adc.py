@@ -2291,7 +2291,7 @@ def changelog_section(text: str, version: str) -> str | None:
 def distribution_core(repo: Path) -> Path:
     """New plugin source layout, with read compatibility for historical tags."""
     core = repo / "skills" / "anti-dark-code"
-    return core if (core / "VERSION").is_file() else repo / "anti-dark-code"
+    return core if core.exists() or (repo / "plugin.json").exists() else repo / "anti-dark-code"
 
 
 def load_packaging_helper() -> Any:

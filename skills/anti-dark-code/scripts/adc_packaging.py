@@ -66,6 +66,10 @@ def metadata(version: str) -> dict[str, dict]:
     }
 
 
+def linklike(path: Path) -> bool:
+    return path.is_symlink() or path.is_junction()
+
+
 def validate_package(repo: Path) -> list[str]:
     repo = repo.resolve()
     errors = []
@@ -74,7 +78,7 @@ def validate_package(repo: Path) -> list[str]:
         return ["missing discoverable skills/anti-dark-code/SKILL.md"]
     if (repo / "anti-dark-code").exists():
         errors.append("legacy anti-dark-code/ would duplicate the canonical core")
-    if any(path.is_symlink() for path in (repo / "skills", core)):
+    if any(linklike(path) for path in (repo / "skills", core)):
         errors.append("plugin skill paths must be real directories")
     try:
         expected = metadata((core / "VERSION").read_text(encoding="utf-8").strip())
@@ -82,7 +86,7 @@ def validate_package(repo: Path) -> list[str]:
         return errors + ["missing or invalid canonical VERSION"]
     for relative, wanted in expected.items():
         path = repo / relative
-        if path.is_symlink() or any(parent.is_symlink() for parent in path.parents if parent.is_relative_to(repo) and parent != repo):
+        if linklike(path) or any(linklike(parent) for parent in path.parents if parent.is_relative_to(repo) and parent != repo):
             errors.append(f"{relative}: metadata path must not traverse links")
             continue
         try:
@@ -141,7 +145,7 @@ def main() -> int:
             for part in (path, *path.parents):
                 if part == repo:
                     break
-                if part.is_symlink():
+                if linklike(part):
                     parser.error(f"refusing linked metadata destination: {relative}")
         for relative, value in expected.items():
             path = repo / relative
