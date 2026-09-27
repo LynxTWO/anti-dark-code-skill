@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Add the owner-selected Illuminated code artwork in GitHub-profile-inspired black and gold to Codex plugin and skill metadata, including a simplified composer icon. Keep editable SVG and PNG exports together; treat PNGs as binary across platforms and reject packages with missing or linked artwork. This is pending the next plugin release; published unified.16 assets remain unchanged.
+
+- Add the approved progressive frost to website and screen-brief navigation. Decorative inert snapshots blur only within the narrow navigation strip, with scroll/resize synchronization, opaque accessibility fallbacks and print exclusion. Published unified.16 release assets remain unchanged.
+
 ## 2026.09.27-unified.16
 
 - Apply the approved glass visual direction to the website and screen brief: frosted navigation, rounded opaque reading surfaces, accessible fallbacks and visible workflow/PDF/support links. Keep the seven-page PDF crisp with matching rounded components and refreshed provenance.

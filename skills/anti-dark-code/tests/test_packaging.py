@@ -106,6 +106,14 @@ class PluginPackagingTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 packaging.plugin_version(invalid)
 
+    def test_missing_or_redirected_artwork_is_rejected(self):
+        self.move_core()
+        path = self.core / "assets" / "brand" / "illuminated-code.png"
+        with mock.patch.object(Path, "is_junction", lambda part: part == path.parent):
+            self.assertIn("artwork path must not traverse links", " ".join(packaging.validate_package(self.repo)))
+        path.unlink()
+        self.assertIn("missing plugin artwork", " ".join(packaging.validate_package(self.repo)))
+
     def test_optional_host_checks_report_unavailable_and_failures(self):
         with mock.patch.object(packaging.shutil, "which", return_value=None):
             results = packaging.check_hosts(self.repo)

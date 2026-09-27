@@ -1,6 +1,9 @@
 interface:
   display_name: "Anti-Dark Code"
   short_description: "Map code truth and build deterministic verification"
+  icon_small: "./assets/brand/illuminated-code-small.png"
+  icon_large: "./assets/brand/illuminated-code.png"
+  brand_color: "#C6A052"
   default_prompt: "Use $anti-dark-code for the requested outcome and scope. Select the matching task card, reuse checked evidence, perform authorized work, and report verification and coverage limits."
 
 policy:

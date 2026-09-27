@@ -2,12 +2,12 @@
   "schema_version": 1,
   "version": "2026.09.27-unified.16",
   "generator": "Playwright 1.62.1 / Chromium 151.0.7922.34 on macOS arm64",
-  "source_sha256": "8de6749fe58c61cac1e218af20fffeb4ddf78601aca03dc282aecabe65b8456c",
+  "source_sha256": "efeb904829564719a72619c9fd0123cf276965a1fc4af0bad1cc1c77b20684ca",
   "pdf_sha256": "e0870a6e7ed3b94edc9edf157dc63cf1f9f9587d3695e52c92022725a05bd7d9",
   "normalized_pdf_sha256": "c6c647dc7457ddc4be286c25c8e4c10f35a178e8886bd6855c124588f36d6ee7",
   "validated_with": {
     "page_count": 7,
     "version": "2026.09.27-unified.16",
-    "text": "Visually reviewed all seven Poppler-rendered pages after the approved glass refresh; print retains opaque rounded components. Confirmed version, six named PDF destinations and content/footer separation. Thirty-two website/brief viewport and theme cases passed, including 320px; reduced-transparency and forced-color fallbacks passed. A second PDF render matched the normalized digest."
+    "text": "Progressive-frost screen update: seven print pages, all seven named destinations and content/footer separation verified. Two fresh PDF renders match the published PDF after timestamp normalization, so the original PDF bytes are preserved. Sixty-four Chromium/WebKit website and brief viewport/theme cases passed, including 320px, with 256 scroll-alignment checks. Reduced-transparency, contrast, forced-color, no-JavaScript and print fallbacks passed."
   }
 }

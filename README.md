@@ -44,13 +44,12 @@ fixture behavior from measured assistant behavior.
 
 The [skill core](skills/anti-dark-code/SKILL.md) defines the workflow and safety contract. Older numbered reference names remain compatibility entry points, not an order every engagement must follow.
 
-## Plugin packaging (unreleased)
+## Plugin packaging
 
-The next packaging update moves the universal source to `skills/anti-dark-code/`
-and adds Agent Plugins, Codex, Claude Code and Gemini CLI manifests. See
+Unified.16 packages the universal source under `skills/anti-dark-code/`
+with Agent Plugins, Codex, Claude Code and Gemini CLI manifests. See
 [PLUGINS.md](PLUGINS.md) for pinned installation, compatibility and validation.
-The version above still identifies the latest published standalone release;
-its archive uses the older `anti-dark-code/` source path.
+Older unified.15 archives use the `anti-dark-code/` source path.
 
 ## Start from a reviewed release
 

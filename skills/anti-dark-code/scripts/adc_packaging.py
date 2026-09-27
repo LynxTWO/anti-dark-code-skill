@@ -41,6 +41,9 @@ def metadata(version: str) -> dict[str, dict]:
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
         "websiteURL": REPOSITORY,
+        "brandColor": "#C6A052",
+        "composerIcon": "./skills/anti-dark-code/assets/brand/illuminated-code-small.png",
+        "logo": "./skills/anti-dark-code/assets/brand/illuminated-code.png",
         "defaultPrompt": ["Use anti-dark-code to map this repository and identify the next useful checks."],
     }
     return {
@@ -96,6 +99,14 @@ def validate_package(repo: Path) -> list[str]:
             continue
         if actual != wanted:
             errors.append(f"{relative}: metadata differs from VERSION or the declared skill-only package")
+    interface = expected[".codex-plugin/plugin.json"]["interface"]
+    for field in ("composerIcon", "logo"):
+        relative = interface[field]
+        path = repo / relative
+        if any(linklike(part) for part in (path, *path.parents) if part.is_relative_to(repo) and part != repo):
+            errors.append(f"{relative}: artwork path must not traverse links")
+        elif not path.is_file():
+            errors.append(f"{relative}: missing plugin artwork")
     return errors
 
 

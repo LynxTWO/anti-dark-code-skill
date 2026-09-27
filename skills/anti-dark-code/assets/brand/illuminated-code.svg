@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Anti-Dark-Code illuminated code</title>
+  <defs>
+    <linearGradient id="tile" x1="32" y1="0" x2="214" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#29251F"/><stop offset="1" stop-color="#090B0E"/></linearGradient>
+    <linearGradient id="beam" x1="154" y1="55" x2="98" y2="201" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF7D9"/><stop offset=".45" stop-color="#EAC572"/><stop offset="1" stop-color="#AD7624"/></linearGradient>
+    <linearGradient id="glass" x1="60" y1="18" x2="180" y2="200" gradientUnits="userSpaceOnUse"><stop stop-color="#E4C985" stop-opacity=".19"/><stop offset="1" stop-color="#E4C985" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect x="4" y="4" width="248" height="248" rx="57" fill="url(#tile)"/>
+  <rect x="5.5" y="5.5" width="245" height="245" rx="55.5" stroke="#D9B763" stroke-opacity=".26" stroke-width="3"/>
+  <path d="M61 24h134a37 37 0 0 1 37 37v39C151 111 91 134 24 181V61a37 37 0 0 1 37-37Z" fill="url(#glass)"/>
+  <path d="m84 85-41 43 41 43m88-86 41 43-41 43" stroke="#D9B566" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m144 55 22 7-56 139-22-7z" fill="url(#beam)"/>
+  <path d="m145 59-53 135" stroke="white" stroke-opacity=".65" stroke-width="3" stroke-linecap="round"/>
+</svg>
