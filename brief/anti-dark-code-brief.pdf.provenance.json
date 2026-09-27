@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "version": "2026.09.15-unified.15",
-  "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Linux",
-  "source_sha256": "c984157ce78bbf3ed1e3afd57fc84bedec8ed717b8d311152875ded71bc98672",
-  "pdf_sha256": "367c041e5b0783e13b6653061abee1c862b36adaae827366ea261d6dfb44bfc9",
-  "normalized_pdf_sha256": "6c557613f196c57cda541e38bc6195ea399967a8eacf5b422c9d864cce875150",
+  "version": "2026.09.27-unified.16",
+  "generator": "Playwright 1.62.1 / Chromium 151.0.7922.34 on macOS arm64",
+  "source_sha256": "ab7e0f640e21acd3b5e978134b32f64b061e6172981381924351b74a1fdfff65",
+  "pdf_sha256": "d2de81f198398eb82d06a1b18f2b7bbe42dcfa844576b385617863eb43c67b93",
+  "normalized_pdf_sha256": "6c4c9be7df0860c5104b284919a5533a960788de806e90f75c47c9fe08d77ed4",
   "validated_with": {
     "page_count": 7,
-    "version": "2026.09.15-unified.15",
-    "text": "Poppler verified seven pages, the current version and consistent page margins. Visually reviewed all seven pages; browser checks covered desktop/mobile system themes and explicit light/dark overrides. Contents links resolve in HTML and the PDF."
+    "version": "2026.09.27-unified.16",
+    "text": "Visually reviewed all seven Poppler-rendered pages. Confirmed version, six named PDF link destinations and content/footer separation. Eight desktop/mobile system and explicit theme scenarios had no overflow or broken HTML anchors. A second render matched the normalized PDF digest."
   }
 }

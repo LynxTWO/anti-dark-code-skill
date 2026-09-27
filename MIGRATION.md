@@ -16,7 +16,7 @@ The safety rule is simple:
 
 Never use one repository's customized skill or calibration directory as the starting point for another repository.
 
-## Plugin source layout (unreleased unified.16 work)
+## Plugin source layout (unified.16 and later)
 
 New source packages place the universal core at `skills/anti-dark-code/`.
 Existing unified.15 and older release archives keep `anti-dark-code/`. When

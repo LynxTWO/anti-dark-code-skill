@@ -135,7 +135,7 @@ The [contribution guide](CONTRIBUTING.md) contains exact commands and issue-form
 
 ## Plugin metadata
 
-The unreleased plugin package is described in [PLUGINS.md](PLUGINS.md). Check its
+The plugin package is described in [PLUGINS.md](PLUGINS.md). Check its
 six metadata files with `python3 -B skills/anti-dark-code/scripts/adc_packaging.py
 --repo .`; use `--write` only to regenerate them from the canonical VERSION and
 reviewed metadata. This does not install or publish a plugin. Record native host

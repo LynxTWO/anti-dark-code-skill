@@ -1,6 +1,6 @@
 # Plugin packaging
 
-This packaging is unreleased work for unified.16. Published unified.15 archives
+Plugin packaging starts with unified.16. Published unified.15 archives
 still use the older `anti-dark-code/` source path and do not include these plugin
 manifests. Do not point a plugin installation at a pre-packaging tag.
 
@@ -30,20 +30,20 @@ calibration and an opted-in usage ledger are separate from that discovery choice
 
 ## Install a reviewed package
 
-Until the packaging release is published, use a reviewed local checkout only for
-testing. After publication, replace `<packaged-tag>` below with the actual release
-tag and verify its archive/digest using the release instructions. Pin the catalog
+Use the published `v2026.09.27-unified.16` tag and verify its archive/digest using
+the release instructions. Development checkouts are for local testing. Pin the catalog
 checkout itself; the catalog's local source then resolves inside that same revision.
 
 Codex can register a pinned Git marketplace:
 
 ```sh
-codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref <packaged-tag>
+codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref v2026.09.27-unified.16
 ```
 
 Install Anti-Dark-Code from that marketplace in the desktop app and test discovery
 in a new chat. For a local test, `codex plugin marketplace add /path/to/checkout`
 registers that checkout; registration alone is not installation or runtime proof.
+The installed Codex skill is namespaced as `anti-dark-code:anti-dark-code`.
 
 Claude Code can add the marketplace from a clean checkout of the reviewed tag:
 
@@ -96,6 +96,17 @@ JSON/schema validation.
 Then complete the usual version/changelog/brief provenance updates and the tagged
 `release-check` described in OPERATIONS.md. Publishing a tag, GitHub release or
 skill-registry entry is a separate release action.
+
+## Native host checks for unified.16
+
+On macOS arm64, the unified.16 core installed through Codex CLI
+0.158.0-alpha.2.1, Claude Code 2.1.283 and Gemini CLI 0.61.0. A fresh Codex
+app-server `skills/list` returned the enabled plugin skill with no loader errors;
+Gemini's `skills list` and `extensions list` found the enabled extension skill.
+Claude's strict manifest validator and native plugin installation/listing passed.
+These are installation and discovery observations, not model activation-rate or
+task-quality measurements. Native host checks on Windows and Linux remain
+unmeasured; cross-platform Python CI validates the core tools separately.
 
 ## Sources
 
