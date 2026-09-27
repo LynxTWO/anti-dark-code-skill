@@ -17,7 +17,9 @@
 
 Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
-**Version**: `2026.09.15-unified.15` (see [release history](CHANGELOG.md)).
+**Version**: `2026.09.27-unified.16` (see [release history](CHANGELOG.md)).
+
+Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 

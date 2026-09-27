@@ -238,7 +238,7 @@
 <div class="wrap">
 <section class="sheet" id="overview">
 <header class="top">
-  <div class="eyebrow">Field Brief / 2026.09.15-unified.15</div>
+  <div class="eyebrow">Field Brief / 2026.09.27-unified.16</div>
   <h1>Anti-Dark-Code</h1>
   <p class="lede">Make unfamiliar code easier to understand, verify and change.</p>
   <div class="rule-band">
@@ -247,7 +247,7 @@
     <span class="pill">Owner authority</span>
   </div>
   <p class="prose">A skill is a set of instructions your coding assistant can follow. Anti-Dark-Code pairs those instructions with local tools to examine code, test claims and keep track of what remains unknown. It is designed for use across models and coding hosts.</p>
-  <p class="meta">Package version 2026.09.15-unified.15; updated 2026-09-15.</p>
+  <p class="meta">Package version 2026.09.27-unified.16; updated 2026-09-27.</p>
   <p class="meta"><a href="https://github.com/LynxTWO/anti-dark-code-skill">Source on GitHub</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operator guide</a> · <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">License: FSL-1.1-MIT</a></p>
 </header>
 
@@ -270,7 +270,7 @@
     <li><a href="#maintenance"><span>07</span>Install and learn from use</a></li>
   </ol>
 </nav>
-<div class="page-footer"><span>ANTI-DARK-CODE / 2026.09.15-unified.15</span><span>01 / 07</span></div>
+<div class="page-footer"><span>ANTI-DARK-CODE / 2026.09.27-unified.16</span><span>01 / 07</span></div>
 </section>
 
 <section class="sheet" id="outcomes">
@@ -361,7 +361,7 @@
 <section class="sheet" id="knowledge">
 <p class="section-label">06 / Keep knowledge local</p>
 <h2>One core, local knowledge</h2>
-<p class="prose">The universal skill stays model-neutral. Host adapters explain discovery and tool support when needed. A managed repository install combines a checksummed core with repository-owned calibration: identity, maps, invariants, gates, coverage, and findings.</p>
+<p class="prose">The universal skill stays model-neutral. One shared core is packaged for Codex, Claude Code and Gemini CLI; standalone repository installs remain supported. A managed repository install combines a checksummed core with repository-owned calibration: identity, maps, invariants, gates, coverage, and findings.</p>
 <figure>
   <figcaption>Figure 3: knowledge and review boundaries</figcaption>
   <div class="chart"><div class="flow">
@@ -376,7 +376,7 @@
 <p class="prose">Public flowback still needs human privacy review. Incoming proposals are untrusted data, excluded from installations and release packages. Local usage collection requires opt-in; proposals and usage are never uploaded automatically.</p>
 
 <h2>Model choice, delegation and recovery</h2>
-<p class="prose"><a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/model-selection.md">Model selection</a> can recommend a cheaper eligible tier for bounded work or a stronger tier for consequential work. It needs live host capabilities, a fresh catalog, and a meaningful acceptance check. Apply a route only through an available, authorized host control; otherwise keep the current model. Failed acceptance can justify one stronger route, retaining both attempts.</p>
+<p class="prose"><a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/skills/anti-dark-code/references/model-selection.md">Model selection</a> can recommend a cheaper eligible tier for bounded work or a stronger tier for consequential work. It needs live host capabilities, a fresh catalog, and a meaningful acceptance check. Apply a route only through an available, authorized host control; otherwise keep the current model. Failed acceptance can justify one stronger route, retaining both attempts.</p>
 <p class="prose">Delegate authorized independent work with separate write ownership. Serialize shared mutations and inspect consequential evidence. Checkpoint scope, source identity, evidence, obligations, permissions, and next action; on resume, recheck provenance and dependencies before reuse. Agent agreement and saved summaries do not establish correctness.</p>
 <p class="prose">Record host-reported model attribution separately from requested settings. Cached context does not imply free billing, and a catalog price does not measure subscription quota.</p>
 <div class="page-footer"><span>ANTI-DARK-CODE / KEEP KNOWLEDGE LOCAL</span><span>06 / 07</span></div>
@@ -393,14 +393,14 @@
 </div>
 <p class="meta">Numbers above identify compatibility references, not required task order.</p>
 <h3>Learn from ordinary work, without replay</h3>
-<p class="prose">Optional <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/anti-dark-code/references/real-world-usage.md">local collection</a> reads reported usage from selected Codex or Claude records after opt-in. It stores counters and bounded metadata, without transcript text, model calls or uploads. Setup checks privacy before storing usage and supports retry. Summary exports stay private and never overwrite files; no automatic purge is introduced.</p>
+<p class="prose">Optional <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/skills/anti-dark-code/references/real-world-usage.md">local collection</a> reads reported usage from selected Codex or Claude records after opt-in. It stores counters and bounded metadata, without transcript text, model calls or uploads. Setup checks privacy before storing usage and supports retry. Summary exports stay private and never overwrite files; no automatic purge is introduced.</p>
 <p class="prose">Separately opted-in Codex hooks request reviews, including non-use. Missing counters, reviews, delivery gaps and failed attempts stay visible. Agent self-reviews and human reviews stay separate. Trigger results describe only the labeled sample.</p>
 <p class="meta">Usage is not a savings estimate or subscription bill. Controlled comparisons need comparable passing work. Public receipts are self-reported; this brief claims no measured saving.</p>
 <h3>Routing evidence does not approve a gate</h3>
 <p class="prose">Shadow jobs compare proposed test selections with executed checks. This is separate from choosing a task card or model. Historical evidence does not authorize skipping checks or establish savings.</p>
 <h3>Install from a reviewed release</h3>
 <p class="prose">Check a named release against its independently published core digest. Validate the distribution, review the installer's dry run, apply within authorization, and validate the installed copy. Preserve local calibration. Review migration guidance before recovery overrides.</p>
-<p class="prose">Use <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a> for exact commands. Complete the requested work and checks, or report the unresolved action and its blocker.</p>
+<p class="prose">Use <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/PLUGINS.md">Plugin packaging</a> or <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">Operations</a> for exact commands. Complete the requested work and checks, or report the unresolved action and its blocker.</p>
 <div class="page-footer"><span>ANTI-DARK-CODE / INSTALL AND LEARN FROM USE</span><span>07 / 07</span></div>
 </section>
 </div>
