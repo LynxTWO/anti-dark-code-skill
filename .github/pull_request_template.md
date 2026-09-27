@@ -17,7 +17,7 @@ Describe the smallest behavior or guidance change and why it is needed.
 
 ## Public proposal attestation
 
-Complete these when adding a file under `anti-dark-code/incoming/`:
+Complete these when adding a file under `skills/anti-dark-code/incoming/`:
 
 - [ ] This PR adds exactly one generated `flowback-*.md` file and no unrelated changes.
 - [ ] I opened the proposal as plain text and reviewed every line before pushing it.

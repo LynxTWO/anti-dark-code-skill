@@ -50,7 +50,7 @@
       "id": "full-suite",
       "enabled": true,
       "review_status": "approved",
-      "note": "pytest anti-dark-code/tests on ubuntu, macos, windows"
+      "note": "pytest skills/anti-dark-code/tests on ubuntu, macos, windows"
     },
     {
       "id": "distribution",
