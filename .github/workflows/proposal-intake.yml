@@ -3,7 +3,7 @@ name: Proposal intake
 on:
   pull_request_target:
     paths:
-      - "anti-dark-code/incoming/**"
+      - "skills/anti-dark-code/incoming/**"
       - ".github/workflows/proposal-intake.yml"
 
 permissions:
@@ -59,9 +59,9 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          python3 -B trusted-base/anti-dark-code/scripts/adc.py validate-incoming \
+          python3 -B trusted-base/skills/anti-dark-code/scripts/adc.py validate-incoming \
             --repo candidate \
-            --skill candidate/anti-dark-code \
+            --skill candidate/skills/anti-dark-code \
             --changed-from "$BASE_SHA" \
             --proposal-only \
             --public-only
@@ -73,8 +73,8 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          python3 -B trusted-base/anti-dark-code/scripts/adc.py validate-incoming \
+          python3 -B trusted-base/skills/anti-dark-code/scripts/adc.py validate-incoming \
             --repo candidate \
-            --skill candidate/anti-dark-code \
+            --skill candidate/skills/anti-dark-code \
             --changed-from "$BASE_SHA" \
             --public-only

@@ -26,7 +26,7 @@ from unittest import mock
 tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = SKILL_ROOT.parent
+REPO_ROOT = SKILL_ROOT.parents[1]
 CAPABILITIES = SKILL_ROOT / "assets" / "verification-capabilities.json"
 
 
@@ -3422,6 +3422,29 @@ class ReplayStructuredEvidenceTests(unittest.TestCase):
         self.assertEqual("SURVIVED",
                          harness.derive_verdict([caught, missing_identity]))
 
+    def test_packaging_move_preserves_exact_historical_skip_attribution(self) -> None:
+        harness = self._harness("adc_replay_packaging_nodeids")
+        old = "anti-dark-code/tests/test_route.py::Cases::test_symlink[link]"
+        new = f"skills/{old}"
+        for failed, skipped in ((new, old), (old, new)):
+            caught = {"platform": "Linux", "verdict": "caught", "skipped": 0,
+                      "failed_nodeids": [failed], "skipped_nodeids": []}
+            survivor = {"platform": "Windows", "verdict": "SURVIVED", "skipped": 1,
+                        "failed_nodeids": [], "skipped_nodeids": [skipped]}
+            records = [caught, survivor]
+            before = json.dumps(records, sort_keys=True)
+            self.assertEqual("caught elsewhere", harness.derive_verdict(records))
+            self.assertEqual(before, json.dumps(records, sort_keys=True))
+            self.assertEqual("SURVIVED", harness.derive_verdict(
+                [caught, {**survivor, "skipped": 0}]))
+            for unrelated in (skipped.replace("[link]", "[other]"),
+                              skipped.replace("Cases::", "OtherCases::"),
+                              skipped.replace("test_route.py", "test_other.py"),
+                              f"other/{skipped}", f"./{skipped}"):
+                with self.subTest(unrelated=unrelated):
+                    self.assertEqual("SURVIVED", harness.derive_verdict(
+                        [caught, {**survivor, "skipped_nodeids": [unrelated]}]))
+
     def test_replay_collects_exact_failed_and_skipped_nodeids(self) -> None:
         """D-104. Pytest identities, not summary counts, carry host limits."""
         harness = self._harness("adc_replay_exact_outcome_collection")
@@ -5545,6 +5568,23 @@ class SelfGradingAuthorityTests(unittest.TestCase):
             self.assertTrue(expected_entries <= actual,
                             sorted(expected_entries - actual))
 
+    def test_packaging_keeps_existing_consumer_policy_loadable(self) -> None:
+        # The installer preserves calibration. A new package-only path must not
+        # make the previously valid consumer policy unusable after an upgrade.
+        data = json.loads(json.dumps(self.policy_source))
+        data["classifier"]["surfaces"] = [entry for entry in data["classifier"]["surfaces"]
+            if entry.get("glob") != "skills/anti-dark-code/SOURCE-SCOPE.json"]
+        for rule in data["rules"]:
+            rule["review_status"] = "approved"
+        policy = self.route.load_policy(data, self.gates_source, sorted(CAPABILITY_IDS),
+                                        self.gates_source["canonical_full_set"])
+        for path in ("anti-dark-code/scripts/adc.py", "skills/anti-dark-code/scripts/adc.py",
+                     ".agents/skills/anti-dark-code/scripts/adc.py"):
+            with self.subTest(path=path):
+                self.assertTrue(self._route_for(path, policy).force_full)
+        self.assertTrue(self._route_for("skills/anti-dark-code/SOURCE-SCOPE.json",
+                                      self._approved_policy()).force_full)
+
     def test_every_self_grading_path_class_forces_the_full_recipe(self) -> None:
         policy = self._approved_policy()
         demoted = []
@@ -5828,7 +5868,7 @@ class SelfGradingAuthorityTests(unittest.TestCase):
         # from the list entirely.
         probed = {path for _, path in self.route._self_grading_guard_paths()}
         for leaf in ("gates.json", "routing-policy.json"):
-            path = f"anti-dark-code/assets/templates/calibration/{leaf}"
+            path = f"skills/anti-dark-code/assets/templates/calibration/{leaf}"
             self.assertIn(path, probed)
             self.assertTrue((REPO_ROOT / path).is_file())
 
@@ -6513,7 +6553,7 @@ class WorkflowParallelContractTests(unittest.TestCase):
         self.assertRegex(parallel, r"(?m)^pytest-xdist==[0-9.]+$")
         self.assertRegex(serial, r"(?m)^pytest==[0-9.]+$")
         self.assertNotIn("pytest-xdist", serial)
-        self.assertGreaterEqual(text.count("python -m pytest anti-dark-code/tests -q -n auto"), 2)
+        self.assertGreaterEqual(text.count("python -m pytest skills/anti-dark-code/tests -q -n auto"), 2)
         shards = self._shard_block()
         self.assertIn("fail-fast: false", shards)
         self.assertIn("timeout-minutes: 25", shards)
@@ -6695,7 +6735,7 @@ class MutationMatrixIntegrityTests(unittest.TestCase):
     def test_every_row_names_a_suite_that_exists(self) -> None:
         unknown = []
         for row in self.rows:
-            for path in row.get("suite", ["anti-dark-code/tests/test_route.py"]):
+            for path in row.get("suite", ["skills/anti-dark-code/tests/test_route.py"]):
                 if not (REPO_ROOT / path).is_file():
                     unknown.append(f"{row['id']} names a missing suite: {path}")
         self.assertEqual([], unknown, "; ".join(unknown))

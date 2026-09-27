@@ -92,6 +92,12 @@
         "breadth": "repository"
       },
       {
+        "glob": "skills/anti-dark-code/SOURCE-SCOPE.json",
+        "surface": "schema",
+        "effect": "verification-authority",
+        "breadth": "repository"
+      },
+      {
         "glob": "anti-dark-code/SOURCE-SCOPE.json",
         "surface": "schema",
         "effect": "verification-authority",

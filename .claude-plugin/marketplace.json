@@ -1,0 +1,15 @@
+{
+  "name": "anti-dark-code",
+  "description": "Evidence-based architecture review, code audits, verification, and authorized improvements.",
+  "owner": {
+    "name": "LynxTWO",
+    "url": "https://github.com/LynxTWO"
+  },
+  "plugins": [
+    {
+      "name": "anti-dark-code",
+      "source": "./",
+      "description": "Evidence-based architecture review, code audits, verification, and authorized improvements."
+    }
+  ]
+}

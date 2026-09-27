@@ -25,22 +25,30 @@ One model-neutral skill works with local deterministic tooling and optional repo
 
 | Request | Task |
 | --- | --- |
-| What runs here, and what is unknown? | [Understand](anti-dark-code/references/tasks/understand.md) |
-| Audit logging, concurrency, test strength or readiness | [Investigate](anti-dark-code/references/tasks/investigate.md) |
-| Explain this critical path without changing behavior | [Document](anti-dark-code/references/tasks/document.md) |
-| Establish or improve the checks for this change/repository | [Verify](anti-dark-code/references/tasks/verify.md) |
-| Fix these supported findings | [Remediate](anti-dark-code/references/tasks/remediate.md) |
-| Build or carry improvements through acceptance | [Improve](anti-dark-code/references/tasks/improve.md) |
+| What runs here, and what is unknown? | [Understand](skills/anti-dark-code/references/tasks/understand.md) |
+| Audit logging, concurrency, test strength or readiness | [Investigate](skills/anti-dark-code/references/tasks/investigate.md) |
+| Explain this critical path without changing behavior | [Document](skills/anti-dark-code/references/tasks/document.md) |
+| Establish or improve the checks for this change/repository | [Verify](skills/anti-dark-code/references/tasks/verify.md) |
+| Fix these supported findings | [Remediate](skills/anti-dark-code/references/tasks/remediate.md) |
+| Build or carry improvements through acceptance | [Improve](skills/anti-dark-code/references/tasks/improve.md) |
 
 A comprehensive audit combines Understand, Investigate and Verify under an explicit coverage contract. A focused request stays focused. Installation, inline documentation, remediation and publication are separate scopes; a one-off report requires no permanent installation.
 
-For product work, the [quality tests](anti-dark-code/references/quality-tests.md) and
-[product principles](anti-dark-code/references/product-principles.md) add relevant
+For product work, the [quality tests](skills/anti-dark-code/references/quality-tests.md) and
+[product principles](skills/anti-dark-code/references/product-principles.md) add relevant
 user journeys, consent, accessible interaction, recovery and data-control checks.
 The [versioned evaluation set](design/evals/product-v1/README.md) distinguishes
 fixture behavior from measured assistant behavior.
 
-The [skill core](anti-dark-code/SKILL.md) defines the workflow and safety contract. Older numbered reference names remain compatibility entry points, not an order every engagement must follow.
+The [skill core](skills/anti-dark-code/SKILL.md) defines the workflow and safety contract. Older numbered reference names remain compatibility entry points, not an order every engagement must follow.
+
+## Plugin packaging (unreleased)
+
+The next packaging update moves the universal source to `skills/anti-dark-code/`
+and adds Agent Plugins, Codex, Claude Code and Gemini CLI manifests. See
+[PLUGINS.md](PLUGINS.md) for pinned installation, compatibility and validation.
+The version above still identifies the latest published standalone release;
+its archive uses the older `anti-dark-code/` source path.
 
 ## Start from a reviewed release
 
@@ -52,13 +60,13 @@ An instruction you can give your assistant:
 
 [Operations](OPERATIONS.md) gives the source, dry-run and validation procedure. The installer refuses dirty/untagged Git sources and unsafe calibration by default. Recovery overrides require deliberate review and are never defaults.
 
-The canonical repository copy is .agents/skills/anti-dark-code/. [Host adapters](anti-dark-code/references/host-adapters.md) explain discovery and tools for Claude Code, Codex, Gemini CLI and other harnesses. Host capabilities vary; verify the active session's discovery rather than assuming a copied directory was loaded.
+The canonical repository copy is .agents/skills/anti-dark-code/. [Host adapters](skills/anti-dark-code/references/host-adapters.md) explain discovery and tools for Claude Code, Codex, Gemini CLI and other harnesses. Host capabilities vary; verify the active session's discovery rather than assuming a copied directory was loaded.
 
 ## What the evidence means
 
 Confidence labels are verified, inferred and unknown. A source file can verify what is configured; live behavior needs an authorized observation with its inputs and environment. A passing check proves only its scope. Unexecuted checks, missing runtime access, scanner limits and deferred coverage remain visible.
 
-The tools provide bounded profiling, [capability planning](anti-dark-code/references/verification-capabilities.md), change-to-verification routing, reviewed gate execution, compact summaries, failure packets, source/binding validation and proposal staging. A narrow task may use only relevant capability obligations without claiming a complete repository plan. Agent agreement never replaces a behavioral oracle.
+The tools provide bounded profiling, [capability planning](skills/anti-dark-code/references/verification-capabilities.md), change-to-verification routing, reviewed gate execution, compact summaries, failure packets, source/binding validation and proposal staging. A narrow task may use only relevant capability obligations without claiming a complete repository plan. Agent agreement never replaces a behavioral oracle.
 
 Existing authorization persists within scope. Generated approval booleans are not owner permission. Gate execution requires the applicable command/source review and execution confirmation; dry-run success alone does not mean tests ran.
 
@@ -72,15 +80,15 @@ Use [Operations](OPERATIONS.md) for install, migrate, cleanup, flowback, intake,
 
 ## Learn from ordinary work
 
-[Local usage collection](anti-dark-code/references/real-world-usage.md) is opt-in. Choose local Codex or Claude source roots and a private ledger, then collect reported counters from ordinary work after the opt-in time. Repeated collection passes deduplicate observed usage; they make no model calls, replay no tasks and upload nothing. The ledger retains numeric usage, bounded metadata and hashed identifiers, not transcript text. Missing counters and unsupported source formats stay visible.
+[Local usage collection](skills/anti-dark-code/references/real-world-usage.md) is opt-in. Choose local Codex or Claude source roots and a private ledger, then collect reported counters from ordinary work after the opt-in time. Repeated collection passes deduplicate observed usage; they make no model calls, replay no tasks and upload nothing. The ledger retains numeric usage, bounded metadata and hashed identifiers, not transcript text. Missing counters and unsupported source formats stay visible.
 
-Opted-in [routine task reviews](anti-dark-code/references/routine-task-review.md) connect Codex lifecycle hooks to private review tickets, including non-use and failed work. The working agent reports use, expectation, invocation and observed quality; missing labels and missing hook delivery remain visible. Agent self-reviews stay separate from human reviews. Trigger feedback describes only the labeled, eligible task sample. Natural usage across models does not establish savings, subscription spend or remaining quota.
+Opted-in [routine task reviews](skills/anti-dark-code/references/routine-task-review.md) connect Codex lifecycle hooks to private review tickets, including non-use and failed work. The working agent reports use, expectation, invocation and observed quality; missing labels and missing hook delivery remain visible. Agent self-reviews stay separate from human reviews. Trigger feedback describes only the labeled, eligible task sample. Natural usage across models does not establish savings, subscription spend or remaining quota.
 
-[Conditional model selection](anti-dark-code/references/model-selection.md) can suggest a cheaper eligible model for bounded work or a stronger tier for consequential work. It requires a meaningful acceptance check, current host capabilities and a fresh catalog. The helper returns a recommendation; the assistant applies it only through an available, authorized host control. Unknown requirements or unsupported controls keep the current model. A failed acceptance check can justify one stronger route with both attempts retained.
+[Conditional model selection](skills/anti-dark-code/references/model-selection.md) can suggest a cheaper eligible model for bounded work or a stronger tier for consequential work. It requires a meaningful acceptance check, current host capabilities and a fresh catalog. The helper returns a recommendation; the assistant applies it only through an available, authorized host control. Unknown requirements or unsupported controls keep the current model. A failed acceptance check can justify one stronger route with both attempts retained.
 
 ## Project and evidence
 
-[VERSION](anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [HTML overview](docs/index.html), [PDF brief](brief/anti-dark-code-brief.pdf) and [public site](https://lynxtwo.github.io/anti-dark-code-skill/) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
+[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [HTML overview](docs/index.html), [PDF brief](brief/anti-dark-code-brief.pdf) and [public site](https://lynxtwo.github.io/anti-dark-code-skill/) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
 
 Efficiency receipts remain a separate opt-in evidence workflow. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
 

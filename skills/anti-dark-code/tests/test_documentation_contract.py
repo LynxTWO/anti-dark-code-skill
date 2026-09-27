@@ -15,7 +15,7 @@ class DocumentationContractTests(unittest.TestCase):
 
     def test_local_markdown_links_resolve(self):
         paths = [ROOT / "SKILL.md", *sorted((ROOT / "references").rglob("*.md")),
-                 ROOT.parent / "README.md", ROOT.parent / "OPERATIONS.md"]
+                 ROOT.parents[1] / "README.md", ROOT.parents[1] / "OPERATIONS.md"]
         for path in paths:
             text = path.read_text(encoding="utf-8")
             # Check literal inline links, excluding example code fences.
@@ -26,7 +26,7 @@ class DocumentationContractTests(unittest.TestCase):
                 if parsed.scheme or target.startswith("#"):
                     continue
                 resolved = path.parent / unquote(parsed.path)
-                with self.subTest(path=path.relative_to(ROOT.parent).as_posix(), target=target):
+                with self.subTest(path=path.relative_to(ROOT.parents[1]).as_posix(), target=target):
                     self.assertTrue(resolved.exists(), f"Missing local link: {target}")
 
     def test_task_cards_and_product_frameworks_are_discoverable_from_core(self):

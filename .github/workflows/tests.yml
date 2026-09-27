@@ -58,7 +58,8 @@ jobs:
           # after an audit attempt is unaudited. Running the suite first leaves
           # __pycache__ in the skill tree, which this validator reports. Run it
           # against the pristine checkout, and use -B so it writes none itself.
-          python -B anti-dark-code/scripts/adc.py validate --skill anti-dark-code --mode universal
+          python -B skills/anti-dark-code/scripts/adc.py validate --skill skills/anti-dark-code --mode universal
+          python -B skills/anti-dark-code/scripts/adc_packaging.py --repo .
 
       - name: Run the deterministic suite
         shell: bash
@@ -68,7 +69,7 @@ jobs:
           # piping pytest into tail would report tail's status and a red suite
           # would read as green. See the shell exit-code contract in
           # references/14-deterministic-verification.md.
-          python -m pytest anti-dark-code/tests -q -n auto
+          python -m pytest skills/anti-dark-code/tests -q -n auto
 
   distribution:
     name: Clean distribution archive
@@ -95,8 +96,9 @@ jobs:
           # clean archive showed it. Extract the commit, not the checkout.
           extract="$(mktemp -d)"
           git archive HEAD | tar -x -C "$extract"
-          python -B "$extract/anti-dark-code/scripts/adc.py" \
-            validate --skill "$extract/anti-dark-code" --mode distribution
+          python -B "$extract/skills/anti-dark-code/scripts/adc.py" \
+            validate --skill "$extract/skills/anti-dark-code" --mode distribution
+          python -B skills/anti-dark-code/scripts/adc_packaging.py --repo "$extract"
 
   hostile-environment:
     name: Hostile environment (${{ matrix.label }})
@@ -159,7 +161,7 @@ jobs:
           # digest disagree with the archive it came from.
           git config core.autocrlf true
           python -c "import locale, sys, tempfile; print('locale', locale.getpreferredencoding(False)); print('fsenc', sys.getfilesystemencoding()); print('tmp', tempfile.gettempdir())"
-          python -m pytest anti-dark-code/tests -q -n auto
+          python -m pytest skills/anti-dark-code/tests -q -n auto
 
   mutation-replay-shards:
     # Linux is the required replay host, and this is the first time the
@@ -326,7 +328,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python -B anti-dark-code/scripts/adc.py shadow outcomes \
+          python -B skills/anti-dark-code/scripts/adc.py shadow outcomes \
             --map .github/shadow-gate-map.json \
             --run "${GITHUB_RUN_ID}" --attempt "${GITHUB_RUN_ATTEMPT}" \
             --out "${RUNNER_TEMP}/outcomes.json"
@@ -341,7 +343,7 @@ jobs:
         run: |
           set -euo pipefail
           # Written outside the tree, so the record is not a change of its own.
-          python -B anti-dark-code/scripts/adc.py shadow record \
+          python -B skills/anti-dark-code/scripts/adc.py shadow record \
             --repo . \
             --base "${BASE_SHA}" --base-sha "${BASE_SHA}" \
             --merge "${GITHUB_SHA}" --head "${HEAD_SHA}" \

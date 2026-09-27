@@ -62,7 +62,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 # The router file by default. A row may name its own suite, because a mutant
 # in one module proves nothing when the tests that hold it are never run, and
 # replaying every module for every row costs minutes per mutant to learn that.
-DEFAULT_SUITE = ("anti-dark-code/tests/test_route.py",)
+DEFAULT_SUITE = ("skills/anti-dark-code/tests/test_route.py",)
 # A worker runs its suite one directory above the owned clone root. Some real
 # tests deliberately launch detached helpers; inheriting a clone cwd would
 # leave a live handle that prevents the coordinator from proving clone cleanup.
@@ -994,6 +994,18 @@ def run_parallel(rows: list[dict], jobs: int, repo_root: Path) -> tuple[list[dic
     return results, cleanup
 
 
+def _comparable_nodeid(nodeid: str) -> str:
+    """Recognize the packaging move without rewriting recorded evidence.
+
+    Only this exact suite path moved. Test classes, names and parameter IDs
+    still have to match; arbitrary path spelling changes are not aliases.
+    """
+    path, separator, test = nodeid.partition("::")
+    if separator and path == "skills/anti-dark-code/tests/test_route.py":
+        return f"anti-dark-code/tests/test_route.py::{test}"
+    return nodeid
+
+
 def derive_verdict(results) -> str:
     """What the recorded host results add up to.
 
@@ -1030,12 +1042,15 @@ def derive_verdict(results) -> str:
     """
     caught = [r for r in results if r["verdict"] == "caught"]
     failed_elsewhere = {
-        nodeid for result in caught for nodeid in result.get("failed_nodeids", ())
+        _comparable_nodeid(nodeid)
+        for result in caught for nodeid in result.get("failed_nodeids", ())
     }
     for result in results:
         if result["verdict"] != "SURVIVED":
             continue
         skipped_nodeids = result.get("skipped_nodeids")
+        if isinstance(skipped_nodeids, list):
+            skipped_nodeids = [_comparable_nodeid(nodeid) for nodeid in skipped_nodeids]
         if not result.get("skipped") or not isinstance(skipped_nodeids, list) or \
                 not skipped_nodeids or failed_elsewhere.isdisjoint(skipped_nodeids):
             return "SURVIVED"

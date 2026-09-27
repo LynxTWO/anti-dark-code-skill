@@ -1,0 +1,34 @@
+{
+  "name": "anti-dark-code",
+  "version": "2026.9.15-unified.15",
+  "description": "Evidence-based architecture review, code audits, verification, and authorized improvements.",
+  "author": {
+    "name": "LynxTWO",
+    "url": "https://github.com/LynxTWO"
+  },
+  "homepage": "https://github.com/LynxTWO/anti-dark-code-skill",
+  "repository": "https://github.com/LynxTWO/anti-dark-code-skill",
+  "license": "FSL-1.1-MIT",
+  "keywords": [
+    "code-review",
+    "architecture",
+    "verification",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Anti-Dark-Code",
+    "shortDescription": "Review and improve code from evidence.",
+    "longDescription": "Map unfamiliar code, investigate supported findings, and verify authorized changes. Optional usage collection remains opt-in.",
+    "developerName": "LynxTWO",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/LynxTWO/anti-dark-code-skill",
+    "defaultPrompt": [
+      "Use anti-dark-code to map this repository and identify the next useful checks."
+    ]
+  }
+}

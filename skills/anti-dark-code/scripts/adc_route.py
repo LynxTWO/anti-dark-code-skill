@@ -861,32 +861,32 @@ _UNMAPPED = {
 # the representative rule: a classifier can distinguish exact paths, so every
 # reference that owns a pass is probed. See D-071 and D-091.
 ROUTING_OWNING_PASS_REFERENCES = (
-    "anti-dark-code/references/00-preflight.md",
-    "anti-dark-code/references/10-maintenance-harness.md",
-    "anti-dark-code/references/14-deterministic-verification.md",
+    "skills/anti-dark-code/references/00-preflight.md",
+    "skills/anti-dark-code/references/10-maintenance-harness.md",
+    "skills/anti-dark-code/references/14-deterministic-verification.md",
 )
 
 
 SELF_GRADING_PATHS: tuple[tuple[str, str], ...] = (
-    ("router code and Git interpretation", "anti-dark-code/scripts/adc_route.py"),
-    ("receipt authority", "anti-dark-code/scripts/adc_receipt.py"),
-    ("installer and distribution controls", "anti-dark-code/scripts/adc.py"),
-    ("capability catalog", "anti-dark-code/assets/verification-capabilities.json"),
+    ("router code and Git interpretation", "skills/anti-dark-code/scripts/adc_route.py"),
+    ("receipt authority", "skills/anti-dark-code/scripts/adc_receipt.py"),
+    ("installer and distribution controls", "skills/anti-dark-code/scripts/adc.py"),
+    ("capability catalog", "skills/anti-dark-code/assets/verification-capabilities.json"),
     ("gate configuration",
      ".agents/skills/anti-dark-code/calibration/gates.json"),
     ("routing policy",
      ".agents/skills/anti-dark-code/calibration/routing-policy.json"),
     ("shipped gate template",
-     "anti-dark-code/assets/templates/calibration/gates.json"),
+     "skills/anti-dark-code/assets/templates/calibration/gates.json"),
     ("shipped policy template",
-     "anti-dark-code/assets/templates/calibration/routing-policy.json"),
+     "skills/anti-dark-code/assets/templates/calibration/routing-policy.json"),
     ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[0]),
     ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[1]),
     ("routing-owning pass reference", ROUTING_OWNING_PASS_REFERENCES[2]),
     ("continuous integration", ".github/workflows/tests.yml"),
-    ("router tests", "anti-dark-code/tests/test_route.py"),
-    ("shared test support", "anti-dark-code/tests/test_adc.py"),
-    ("skill policy", "anti-dark-code/SKILL.md"),
+    ("router tests", "skills/anti-dark-code/tests/test_route.py"),
+    ("shared test support", "skills/anti-dark-code/tests/test_adc.py"),
+    ("skill policy", "skills/anti-dark-code/SKILL.md"),
 )
 
 
@@ -946,9 +946,11 @@ def _self_grading_guard_paths() -> tuple[tuple[str, str], ...]:
 
     for label, path in SELF_GRADING_PATHS:
         add(label, path)
-        if path.startswith("anti-dark-code/"):
+        if path.startswith("skills/anti-dark-code/"):
+            legacy = path.removeprefix("skills/")
+            add(f"{label}, legacy source", legacy)
             for prefix in INSTALLED_SKILL_PREFIXES:
-                add(f"{label}, installed under {prefix}", f"{prefix}{path}")
+                add(f"{label}, installed under {prefix}", f"{prefix}{legacy}")
         if CALIBRATION_MARKER in path:
             leaf = path.rsplit(CALIBRATION_MARKER, 1)[1]
             for root in CALIBRATION_ROOTS:

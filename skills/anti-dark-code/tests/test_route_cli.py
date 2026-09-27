@@ -22,7 +22,7 @@ from pathlib import Path
 tempfile.tempdir = str(Path(tempfile.gettempdir()).resolve())
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = SKILL_ROOT.parent
+REPO_ROOT = SKILL_ROOT.parents[1]
 ADC = SKILL_ROOT / "scripts" / "adc.py"
 TEMPLATE = SKILL_ROOT / "assets" / "templates" / "calibration" / "routing-policy.json"
 
