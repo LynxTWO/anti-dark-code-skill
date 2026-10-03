@@ -21,6 +21,7 @@ Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence
 - Bound stored and decoded or expanded bytes before parsing. Validate the complete object graph before republishing it.
 - Write completion markers after validation. Publish into an absent destination with the platform's proven atomic primitive.
 - Never replace a pre-existing destination by name alone. Require an ownership receipt that binds the exact tree.
+- When destination identity protects writes, bind them to a verified held directory handle or platform equivalent. Prove the actual child retains and uses that binding; test replacement or unmount after validation, including tools that recreate missing paths on another filesystem.
 - Write a recovery journal before moving an owned destination aside. Bind stage, backup, cleanup, and journal actions to one transaction token; validate publication before deleting backup.
 - Name the commit point. Cleanup, callbacks, reservation release, and diagnostics after it must not reclassify success as failure.
 - Preserve source and independent evidence on failure or cancellation. Remove only owned incomplete state.

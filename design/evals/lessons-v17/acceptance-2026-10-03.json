@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-03",
+  "scope": "Local reference changes and review artifacts; publication and consumer rollout deferred.",
+  "result": "passed with a pre-existing generic-helper limitation",
+  "source": {
+    "base_commit": "ea12d57b10430670dd67e26b7da3da8b9de6e59d",
+    "version": "2026.09.27-unified.16",
+    "changed_reference_sha256": {
+      "references/07-adversarial-review.md": "23e16671a45a4b6d6a0e06fc01992fe60524c07e87dd09df3f44442ab06a72d0",
+      "references/15-dogfeeding-flowback.md": "d2eb4adbd33eb40ec61ef6e533e8ff13043b5d20740347b5d68f9d330879f544",
+      "references/assurance-claim-proof.md": "32334e4462c854234a00ba93222ac4b8336f33301050796fa517821925366164",
+      "references/assurance-native-execution.md": "1910f4c4632afa11996b6cc8d5a6618c5ce6380675184c4644e4a4637e42bbad",
+      "references/assurance-preservation.md": "9305b60fbbfd691f3ea04bcaa68c98c115f1b737898db0ffa3cfd71ad3e2a165",
+      "references/assurance-runtime-boundaries.md": "0c846ea019d1a38f64ff20c380fe8292169b58abf6cc41698c89851bba9c17ee",
+      "references/host-claude-code.md": "0ec6eb1b6a263573d7e565e77a3b81833e476c9239eed58f207bb2963545c46f",
+      "references/orchestration-mode.md": "264178c3d845f6b6e3f049e0c97cce76558401fe41504c5898ed5cb75e20df77",
+      "references/specialist-process-verdicts.md": "4ccbd96e04024c28734d10503f1473ef5b6f3c24b33e6608ec6b715c15707c7e"
+    }
+  },
+  "checks": {
+    "unit_suite": {
+      "status": 0,
+      "tests": 748,
+      "skips": 5,
+      "duration_seconds": 156.364,
+      "python": "Python 3.14.4",
+      "pytest": "pytest 9.1.1",
+      "pinned_dependencies": "requirements-test.txt; pip check passed",
+      "skip_reasons": [
+        "Windows termination escalation",
+        "Windows file ownership requires Windows",
+        "Windows file ownership requires Windows",
+        "Windows ACL evidence requires Windows",
+        "Windows PowerShell module loading"
+      ]
+    },
+    "universal": {
+      "status": 0,
+      "output": "VALID (universal): 0 errors, 0 warning(s)"
+    },
+    "distribution": {
+      "status": 0,
+      "output": "VALID (distribution): 0 errors, 0 warning(s)",
+      "source": "Frozen clean managed-core copy; no tests executed inside it"
+    },
+    "metadata": {
+      "status": 0,
+      "output": "VALID plugin package: 0 error(s)"
+    },
+    "behavioral_reviews": {
+      "cases_per_state": 6,
+      "trials_per_case_per_state": 1,
+      "baseline_obligations_passed": 17,
+      "treated_obligations_passed": 18,
+      "obligations_per_state": 18,
+      "scoring": "Rule author; not independent scoring; diagnostic sample only"
+    },
+    "word_budget": {
+      "references/07-adversarial-review.md": 579,
+      "references/15-dogfeeding-flowback.md": 622,
+      "references/assurance-claim-proof.md": 716,
+      "references/assurance-native-execution.md": 589,
+      "references/assurance-preservation.md": 616,
+      "references/assurance-runtime-boundaries.md": 536,
+      "references/host-claude-code.md": 436,
+      "references/orchestration-mode.md": 648,
+      "references/specialist-process-verdicts.md": 626
+    },
+    "final_diff": "git diff --check passed; every changed reference is named in the Unreleased changelog; frozen treated instruction hashes still match final files",
+    "private_inventory": "Original scratch inventory preserved under ignored local runs; private identities not copied into public review artifacts"
+  },
+  "known_limitations": [
+    "The skill-creator quick validator rejects the unchanged compatibility frontmatter key in both baseline and treated copies. Repository validation passes; no frontmatter schema change was made.",
+    "The draft validator command used unsupported --repo. Initial attempts were rejected; removing that argument produced passing universal and distribution checks.",
+    "Native products, manual assistive-technology checks, remote inventories and Windows/macOS/WSL CI were not executed.",
+    "All held queue observations remain held. No queue statuses, consumer files, release version, tag, PR or host configuration were changed."
+  ]
+}
