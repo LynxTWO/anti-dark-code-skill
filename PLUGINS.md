@@ -30,14 +30,14 @@ calibration and an opted-in usage ledger are separate from that discovery choice
 
 ## Install a reviewed package
 
-Use the published `v2026.09.27-unified.16` tag and verify its archive/digest using
+Use the published `v2026.10.04-unified.17` tag and verify its archive/digest using
 the release instructions. Development checkouts are for local testing. Pin the catalog
 checkout itself; the catalog's local source then resolves inside that same revision.
 
 Codex can register a pinned Git marketplace:
 
 ```sh
-codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref v2026.09.27-unified.16
+codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref v2026.10.04-unified.17
 ```
 
 Install Anti-Dark-Code from that marketplace in the desktop app and test discovery
@@ -63,7 +63,7 @@ subsequent repository edits, tool executions, or optional usage collection.
 
 ## Metadata and release checks
 
-The next plugin update adds the Illuminated code logo and a simplified composer
+Unified.17 adds the Illuminated code logo and a simplified composer
 icon. Their editable SVG sources and PNG exports live together in
 `skills/anti-dark-code/assets/brand/`. The portable OpenAI overlay and Codex
 fallback declare the same files; skill metadata uses skill-relative paths to

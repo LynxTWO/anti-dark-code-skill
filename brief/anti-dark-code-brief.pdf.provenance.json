@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "version": "2026.09.27-unified.16",
-  "generator": "Playwright 1.62.1 / Chromium 151.0.7922.34 on macOS arm64",
-  "source_sha256": "efeb904829564719a72619c9fd0123cf276965a1fc4af0bad1cc1c77b20684ca",
-  "pdf_sha256": "e0870a6e7ed3b94edc9edf157dc63cf1f9f9587d3695e52c92022725a05bd7d9",
-  "normalized_pdf_sha256": "c6c647dc7457ddc4be286c25c8e4c10f35a178e8886bd6855c124588f36d6ee7",
+  "version": "2026.10.04-unified.17",
+  "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on macOS arm64 (macOS 27.0.1), design/render-brief-pdf.py",
+  "source_sha256": "6c6e8cb6aec2b13866a8161801d08dc1b98242c3753285dd222ca2f31e8aa0f3",
+  "pdf_sha256": "c3296d346ca57c06839eca26002dba8f4e615e9a365203cf6b337926edc604ac",
+  "normalized_pdf_sha256": "52dd3b25cbd45766196e86cce2c1f5100584c93437d3d96dad1386fb9a3f1c51",
   "validated_with": {
     "page_count": 7,
-    "version": "2026.09.27-unified.16",
-    "text": "Progressive-frost screen update: seven print pages, all seven named destinations and content/footer separation verified. Two fresh PDF renders match the published PDF after timestamp normalization, so the original PDF bytes are preserved. Sixty-four Chromium/WebKit website and brief viewport/theme cases passed, including 320px, with 256 scroll-alignment checks. Reduced-transparency, contrast, forced-color, no-JavaScript and print fallbacks passed."
+    "version": "2026.10.04-unified.17",
+    "text": "Unified.17 text update: version and date headers, a one-line promotion-evidence note and a tightened bindings paragraph on page six. Seven print pages and all seven named destinations verified with pypdf; page-one version and page-six placement verified from extracted text. Two fresh renders with the same Chromium build as unified.16 match this PDF after timestamp normalization. The screen layout is unchanged since the unified.16 progressive-frost verification; no new viewport campaign was run."
   }
 }
