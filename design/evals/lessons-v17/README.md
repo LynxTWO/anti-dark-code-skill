@@ -24,6 +24,14 @@ lock denial check (five baseline misses of five) and the held-handle destination
 binding (one of five); sixteen pruned with their text retained in the evidence
 file and in `../../lessons-unified-17-plan.md`.
 
+Standard-tier check (`evidence-2026-10-04-sonnet-baseline.json`): on the owner's
+decision, three Sonnet 5.5 trials per case ran against the unified.17 text, which
+omits the sixteen pruned additions and carries the two kept ones, scored blind by
+fresh subagents. No obligation missed in 27 scored reviews, so the sixteen rejections
+stand on Fable 5.1, Codex and Sonnet 5.5 evidence and the two kept additions were met
+on Sonnet. The trial and scorer models share a vendor family; Gemini remains
+unexamined. Counts only; this is not a reliability estimate.
+
 The baseline is the clean `v2026.09.27-unified.16` archive. The treated state is a
 frozen copy of the edited managed core. Evidence records source refs and hashes
 of all supplied managed files, agent identifiers, paired cases, answers, scores
