@@ -8,7 +8,7 @@ By submitting a pull request or the generalized-proposal issue form, you license
 
 Open a focused pull request from a fork. Explain the risk or repeated failure the change addresses, its limits, and the deterministic checks you ran. Do not weaken binding, source-integrity, dry-run, approval, redaction, or proposal-only boundaries.
 
-Run the unit suite and both applicable validators before requesting review. Validate a live clone with `--mode universal`; validate a clean release candidate with `--mode distribution`.
+Run the unit suite and both applicable validators before requesting review. An instruction change also carries the behavioral trial evidence that `skills/anti-dark-code/references/15-dogfeeding-flowback.md` requires under Intake and promotion, recorded under `design/evals/`: baseline trials without the text, trials with it, counts and quotes. Validate a live clone with `--mode universal`; validate a clean release candidate with `--mode distribution`.
 
 ## Flow-back proposals
 

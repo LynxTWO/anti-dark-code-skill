@@ -1,10 +1,27 @@
 # Changelog
 
-## Unreleased
+## 2026.10.04-unified.17
 
-Add the owner-selected Illuminated code artwork in GitHub-profile-inspired black and gold to Codex plugin and skill metadata, including a simplified composer icon. Keep editable SVG and PNG exports together; treat PNGs as binary across platforms and reject packages with missing or linked artwork. Preserve validation of the original unified.16 package without artwork. This is pending the next plugin release; published unified.16 assets remain unchanged.
+- Add a held-handle destination binding to `references/assurance-preservation.md`: when destination identity protects writes, bind them to a verified held directory handle or platform equivalent, prove the actual child retains that binding, and test replacement or unmount after validation, including tools that recreate missing paths on another filesystem. Baseline trials without the text missed this obligation in one of five runs.
+- Add a final-step lock denial check to `references/assurance-native-execution.md`: at the last protected step, prove a separate contender cannot acquire the lock with incidental holders absent, and test closed, reused and wrong-object descriptors and stale environment claims. Baseline trials missed this obligation in five of five runs; trials with the text met it in two of three.
+- Require behavioral trial evidence for promoted instruction text in `references/15-dogfeeding-flowback.md`: at least three fresh-context trials per case per skill state, an addition kept only when a baseline trial without it misses its obligation, baseline trials topped up to five before pruning, counts and quotes recorded without a compliance percentage, and pruned lessons kept queued as `rejected` naming the evidence so a new incident reopens them. `CONTRIBUTING.md` and the public site state the same rule.
+- Record the promotion review in `design/lessons-unified-17-plan.md` and the trials in `design/evals/lessons-v17/`: one Codex trial per case per state scored by the author, two further Claude trials per case per state scored blind, and baseline-only runs four and five. Sixteen proposed additions whose baseline never missed were pruned before commit and remain queued in their consumer repositories; held observations stay held. A later standard-tier check (three Sonnet 5.5 trials per case against the unified.17 text, blind-scored, `evidence-2026-10-04-sonnet-baseline.json`) missed no obligation. Local checks do not publish a release or update consumers.
+- Point the README at the public site instead of the raw page source.
+- Release surfaces for `2026.10.04-unified.17`: version, catalog version, README, pinned-tag examples, website and brief headers. The brief carries a one-line promotion-evidence note and a tightened bindings paragraph on its Keep-knowledge-local page, keeping seven print pages; the PDF is re-rendered with `design/render-brief-pdf.py` (the Playwright recipe its provenance names) and the provenance refreshed. The six plugin metadata files are regenerated as `2026.10.4-unified.17`.
+- Add the owner-selected Illuminated code artwork in GitHub-profile-inspired black and gold to Codex plugin and skill metadata, including a simplified composer icon. Keep editable SVG and PNG exports together; treat PNGs as binary across platforms and reject packages with missing or linked artwork. Preserve validation of the original unified.16 package without artwork. Published unified.16 assets remain unchanged.
 
 - Add the approved progressive frost to website and screen-brief navigation. Decorative inert snapshots blur only within the narrow navigation strip, with scroll/resize synchronization, opaque accessibility fallbacks and print exclusion. Published unified.16 release assets remain unchanged.
+
+### Reference and template inventory
+
+- `references/15-dogfeeding-flowback.md`
+- `references/assurance-native-execution.md`
+- `references/assurance-preservation.md`
+- `assets/brand/README.md`
+- `assets/brand/illuminated-code-small.png`
+- `assets/brand/illuminated-code-small.svg`
+- `assets/brand/illuminated-code.png`
+- `assets/brand/illuminated-code.svg`
 
 ## 2026.09.27-unified.16
 

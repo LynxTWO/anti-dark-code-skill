@@ -12,6 +12,10 @@ Apply the [core contract](../SKILL.md) and [evidence rules](../SKILL.md#evidence
 - Return failure when termination cannot be proven. Do not follow a timed wait with an unbounded wait on the timeout path.
 - Fault-test normal exit, timeout and kill, kill failure, and a child that remains alive after the deadline when injectable.
 
+## Inherited handles and lock claims
+
+- At the last protected step, prove a separate contender cannot acquire the lock, with incidental holders absent. Test closed, reused and wrong-object descriptors and stale environment claims.
+
 ## External executable support and redistribution
 
 - Separate invocation support from redistribution permission. Support may stop at a user import until licensing, source, patent, notification, attribution, dependency, and provenance obligations are complete.

@@ -17,7 +17,7 @@
 
 Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
-**Version**: `2026.09.27-unified.16` (see [release history](CHANGELOG.md)).
+**Version**: `2026.10.04-unified.17` (see [release history](CHANGELOG.md)).
 
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 
@@ -89,7 +89,7 @@ Opted-in [routine task reviews](skills/anti-dark-code/references/routine-task-re
 
 ## Project and evidence
 
-[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [HTML overview](docs/index.html), [PDF brief](brief/anti-dark-code-brief.pdf) and [public site](https://lynxtwo.github.io/anti-dark-code-skill/) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
+[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [public site](https://lynxtwo.github.io/anti-dark-code-skill/), rendered from `docs/index.html`, and the [PDF brief](brief/anti-dark-code-brief.pdf) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
 
 Efficiency receipts remain a separate opt-in evidence workflow. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
 
