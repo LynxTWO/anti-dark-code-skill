@@ -17,6 +17,14 @@
 
 Anti-Dark-Code helps coding assistants understand unfamiliar code, investigate consequential risks, document critical behavior, establish useful checks and repair supported findings. Claims carry evidence and honest limits; authorization stays attached to the action it covers.
 
+## Start here
+
+Use this skill for AI code review, codebase mapping, code audits, verification, and authorized improvements. Read the [public overview](https://lynxtwo.github.io/anti-dark-code-skill/) for examples and the six task choices.
+
+For example, ask: “Use anti-dark-code to map this repository's entry points and identify the next useful checks. Keep this pass read-only and label what remains unknown.” This is a starter prompt, not a measured trial or approval to change code.
+
+Review a [named release](https://github.com/LynxTWO/anti-dark-code-skill/releases) and follow [Operations](OPERATIONS.md) for source verification, installation dry run, and host discovery. For project planning, [Scaffold Kit](https://github.com/LynxTWO/scaffold-kit) produces the architecture, engineering rules, decisions, and an approved slice brief; Anti-Dark-Code supplies mapping and verification evidence.
+
 **Version**: `2026.10.04-unified.17` (see [release history](CHANGELOG.md)).
 
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
