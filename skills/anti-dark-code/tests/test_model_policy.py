@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 
@@ -47,6 +47,22 @@ def request(**overrides: object) -> dict:
 
 
 class ModelPolicyTests(unittest.TestCase):
+    def cli_catalog(self, *, age_days: int = 1) -> Path:
+        """Exercise the CLI clock with synthetic ranks, not a dated provider snapshot."""
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        path = Path(directory) / "catalog.json"
+        path.write_text(json.dumps({
+            "schema_version": 1,
+            "checked_on": (date.today() - timedelta(days=age_days)).isoformat(),
+            "max_age_days": 30,
+            "models": {
+                "gpt-5.6-luna": {"tier": "economy", "relative_cost_rank": 1},
+                "gpt-5.6-terra": {"tier": "standard", "relative_cost_rank": 2},
+                "gpt-6-astra": {"tier": "strong", "relative_cost_rank": 3},
+            },
+        }), encoding="utf-8")
+        return path
+
     def test_failure_escalation_still_meets_the_task_quality_floor(self) -> None:
         result = policy().select_model_policy(
             request(current_model="gpt-5.6-luna", task_class="consequential",
@@ -235,7 +251,7 @@ class ModelPolicyTests(unittest.TestCase):
         """Changing the offline CLI contract would make it invoke work instead of returning a decision."""
         process = subprocess.run(
             [
-                sys.executable, str(SCRIPT), "--catalog", str(CATALOG),
+                sys.executable, str(SCRIPT), "--catalog", str(self.cli_catalog()),
                 "--available", "gpt-5.6-luna", "--available", "gpt-5.6-terra",
                 "--current", "gpt-5.6-terra", "--task", "bounded", "--can-select", "--has-oracle",
                 "--switch-authorized",
@@ -253,11 +269,24 @@ class ModelPolicyTests(unittest.TestCase):
             "task_class": "bounded", "has_oracle": True, "required_controls": ["tools"],
         })
         process = subprocess.run(
-            [sys.executable, str(SCRIPT), "--catalog", str(CATALOG), "--request", request_json],
+            [sys.executable, str(SCRIPT), "--catalog", str(self.cli_catalog()), "--request", request_json],
             check=False, capture_output=True, text=True,
         )
         self.assertEqual(0, process.returncode, process.stderr)
         self.assertEqual("gpt-5.6-luna", json.loads(process.stdout)["model"])
+
+    def test_cli_stale_catalog_keeps_current_model(self) -> None:
+        """Fresh selection fixtures must not conceal the CLI's stale-evidence fallback."""
+        process = subprocess.run(
+            [sys.executable, str(SCRIPT), "--catalog", str(self.cli_catalog(age_days=31)),
+             "--request", json.dumps(request())],
+            check=False, capture_output=True, text=True,
+        )
+        self.assertEqual(0, process.returncode, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual("keep-current", result["action"])
+        self.assertEqual("catalog-stale", result["reason"])
+        self.assertEqual("gpt-6-astra", result["model"])
 
     def test_cli_malformed_request_json_has_a_fixed_conservative_reason(self) -> None:
         """Leaking a parser exception would make host integrations handle an unstable failure contract."""
