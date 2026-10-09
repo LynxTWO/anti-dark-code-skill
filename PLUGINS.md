@@ -30,14 +30,14 @@ calibration and an opted-in usage ledger are separate from that discovery choice
 
 ## Install a reviewed package
 
-Use the published `v2026.10.04-unified.17` tag and verify its archive/digest using
+Use the published `v2026.10.09-unified.18` tag and verify its archive/digest using
 the release instructions. Development checkouts are for local testing. Pin the catalog
 checkout itself; the catalog's local source then resolves inside that same revision.
 
 Codex can register a pinned Git marketplace:
 
 ```sh
-codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref v2026.10.04-unified.17
+codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref v2026.10.09-unified.18
 ```
 
 Install Anti-Dark-Code from that marketplace in the desktop app and test discovery

@@ -25,7 +25,7 @@ For example, ask: “Use anti-dark-code to map this repository's entry points an
 
 Review a [named release](https://github.com/LynxTWO/anti-dark-code-skill/releases) and follow [Operations](OPERATIONS.md) for source verification, installation dry run, and host discovery. For project planning, [Scaffold Kit](https://github.com/LynxTWO/scaffold-kit) produces the architecture, engineering rules, decisions, and an approved slice brief; Anti-Dark-Code supplies mapping and verification evidence.
 
-**Version**: `2026.10.04-unified.17` (see [release history](CHANGELOG.md)).
+**Version**: `2026.10.09-unified.18` (see [release history](CHANGELOG.md)).
 
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 

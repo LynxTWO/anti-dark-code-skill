@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import importlib.util
+import itertools
 import os
 import shutil
 import subprocess
@@ -1777,7 +1778,8 @@ class HistoricalRouterLoaderTests(unittest.TestCase):
     """Historical identity must survive source and managed-install layouts."""
 
     paths = (".agents/skills/anti-dark-code/scripts/adc_route.py",
-             "anti-dark-code/scripts/adc_route.py")
+             "anti-dark-code/scripts/adc_route.py",
+             "skills/anti-dark-code/scripts/adc_route.py")
     source = b"MARKER = 'recorded-router'\n"
 
     def setUp(self) -> None:
@@ -1817,6 +1819,21 @@ class HistoricalRouterLoaderTests(unittest.TestCase):
     def test_source_layout_loads_recorded_head_not_worktree(self):
         self._assert_historical_layout(self.paths[1])
 
+    def test_packaged_layout_loads_recorded_head_not_worktree(self):
+        self._assert_historical_layout("skills/anti-dark-code/scripts/adc_route.py")
+
+    def test_each_layout_loads_recorded_head_from_bare_repository(self):
+        for index, relative in enumerate(self.paths):
+            with self.subTest(relative=relative):
+                target = self._write(relative)
+                head = self._commit()
+                bare = Path(self.tmp.name) / f"bare-{index}.git"
+                subprocess.run(["git", "clone", "--bare", str(self.repo), str(bare)],
+                               check=True, capture_output=True, timeout=30)
+                module = self.shadow._load_route_module_at(bare, head, self._digest())
+                self.assertEqual("recorded-router", module.MARKER)
+                target.unlink()
+
     def _assert_historical_layout(self, relative):
         self._write(relative)
         head = self._commit()
@@ -1827,16 +1844,21 @@ class HistoricalRouterLoaderTests(unittest.TestCase):
 
     def test_missing_historical_router_never_falls_back_to_checkout(self):
         head = self._git("rev-parse", "HEAD").stdout.decode().strip()
-        self._write(self.paths[0])
+        for relative in self.paths:
+            self._write(relative)
         with self.assertRaisesRegex(self.shadow.ShadowError, "no router"):
             self.shadow._load_route_module_at(self.repo, head, self._digest())
 
     def test_conflicting_historical_candidates_are_rejected_before_import(self):
-        self._write(self.paths[0])
-        self._write(self.paths[1], b"raise AssertionError('conflict executed')\n")
-        head = self._commit()
-        with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
-            self.shadow._load_route_module_at(self.repo, head, self._digest())
+        for first, second in itertools.combinations(self.paths, 2):
+            with self.subTest(paths=(first, second)):
+                targets = [self._write(first), self._write(
+                    second, b"raise AssertionError('conflict executed')\n")]
+                head = self._commit()
+                with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
+                    self.shadow._load_route_module_at(self.repo, head, self._digest())
+                for target in targets:
+                    target.unlink()
 
     def test_identical_historical_candidates_are_still_ambiguous(self):
         for relative in self.paths:
@@ -1846,20 +1868,26 @@ class HistoricalRouterLoaderTests(unittest.TestCase):
             self.shadow._load_route_module_at(self.repo, head, self._digest())
 
     def test_historical_digest_mismatch_is_rejected_before_import(self):
-        self._write(self.paths[0], b"raise AssertionError('wrong digest executed')\n")
-        head = self._commit()
-        with self.assertRaisesRegex(self.shadow.ShadowError, "digests to"):
-            self.shadow._load_route_module_at(self.repo, head, self._digest())
+        for relative in self.paths:
+            with self.subTest(relative=relative):
+                target = self._write(relative, b"raise AssertionError('wrong digest executed')\n")
+                head = self._commit()
+                with self.assertRaisesRegex(self.shadow.ShadowError, "digests to"):
+                    self.shadow._load_route_module_at(self.repo, head, self._digest())
+                target.unlink()
 
     def test_historical_symlink_blob_is_rejected(self):
-        self._write(self.paths[0])
-        self._git("add", "-A")
-        blob = self._git("rev-parse", ":" + self.paths[0]).stdout.decode().strip()
-        self._git("update-index", "--cacheinfo", "120000," + blob + "," + self.paths[0])
-        self._git("commit", "-qm", "nonregular router fixture")
-        head = self._git("rev-parse", "HEAD").stdout.decode().strip()
-        with self.assertRaisesRegex(self.shadow.ShadowError, "regular tracked file"):
-            self.shadow._load_route_module_at(self.repo, head, self._digest())
+        for relative in self.paths:
+            with self.subTest(relative=relative):
+                target = self._write(relative)
+                self._git("add", "-A")
+                blob = self._git("rev-parse", ":" + relative).stdout.decode().strip()
+                self._git("update-index", "--cacheinfo", "120000," + blob + "," + relative)
+                self._git("commit", "-qm", "nonregular router fixture")
+                head = self._git("rev-parse", "HEAD").stdout.decode().strip()
+                with self.assertRaisesRegex(self.shadow.ShadowError, "regular tracked file"):
+                    self.shadow._load_route_module_at(self.repo, head, self._digest())
+                target.unlink()
 
     def test_backfill_supports_each_layout_without_a_historical_router(self):
         for relative in self.paths:
@@ -1872,13 +1900,38 @@ class HistoricalRouterLoaderTests(unittest.TestCase):
     def test_backfill_rejects_missing_conflicting_and_mismatched_routers(self):
         with self.assertRaisesRegex(self.shadow.ShadowError, "no router"):
             self.shadow._load_route_module_at(self.repo, None, self._digest())
-        self._write(self.paths[0])
-        other = self._write(self.paths[1], b"raise AssertionError('conflict executed')\n")
+        for first, second in itertools.combinations(self.paths, 2):
+            with self.subTest(paths=(first, second)):
+                target = self._write(first)
+                other = self._write(second, b"raise AssertionError('conflict executed')\n")
+                with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
+                    self.shadow._load_route_module_at(self.repo, None, self._digest())
+                other.unlink()
+                with self.assertRaisesRegex(self.shadow.ShadowError, "digests to"):
+                    self.shadow._load_route_module_at(self.repo, None, "0" * 64)
+                target.unlink()
+
+    def test_identical_backfill_candidates_are_still_ambiguous(self):
+        for relative in self.paths:
+            self._write(relative)
         with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
             self.shadow._load_route_module_at(self.repo, None, self._digest())
-        other.unlink()
-        with self.assertRaisesRegex(self.shadow.ShadowError, "digests to"):
-            self.shadow._load_route_module_at(self.repo, None, "0" * 64)
+
+    def test_backfill_rejects_redirected_parent_in_each_layout(self):
+        outside = Path(self.tmp.name) / "outside"
+        outside.mkdir()
+        (outside / "adc_route.py").write_bytes(self.source)
+        for relative in self.paths:
+            with self.subTest(relative=relative):
+                parent = (self.repo / relative).parent
+                parent.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    parent.symlink_to(outside, target_is_directory=True)
+                except (OSError, NotImplementedError) as error:
+                    self.skipTest(f"directory symlink unavailable: {type(error).__name__}")
+                with self.assertRaisesRegex(self.shadow.ShadowError, "redirected router path"):
+                    self.shadow._load_route_module_at(self.repo, None, self._digest())
+                parent.unlink()
 
 
 if __name__ == "__main__":
