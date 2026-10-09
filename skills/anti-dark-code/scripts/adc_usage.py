@@ -134,7 +134,8 @@ $acl.SetOwner($sid)
 $acl.SetAccessRuleProtection($true, $false)
 $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
 $acl.AddAccessRule($rule)
-Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
+# Persist only the changed Owner and Access sections, never SACL auditing.
+[System.IO.Directory]::SetAccessControl($env:ADC_PRIVACY_CHECK_PATH, $acl)
 'private'
 ''')
     if outcome != "private":
@@ -169,9 +170,11 @@ def _private_create(path):
             outcome = _windows_command(path, r'''
 $ErrorActionPreference = 'Stop'
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-$acl = Get-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH
+$sections = [System.Security.AccessControl.AccessControlSections]::Access -bor [System.Security.AccessControl.AccessControlSections]::Owner
+$acl = [System.IO.File]::GetAccessControl($env:ADC_PRIVACY_CHECK_PATH, $sections)
 $acl.SetOwner($sid)
-Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
+# Only Owner changed; retain the inherited DACL without requesting auditing.
+[System.IO.File]::SetAccessControl($env:ADC_PRIVACY_CHECK_PATH, $acl)
 'private'
 ''')
             if outcome != "private":

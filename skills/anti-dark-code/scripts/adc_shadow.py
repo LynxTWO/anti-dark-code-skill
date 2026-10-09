@@ -974,14 +974,45 @@ def _load_route_module_at(repo: Path, commit: str | None, expected_digest: str):
     import importlib.util
     import tempfile
 
-    if commit is None:
-        source = (repo / "anti-dark-code" / "scripts" / "adc_route.py").read_bytes()
-    else:
-        try:
-            source = _git_bytes(repo, "show",
-                                f"{commit}:anti-dark-code/scripts/adc_route.py")
-        except ShadowError as error:
-            raise ShadowError(f"router-unrecoverable: {error}") from error
+    paths = (".agents/skills/anti-dark-code/scripts/adc_route.py",
+             "anti-dark-code/scripts/adc_route.py")
+    candidates: list[str] = []
+    try:
+        if commit is None:
+            for relative in paths:
+                target = repo / relative
+                for component in (target, *target.parents):
+                    if component == repo:
+                        break
+                    if (component.is_symlink()
+                            or getattr(component, "is_junction", lambda: False)()):
+                        raise ShadowError(f"redirected router path: {relative}")
+                if target.exists():
+                    if not target.is_file():
+                        raise ShadowError(f"router is not a file: {relative}")
+                    candidates.append(relative)
+        else:
+            # Inspect only the recorded tree. A working-copy fallback could
+            # substitute a router that never produced this record.
+            entries = _git_bytes(repo, "ls-tree", "-z", commit, "--", *paths)
+            for entry in entries.split(b"\0"):
+                if not entry:
+                    continue
+                metadata, relative = entry.split(b"\t", 1)
+                mode, kind, _ = metadata.split()
+                name = relative.decode("utf-8")
+                if name not in paths or kind != b"blob" or mode not in (b"100644", b"100755"):
+                    raise ShadowError("router is not a regular tracked file")
+                candidates.append(name)
+        if not candidates:
+            raise ShadowError("no router at either supported path")
+        if len(candidates) != 1:
+            raise ShadowError("ambiguous router paths")
+        relative = candidates[0]
+        source = ((repo / relative).read_bytes() if commit is None else
+                  _git_bytes(repo, "show", f"{commit}:{relative}"))
+    except (ShadowError, OSError, ValueError) as error:
+        raise ShadowError(f"router-unrecoverable: {error}") from error
     actual = hashlib.sha256(source).hexdigest()
     if actual != expected_digest:
         where = f"at {commit[:12]}" if commit else "in this checkout"

@@ -1772,5 +1772,114 @@ class ShadowComparatorCliTests(_RoutedGateCliFixture):
         self.assertEqual({"pass"}, set(shadow["gate_results"].values()))
 
 
+@unittest.skipUnless(shutil.which("git"), "git is required")
+class HistoricalRouterLoaderTests(unittest.TestCase):
+    """Historical identity must survive source and managed-install layouts."""
+
+    paths = (".agents/skills/anti-dark-code/scripts/adc_route.py",
+             "anti-dark-code/scripts/adc_route.py")
+    source = b"MARKER = 'recorded-router'\n"
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.repo = Path(self.tmp.name) / "repo"
+        self.repo.mkdir()
+        self.shadow = _load_shadow()
+        self._git("init", "-q", "-b", "main")
+        self._git("config", "user.name", "Test")
+        self._git("config", "user.email", "test@example.invalid")
+        self._git("config", "core.autocrlf", "false")
+        self._git("commit", "--allow-empty", "-qm", "empty fixture")
+
+    def _git(self, *args):
+        return subprocess.run(["git", "-C", str(self.repo), *args],
+                              check=True, capture_output=True, timeout=30)
+
+    def _write(self, relative, source=None):
+        target = self.repo / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(self.source if source is None else source)
+        return target
+
+    def _commit(self):
+        self._git("add", "-A")
+        self._git("commit", "-qm", "router fixture")
+        return self._git("rev-parse", "HEAD").stdout.decode().strip()
+
+    def _digest(self):
+        import hashlib
+        return hashlib.sha256(self.source).hexdigest()
+
+    def test_installed_layout_loads_recorded_head_not_worktree(self):
+        self._assert_historical_layout(self.paths[0])
+
+    def test_source_layout_loads_recorded_head_not_worktree(self):
+        self._assert_historical_layout(self.paths[1])
+
+    def _assert_historical_layout(self, relative):
+        self._write(relative)
+        head = self._commit()
+        self._write(relative, b"raise AssertionError('working tree executed')\n")
+        self._commit()
+        module = self.shadow._load_route_module_at(self.repo, head, self._digest())
+        self.assertEqual("recorded-router", module.MARKER)
+
+    def test_missing_historical_router_never_falls_back_to_checkout(self):
+        head = self._git("rev-parse", "HEAD").stdout.decode().strip()
+        self._write(self.paths[0])
+        with self.assertRaisesRegex(self.shadow.ShadowError, "no router"):
+            self.shadow._load_route_module_at(self.repo, head, self._digest())
+
+    def test_conflicting_historical_candidates_are_rejected_before_import(self):
+        self._write(self.paths[0])
+        self._write(self.paths[1], b"raise AssertionError('conflict executed')\n")
+        head = self._commit()
+        with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
+            self.shadow._load_route_module_at(self.repo, head, self._digest())
+
+    def test_identical_historical_candidates_are_still_ambiguous(self):
+        for relative in self.paths:
+            self._write(relative)
+        head = self._commit()
+        with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
+            self.shadow._load_route_module_at(self.repo, head, self._digest())
+
+    def test_historical_digest_mismatch_is_rejected_before_import(self):
+        self._write(self.paths[0], b"raise AssertionError('wrong digest executed')\n")
+        head = self._commit()
+        with self.assertRaisesRegex(self.shadow.ShadowError, "digests to"):
+            self.shadow._load_route_module_at(self.repo, head, self._digest())
+
+    def test_historical_symlink_blob_is_rejected(self):
+        self._write(self.paths[0])
+        self._git("add", "-A")
+        blob = self._git("rev-parse", ":" + self.paths[0]).stdout.decode().strip()
+        self._git("update-index", "--cacheinfo", "120000," + blob + "," + self.paths[0])
+        self._git("commit", "-qm", "nonregular router fixture")
+        head = self._git("rev-parse", "HEAD").stdout.decode().strip()
+        with self.assertRaisesRegex(self.shadow.ShadowError, "regular tracked file"):
+            self.shadow._load_route_module_at(self.repo, head, self._digest())
+
+    def test_backfill_supports_each_layout_without_a_historical_router(self):
+        for relative in self.paths:
+            with self.subTest(relative=relative):
+                target = self._write(relative)
+                module = self.shadow._load_route_module_at(self.repo, None, self._digest())
+                self.assertEqual("recorded-router", module.MARKER)
+                target.unlink()
+
+    def test_backfill_rejects_missing_conflicting_and_mismatched_routers(self):
+        with self.assertRaisesRegex(self.shadow.ShadowError, "no router"):
+            self.shadow._load_route_module_at(self.repo, None, self._digest())
+        self._write(self.paths[0])
+        other = self._write(self.paths[1], b"raise AssertionError('conflict executed')\n")
+        with self.assertRaisesRegex(self.shadow.ShadowError, "ambiguous router"):
+            self.shadow._load_route_module_at(self.repo, None, self._digest())
+        other.unlink()
+        with self.assertRaisesRegex(self.shadow.ShadowError, "digests to"):
+            self.shadow._load_route_module_at(self.repo, None, "0" * 64)
+
+
 if __name__ == "__main__":
     unittest.main()
