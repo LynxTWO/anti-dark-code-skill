@@ -1,10 +1,12 @@
 """Synthetic files exercise setup privacy, interruption, and data control."""
 from contextlib import closing
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
 import stat
+import subprocess
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -27,6 +29,36 @@ class UsagePrivacyTests(unittest.TestCase):
 
     def init(self):
         return self.adc.init_ledger(self.ledger, {"codex": self.source}, opt_in=True)
+
+    def windows_fixture(self, path, script):
+        executable = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+        return subprocess.run([str(executable), "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
+            env={**os.environ, "ADC_PRIVACY_CHECK_PATH": str(path),
+                 "PSModulePath": str(executable.parent / "Modules")},
+            timeout=self.adc.WINDOWS_HELPER_TIMEOUT_SECONDS, check=True, capture_output=True).stdout
+
+    def windows_acl(self, path):
+        # Read only Owner and Access; never request SACL access for verification.
+        value = json.loads(self.windows_fixture(path, r'''
+$ErrorActionPreference = 'Stop'
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$sections = [System.Security.AccessControl.AccessControlSections]::Access -bor [System.Security.AccessControl.AccessControlSections]::Owner
+if ([System.IO.Directory]::Exists($env:ADC_PRIVACY_CHECK_PATH)) {
+  $acl = [System.IO.Directory]::GetAccessControl($env:ADC_PRIVACY_CHECK_PATH, $sections)
+} else {
+  $acl = [System.IO.File]::GetAccessControl($env:ADC_PRIVACY_CHECK_PATH, $sections)
+}
+$rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]) | ForEach-Object {
+  @{ current = ($_.IdentityReference.Value -eq $sid.Value); rights = [int]$_.FileSystemRights;
+     inheritance = [int]$_.InheritanceFlags; propagation = [int]$_.PropagationFlags;
+     inherited = $_.IsInherited; allow = ($_.AccessControlType -eq 'Allow') }
+})
+@{ owner = ($acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -eq $sid.Value);
+   protected = $acl.AreAccessRulesProtected; rules = $rules;
+   descriptor = $acl.GetSecurityDescriptorSddlForm($sections) } | ConvertTo-Json -Depth 4 -Compress
+'''))
+        value["descriptor"] = hashlib.sha256(value["descriptor"].encode()).hexdigest()
+        return value
 
     def windows_helper(self, outcome):
         """Drive the Windows ACL helper with a synthetic subprocess outcome."""
@@ -171,6 +203,69 @@ class UsagePrivacyTests(unittest.TestCase):
             self.adc._private_create(path)
         self.assertEqual("synthetic content", path.read_text(encoding="utf-8"))
 
+    @unittest.skipUnless(os.name == "nt", "Non-elevated Windows ACL evidence requires Windows")
+    def test_non_elevated_stage_and_files_have_exact_private_permissions(self):
+        token = json.loads(self.windows_fixture(self.root, r'''
+$ErrorActionPreference = 'Stop'
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
+$privileges = & "$env:SystemRoot\System32\whoami.exe" /priv /fo csv
+if ($LASTEXITCODE -ne 0) { throw 'Token inventory failed' }
+@{ elevated = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator);
+   securityPrivilege = [bool]($privileges -match 'SeSecurityPrivilege') } | ConvertTo-Json -Compress
+'''))
+        if token["elevated"] or token["securityPrivilege"]:
+            self.skipTest("requires a non-elevated token without SeSecurityPrivilege; compatibility remains unverified")
+        self.assertEqual("enabled", self.init()["status"])
+        stage = self.windows_acl(self.ledger)
+        self.assertTrue(stage["owner"])
+        self.assertTrue(stage["protected"])
+        self.assertEqual([dict(current=True, rights=2032127, inheritance=3,
+                               propagation=0, inherited=False, allow=True)], stage["rules"])
+        for name in ("usage.sqlite3", ".gitignore", "config.json"):
+            with self.subTest(name=name):
+                path = self.ledger / name
+                self.adc._check_private(path)
+                acl = self.windows_acl(path)
+                self.assertTrue(acl["owner"])
+                self.assertEqual([dict(current=True, rights=2032127, inheritance=0,
+                                       propagation=0, inherited=True, allow=True)], acl["rules"])
+
+    @unittest.skipUnless(os.name == "nt", "Windows staging failure ordering")
+    def test_stage_assignment_and_readback_fail_before_sensitive_creation(self):
+        for failure in ("assignment", "readback"):
+            with self.subTest(failure=failure):
+                mocked = (patch.object(self.adc, "_windows_command", return_value=self.adc.HELPER_UNCONFIRMED)
+                    if failure == "assignment" else patch.object(self.adc, "_check_private", side_effect=ValueError("privacy unverified")))
+                with mocked, patch.object(self.adc, "_connect") as connect, patch.object(self.adc, "_private_create") as create:
+                    with self.assertRaisesRegex(ValueError, "private|privacy"):
+                        self.init()
+                    connect.assert_not_called()
+                    create.assert_not_called()
+                self.assertFalse(self.ledger.exists())
+                stages = list(self.root.glob(".adc-init-*"))
+                self.assertTrue(stages)
+                self.assertTrue(all(not list(stage.iterdir()) for stage in stages))
+
+    @unittest.skipUnless(os.name == "nt", "Windows ACL write section contract")
+    def test_permission_writers_never_request_audit_or_group_changes(self):
+        self.ledger.mkdir()
+        original = self.adc._windows_command
+        scripts = []
+        def record(path, script):
+            scripts.append(script)
+            return original(path, script)
+        with patch.object(self.adc, "_windows_command", side_effect=record):
+            self.adc._secure_new_windows_stage(self.ledger)
+            with self.adc._private_create(self.ledger / "empty.txt"):
+                pass
+        self.assertIn("[System.IO.Directory]::SetAccessControl", scripts[0])
+        self.assertIn("[System.IO.File]::GetAccessControl", scripts[1])
+        self.assertIn("[System.IO.File]::SetAccessControl", scripts[1])
+        for script in scripts:
+            for forbidden in ("Set-Acl", "-Audit", "::Audit", "::All", "::Group", "SetGroup", "AuditRule", "SeSecurityPrivilege"):
+                self.assertNotIn(forbidden, script)
+
     @unittest.skipUnless(os.name == "nt", "Windows PowerShell module loading")
     def test_windows_privacy_check_ignores_incompatible_inherited_modules(self):
         self.init()
@@ -258,7 +353,6 @@ class UsagePrivacyTests(unittest.TestCase):
         self.ledger.mkdir()
         # Test fixtures may inherit runner-specific grants. Set an owner-only ACL
         # on this disposable directory using the same OS API users configure.
-        import subprocess
         script = r'''
 $ErrorActionPreference = 'Stop'
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
@@ -267,20 +361,42 @@ $acl.SetOwner($sid)
 $acl.SetAccessRuleProtection($true, $false)
 $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
 $acl.AddAccessRule($rule)
-Set-Acl -LiteralPath $env:ADC_PRIVACY_CHECK_PATH -AclObject $acl
+[System.IO.Directory]::SetAccessControl($env:ADC_PRIVACY_CHECK_PATH, $acl)
 '''
-        subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
-            env={**os.environ, "ADC_PRIVACY_CHECK_PATH": str(self.ledger)}, check=True, capture_output=True)
+        self.windows_fixture(self.ledger, script)
         self.assertTrue(self.adc._windows_private(self.ledger))
         shared = script.replace("$acl.AddAccessRule($rule)", "$acl.AddAccessRule($rule)\n"
             "$everyone = New-Object System.Security.Principal.SecurityIdentifier('S-1-1-0')\n"
             "$acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($everyone, 'Read', 'ContainerInherit,ObjectInherit', 'None', 'Allow')))")
-        subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", shared],
-            env={**os.environ, "ADC_PRIVACY_CHECK_PATH": str(self.ledger)}, check=True, capture_output=True)
+        self.windows_fixture(self.ledger, shared)
+        before = self.windows_acl(self.ledger)
         self.assertFalse(self.adc._windows_private(self.ledger))
         with self.assertRaisesRegex(ValueError, "privacy"):
             self.init()
         self.assertEqual([], list(self.ledger.iterdir()))
+        self.assertEqual(before, self.windows_acl(self.ledger))
+
+        # The same outsider rule inherited from a parent must also be refused.
+        inherited = self.ledger / "inherited"
+        inherited.mkdir()
+        before = self.windows_acl(inherited)
+        self.assertTrue(any(rule["inherited"] and not rule["current"] for rule in before["rules"]))
+        self.assertFalse(self.adc._windows_private(inherited))
+        with self.assertRaisesRegex(ValueError, "privacy"):
+            self.adc.init_ledger(inherited, {"codex": self.source}, opt_in=True)
+        self.assertEqual([], list(inherited.iterdir()))
+        self.assertEqual(before, self.windows_acl(inherited))
+
+        # Securing a newly created empty stage discards inherited outsider grants.
+        stage = self.ledger / "new-stage"
+        stage.mkdir()
+        self.adc._secure_new_windows_stage(stage)
+        self.adc._check_private(stage)
+        acl = self.windows_acl(stage)
+        self.assertTrue(acl["owner"])
+        self.assertTrue(acl["protected"])
+        self.assertEqual([dict(current=True, rights=2032127, inheritance=3,
+                               propagation=0, inherited=False, allow=True)], acl["rules"])
 
 
 if __name__ == "__main__":
