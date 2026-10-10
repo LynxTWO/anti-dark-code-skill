@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "version": "2026.10.04-unified.17",
+  "version": "2026.10.09-unified.18",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on macOS arm64 (macOS 27.0.1), design/render-brief-pdf.py",
-  "source_sha256": "6c6e8cb6aec2b13866a8161801d08dc1b98242c3753285dd222ca2f31e8aa0f3",
-  "pdf_sha256": "c3296d346ca57c06839eca26002dba8f4e615e9a365203cf6b337926edc604ac",
-  "normalized_pdf_sha256": "52dd3b25cbd45766196e86cce2c1f5100584c93437d3d96dad1386fb9a3f1c51",
+  "source_sha256": "b93f961444d2a70a8744cfd585901ecf13d5b1e65ec14e78288b2a3392ac44db",
+  "pdf_sha256": "7b9e09673405b1b4b3507f3e95289b3b0b7062460d3ac24c10607a202b5e1bc9",
+  "normalized_pdf_sha256": "ecf413403d94883a0090eb218f85910358bf849395d63e2f46a790e37a72e4f7",
   "validated_with": {
     "page_count": 7,
-    "version": "2026.10.04-unified.17",
-    "text": "Unified.17 text update: version and date headers, a one-line promotion-evidence note and a tightened bindings paragraph on page six. Seven print pages and all seven named destinations verified with pypdf; page-one version and page-six placement verified from extracted text. Two fresh renders with the same Chromium build as unified.16 match this PDF after timestamp normalization. The screen layout is unchanged since the unified.16 progressive-frost verification; no new viewport campaign was run."
+    "version": "2026.10.09-unified.18",
+    "text": "Unified.18 updates the version and date headers. All seven page texts match unified.17 after those substitutions; seven pages and all seven named destinations verified with pypdf. Poppler page renders and a contact sheet were inspected, including page-one version/date placement, with no clipping or overlap observed. Two fresh renders with the same Chromium build match after timestamp normalization. The screen layout is unchanged; no new viewport or native host-discovery campaign was run."
   }
 }

@@ -975,7 +975,8 @@ def _load_route_module_at(repo: Path, commit: str | None, expected_digest: str):
     import tempfile
 
     paths = (".agents/skills/anti-dark-code/scripts/adc_route.py",
-             "anti-dark-code/scripts/adc_route.py")
+             "anti-dark-code/scripts/adc_route.py",
+             "skills/anti-dark-code/scripts/adc_route.py")
     candidates: list[str] = []
     try:
         if commit is None:
@@ -1005,7 +1006,7 @@ def _load_route_module_at(repo: Path, commit: str | None, expected_digest: str):
                     raise ShadowError("router is not a regular tracked file")
                 candidates.append(name)
         if not candidates:
-            raise ShadowError("no router at either supported path")
+            raise ShadowError("no router at any supported path")
         if len(candidates) != 1:
             raise ShadowError("ambiguous router paths")
         relative = candidates[0]

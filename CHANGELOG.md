@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.09-unified.18
+
+- Include PR #81's historical-router recovery from recorded Git trees for installed and legacy layouts, with ambiguity, regular-file and digest refusals. Complete the packaged `skills/anti-dark-code/scripts/adc_route.py` lookup for historical and backfill records. Cover all three layouts, bare repositories, historical-head isolation, conflicting or identical candidates, digest mismatches and redirected paths in `tests/test_route_cli.py`. Historical records never fall back to the working tree.
+- Include PR #81's native Windows privacy repair in `scripts/adc_usage.py`: persist only changed Owner/Access security sections when creating private staging directories and assigning newly created file ownership. Preserve private DACLs and fail-closed checks without requesting SACL auditing privileges. Retain the non-elevated Windows and privacy regressions in `tests/test_usage_privacy.py`.
+- Keep model-policy CLI test catalogs fresh relative to the current test time, retaining the stale-catalog refusal test (`tests/test_model_policy.py`, PR #79).
+- Publish the reviewed search-discovery documentation, visible code-review examples, structured metadata and sitemap from PR #78, with the approved Search Console verification from PR #80. Indexing and ranking remain unverified; no new provider configuration is performed by this release.
+- Refresh VERSION, `assets/verification-capabilities.json`, README, pinned installation examples, website and seven-page field brief for `2026.10.09-unified.18`. Regenerate the six plugin metadata files as `2026.10.9-unified.18`, the brief PDF and its provenance.
+- Saved workspace proposals from PR #63 were already adapted by PR #65 and released in unified.15. The Windows investigation in PR #61 was resolved by PR #66. No duplicate lesson promotion or change to held/rejected observations is included.
+
 ## 2026.10.04-unified.17
 
 - Add a held-handle destination binding to `references/assurance-preservation.md`: when destination identity protects writes, bind them to a verified held directory handle or platform equivalent, prove the actual child retains that binding, and test replacement or unmount after validation, including tools that recreate missing paths on another filesystem. Baseline trials without the text missed this obligation in one of five runs.
