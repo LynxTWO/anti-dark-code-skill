@@ -6,6 +6,8 @@ Compatibility reference 09. An explicit operator workflow for generated logs, sn
 
 Inventory groups read-only: size, counts, timestamps, tracked/ignored status and citations from source, docs, CI and review evidence. Cited outputs support claims; preserve them or an approved copy beside the citation before moving bytes. Record claims, exact regeneration commands, seeds, parameters, costs and dependencies while originals remain available.
 
+Ignored local run receipts may still be cited evidence. Ignored status is not disposal permission, and an uncited file may have unknown provenance. Use [documentation guidance](documentation.md) to organize scratch work and retain closeout evidence; that guidance never runs this cleanup automatically.
+
 | Tier | Handling |
 | --- | --- |
 | Protected | Tracked content, steering-protected assets, review evidence and history stay untouched in this workflow. Pruning them requires a separately scoped authorized change. |

@@ -136,4 +136,6 @@ The shared updater owns the local skill core. The repo owns `calibration/`.
 
 Prefer existing repo documents. Templates under [assets/templates](../assets/templates/) define fallback shapes; load only the one being created. [Writing hygiene](06-writing-hygiene.md) applies to changed text, not an automatic repository-wide rewrite.
 
+[Documentation](documentation.md) defines audience choice, canonical owners, freshness and scratch folders. Preserve existing shapes; a linked summary does not duplicate or translate another tool's mutable unknown record.
+
 If commits are authorized, stage explicit paths, preserve attribute-controlled line endings, inspect the diff stat, and avoid sweep staging combined with environment overrides. No task requires commits merely to advance its workflow.

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "scope": "Instruction smoke trials for readable documentation and local work, separate from app-fixture behavior.",
+  "method": "Fresh isolated skill context and fixture per trial; raw request and artifacts only, hide rubric. Record exact source hashes, outputs, actual commands, scorer and limits. One trial is not qualification or human readability evidence.",
+  "cases": [
+    {
+      "id": "readable-stale-note",
+      "setup": "Current note claims export adds header based on A; export.py at B returns bare value; old plan disagrees; user chooses guided; a cited receipt lives in ignored runs.",
+      "prompt": "Organize the documents and write a very short current status for me. I am not a coder. Export changed since A; keep our proof. Propose cleanup only.",
+      "check": [
+        "current source inspected",
+        "old passed check scoped to A",
+        "freshness not inferred from matching binding",
+        "plain overview with evidence detail linked",
+        "history labeled and retained",
+        "cited receipt and canonical stores preserved"
+      ]
+    },
+    {
+      "id": "paired-audience-choice",
+      "setup": "Kit Triage Card selects guided; ADC calibration README has unset depth; records use existing status schemas.",
+      "prompt": "Use our existing project preferences for the report.",
+      "check": [
+        "Triage Card preference reused",
+        "no second mutable setting",
+        "same evidence risk and approval at all depths",
+        "no schema or vocabulary migration"
+      ]
+    },
+    {
+      "id": "depth-change",
+      "setup": "Current note has stable IDs, pending checks, protected action and linked evidence; user selects expert.",
+      "prompt": "Use developer shorthand from now on and keep our notes concise.",
+      "check": [
+        "choice persisted only in existing repo-owned record if authorized",
+        "explanation shortened without losing uncertainty evidence or gates",
+        "no global settings or extra audience document sets"
+      ]
+    }
+  ]
+}

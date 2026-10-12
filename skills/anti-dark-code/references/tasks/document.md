@@ -6,6 +6,8 @@ Use for comments, architecture documentation, reports, or prose cleanup. The [co
 
 Inspect relevant source before loading style guidance; load writing hygiene for the final prose check. Inputs are requested documents or source scope, writing conventions, current evidence, and the distinction between explanatory prose and text consumed as instructions by a runtime, build tool, policy engine, or agent.
 
+Load [documentation](../documentation.md) for explanation depth, canonical ownership, freshness and folders. Reuse the recorded audience choice; offer plain language, balanced or developer shorthand when unset. Keep one concise overview plus linked detail, with the same evidence and gates at every depth.
+
 ## Procedure
 
 1. Inspect relevant source and the current diff. Separate directly supported statements from runtime or external claims. Reuse maps only after checking evidence identity and dependencies.

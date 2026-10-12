@@ -10,6 +10,8 @@ means the planted failures and clean controls behave as specified, not that the
 broken app meets its product contract or an assistant finds every problem.
 Browser automation does not establish screen-reader or participant usability.
 
+`documentation-cases.json` adds isolated instruction trials for concise audience modes, stale notes, canonical ownership and cited scratch evidence. Give the trial raw prompts and artifacts, hiding the rubric. Record the exact skill source, outputs, executed checks and scorer. One independent pass is a smoke trial; older evidence does not qualify changed instructions or establish readability with human participants.
+
 Optional browser environment, separate from the standard-library runtime and
 the Python unit-test environment:
 

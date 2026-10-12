@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased documentation improvements to unified.18
+
+- Add guided/plain language, standard/balanced and expert/developer shorthand explanations using one existing project preference. Reuse Scaffold-Kit's Triage Card or repo-owned notes; preserve evidence, stored schemas and approval gates.
+- Define concise overviews, canonical document owners, dependency-based freshness, current/historical navigation and bounded scratch folders in a conditional reference.
+- Clarify that ignored run receipts may be cited evidence and need preservation before authorized cleanup. Label the old audit/design record as historical.
+
+Source changes only; no release publication, installer execution or consumer update is implied.
+
 ## 2026.10.09-unified.18
 
 - Include PR #81's historical-router recovery from recorded Git trees for installed and legacy layouts, with ambiguity, regular-file and digest refusals. Complete the packaged `skills/anti-dark-code/scripts/adc_route.py` lookup for historical and backfill records. Cover all three layouts, bare repositories, historical-head isolation, conflicting or identical candidates, digest mismatches and redirected paths in `tests/test_route_cli.py`. Historical records never fall back to the working tree.
