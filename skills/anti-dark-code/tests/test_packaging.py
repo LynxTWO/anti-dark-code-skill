@@ -117,6 +117,20 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertTrue(interface["developerName"])
         self.assertEqual(interface["category"], "Productivity")
 
+    def test_stable_catalog_pin_is_independent_of_development_version(self):
+        expected = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
+        for version in ("2026.10.14-unified.19", "2026.11.01-unified.20"):
+            with self.subTest(version=version):
+                manifests = packaging.metadata(version)
+                for host in (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json"):
+                    source = manifests[host]["plugins"][0]["source"]
+                    self.assertEqual(source["sha"], expected)
+                    self.assertNotIn("ref", source)
+        historical = packaging.metadata("2026.10.09-unified.18")
+        self.assertEqual(historical[".agents/plugins/marketplace.json"]["plugins"][0]["source"],
+                         {"source": "local", "path": "./"})
+        self.assertEqual(historical[".claude-plugin/marketplace.json"]["plugins"][0]["source"], "./")
+
     def test_missing_or_redirected_artwork_is_rejected(self):
         self.move_core()
         path = self.core / "assets" / "brand" / "illuminated-code.png"

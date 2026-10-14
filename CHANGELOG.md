@@ -4,6 +4,8 @@
 
 Unpublished preview candidate.
 
+- Pin the existing stable catalog entries to the published unified.18 commit. Keep development and explicit preview installs separate, with historical metadata verification unchanged. Add catalog-pin regression coverage and point to the shared preview catalog.
+
 - Shorten the listing subtitle in `scripts/adc_packaging.py` to the directory limit, preserving historical release metadata. Add packaging regression coverage; regenerate the six manifests and advance VERSION and the capability catalog version together. Refresh existing README, website and field-brief version labels and PDF provenance; the stable release link stays pinned. Skill instructions and verification capabilities are unchanged.
 - Prepare a separate opt-in preview catalog and rehearse local host installation, upgrade and rollback. No tag, GitHub release or directory submission is published.
 
