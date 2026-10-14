@@ -104,6 +104,8 @@ Then complete the usual version/changelog/brief provenance updates and the tagge
 `release-check` described in OPERATIONS.md. Publishing a tag, GitHub release or
 skill-registry entry is a separate release action.
 
+Preview releases use the separate `lynxtwo-preview` marketplace supplied with the preview bundle. Opt in explicitly and keep one active copy per host. Remove the preview copy and reinstall from the stable catalog to roll back. Calendar versions remain canonical; the catalog selects the channel, and a future GitHub release must be marked prerelease. No preview has been published.
+
 ## Native host checks for unified.16
 
 On macOS arm64, the unified.16 core installed through Codex CLI

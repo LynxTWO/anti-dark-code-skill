@@ -1,13 +1,18 @@
 # Changelog
 
-## Unreleased documentation improvements to unified.18
+## 2026.10.14-unified.19 (unpublished preview candidate)
+
+- Shorten the listing subtitle in `scripts/adc_packaging.py` to the directory limit, preserving historical release metadata. Add packaging regression coverage; regenerate the six manifests and advance VERSION and the capability catalog version together. Refresh existing README, website and field-brief version labels and PDF provenance; the stable release link stays pinned. Skill instructions and verification capabilities are unchanged.
+- Prepare a separate opt-in preview catalog and rehearse local host installation, upgrade and rollback. No tag, GitHub release or directory submission is published.
+
+Reviewed documentation carried forward from unified.18:
 
 - Carry the already reviewed documentation changes and their source-bound trial evidence into GitHub without modifying the final installed core or plugin metadata. `design/evals/product-v1/documentation-evidence-2026-10-14-packaging.json` records local installation checks and the current candidate validation. Public evidence derivatives redact local machine paths and private participant names, retaining original hashes, scores and limits.
-- Offer guided/plain language, standard/balanced or expert/developer shorthand at first setup or documentation use, and keep one recorded choice: Scaffold-Kit's Triage Card when present, otherwise the existing task record or calibration README. Evidence and approval do not change with depth.
+- Offer guided/plain language, standard/balanced or expert/developer shorthand at first setup or documentation use, and keep one recorded choice: Scaffold-Kit's Triage Card when present, otherwise the existing task record or calibration README. Evidence and approval do not change with depth. These existing changes are in `SKILL.md`, `references/13-calibrated-local-mode.md`, `references/documentation.md`, `references/tasks/document.md` and `assets/templates/calibration/README.md`.
 - Remove the inaccurate `.gitignore` claim that run receipts are safe to delete, and label the old audit/design record as historical.
 - Behavioral trials for the documentation additions are in `design/evals/product-v1/documentation-evidence-2026-10-12.json`. Additions whose obligations no baseline trial missed in five runs were pruned under pass 15's rule; their text is kept in that file.
 
-Source changes only; no release publication, installer execution or consumer update is implied.
+The documentation remains unchanged by this preview preparation.
 
 ## 2026.10.09-unified.18
 
