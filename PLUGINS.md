@@ -23,7 +23,7 @@ independently of development on `main`. Historical catalogs used relative `./`,
 which resolves inside that catalog's checkout. There is no duplicated core.
 Metadata advertises a skill only: no MCP
 server, credentials, automatic hooks, telemetry, or background jobs are enabled.
-Existing optional collection commands still require their own explicit opt-in.
+Existing optional collection commands still require their own explicit opt-in. Catalog fetch URLs are explicitly HTTPS, so updates do not depend on SSH host-key setup.
 
 The host owns its plugin cache. Do not keep both a plugin-provided and a standalone
 global copy enabled in one host after switching installation methods. Repository
