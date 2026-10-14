@@ -3,7 +3,6 @@
 This directory is repo-owned memory. The shared skill updater preserves it.
 
 Documentation depth: [guided | standard | expert; choose at first setup/use].
-If Scaffold-Kit already records Explanation depth (or Interview depth), replace this placeholder with a pointer to that Triage Card. Keep one choice. The skill's `references/documentation.md` defines concise output at each depth; evidence fields and approval gates remain unchanged.
 
 This calibration belongs to one repository. Do not copy it into another repository as a template, shortcut, or starting point.
 

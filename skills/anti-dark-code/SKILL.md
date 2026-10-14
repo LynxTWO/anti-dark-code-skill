@@ -30,7 +30,7 @@ For building, broad improvement, user-facing behavior, or readiness, load the [q
 
 Load specialist references when observed code, runtime boundaries, or requested risk meets their named trigger. Installation and maintenance operations have separate [operator instructions](references/13-calibrated-local-mode.md). Load [host mechanics](references/host-adapters.md) only when discovery or tool support needs clarification.
 
-For first setup, audience choice or durable docs/folders, load [documentation](references/documentation.md). Offer guided, standard or expert explanations; reuse the repo's choice. Depth never changes evidence or authority.
+For first setup or a change in how much explanation the person wants, load [documentation](references/documentation.md).
 
 When economical model routing is authorized and host controls exist, load [model selection](references/model-selection.md). For explicitly opted-in observation or trigger feedback, load [real-world usage](references/real-world-usage.md) and finish through the [review procedure](references/routine-task-review.md).
 

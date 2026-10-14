@@ -1,0 +1,959 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-12",
+  "authority": "User requested brief-length/audience reruns on final patches and evidence updates; fresh producers and independent scorers previously explicitly authorized. Emailing samples to owner for three named participants explicitly requested.",
+  "status": "Final strict remediation brief/audience verification; human comprehension pending responses",
+  "instruction_changes": true,
+  "word_budget": {
+    "before_core_words": 162762,
+    "after_core_words": 162748,
+    "delta_core_words": -14,
+    "before_core_bytes": 1949770,
+    "after_core_bytes": 1949735,
+    "delta_core_bytes": -35,
+    "before_words": 39965,
+    "after_words": 39951,
+    "delta_words": -14,
+    "before_md_bytes": 295174,
+    "after_md_bytes": 295139,
+    "delta_md_bytes": -35,
+    "no_new_core_files": true
+  },
+  "instruction_edits": {
+    "anti-dark-code/skills/anti-dark-code/references/documentation.md": {
+      "before_words": 139,
+      "after_words": 132,
+      "delta_words": -7,
+      "before_sha256": "18cdf6e9b54bd24609b6867dd9f0cdbdfd62f504c1fbe71b6196af0427fa8441",
+      "after_sha256": "73bc7bb948c2bb0ebe5590cb3326a94548fba6e89ec7675aae38434dcac79518"
+    },
+    "anti-dark-code/skills/anti-dark-code/references/tasks/document.md": {
+      "before_words": 462,
+      "after_words": 455,
+      "delta_words": -7,
+      "before_sha256": "0bfa20668ada315df532543564c23cb8cf6ff6856fbd5efb2b93b5630dfe88ad",
+      "after_sha256": "69249ddefda2078b227754d95961192ba3a7f1cf6db1bc8e1e4ae6b752b117d2"
+    }
+  },
+  "sources": {
+    "scaffold-kit": {
+      "base": "53846c3a46c01e221948e8398d5568a3d166e586",
+      "patch": "<local-user>/Documents/Codex/2026-10-12/h/work/claude-review/round15/scaffold-kit-candidate.patch",
+      "patch_sha256": "dc8e61837e4f03d3fc366c3037cb61f056197406549d3a1cb882ad2e3389217f",
+      "parent_patch": "<local-user>/Documents/Codex/2026-10-12/h/outputs/scaffold-kit-0.4-improvements-codex-readability.patch",
+      "parent_patch_sha256": "511846f996f8a57cb980d9b80299db6f444dd9314ef292103db601487504f5c9",
+      "files": {
+        "LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+        "CHANGELOG.md": "6a7034c20fc75eff25bbda66bc13a856f0afe909ba91ffa97c286bd936c09533",
+        "plugin.json": "e8955e85cf26049a15b48087f41a7fb11376f24c90a8988235dfc35ade652194",
+        "README.md": "ffc2bc4c8b471da37fa887009e294309f57d3c6c55c80675ac82af414148ae5b",
+        ".gitignore": "b597be97e235cd4f67d65d841c98798a0253d0a36796e98c3f0acc8ea3b821a1",
+        ".gitattributes": "2656e5e1f89de3a41b8fdd94ead144cb1e06b08f5c1a5145e12c757caafe73e4",
+        "design/plan-v0.4-2026-09-26.md": "5e5583552d7f1401e172b9fe53a4d6d540b8662d6308536d1ce12319498ad242",
+        "design/codex-verification-2026-09-26.md": "4396c3aed5209ba3e51a0a195ff1935500b32a62d69283b7be75abaf0cd0c730",
+        "docs/index.html": "750d3eea32176a89ef89862b2870d9b584f56d4edeca3fa35a9e2488e36ed19f",
+        "docs/.nojekyll": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "docs/sitemap.xml": "db1556188c186b437ecb9a76f06adf050a104a56246686ee8ab127c216c85759",
+        "docs/SEARCH-DISCOVERY.md": "4bb8de10175fee98294a8417cd2e7137a4bd183b0e0e4590d82b926e1a181c52",
+        ".claude-plugin/marketplace.json": "6eda0c2308399272b2e5c479a0368bb0860d99d02e7fa4c82bd8ce71a14ed65c",
+        ".claude-plugin/plugin.json": "aabb765679572b900b003205bc618e530cce0229c6d0233a9a82950d554f9b06",
+        ".codex-plugin/plugin.json": "903487fd5dd8d5f0e5a46cf1ffbb7d38151dcf97d730e11ae95dd8c0b8e793b6",
+        "skills/scaffold-kit/LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+        "skills/scaffold-kit/SKILL.md": "8abbb230903dc174c55136fe725249dc4957aa76c589980328f8b9de007bb2df",
+        "skills/scaffold-kit/references/conductor.md": "e57e0cf144091f1d9eb02683c42622ac9b6062e38b563226e4cd1f2e70001fec",
+        "skills/scaffold-kit/references/claude-addendum.md": "a3f1971c15f75ba0d8efc78f56ed27e95b86d7e20d5652264e0967c627705c13",
+        "skills/scaffold-kit/references/working-with-anti-dark-code.md": "a7c4682420492b36981ad05f92b7ec5462aff1e0c9872838d8892f1609d2df05",
+        "skills/scaffold-kit/tests/test_kit_audit.py": "92f62a9ac1f5dc9a7e28aa398b2cda7e1be09fc033e4c65ad2a448c9eb212317",
+        "skills/scaffold-kit/scripts/kit_audit.py": "6a1b3f00a5e9a1128baaa8e4d63d46cbb68e3e572394611e95d253a4e7063158",
+        "skills/scaffold-kit/assets/templates/ENGINEERING.md": "7a93dff0f8c06d8a08bb9a8f2fabf2d062ee43e3b507ac7151ee236fa4003421",
+        "skills/scaffold-kit/assets/templates/SLICE-BRIEF.md": "5a1a09498a1e1a7c51a701e93d6a36f13929fd0585664d964895245325c2a0ad",
+        "skills/scaffold-kit/assets/templates/ARCHITECTURE.md": "324c9ff54781dc182ed33fe9da72f03a5630ee13950115e6ab1b8dd906e2b59c",
+        "skills/scaffold-kit/assets/templates/DECISION-LOG.md": "7e5637519436e1f7e7b1cc99635b8c4bf3a2bb01af06240ddf80eafedd66331e",
+        ".agents/plugins/marketplace.json": "626d4fa289174725adb6f2bfa61e9d3d008bdb0ec7cac8bd1420a0b82d2e2e05",
+        "evals/scaffold-v1/evidence-2026-10-12-recipe.json": "c9b068a2b3871d208d39efbb25d4337b80c1be787370019aba164b4c5bd4e207",
+        "evals/scaffold-v1/evidence-2026-10-12-lean.json": "ea809affb04e83cecd5b73107b85d9632da2fd4b1b721b00cf6fac3dd7914fde",
+        "evals/scaffold-v1/evidence-2026-10-12-choices.json": "d05d0ed93e5ef36f6ab93f7610109aa7e1f98b7cb4286533313e6da6921027c3",
+        "evals/scaffold-v1/evidence-2026-10-12-readability.json": "ab79c49c923e8a9ed38da267bb41decea469c84bc9c68f8ef0e6d402fa3a59a3",
+        "evals/scaffold-v1/evidence-codex-2026-09-26.json": "b3eed7c2f92c9557fa323563ec548f0939bd40f2afa7d1eaa2a2ac8d96ccaf72",
+        "evals/scaffold-v1/evidence-2026-09-26.json": "3bd317b20303d2172ffe0fb097949f36ea49c6751414ade7ac1d8b28917e9578",
+        "evals/scaffold-v1/README.md": "7b09f67fbe48225a05687e0e12c18de4f5c9c47ad05d06e9aba2f4231622a9db",
+        "evals/scaffold-v1/cases.json": "db1fd62c9b9f1fed0806a178f2f8b388cda3413e09a1edda16a100c01604a189",
+        "evals/scaffold-v1/evidence-2026-10-12.json": "13331f0d8be894e91a0d5fb1fa798d52450163bec91cf2c950a64f5ae6251a30"
+      },
+      "core_files": {
+        "LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+        "SKILL.md": "8abbb230903dc174c55136fe725249dc4957aa76c589980328f8b9de007bb2df",
+        "references/conductor.md": "e57e0cf144091f1d9eb02683c42622ac9b6062e38b563226e4cd1f2e70001fec",
+        "references/claude-addendum.md": "a3f1971c15f75ba0d8efc78f56ed27e95b86d7e20d5652264e0967c627705c13",
+        "references/working-with-anti-dark-code.md": "a7c4682420492b36981ad05f92b7ec5462aff1e0c9872838d8892f1609d2df05",
+        "tests/test_kit_audit.py": "92f62a9ac1f5dc9a7e28aa398b2cda7e1be09fc033e4c65ad2a448c9eb212317",
+        "scripts/kit_audit.py": "6a1b3f00a5e9a1128baaa8e4d63d46cbb68e3e572394611e95d253a4e7063158",
+        "assets/templates/ENGINEERING.md": "7a93dff0f8c06d8a08bb9a8f2fabf2d062ee43e3b507ac7151ee236fa4003421",
+        "assets/templates/SLICE-BRIEF.md": "5a1a09498a1e1a7c51a701e93d6a36f13929fd0585664d964895245325c2a0ad",
+        "assets/templates/ARCHITECTURE.md": "324c9ff54781dc182ed33fe9da72f03a5630ee13950115e6ab1b8dd906e2b59c",
+        "assets/templates/DECISION-LOG.md": "7e5637519436e1f7e7b1cc99635b8c4bf3a2bb01af06240ddf80eafedd66331e"
+      }
+    },
+    "anti-dark-code": {
+      "base": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+      "patch": "<local-user>/Documents/Codex/2026-10-12/h/work/claude-review/round15/anti-dark-code-candidate.patch",
+      "patch_sha256": "521a9906ceb4ce72c63b6ff30e82f95ebba55126905f5badf1d87e47862df1da",
+      "parent_patch": "<local-user>/Documents/Codex/2026-10-12/h/outputs/anti-dark-code-v18-improvements-codex-readability.patch",
+      "parent_patch_sha256": "16fb5ff0a3fe0657a79a81a6387f18120f6f4d9406eb9de095413f6c7a6326c4",
+      "files": {
+        "LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+        "OPERATIONS.md": "c3fa56131690238f4340f55058a4f72a20d721a752d822889d6005106d9ec049",
+        "CHANGELOG.md": "03caf71ea9855bac9399e6cce3c322dd9624ed21680b38a34bc9787bb0767f29",
+        "requirements-test.txt": "faf7b53491e6285c0f5d30c131c02621c5645aedb2b50a77a69ecde915ba90d2",
+        "gemini-extension.json": "c2bd9127c9ee0fe88412659fa8d7f34872a284deadab3f8af38c2b75b9826d59",
+        "MIGRATION.md": "f8709903467cc4372ed97f3e14f7bb961be947459cd3c315b1a147f0fe640e6c",
+        "plugin.json": "56b63ea6dffc3b6340994539ca192af2a52f9e232fc1b98d4907b4e367f5404c",
+        "README.md": "1a4bf808a64bfce0eb991077ec5a0937bec5b378e8a694162e0dd1218fea68ee",
+        "AUDIT-AND-DESIGN.md": "5d1c7baa0d877c1314ef186f16ae29f7c4906a96383ba1b18e4bfb29706689fd",
+        ".gitignore": "2cdd22c45596030ed0957a0fc2fd8d6160927bc8b84efe32a72189e0b1b2e0c3",
+        "PLUGINS.md": "e04baf4cab04906e0c4789e5a2961b4db0c2cdbcb1e231c6f2c90380f8ffa5ff",
+        "CONTRIBUTING.md": "fb2b94e8964d7defdf4f9e7acc5b2efb5b3a43ae9141fb51af9c59d1bd75f710",
+        ".gitattributes": "a1d9f6a2fc65336c73edb1f82f212278b74ecf27c88bfa095507e344d421a733",
+        "requirements-test-parallel.txt": "bc6e4386989c90c98a2eedd76d6fa417f47882d4e8bd92c02847c672a6e4432c",
+        "metrics/summary.json": "26225464c0f8292dbc64b4e4353c902c0bcd6309aa2036337785473d7dc41d93",
+        "metrics/README.md": "f733271f2d06e9dca8cc9756e3453613797e8fae91b59bf7349dc3ffd91e123d",
+        "design/lessons-unified-17-plan.md": "4ab1aebfe546fb3d649d7dab44329eeb7b77ae44187270f1183345222da9275c",
+        "design/5950x-verification-2026-09-15.md": "b3d4f7a52d2556592ae6e0977b17792fa0c21a66ca321b45e247c346b07ac8b4",
+        "design/plugin-readiness-audit-2026-09-26.md": "273cde99e23ed445579c99b9dd211d755cc9b0618e681871bddaefc5037299ee",
+        "design/native-device-handoff-review-2026-09-15.md": "da80c0bb12f2dbeabbd9c3f0a227c6c526113948061b6f3494c7fb7b8127b20a",
+        "design/render-brief-pdf.py": "cc9f6c85b9d2dbe99e822baceddf7bc0957a0895aabbabf3aab0143ee7b7f86c",
+        "design/routine-usage-review-2026-09-15.md": "0e340e8b173f5cd9b45b4aaeed74c63244d4c6ed46f0a32ede841511a7ec46b6",
+        "design/product-review-improvement-2026-09-14.md": "a3e5acb6c77c12c6a404bdb614358867f4895df3c571c5146ab2fde9547f4f70",
+        "tools/fuzz_proposal_validator.py": "c6fc3f80b6207dcc59d916be4fb16321858420ce34627afaa49164a3fb54493c",
+        "tools/mutation_harness.py": "431901190077772a3c694ae498ab0d414471802f632d48b875eb4c3ac9a7d78d",
+        "tools/MUTATION-FINDINGS.md": "c303e389572b905e20d4959307184db9ed6895f9684cae782a36ea497dced83a",
+        "docs/index.html": "2d224d6d90b7c928cdec600a6109c105367bdab400353d7117e14972ba9aa1ca",
+        "docs/sitemap.xml": "78932a13a9ea429226f04df8005fc30a33483e81379b40d3d3819ee7a45b5090",
+        "docs/SEARCH-DISCOVERY.md": "53deb17da7af3c8569d12f69997fd204ee1ff4877cda63c105f59c85b53523a4",
+        ".claude-plugin/marketplace.json": "33cce8201a61d82c9e341681012a1ce1d8d964321e1b7a665adef2a486ea9f3c",
+        ".claude-plugin/plugin.json": "3cda48f8dd5291941dec5ef16a0422f8d2708dc43d3bf21feedd23c4002852b0",
+        ".github/FUNDING.yml": "c08480e897cfecc1a8310792e1f234fac202f008cf5dd9c65be93e2fd1c654d8",
+        ".github/CODEOWNERS": "28be58de22b0b3cc4bf4055006805f9e4cad611dbbfef11669087c633ef1d01e",
+        ".github/pull_request_template.md": "c16fbeed85aab7430bed461829d19f45b73cae51f4c67873febb0fd320ee78f4",
+        ".github/shadow-gate-map.json": "2b7fd4076f02b2cdc7f3c9388c18d179d21b5082b09a1139c38ab22ba371d76f",
+        "brief/anti-dark-code-brief.pdf": "7b9e09673405b1b4b3507f3e95289b3b0b7062460d3ac24c10607a202b5e1bc9",
+        "brief/anti-dark-code-brief.pdf.provenance.json": "27ee2d0ebc045967cfb903a5109ef35516d53921da07b3e20708b5b888eab95a",
+        "brief/anti-dark-code-brief.html": "b93f961444d2a70a8744cfd585901ecf13d5b1e65ec14e78288b2a3392ac44db",
+        ".codex-plugin/plugin.json": "c7a212e8e78d0b00b4ec678aecab3bd9e87116deb54ba3ba3b353ee1a8e2c7b2",
+        "skills/anti-dark-code/LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+        "skills/anti-dark-code/SOURCE-SCOPE.json": "bc7b5f4c06527fe137fb867b72e764d02a87422a0af1bef6b85c76b2a7f65416",
+        "skills/anti-dark-code/VERSION": "005636cbc7e6a9a6b4df937f93df8137c0221e8a25be7cf2eabc81a5d2cc00ac",
+        "skills/anti-dark-code/SKILL.md": "1e7eb6baabecbefd2d823a3ad10622c2ad9670c066dcdd2aad073e5b397cb629",
+        "skills/anti-dark-code/.gitattributes": "1f03619729beff9edaf98efb019da9692c19752ebc62eb08707b18c391e8beeb",
+        "skills/anti-dark-code/references/specialist-exact-gate-contract.md": "59468bcab3f9a1ef81969eafb9ea82f6bea33c2481395ecca8347cf3040013bf",
+        "skills/anti-dark-code/references/specialist-native-reachability.md": "bb43c97e9638b8b97811ab9d76a836b63195f2d43b57f74e2395f46d2eb25c13",
+        "skills/anti-dark-code/references/host-gemini-cli.md": "f9431767cdf3ab3573dce9855a1a55fd601ac24c8831c059daaafcb800abc8b2",
+        "skills/anti-dark-code/references/verification-capabilities.md": "ea29db21e33cce556888bb64bd84439c58dc1bdfe4438d63985127bdd84211f2",
+        "skills/anti-dark-code/references/specialist-mutation-restoration.md": "578d8015e800861aa7386b518c89b5d2034f7f15059e4434e966f8e8ff0e1c41",
+        "skills/anti-dark-code/references/05-coverage-slicing.md": "9f73d6649c589328f77a5300e6db710ea1e93713410eb7241520b9364dc38fc8",
+        "skills/anti-dark-code/references/assurance-release-closure.md": "243a60e95cd0c9a38e0038445ffe59b721a2a62f1203d7ee83f790eef8091789",
+        "skills/anti-dark-code/references/07-adversarial-review.md": "f0e826aaafdc438fdd013175e3c262ef2d0e9be1799875abfb7ed38ebde3cc2d",
+        "skills/anti-dark-code/references/shadow-evidence.md": "1b4a6c2bf0583d57ceb60503ac44f6e289c96a64ab0a140d723de600f1dba4b2",
+        "skills/anti-dark-code/references/11-remediation-loop.md": "5f863054ae0edc11fa5332fad05f3599ffa16ef61b14e9f416b42d8c0bb12a13",
+        "skills/anti-dark-code/references/model-selection.md": "7d5873eb2a5fa5d4d4895ef421703c2b1f4b81eaf68783ec705be7611e9be0f3",
+        "skills/anti-dark-code/references/assurance-runtime-boundaries.md": "823529c4dca6cdad8155a4c3327a0700fda7e0a7d0df41a0b17edcdaa9f49118",
+        "skills/anti-dark-code/references/assurance-publication-integrity.md": "8a1d820ead85165de9afb12a42e9de51b769fb789d4412e1fae45b4d68f54471",
+        "skills/anti-dark-code/references/specialist-audited-producers.md": "294cc2b9e46ffac81c66da069a081fc3fd3556777d8a657451f97ed6b629228d",
+        "skills/anti-dark-code/references/00-preflight.md": "517bbf262fade7e9136a82c3fddc1d0918bcb10f9acf419c5f09b95b066a19f0",
+        "skills/anti-dark-code/references/14-deterministic-verification.md": "1c2c1052516dc4c55082e9fa5db792a79bd55aed6f4452294683c8ecfd8756c6",
+        "skills/anti-dark-code/references/assurance-native-execution.md": "0f56080dfe9c6fee09e0129261d79948eff2175a8b24716076e503eca56b3efc",
+        "skills/anti-dark-code/references/13-calibrated-local-mode.md": "19f7add23337056b51eed0772ebf8cab476417a11b834814d35582ced429e401",
+        "skills/anti-dark-code/references/01-steering.md": "585a9d42e17bedfacaa6e101bb0384e6f610d8e997ccc24828b96c26bbee5b6b",
+        "skills/anti-dark-code/references/orchestration-mode.md": "48029056e36e29f79168475055502571e72e1322b033a173d7077ab29c4ba4b8",
+        "skills/anti-dark-code/references/routine-task-review.md": "00a6d558203205e579df712a7ddb57437a92a5fc6e6a3097ea82bf00fa6799e5",
+        "skills/anti-dark-code/references/specialist-verifier-falsifiability.md": "ab4af5be1cc84706afe223e4ceaada166ce45fccc3102c66a1cf9de4783d43ab",
+        "skills/anti-dark-code/references/host-adapters.md": "a848f2297c1d42f774d11e46770c7297664b9ad3eb23f3170301230e1ea811ba",
+        "skills/anti-dark-code/references/16-community-feedback-and-efficiency.md": "e56a68da9bfbbd431d59c3c64aba73eedf8b47193536471716100bea1adf64e8",
+        "skills/anti-dark-code/references/assurance-preservation.md": "4032c98539c156efb72126107ff54936c961ac5b9871a5597d3527692b9d366f",
+        "skills/anti-dark-code/references/06-writing-hygiene.md": "558962383623197fda1d42ce4445765a8b9586d7368755608cfac7440b5c1a08",
+        "skills/anti-dark-code/references/10-maintenance-harness.md": "e85ce7d509b8df9eb59788b69a33c2f65070dcefd2a9e78e7b2a7fd980a023a0",
+        "skills/anti-dark-code/references/assurance-hardware-recovery.md": "ae00ba2d812a530f81c8309007d1d8ba2d0d9ccd7e936cb57f558d162874a0a4",
+        "skills/anti-dark-code/references/04-logging-audit.md": "653206cda0ddce9955f861dbad3d3b24b4934bc28620e78bb3468f4b5797901d",
+        "skills/anti-dark-code/references/host-codex.md": "a718970e98bab81227c723f195125e89e653fe503dbaa6cd4cb79f9262dc702f",
+        "skills/anti-dark-code/references/quality-tests.md": "06e249c59a0576f4264244f9b226a03f510d4456d670248a3b06b811d63ccc1a",
+        "skills/anti-dark-code/references/specialist-remediation-edges.md": "fdbcb725d7b48b6175a1e770522d218702832de1296e3d1772d3f540db3ff599",
+        "skills/anti-dark-code/references/specialist-hidden-control-planes.md": "fbd716572457dc734ee3a0b84acf43f54a60dfee3885ccead3083678623f01c7",
+        "skills/anti-dark-code/references/02-architecture-map.md": "c71861427355aa907a9687a1813e53de4724267325d5522fde73eac5c78b74c0",
+        "skills/anti-dark-code/references/12-transcreation-boundary.md": "ee21b2c07a5641fbe623ac195c50ecf3a7e76de1139a15383155e50b318d7672",
+        "skills/anti-dark-code/references/03-critical-path-comments.md": "bc7e1b4ca3bfe920bb85374c548731e6bfdb824a9757544db39918e227f5f1c8",
+        "skills/anti-dark-code/references/assurance-contracts.md": "4c6bacf6ad842848fd64d424e4bfae70d6433ae9e11e908cc394b67771ef6b0d",
+        "skills/anti-dark-code/references/real-world-usage.md": "6c215cf6c5eb60d7c296ab88de879051c60927552cc5ff7d739348a01c378cb4",
+        "skills/anti-dark-code/references/documentation.md": "73bc7bb948c2bb0ebe5590cb3326a94548fba6e89ec7675aae38434dcac79518",
+        "skills/anti-dark-code/references/specialist-process-verdicts.md": "7842525aba85a0529b2fe523872331b6044ac3be272c84f9a6bb8cc9d0b53148",
+        "skills/anti-dark-code/references/specialist-gate-environment.md": "f409674584711940f6fb4adc38d8c5c6c61cca5a05d27c2a0615d617c06947e3",
+        "skills/anti-dark-code/references/combined-03-06-loop.md": "b2e976493658348bc6ad3f6fd92006bf6cac222f949bc3f89a59acf591dbe7fa",
+        "skills/anti-dark-code/references/assurance-claim-proof.md": "69915008b0ddb96ad518a688a4479695573f8e6ae34bdd4828eb3a67db378f2a",
+        "skills/anti-dark-code/references/specialist-restricted-builds.md": "f0f5ce8248652f646592f9c864734413d04506545c61484755223000f2027ebe",
+        "skills/anti-dark-code/references/09-artifact-gc.md": "fcb1baa821a8ef02cc6b83acbc952ac8915140bbce1b0d5b28c5ef7bff656df4",
+        "skills/anti-dark-code/references/15-dogfeeding-flowback.md": "3cc0884179770fc6f82ac674da26deb3d40fec9c913d4e561aa3f59a35c03e43",
+        "skills/anti-dark-code/references/08-scenario-stress-test.md": "b3337e4b7f85127e2b5fc334f4ada8ef7b3baa684a62fb1138ad41f5c76b3575",
+        "skills/anti-dark-code/references/product-principles.md": "aaced02c378b69e55e617cb670753a6f99de3d5e1755582cfd33abf10317137f",
+        "skills/anti-dark-code/references/00-conventions.md": "cd6af4c166bbd68f5086a5c51ef79b4ab3b0271557802d1c78c430ffce05f725",
+        "skills/anti-dark-code/references/repo-verification-profiles.md": "f4f215cef29d34c9b6121fc33c20aa02b1fbf9ffeb7a3f1fa333c7a047c04177",
+        "skills/anti-dark-code/references/host-claude-code.md": "ed966d72cc852d11967f10848f5119ad7ffaeb26f1760ddc6264e47e9adc99c4",
+        "skills/anti-dark-code/references/proportionality.md": "28f5d11e30e4a48581c025ee09d99071a0610719959af5240d3eb4cb64c369ba",
+        "skills/anti-dark-code/references/host-generic.md": "77129e4d275d24aee7be9b4669a27c87fede174a4828954fdde8bd35cc258061",
+        "skills/anti-dark-code/references/example-stress-test-report.md": "5510c796b24f46d048b380a7c2cd74791fefc13a08eb96216f24d2f57f3dfb63",
+        "skills/anti-dark-code/tests/test_usage_privacy.py": "91d9664c77fa9d429d15a7b7236a70883a80f525f7f3cbb3761d2dc2771d2a2e",
+        "skills/anti-dark-code/tests/test_work_receipt.py": "56ae48d4200818228b60295f8ddf0cfb017d51b5ed3109db883374975fa41fe0",
+        "skills/anti-dark-code/tests/test_packaging.py": "8e4d22889b793ca1d3afb0fe617e231824bf567791032fbe7b647c0e062e814f",
+        "skills/anti-dark-code/tests/test_product_probe.py": "9e97e01cec8199a2154fc04f649baee5e686f6dd2b31d4e9389a19f08f41ed3f",
+        "skills/anti-dark-code/tests/test_route_cli.py": "ccc0d9288c373566071ef608b21a37dd1bada4a500acd54f3ea9b28ebf303dc0",
+        "skills/anti-dark-code/tests/test_documentation_contract.py": "1ffcd6194643b7ca8300d77127b3c7c528d308eebe89f08cd8540b44d259d494",
+        "skills/anti-dark-code/tests/test_usage_sources.py": "c3de31dba464646212159dc385ab74fab40c7f3d07b1f84cf676b3803715c7b6",
+        "skills/anti-dark-code/tests/test_usage.py": "623751105c2c936982505eee09ad2e1cd081aebddeff24bfb3b526d243519231",
+        "skills/anti-dark-code/tests/test_adc.py": "8b9830deedd31aee5ad9510ab13d122ad08e3b17de91332157dfc14a6a7f022e",
+        "skills/anti-dark-code/tests/test_receipt.py": "07b36443bb60563a1d5b9e7c03d2743cf7c604cf759483978cc6d28d273937c2",
+        "skills/anti-dark-code/tests/test_model_policy.py": "f096533b846fa810fab73d628148788cce918c003d5c8bea096dca20818a3d91",
+        "skills/anti-dark-code/tests/test_efficiency.py": "e08b13d12e5b7a164bd3ba17e3870ac91674a348e4aec654ec81cb5916c31c36",
+        "skills/anti-dark-code/tests/test_route.py": "92ca34c0e6e544f79cc2a96874a48a377b53136926981c72eb03d9168c984944",
+        "skills/anti-dark-code/tests/test_usage_review.py": "2ab3fe578b53c84e3cf27611a489e5f619a4cdfafd1fd066eaa59438de4a1834",
+        "skills/anti-dark-code/agents/openai.yaml": "5ffb52973b3911c2f9a250e26865047635afa0668b7dc9f290f5a1c79e097ad6",
+        "skills/anti-dark-code/scripts/adc_receipt.py": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "skills/anti-dark-code/scripts/adc_usage_sources.py": "dc3f3233c8087418c0c8472541fb72f0a39e39a817b239036ff3e28efec54625",
+        "skills/anti-dark-code/scripts/adc_packaging.py": "2cc977cc0ce7553b65bcae665b3c9dd2b7b7bdbefba3b39c1f29e073ff1d39e4",
+        "skills/anti-dark-code/scripts/adc_model_policy.py": "2673c36e588f59675b0fa6bce24ac22ce558910bbea79ddf2695a8b1d9be42dd",
+        "skills/anti-dark-code/scripts/adc_shadow.py": "6c65c26c93c652017361d5450dcc982ed79bb0b50e096d4879cc93728bcb6ed2",
+        "skills/anti-dark-code/scripts/adc_usage_review.py": "8f9f87b46bb6ba8224a01acf67b0b16a656b4572d8e6cfdfe7a289b765b70d59",
+        "skills/anti-dark-code/scripts/adc_route.py": "98233bcc8ea68560de2e30dd43e42eddbcf85a09aefd7656c099eeb01e81e4bb",
+        "skills/anti-dark-code/scripts/work_receipt.py": "cfb118d7ca65824e0f209c548effe6b7080089bfa9286c42be84982150cbcb5b",
+        "skills/anti-dark-code/scripts/adc_usage.py": "b075e6fce7ef37d9b5be626a80d12605440ee6759533a53d62aabe602ecb0c62",
+        "skills/anti-dark-code/scripts/adc_efficiency.py": "6b15988cd298912df84f79d1750951c79f9ac8759f5c840772970c854bfe6c8f",
+        "skills/anti-dark-code/scripts/adc.py": "7a6e5e403205dbf7fffcee2773fb5ba847c64afa24846b55b3a960281f0df02b",
+        "skills/anti-dark-code/assets/model-policy.json": "0c2c7e6b1dcf28eb0c923f86358e6fda14db5491554c6976b113ce457a06b0b0",
+        "skills/anti-dark-code/assets/verification-capabilities.json": "a49c4e50c8e15a2bf081c8e46a98d4168f299e1c76d2a1fe4c17c32d753efeab",
+        "skills/anti-dark-code/assets/brand/README.md": "a96d0a6a568355c1b9db70d6d9b6e20133a37af80f0f75c2af2c3868159ef681",
+        "skills/anti-dark-code/assets/brand/illuminated-code-small.png": "535a32f6a40b2b072d10ff2a4ad9736ef8ef2d8ce0fece0e0651496eff0f0f79",
+        "skills/anti-dark-code/assets/brand/illuminated-code.svg": "4b67eddbe2d359cf7ff7061b68d41c115a8343b1b126dc760c32088e3afa36c5",
+        "skills/anti-dark-code/assets/brand/illuminated-code.png": "cb835062f6c92106bc9a0fc21ee96a182b9c84036c5625a5a3f265841582f19c",
+        "skills/anti-dark-code/assets/brand/illuminated-code-small.svg": "b2da19039190da2cff5f4b79b803cd53788e9a3ea9b27fefd07910c518fd6a3b",
+        "skills/anti-dark-code/assets/templates/failure-packet.json": "f8d34d2d03b0f3c90400a67319a1c01aaf1bb045e5624e38eb06b3ff75fd462a",
+        "skills/anti-dark-code/assets/templates/product-contract.md": "7f6d589d360487f663df65e3d93ef8b94736e422d7c92921b57b55baea874424",
+        "skills/anti-dark-code/assets/templates/codex-review-hooks.json": "6af90f71b3f65323d25189239d16f8bfc68971a533ba2e851debb3e366265469",
+        "skills/anti-dark-code/assets/templates/repo-slices.md": "28d39deb5fe9457bdacf1993ecfcbf792346c61e7654ba8b53ac5029d27b4912",
+        "skills/anti-dark-code/assets/templates/unknowns-file.md": "425f60e1b7cc1c1c4d556987e98dd0e04bca05b5b5ca97f1a9c969609e42bbee",
+        "skills/anti-dark-code/assets/templates/shadow-job.yml": "7b70d2814bf009459580131fb1fe698caa7d7a2b9aa739c44d58ef1b0bb77c8d",
+        "skills/anti-dark-code/assets/templates/shadow-gate-map.json": "2fe74ea0c7299f939543077e6c7f6a8ae8431beb766ab57673380763ef5cda66",
+        "skills/anti-dark-code/assets/templates/system-map.md": "ce23dec7b1542442e2a8a5b7c0a23abe2b70a952269860d8de6e3a4dbeefb047",
+        "skills/anti-dark-code/assets/templates/remediation-backlog.md": "d12f374a55dbe97a3276415940872ea2e2700afee4a7a6b3f94437dd2bdcc109",
+        "skills/anti-dark-code/assets/templates/coverage-ledger.md": "03bde1c0190bca52892d427fcd819ba832ff03f242023101ec5ed07a074e89c0",
+        "skills/anti-dark-code/assets/templates/pr-template.md": "9a37059411ba8e101439f1c30ff63b0a0e53b387656f99d4cd77326b0943963a",
+        "skills/anti-dark-code/assets/templates/calibration/repo-profile.json": "8f72507eae285ca27d8959ea34da731e3eb6388e82d98a3495ac2e66ea54fdf0",
+        "skills/anti-dark-code/assets/templates/calibration/routing-policy.json": "89bcfa39e09104e1b3898ca27cab908b48d538c0e68a199f1edde398964a77a1",
+        "skills/anti-dark-code/assets/templates/calibration/invariants.md": "329577014e8b5d72663a16da7d1063cf1556652e81ce989272b300bef3c92e53",
+        "skills/anti-dark-code/assets/templates/calibration/README.md": "4abf91235b5612353b24fabc5c38b8b572f9c7d14d06e0efff17b0a6c5bf445f",
+        "skills/anti-dark-code/assets/templates/calibration/verification-plan.json": "a7d79b537fed56174a11aeb234b7b4be5dcd212d41c36765e7bc07c3ded40ce7",
+        "skills/anti-dark-code/assets/templates/calibration/gates.json": "d49cd1e6dc944dc99c2adbf905b365f5b8f446c1df9046cf4ad22f1d23081544",
+        "skills/anti-dark-code/assets/templates/calibration/upstream-candidates.md": "7022ab06aa4cd44b9b0ed4949bfe478292baf5272550d9c2f14ea8cf459b8efe",
+        "skills/anti-dark-code/assets/templates/calibration/findings-ledger.md": "ae23546ef945061a1fe3458b96b27ae3c4eabf720c0daafbe5c98edd479c24b7",
+        "skills/anti-dark-code/assets/templates/calibration/upstream.json": "54451a2c391812ab4e09b4f0419a2680d9d6b8056489a237ad48e25d1ebdf8b8",
+        "skills/anti-dark-code/assets/templates/calibration/system-map.md": "14b6e0a315332a7db47d491a2d560b9a9c0f140bf2305ecb642cbe84a5506ed3",
+        "skills/anti-dark-code/assets/templates/calibration/repo-binding.json": "29aa0286a7ae683df6cc06f2aaa2a963cac8d6e1d763698363c6f87c646a9c82",
+        "skills/anti-dark-code/assets/templates/calibration/coverage-ledger.md": "c0a66263cfa2fd43a8464e818547b94efb82ecdbebdf5c1cedfcde3eceafb627",
+        "skills/anti-dark-code/references/tasks/document.md": "69249ddefda2078b227754d95961192ba3a7f1cf6db1bc8e1e4ae6b752b117d2",
+        "skills/anti-dark-code/references/tasks/remediate.md": "fbd88b5b2b3df9d35fe4b0bf99707ff7865b57197207c3d1df2dae271b732647",
+        "skills/anti-dark-code/references/tasks/improve.md": "73b97b84395587cc4b014eae9c58cc080d7d73ffc10d6f121dfdf5bda95a93f6",
+        "skills/anti-dark-code/references/tasks/understand.md": "64f4cf8689b863f4917c43d4a9fb921eae4c21a01ed581ed7709303dfeaafc62",
+        "skills/anti-dark-code/references/tasks/investigate.md": "8b27f6822b86ac0f996c457e4a2e2254c6684afebbe7c5c1141f1290cf5744e2",
+        "skills/anti-dark-code/references/tasks/verify.md": "929bc02f8a4e14d62217ebe13e58e0b1e54f7b7189ac5b7074068e628f77b4d3",
+        ".github/workflows/proposal-intake.yml": "5ac99f22f2ead8040b2377471f16d84eaa03f2400ed809a627bf77073bf1cd59",
+        ".github/workflows/efficiency-ledger.yml": "f919cb9cbff55c94c3d722537a3153db6069ce0e315d2bc6738e068e5fc99fb8",
+        ".github/workflows/tests.yml": "8077a92a18671125f8c61bf2d958dfbf093c69eaf12e60adc9d8359d3f238eb4",
+        ".github/ISSUE_TEMPLATE/flowback-proposal.yml": "d615eb0d3717193b48fa5730f28b3b7fe87094fa2d6bec0ebc7f5309e5332b43",
+        "docs/unknowns/adversarial-pass.md": "39bab7388036531808664d2b64c0fdcb803ab853aaf5626e4a5eff68e34dce3b",
+        "docs/review/adversarial-pass.md": "c821e8a34e6b65a0fd5a97745f0d5f0e6832ef1e0a8535160c7cabfc5fb167fc",
+        "docs/data/efficiency-summary.json": "26225464c0f8292dbc64b4e4353c902c0bcd6309aa2036337785473d7dc41d93",
+        "docs/superpowers/plans/2026-08-31-round-sixteen-verification.md": "f3494b0768f3aad4131870281e6c53064ebe4131d03f6c93de174dc10c7b6002",
+        "docs/superpowers/specs/2026-08-31-round-sixteen-verification-design.md": "21178fbe76c33ef02f7f98265284820699881c91e37e6335f728d6bd5e05a141",
+        ".agents/plugins/marketplace.json": "61c73aa6496c5e63270be84ec04c84faa98bd00fba8dc4c21850ba043ad899fe",
+        ".agents/skills/anti-dark-code/calibration/routing-policy.json": "8d52b2ce244a3e855221e5342fcf76144535458fd95d9e034f1fa10c8c3a888a",
+        ".agents/skills/anti-dark-code/calibration/gates.json": "1f201595bf60fa42b0388c9c658205cf277eb0768c4a59a815e9386e8c0a3a07",
+        "design/routing/HANDOFF-CODEX-ROUND-TWELVE.md": "4b8e65bbbba3c99130be915f40c41d72b3b4449115a56e26443b92a12eb1d5c1",
+        "design/routing/HANDOFF-CODEX-ROUND-SIXTEEN.md": "c55ded05d33c542fc3fb38f5a1c7051f29b3be9f749176dc33c183dc3fe2fd6b",
+        "design/routing/requirement-evidence.json": "ef27c3447d6aa214676842a62a4ed6517d6a3b0be64bad6f5852822db24e4024",
+        "design/routing/ENGINEERING.md": "1dd03988640de6d3cde3dfa8a52a937847c4670f2505705fd2cf50acd80ccc66",
+        "design/routing/HANDOFF-CODEX-PLAN.md": "4074753bc44eff64cfeebd62324ccbb7e234c8ee899c636c077b92ab679cbc73",
+        "design/routing/PARALLEL-EVIDENCE-ROUND-SIXTEEN.json": "ed7d1889bf3feebdbc89d47e370d7f811170e9ae18e9b1bc2155429a7f26bddf",
+        "design/routing/HANDOFF-CODEX-PURE-LAYER.md": "624623c439e45c81c8b4613837f3c5caa15e1d7632a30c41462b4c0d24d81d82",
+        "design/routing/HANDOFF-OPUS-SLICE-002-R3.md": "6e4998055c1a2b427bad35dc0bcb9819b076d00081b5aea2cfc1eaa5c50b7f84",
+        "design/routing/ARCHITECTURE.md": "0fe32b04aeae546a789d214a58ae6af4516675c5660f5590b66d493dd4b4b336",
+        "design/routing/CHALLENGE-SLICE-002-DESIGN.md": "cfd2e02b34a2f109588cf7c1c80fbb7e03adb956b16a8cc8cb1d5aec02c8054e",
+        "design/routing/HANDOFF-BACK-ROUND-THIRTEEN.md": "446c201e87bd7bcff6b69ec0f467e08ea9abe6c4f60fdd9383a9c770f7373ccc",
+        "design/routing/SERIAL-EVIDENCE-SLICE-002-2026-09-04.json": "e0c976857fbe827b1623636b6bf96ddf4657a641893f6b8bd136cc5b0687fad0",
+        "design/routing/DECISION-LOG.md": "fc547d39cbe016e5043840cdf14783638d2676e5923774c3760f64c4c74c486b",
+        "design/routing/HANDOFF-OPUS-SLICE-002-R2.md": "25f0cad30ff593ad95bcfae08de41d9db884a9040fde5f709e5abd8e99489e0f",
+        "design/routing/HANDOFF-BACK-ROUND-FOURTEEN.md": "42fd49baf2ce07022f0d96074d8116d9b0763508ff7ffe1a4b3332e9598310c2",
+        "design/routing/HANDOFF-BACK-ROUND-EIGHT.md": "2d951c22d2aaeda4fc9131316fa55bb3a39504ea3db0ba47da12fbd18c6ad8d1",
+        "design/routing/PARALLEL-EVIDENCE-ROUND-SEVENTEEN.json": "8abb1d1e45e424fe9bfd3cb89c475d5f0eb17dd7964c49fdf606bd128df97543",
+        "design/routing/SERIAL-EVIDENCE-ROUND-TWENTY.json": "eefd62912039027de39d555ad297f7ff7fbc5ee40b6eb27e68393ae3ee35e3ce",
+        "design/routing/HANDOFF-BACK-ROUND-TEN.md": "1e3bc51266b9077882ba89d4d2d5bdaa801c8672b240f8e2597239326537bd46",
+        "design/routing/HANDOFF-BACK-ROUND-EIGHTEEN.md": "c11ad67adfbfa8d32c65218119a759d87dc6efc46c4c4ad287dff854585506cf",
+        "design/routing/HANDOFF-BACK-ROUND-SEVEN.md": "f06dc19d8798a2a155610b15c3b337a6176f5fd4f4ea9def43b24b12e5ae4af0",
+        "design/routing/HANDOFF-BACK-ROUND-TWENTY-ONE.md": "d8537f56b2e258a180ddee0e657f163e008ba957c259acc79787db60fe2d27aa",
+        "design/routing/HANDOFF-BACK-ROUND-TWELVE.md": "98f50af4f44f69c0c507a2e029ef9d6a60ac98614a50c312484666cb675e686e",
+        "design/routing/FIELD-STUDY-SLICE-002.md": "a3fb32f9e5c807c71d6f4020a191e5a832afb582bd3684ef3b3f00c83a50db4f",
+        "design/routing/HANDOFF-CODEX-ROUND-TEN.md": "ee2f6219de1d2779fbb43571c83edee9e0f4f41c1be1891705e5388ac3f0b65e",
+        "design/routing/HANDOFF-BACK-SLICE-002-IMPL-R2.md": "46a76d8f4828abe544f98a77d749e7e8ce2b60c261b15ef665be61f549a47128",
+        "design/routing/SLICE-001-route-shadow.md": "a16aa0bda7965934941de82cee345538340b5c11398f15a557e5fe33aad51c79",
+        "design/routing/HANDOFF-CODEX-CODE.md": "3dcce35a40afa9551d4eacb057e4d576a72ff843f81675568584854a4a5deac9",
+        "design/routing/HANDOFF-BACK-SLICE-002-IMPL.md": "6df1c884cadf1d59e8c7ac55f74d2f8fc64090b125079fe2c006498e65a20408",
+        "design/routing/HANDOFF-BACK-SLICE-002-IMPL-R3.md": "29b3f96f0c58710df702c74a7d5d4865f27316554e4ce668b4aef7301e89c338",
+        "design/routing/HANDOFF-BACK-ROUND-FIVE.md": "ddc53f032aca0e509521a06841a576eb97a4c5e045b80d906dd7900240840138",
+        "design/routing/HANDOFF-BACK-ROUND-SEVENTEEN.md": "1a9fba4e0c62d31ade6b57958adecdf0aaa1a00fc85d0518a7794ccc4edfffad",
+        "design/routing/HANDOFF-BACK-ROUND-TWENTY.md": "6d440898af05412c6443856ecebf0787af4f48fce6d9a6a25ca01f6930888040",
+        "design/routing/HANDOFF-CODEX-ROUND-FIVE.md": "50e979a70cb01d56308f404493f01825921878d68a381a91ccc0d9c81505b782",
+        "design/routing/HANDOFF-BACK-ROUND-ELEVEN.md": "15a9318fea71da4bf0069de6cf443056b6d9c17c0b761fceebe5d112e565a064",
+        "design/routing/HANDOFF-BACK-CODE.md": "103d392aa1be374669a479407f43debf7c40069bc003d8fe37bc060283175649",
+        "design/routing/HANDOFF-BACK-ROUND-NINETEEN.md": "e821891ac493a8d04bfd869c038f972c7eadace62b986a7b8361ea0205798b94",
+        "design/routing/SERIAL-EVIDENCE-ROUND-TWENTY-ONE.json": "7eb8832988e5161868177065e0abd7b83b1619b3b410c34b430099e110bb2003",
+        "design/routing/HANDOFF-BACK-ROUND-SIXTEEN.md": "ac8e770f24014383c802dc61924fb57926a63009cfcabdc44154b1ea0c1322d9",
+        "design/routing/CHALLENGE-ROUND-TWENTY-ONE.md": "26ad772cc26daede2e32d69218095aefe73c4cc36106d42db99dc8c568fd77cf",
+        "design/routing/HANDOFF-BACK.md": "591cc172ee682faa1b2d3cc24198f118cfb4e675c8aa78e0b1dc71524f1a4d95",
+        "design/routing/HANDOFF-CODEX-ROUND-SIX.md": "79df51fdf87a3c41b78a7603bf7074f5299b5f9158a5ae485b6c79786fd0544e",
+        "design/routing/HANDOFF-CODEX.md": "bb8face7667d81556ef8742751563d3563bb8d7c7af9afcb76d745e7d264db64",
+        "design/routing/CHALLENGE-SLICE-002-R2.md": "46f619bf88e55a00b8f0aa91dbbd292a2e47c07c62669cb6273e9c91576589a9",
+        "design/routing/HANDOFF-CODEX-ROUND-NINE.md": "4bea1039998ef02e7feb7a79d8240294203c39c1d1c5556ca0c216c5dfa94157",
+        "design/routing/HANDOFF-CODEX-ROUND-SEVEN.md": "afbbf7557a50125353b66daceabc004655aefdd2a9d1cc208106d778379787d1",
+        "design/routing/WALKTHROUGH-SLICE-001.md": "50bb3100369b2e31ad4c664bf2c765ede5b197e40c6804f101ca7be939f6176a",
+        "design/routing/HANDOFF-OPUS-SLICE-002.md": "f997923e74d94bdb2533a87256d96520d503678c71679e52ef848ad60551e5d8",
+        "design/routing/CHALLENGE-ROUND-TWENTY.md": "6a80517b02bad8a5d6fd276356e224bf12efc100a227e3e7208d298fe0f42567",
+        "design/routing/HANDOFF-CODEX-ROUND-ELEVEN.md": "cc0e288433695ac945fd9515a3401af8b0a3eb9abdf7143731034be708d22a3f",
+        "design/routing/HANDOFF-CODEX-ROUND-TWENTY.md": "f5746deba74702e6ee841ef6038beb2a60698193cbed7df335530a5518bc2bb8",
+        "design/routing/HANDOFF-CODEX-ROUND-EIGHT.md": "281565e60082269c22d7c85468752ef015a784115cb8e31fb7b3ddddcd067bac",
+        "design/routing/HANDOFF-CODEX-ROUND-FOURTEEN.md": "2aebb7dc71b83e21bb558317dee78cbdcb9a22ff46c8d1ea2601a6e8ec62c2cc",
+        "design/routing/SERIAL-EVIDENCE-ROUND-EIGHTEEN.json": "4c738df3e0e9dab51a97bf57ffcb9cb81899e4a1f10a597b07b1cff3db7cde7e",
+        "design/routing/HANDOFF-BACK-PURE-LAYER.md": "1bd9058ae51285a6b1cf30d67e8dbac6c2825683801c9db3da1e5d069b6dea52",
+        "design/routing/SLICE-002-shadow-evidence.md": "44433f22080acdfdb6d4f4131b5633fa298c11af898f5b8956ad8b066d2be192",
+        "design/routing/HANDOFF-CODEX-ROUND-EIGHTEEN.md": "4f274c5e65ae64a95ac60f029fcecc5cf9c331cb56470a17934567c0526abb97",
+        "design/routing/HANDOFF-BACK-ROUND-FIFTEEN.md": "393c9f99ff5c6acd7b443aebef888a7ce7a8c36f682d3d9b75867713cb18c708",
+        "design/routing/HANDOFF-BACK-PLAN.md": "ecf7b37b11eb3e2061d3881fc3c90d1b0f68104069faf30014c7c90b361026d8",
+        "design/routing/SERIAL-EVIDENCE-ROUND-NINETEEN.json": "ef754faf9e16742e962c1d47dd27a965d077bbaaa673e07eb16162de5735d832",
+        "design/routing/HANDOFF-BACK-ROUND-SIX.md": "cc76dd94caa4203d0e7cf7ca4c4876b8df593fcffdc693f3997a0b1c2deaa461",
+        "design/routing/mutants/round-six-challenge.json": "494a706a37eef6466588466f1e322758049f593e4e5f354d4b53e1f7569bed8f",
+        "design/routing/mutants/exact_nodeid_plugin.py": "ade5bf794621fe4ae2c9f159c1d34b3d8fbf49fb8bf1ab8c630b644dcfb8d79e",
+        "design/routing/mutants/replay.py": "9aadded16cc7fe179194885b01eddbbe86859f49bf01fa94f1a50147340afa77",
+        "design/routing/mutants/matrix.json": "3c9e227ef7815a55f536f7ed7f16aeead3a5cab71f2f40beb2d1103aed2fb0e1",
+        "design/routing/plans/2026-08-28-assurance-router-slice-001.md": "f18774db911d84bda1ab25c660f01673e44b62bec9026814e977d12f2b411f56",
+        "design/routing/consumers/example-consumer/routing-policy.json": "5a31306f0017048696699232b37caa1ef672d5930f4f5b55f9aab024ac026014",
+        "design/routing/consumers/example-consumer/README.md": "b6958ca07a99f796f011a18a405480ebb4ec6138222f03bd1cc7e2f3db2f0845",
+        "design/routing/consumers/example-consumer/gates.json": "c4a56df786a124a41f0ab7b4c7ef0a9731bcc2ceb1f83d33f9834d6e7be618d0",
+        "design/routing/consumers/example-consumer/shadow-job.yml": "b126fe686b884cd82ba96bd39925ae613c6de693beaabad95ba0f6940c253961",
+        "design/routing/consumers/example-consumer/shadow-gate-map.json": "63fa521dfe48fbde910a1ff565ec9f2f910eae675951466432c2c63795ad0604",
+        "design/evals/proportionality-v1/evidence-2026-09-26-headroom.json": "2f247ba2c0aa55bd606fb4d4a1b46987ba7bc65b44d85cba7bdd1a1747d75a3b",
+        "design/evals/proportionality-v1/evidence-2026-09-26.json": "7d0ae3d1c0ce250cda8a01a7cfefe6a43dc9f842205f0156fb6396c188457c61",
+        "design/evals/proportionality-v1/README.md": "54ec20a316e2ddc16ed491858ae57332f6aba2c770b64ddee4a65ecb880793a4",
+        "design/evals/proportionality-v1/cases.json": "bedbfd314b73c6f6b865b191e922e288f3eea41a7afe6f48d36d0ef505556e8f",
+        "design/evals/native-handoff-v1/verify_transport.py": "2ac1b79d5ea67a8f3b552f4b2e4d2891faac608b3db7fb2ab467b29a07c250d4",
+        "design/evals/native-handoff-v1/evidence-2026-09-15.json": "ef845c296dec567ca0af77c53affb24579a84759ea6fed53537a413c9a87913b",
+        "design/evals/lessons-v17/evidence-2026-10-03-runs-2-5.json": "a1b9546da28d35c77d3dad17d2ab020cbcea5ab96f3561bfdbe7d536875dca07",
+        "design/evals/lessons-v17/README.md": "478ee96ed67e78e96fa382bd806e549a2f991a0e01a412d15d42249b0434d71c",
+        "design/evals/lessons-v17/acceptance-2026-10-03.json": "04c9e40a9bcf904679a663f00e20ad04c4b138767cfb6c10fab50d7aab4860bf",
+        "design/evals/lessons-v17/cases.json": "73f70662abf471004ec66ca686c2bea901cd83fe1ad38825bf75014ac52e2796",
+        "design/evals/lessons-v17/evidence-2026-10-04-sonnet-baseline.json": "de0089327283795c2ee7a156482bd6d289761bb306feb9f09fae10e0d566e12b",
+        "design/evals/lessons-v17/evidence-2026-10-03.json": "20a7e67b3464d33427f150ddb52c443377254a11c408e0483dd4977e2c46b62f",
+        "design/evals/product-v1/verify_fixtures.py": "214c1c307551ccc87ee9de371a430e5ceb83a0bd1acdf3b94e7c732d62e2d9eb",
+        "design/evals/product-v1/documentation-evidence-2026-10-12-lean.json": "b912d45288d765283c542067414ae0750f342cb9fa7b3188566672e6a088e9e2",
+        "design/evals/product-v1/documentation-evidence-2026-10-12.json": "c54467cca10c060ac32a85187560fafdea0463420e76d1deb884541d5755ed7c",
+        "design/evals/product-v1/documentation-evidence-2026-10-12-choices.json": "056955d3da179ad6ae6fa1ec568cdad26b1bd22eb7ea73b069d00cf037bd7541",
+        "design/evals/product-v1/README.md": "47eb015bda0ea6bc9bd62b35393ba31f305741351cbe8beea3c5947e4eb0a132",
+        "design/evals/product-v1/documentation-evidence-2026-10-12-recipe.json": "91c34b2652119e7784ee0d4d18539de5bb8a2ea1079be7d99402d99f31ddd68e",
+        "design/evals/product-v1/browser-evidence-2026-09-14.json": "ff1696f7299d936ce6f60215b4b09a62bd933c1c2bdab4810113d31ce1b6007d",
+        "design/evals/product-v1/cases.json": "3f397734604b9609802d10b6a000aa7483017087f733c11a2cba3c680b3bf4ad",
+        "design/evals/product-v1/requirements-browser.txt": "cfa2186c0470feac813f1ac67c71e54a53021ec949026946255874958d245e82",
+        "design/evals/product-v1/documentation-cases.json": "8c26541185bdf726304d8728d2996d1c621e09fe7ca3a83610fd9d85da754c5e",
+        "design/evals/product-v1/documentation-evidence-2026-10-12-readability.json": "425c4e87fac2d34476633768dcb141ba58e5207924eca5d86ae398de037ae055",
+        "design/evals/product-v1/fixtures/broken/index.html": "db02a81d6336617a6e299f4956d6649b964f543cc4dcb15f4cf2f33700c86c57",
+        "design/evals/product-v1/fixtures/clean/index.html": "e32da5d01669e8af1050294ebeb199c606e288844e54436824daa23f39061b69",
+        "metrics/ledger/README.md": "693bd441fcf3704308cfaee2d2c6d1a7531cb218de1311c3e618bf619b1db933",
+        "metrics/shadow/summary.json": "c6f2a7e55edd415b052ee12d1a4c9a6cbfb6bfa47076b998ff882347e919025a",
+        "metrics/shadow/pull-requests.json": "4296c0461be2fe3f098660560a15c8f0a1a818fc3b4a2fcc5440a901063b994e",
+        "metrics/schemas/efficiency-receipt-v1.schema.json": "012d80157bb5cd9b9528ab7f2ad0e3500ab384dda5176378c75de466bea58c23",
+        "metrics/schemas/shadow-record-v2.schema.json": "f706fd2989fdcb670e47abcc2c3053d89401dc15b63b4c1e8521e14c373969f9",
+        "metrics/shadow/ledger/2026-09.jsonl": "331708bd860cf0245b8722605f452ff5f1d36a8d41a7c1851c3bfeb79f485198",
+        "metrics/shadow/inbox/shadow-af4b5c6e507f741f67a9b992ba9c02f4424ddd91-1.json": "1acb0c706c7f2952fcf733fb33f9c3691c2af47e6c69d10b8dc8ab9a58d52132",
+        "metrics/shadow/inbox/shadow-9b8a6db26db13c94c1f189ede7ecabc5166af5cd-1.json": "fc51127f1a09f5d1634e0fde51aff02698deddaf0e13e0671ab55f2f2aa1b537",
+        "metrics/shadow/inbox/shadow-c16f0fc30811e25902e29a30453afa0ab2e6194c-1.json": "6ff666ef7ca6c0d5f6790f6411d2122268e6304a97ba0f35c85bf514b20d3422",
+        "metrics/shadow/inbox/shadow-c7c8d06bab6fd91ea71042a0e4aeebc57fcb9f8b-1.json": "92192f6a02b8a1e43bd621d96c2c64fec8b55919f05feda9b56ebfc3abd22b39",
+        "metrics/shadow/inbox/shadow-01ab3cd3660f293fa83bbd331142dc7ea677fd7f-1.json": "e191a0552a59d3f504e3070b4fd2079c2a1065189bebaaccda9708b3a78013fd",
+        "metrics/shadow/inbox/shadow-d1ece0716b6e9a6fd4b025ad14cd7ade52139905-1.json": "5ccc240b03423c30b893738504c5cb15fdebb91fd154ebf644c54031fe994a9d",
+        "metrics/shadow/inbox/shadow-f5a806d048b8e56d181e8cba4557ffce96b70acf-1.json": "94385e080eeaa84784a6fb1c9e712125bfe6d8ca09422c797a6d0d7310341e3f",
+        "metrics/shadow/inbox/shadow-bc51ef63f413f527052a7ef397b588f1f0fdb1b9-1.json": "2aab5ba0c6c128e54fc31945fbccf55849d05cf85774f28f1f911cec99122252",
+        "metrics/shadow/inbox/shadow-cc5cc46a908e11cc4d8768bcec38a7cedf63bfd2-1.json": "67da34f6b62b79f350b5aaa5fecfe560fca7666b1e503b6b8b06767b67c3d4c2",
+        "metrics/shadow/inbox/shadow-9db89d42ef8fb8029f8fc50c70009a6ab0b3d564-1.json": "3221400471bba28fd4887d030d769ff982d861009c7ad01c8e06f899c7e12898",
+        "metrics/shadow/policies/gates-b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb.json": "4772a5045434b88190b3145f07d697d2699d93f72ca8ba518267b99e80983d9b",
+        "metrics/shadow/policies/policy-0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e.json": "e073abc1097e3ab16e51e72c0f0390b79f345fc053a22c47c34b9a9880a5830a",
+        "metrics/shadow/backfill/shadow-00edb9b7b16edc4e322782346f4e93defbe266d4-1.json": "07fb620080976231cc17230abbdb3c9b23d0634c1fe4b439e3126db8fe01facf",
+        "metrics/shadow/backfill/shadow-17520c13a7daad9bcd58664931c6c3bc95f85b4d-1.json": "a50e4e65c2567e19c3aff47074896a54da6fa9e3ee29f6d60fdbaf45a5ff93bf",
+        "metrics/shadow/backfill/shadow-eba8ea97d8cfb655e3b08b45bb2cfb202b5f7e30-1.json": "c6fcddf55a95d529166f815ef92033be3d596649b430c8600b865db78da012b0",
+        "metrics/shadow/backfill/gates-b3bc4610551b40ffd2f675711d493d12a72781f08c2979bede7d28c878dc48bb.json": "4772a5045434b88190b3145f07d697d2699d93f72ca8ba518267b99e80983d9b",
+        "metrics/shadow/backfill/shadow-49fed5182013d11a6049a07ce527ebc5b414d700-1.json": "cb58a9a7a4a809752a834d2e86301d65ae9c6abb6fff94f8cb806ae2adf2164c",
+        "metrics/shadow/backfill/shadow-b79cc6eb7aa5d437cce236b9cdd4f3240e6a3fa6-1.json": "766295b0b23fcb7597c73ce44a7d006130a87d925b157b5f90a36d558630c125",
+        "metrics/shadow/backfill/shadow-1a161aac7540e156f3b2745d2e30b8a8db3920ad-1.json": "ae3280bdfaefd63e42389e6bbc0da8ee0b5d699e4960e1373226b916598f31be",
+        "metrics/shadow/backfill/shadow-bfeef9b0e062dbe475c463c391dad0e42bcb089b-1.json": "a31ee3b73b5e391d0f531386ba406960e19f3dee1dcf1702ea3988bc1bf1cf93",
+        "metrics/shadow/backfill/shadow-92e028eedb42bd0a7283bd25e58d01b6d28e0f41-1.json": "5a2a25d38ecd2a8ba36c4de0382ae2e2e85e495fbeef79ea61c3b824bd3dad21",
+        "metrics/shadow/backfill/shadow-2f86f147ae2861faddf7cb62f72a2981d6dc90a2-1.json": "823194b4fd0e05e2badb1e33d824a165414d06c987e1ea76466ecadb24f0bec1",
+        "metrics/shadow/backfill/shadow-a5d61d64de637f48e3790d2684f30ac24044f409-1.json": "80ecc3cd819e8b6e8b390a240d14afae161625029ae443346f9c421fc72ead5c",
+        "metrics/shadow/backfill/shadow-3856f112d00234c27b327abb21118961da2edd7f-1.json": "e9c005991d79861580c30fe75778aa4b5fe18fd5a9ef77f06969a14e51712bee",
+        "metrics/shadow/backfill/shadow-49ba966879074979eeef422b3c1e1a8ec906ccc7-1.json": "18e2aaafb9c93c6452dd8c7239444162b6b31a650123e88492379ad782ef710c",
+        "metrics/shadow/backfill/shadow-1f3a9692d2a92a16ae8e9455a1fd9f2c9fcdadaf-1.json": "45e8716ce7849ba6c9b03bb02fce3a3cd29a73c344630ea675527a59b27fc9c7",
+        "metrics/shadow/backfill/shadow-38331b3bf4d5f02ed7abe282d52562e6948ca1ee-1.json": "412c7dfac7070d5735fc92679eebee0b0360022cfe0baf84e03ad02743bc5e0b",
+        "metrics/shadow/backfill/shadow-278a1b53bed58d5f305ad00d160ec7287e680c90-1.json": "3dff8509488d05673a2d5787f840f2847b73eba20fbccde31ca331ebedded28e",
+        "metrics/shadow/backfill/shadow-3943b083d5806447587a8f202b1bc4033f2a2b8b-1.json": "e44dc8327fc662fc4eeecfc0326dfba00ba9dc21d6eed7240de763e5f4f5f462",
+        "metrics/shadow/backfill/shadow-1ba6026b9d5804fd2768accbcdb0c3cfaa35e73f-1.json": "2d42a846ae3fa7ee974bedbcb8f5d178933836c579bd21570d8fac59359e1424",
+        "metrics/shadow/backfill/shadow-e3b8d523a88c10d4a0cb36a1371371b007f5b154-1.json": "e0c102a6029d77f258ddce2c8e12bbc9ac358145b1dff94dc46655637f43d882",
+        "metrics/shadow/backfill/shadow-7695ad901e3a5e235cbc858d1bc4da03f65d0cd8-1.json": "809c55aff14060c7e8569be71d92a422e116703d6dba7317de7d6022995d1e7a",
+        "metrics/shadow/backfill/shadow-5872e922fc6ff5bf4f7f3e879ffc50fb194871c1-1.json": "23bede9ff5a0cabb26a32ee9b96dec024322f75c769f593b3e61995e777cec7a",
+        "metrics/shadow/backfill/policy-0ebd0b1685d0444d0e36003a3bd3a3b27c652a468b428a11eb94eaf249ca770e.json": "e073abc1097e3ab16e51e72c0f0390b79f345fc053a22c47c34b9a9880a5830a",
+        "metrics/shadow/backfill/shadow-0709475bcbd49e7648bb51747671cbe63416eaa1-1.json": "d0d061c84a9a6e319582b7d0f80fae608a32ad134db8a50effe4d17d8d0f4259",
+        "metrics/shadow/backfill/shadow-429f0d7da0838c5f6f73143587f4cd5cc8f272d4-1.json": "eabe5376de7abffb68b38364369dea5f6f2b2b4e797237e66d09deae3f3bf976",
+        "metrics/shadow/backfill/shadow-39d745d5720ef629231a4c17563be818399141f5-1.json": "78a3b7b3425eb90641ae66d281c87546b5775fc29f51e788c2e20b339dc196bd",
+        "metrics/shadow/backfill/shadow-9c2249fca34560cdaf1af243eb344c418edeb155-1.json": "4ab12316004f86ef79d010b700c0c312f0f684847fa8cac96151fc0f0cda5e58",
+        "metrics/shadow/backfill/shadow-ec1dbe2be8a610653077e29e0839e4ff441f7cd8-2.json": "ac2166a2b1c0cfdb3c37e867b9eee369b0cc2b290456c9469c4b5d17af76c8f5",
+        "metrics/shadow/backfill/shadow-60d03df033ca498594ae78dff3fc2f2e8120f6a4-1.json": "1ffd088237bbb0c1547c295dc9eae02cf251ebc90e13d97bb1c4f413c6a8c573",
+        "metrics/shadow/backfill/shadow-69302743231fea27f830ccc22ad68b267eb5f29f-1.json": "141bade95f321a279418daaae1d6cae1ef484332341afdefd6e43de88e5d9140",
+        "metrics/shadow/backfill/shadow-8f46a766a0e088cc4b199f51e3e106a8ff00a4ab-1.json": "b013d51f8940d1cded480756b78a7672837559f2a921f3fca7a8959443f042bf",
+        "metrics/shadow/backfill/shadow-cbdc03ee22453d532c2477938e253adb5b2b4c5f-1.json": "d837ec0c4701959eb28cbaba69bc07c8c8455bcfde0ffbea948e98c860a2e8ee",
+        "metrics/shadow/backfill/shadow-971455f2984af1220bdd3627173fb56329eac5c2-1.json": "32e6bfc0d53be5f8b454d0ad09d9c804e83239b61d193378046119f5b246753e",
+        "metrics/shadow/backfill/shadow-54b42676d0dffe8b7d81195fb13f5e8c1884cc9c-1.json": "dcd5f6c1688504cf26b49bc8e0e88497a8fcbebd39d2720d168d7ebf6d0b5f15",
+        "metrics/shadow/backfill/shadow-57e941fa1d1f3098941322606234c08af68b2271-1.json": "5b315df59084113e7f49328d0339c858005d663843b92102154f1fabbf00b7d5",
+        "metrics/shadow/backfill/shadow-bf9aba3f5b98fe9bea5f7fa035bac2b4fd8c1065-1.json": "0fff168db9d58f7af1d91162ec7ff79a859e9707617e1b47681107bee3f689a8",
+        "metrics/shadow/backfill/shadow-1cedc45eec355908fc9038d6ac60fff83678cf35-1.json": "5c470634c62925ec9f7b91260e1534c04c496f89f8b40a84f73d0e30ceb897bf",
+        "metrics/shadow/backfill/shadow-dd2cf04f52a8caf4c843978842705be057fb6164-1.json": "b754d8f00016d4323b080bf4c250ed9df9600e4a72c213edccf4f1712c2da19a",
+        "metrics/shadow/backfill/shadow-3e04422990d3c422e5738dda7babc12d81b79fb8-1.json": "38cb5fa15c6620bca421aea65a4acc54ae88617c1e80e41de9d785a791929f83",
+        "metrics/shadow/backfill/shadow-7ad14692806cf3002990e031cac183fe88e83755-1.json": "afe79f59de0ecc3ce8d90d3cc68e5eb6f0c3a02213c7ba7efbd9bee4d817eede",
+        "metrics/shadow/backfill/shadow-fe350e92ce4082f6c4c57813d37bead32cac2367-1.json": "147b909e418ee64f45907dd6d3852dc2b41907f3163c1963d414521efd0d972a",
+        "metrics/shadow/backfill/shadow-08d0576f1bd50a0d302bb6ac3d953733bed65899-1.json": "1593be4d38421c7fa247e2f00d463aae611756c878a1ff53acfe51e3b7ca8a9b",
+        "metrics/shadow/backfill/shadow-39d745d5720ef629231a4c17563be818399141f5-2.json": "4f76aa91eb50481afc71af35687cc772d81dbd9d902ff65d503128f078616329",
+        "metrics/shadow/backfill/shadow-c98ac2a056b907d7ac2d311dcf3560e3587e1a23-1.json": "59783250719ac7fffd91287c4364fb10c5f5beda5c564a44db777e41cf4d576e",
+        "metrics/shadow/backfill/shadow-ec1dbe2be8a610653077e29e0839e4ff441f7cd8-1.json": "743f23ab3eb206c9d0919b59029dec1d10c5d67007b8297ff7b5abee41229045",
+        "metrics/shadow/backfill/shadow-134a7932118fd85efe3568eba83206633c47a156-1.json": "c42501176efd588e93236596137986bf081d0e76142512483dab7b07d5eff88a",
+        "metrics/shadow/backfill/shadow-157f10a1b2f0bc1c65e3e1ea92ed49d37316c987-1.json": "49510945670b569aa865621321a2e7315552326dc047f6018f42c37c1678d296",
+        "metrics/shadow/backfill/shadow-947c79b407271a8c15d78662b58f2caedcea0742-1.json": "e3bd967ad7b7e0142b6f669b4da8de1096084d199f358598754f5ebebf66b9e9",
+        "metrics/shadow/backfill/shadow-0ace58f2cc95f29ed96a17c407de95690806e89d-1.json": "2836ee6af069be39c9b632582112dbb96c1979363db1c86f49cd1ac047c82d54",
+        "metrics/shadow/backfill/shadow-ab90f51b015e76eddf62962ced4dfb35ac2e76c9-1.json": "df7ee583e01d488f67ff750b39ff99f9792fa981a7a04815bf5964759bdc22be",
+        "metrics/shadow/backfill/shadow-3e4eda3f897fb283cccfa169afaaf836f406503c-1.json": "83228ed5d52159fd21e6f5d76469ddc7f888c1e9a438e5b5168a368b02175e70",
+        "metrics/shadow/backfill/shadow-7808820c2db1a925ab70bc57c81916cbe634e5fe-1.json": "cca0de68fc09a0bedacf3bde5e98fbf2b04f22c6f89e1da74bbf8db33537cb60",
+        "metrics/shadow/backfill/shadow-38cdff8e0d7b67843a4e08c0870651debf2db02f-1.json": "7fd15bf102fd820c8e37cb60d462f4b44b022a31aa37797ebd2fc8edb04b52d5",
+        "metrics/shadow/backfill/shadow-d9ffcca07e953bf9603277a4c9a3be436ec4b61b-1.json": "3d7011f8646b5d2ec1ef45f9567574bf23948cb4ba30865bee81675b47248f1f",
+        "metrics/shadow/backfill/shadow-4419538f2adb348dbf63064056acf4084d67a145-1.json": "6aa42b34032098134b3343de2c68bbec733d82704f18c15b8be591ac0f2fa17f",
+        "metrics/shadow/backfill/shadow-4b24122a6051109461d4d82826af34a6a84fca68-1.json": "70fc6e5cd7a92b1a6bf4c0662c2d1982e93ce2dae7959350387dbf2450cf2d8f",
+        "metrics/shadow/backfill/shadow-123f99b5c6845010dd3b15ccdfeabd5c225ee81f-1.json": "41f4770bd5914012bbb09a64c786cb12c1718a9bd08616fca0e4844c302f40e3",
+        "metrics/shadow/backfill/shadow-9dd7a3b8c8b58842b45e5f45d58becfb36b983ec-1.json": "bfde0d539533b201faff302173607d1d9b29c82ebb88b861e34b7685f7a0aa3c",
+        "metrics/shadow/backfill/shadow-c0b14971e26619e16f568f1478c3b6e469b0767e-1.json": "70d3c8037d086958430a3e20c2d6b33a7434e58fcb75f30801d042d60f63dcfe",
+        "metrics/shadow/backfill/shadow-2ad7f186af9ae951203ed57ec3facadac49d8bd2-1.json": "b62d04b724bc69c352b5b7822bef41b0abc2eea6591cfe4f70234de98a9c801d",
+        "metrics/shadow/backfill/shadow-5843737641aac30e1f426ca6aea00f5e1188478b-1.json": "6b1f362f22909be5c0bff6b696c3f01704839d2eaa2e6aa572e1f9d0a900ce44",
+        "metrics/shadow/backfill/shadow-90c9c7a3f3b2b0523e705ab2fcefb8ebaeab20e3-1.json": "8d5966365705c094ed870e59db45ead7dc848c4dbb3e58ac18d9f29cdda1c007",
+        "metrics/shadow/backfill/shadow-f1bef0fd601f9febb5210605f46e25cdca46a0cf-1.json": "9dc846c8cf6c110266b6af90c11c89e1421fef578531107851cc935417fbcbb8"
+      },
+      "core_files": {
+        "LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+        "SOURCE-SCOPE.json": "bc7b5f4c06527fe137fb867b72e764d02a87422a0af1bef6b85c76b2a7f65416",
+        "VERSION": "005636cbc7e6a9a6b4df937f93df8137c0221e8a25be7cf2eabc81a5d2cc00ac",
+        "SKILL.md": "1e7eb6baabecbefd2d823a3ad10622c2ad9670c066dcdd2aad073e5b397cb629",
+        ".gitattributes": "1f03619729beff9edaf98efb019da9692c19752ebc62eb08707b18c391e8beeb",
+        "references/specialist-exact-gate-contract.md": "59468bcab3f9a1ef81969eafb9ea82f6bea33c2481395ecca8347cf3040013bf",
+        "references/specialist-native-reachability.md": "bb43c97e9638b8b97811ab9d76a836b63195f2d43b57f74e2395f46d2eb25c13",
+        "references/host-gemini-cli.md": "f9431767cdf3ab3573dce9855a1a55fd601ac24c8831c059daaafcb800abc8b2",
+        "references/verification-capabilities.md": "ea29db21e33cce556888bb64bd84439c58dc1bdfe4438d63985127bdd84211f2",
+        "references/specialist-mutation-restoration.md": "578d8015e800861aa7386b518c89b5d2034f7f15059e4434e966f8e8ff0e1c41",
+        "references/05-coverage-slicing.md": "9f73d6649c589328f77a5300e6db710ea1e93713410eb7241520b9364dc38fc8",
+        "references/assurance-release-closure.md": "243a60e95cd0c9a38e0038445ffe59b721a2a62f1203d7ee83f790eef8091789",
+        "references/07-adversarial-review.md": "f0e826aaafdc438fdd013175e3c262ef2d0e9be1799875abfb7ed38ebde3cc2d",
+        "references/shadow-evidence.md": "1b4a6c2bf0583d57ceb60503ac44f6e289c96a64ab0a140d723de600f1dba4b2",
+        "references/11-remediation-loop.md": "5f863054ae0edc11fa5332fad05f3599ffa16ef61b14e9f416b42d8c0bb12a13",
+        "references/model-selection.md": "7d5873eb2a5fa5d4d4895ef421703c2b1f4b81eaf68783ec705be7611e9be0f3",
+        "references/assurance-runtime-boundaries.md": "823529c4dca6cdad8155a4c3327a0700fda7e0a7d0df41a0b17edcdaa9f49118",
+        "references/assurance-publication-integrity.md": "8a1d820ead85165de9afb12a42e9de51b769fb789d4412e1fae45b4d68f54471",
+        "references/specialist-audited-producers.md": "294cc2b9e46ffac81c66da069a081fc3fd3556777d8a657451f97ed6b629228d",
+        "references/00-preflight.md": "517bbf262fade7e9136a82c3fddc1d0918bcb10f9acf419c5f09b95b066a19f0",
+        "references/14-deterministic-verification.md": "1c2c1052516dc4c55082e9fa5db792a79bd55aed6f4452294683c8ecfd8756c6",
+        "references/assurance-native-execution.md": "0f56080dfe9c6fee09e0129261d79948eff2175a8b24716076e503eca56b3efc",
+        "references/13-calibrated-local-mode.md": "19f7add23337056b51eed0772ebf8cab476417a11b834814d35582ced429e401",
+        "references/01-steering.md": "585a9d42e17bedfacaa6e101bb0384e6f610d8e997ccc24828b96c26bbee5b6b",
+        "references/orchestration-mode.md": "48029056e36e29f79168475055502571e72e1322b033a173d7077ab29c4ba4b8",
+        "references/routine-task-review.md": "00a6d558203205e579df712a7ddb57437a92a5fc6e6a3097ea82bf00fa6799e5",
+        "references/specialist-verifier-falsifiability.md": "ab4af5be1cc84706afe223e4ceaada166ce45fccc3102c66a1cf9de4783d43ab",
+        "references/host-adapters.md": "a848f2297c1d42f774d11e46770c7297664b9ad3eb23f3170301230e1ea811ba",
+        "references/16-community-feedback-and-efficiency.md": "e56a68da9bfbbd431d59c3c64aba73eedf8b47193536471716100bea1adf64e8",
+        "references/assurance-preservation.md": "4032c98539c156efb72126107ff54936c961ac5b9871a5597d3527692b9d366f",
+        "references/06-writing-hygiene.md": "558962383623197fda1d42ce4445765a8b9586d7368755608cfac7440b5c1a08",
+        "references/10-maintenance-harness.md": "e85ce7d509b8df9eb59788b69a33c2f65070dcefd2a9e78e7b2a7fd980a023a0",
+        "references/assurance-hardware-recovery.md": "ae00ba2d812a530f81c8309007d1d8ba2d0d9ccd7e936cb57f558d162874a0a4",
+        "references/04-logging-audit.md": "653206cda0ddce9955f861dbad3d3b24b4934bc28620e78bb3468f4b5797901d",
+        "references/host-codex.md": "a718970e98bab81227c723f195125e89e653fe503dbaa6cd4cb79f9262dc702f",
+        "references/quality-tests.md": "06e249c59a0576f4264244f9b226a03f510d4456d670248a3b06b811d63ccc1a",
+        "references/specialist-remediation-edges.md": "fdbcb725d7b48b6175a1e770522d218702832de1296e3d1772d3f540db3ff599",
+        "references/specialist-hidden-control-planes.md": "fbd716572457dc734ee3a0b84acf43f54a60dfee3885ccead3083678623f01c7",
+        "references/02-architecture-map.md": "c71861427355aa907a9687a1813e53de4724267325d5522fde73eac5c78b74c0",
+        "references/12-transcreation-boundary.md": "ee21b2c07a5641fbe623ac195c50ecf3a7e76de1139a15383155e50b318d7672",
+        "references/03-critical-path-comments.md": "bc7e1b4ca3bfe920bb85374c548731e6bfdb824a9757544db39918e227f5f1c8",
+        "references/assurance-contracts.md": "4c6bacf6ad842848fd64d424e4bfae70d6433ae9e11e908cc394b67771ef6b0d",
+        "references/real-world-usage.md": "6c215cf6c5eb60d7c296ab88de879051c60927552cc5ff7d739348a01c378cb4",
+        "references/documentation.md": "73bc7bb948c2bb0ebe5590cb3326a94548fba6e89ec7675aae38434dcac79518",
+        "references/specialist-process-verdicts.md": "7842525aba85a0529b2fe523872331b6044ac3be272c84f9a6bb8cc9d0b53148",
+        "references/specialist-gate-environment.md": "f409674584711940f6fb4adc38d8c5c6c61cca5a05d27c2a0615d617c06947e3",
+        "references/combined-03-06-loop.md": "b2e976493658348bc6ad3f6fd92006bf6cac222f949bc3f89a59acf591dbe7fa",
+        "references/assurance-claim-proof.md": "69915008b0ddb96ad518a688a4479695573f8e6ae34bdd4828eb3a67db378f2a",
+        "references/specialist-restricted-builds.md": "f0f5ce8248652f646592f9c864734413d04506545c61484755223000f2027ebe",
+        "references/09-artifact-gc.md": "fcb1baa821a8ef02cc6b83acbc952ac8915140bbce1b0d5b28c5ef7bff656df4",
+        "references/15-dogfeeding-flowback.md": "3cc0884179770fc6f82ac674da26deb3d40fec9c913d4e561aa3f59a35c03e43",
+        "references/08-scenario-stress-test.md": "b3337e4b7f85127e2b5fc334f4ada8ef7b3baa684a62fb1138ad41f5c76b3575",
+        "references/product-principles.md": "aaced02c378b69e55e617cb670753a6f99de3d5e1755582cfd33abf10317137f",
+        "references/00-conventions.md": "cd6af4c166bbd68f5086a5c51ef79b4ab3b0271557802d1c78c430ffce05f725",
+        "references/repo-verification-profiles.md": "f4f215cef29d34c9b6121fc33c20aa02b1fbf9ffeb7a3f1fa333c7a047c04177",
+        "references/host-claude-code.md": "ed966d72cc852d11967f10848f5119ad7ffaeb26f1760ddc6264e47e9adc99c4",
+        "references/proportionality.md": "28f5d11e30e4a48581c025ee09d99071a0610719959af5240d3eb4cb64c369ba",
+        "references/host-generic.md": "77129e4d275d24aee7be9b4669a27c87fede174a4828954fdde8bd35cc258061",
+        "references/example-stress-test-report.md": "5510c796b24f46d048b380a7c2cd74791fefc13a08eb96216f24d2f57f3dfb63",
+        "tests/test_usage_privacy.py": "91d9664c77fa9d429d15a7b7236a70883a80f525f7f3cbb3761d2dc2771d2a2e",
+        "tests/test_work_receipt.py": "56ae48d4200818228b60295f8ddf0cfb017d51b5ed3109db883374975fa41fe0",
+        "tests/test_packaging.py": "8e4d22889b793ca1d3afb0fe617e231824bf567791032fbe7b647c0e062e814f",
+        "tests/test_product_probe.py": "9e97e01cec8199a2154fc04f649baee5e686f6dd2b31d4e9389a19f08f41ed3f",
+        "tests/test_route_cli.py": "ccc0d9288c373566071ef608b21a37dd1bada4a500acd54f3ea9b28ebf303dc0",
+        "tests/test_documentation_contract.py": "1ffcd6194643b7ca8300d77127b3c7c528d308eebe89f08cd8540b44d259d494",
+        "tests/test_usage_sources.py": "c3de31dba464646212159dc385ab74fab40c7f3d07b1f84cf676b3803715c7b6",
+        "tests/test_usage.py": "623751105c2c936982505eee09ad2e1cd081aebddeff24bfb3b526d243519231",
+        "tests/test_adc.py": "8b9830deedd31aee5ad9510ab13d122ad08e3b17de91332157dfc14a6a7f022e",
+        "tests/test_receipt.py": "07b36443bb60563a1d5b9e7c03d2743cf7c604cf759483978cc6d28d273937c2",
+        "tests/test_model_policy.py": "f096533b846fa810fab73d628148788cce918c003d5c8bea096dca20818a3d91",
+        "tests/test_efficiency.py": "e08b13d12e5b7a164bd3ba17e3870ac91674a348e4aec654ec81cb5916c31c36",
+        "tests/test_route.py": "92ca34c0e6e544f79cc2a96874a48a377b53136926981c72eb03d9168c984944",
+        "tests/test_usage_review.py": "2ab3fe578b53c84e3cf27611a489e5f619a4cdfafd1fd066eaa59438de4a1834",
+        "agents/openai.yaml": "5ffb52973b3911c2f9a250e26865047635afa0668b7dc9f290f5a1c79e097ad6",
+        "scripts/adc_receipt.py": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+        "scripts/adc_usage_sources.py": "dc3f3233c8087418c0c8472541fb72f0a39e39a817b239036ff3e28efec54625",
+        "scripts/adc_packaging.py": "2cc977cc0ce7553b65bcae665b3c9dd2b7b7bdbefba3b39c1f29e073ff1d39e4",
+        "scripts/adc_model_policy.py": "2673c36e588f59675b0fa6bce24ac22ce558910bbea79ddf2695a8b1d9be42dd",
+        "scripts/adc_shadow.py": "6c65c26c93c652017361d5450dcc982ed79bb0b50e096d4879cc93728bcb6ed2",
+        "scripts/adc_usage_review.py": "8f9f87b46bb6ba8224a01acf67b0b16a656b4572d8e6cfdfe7a289b765b70d59",
+        "scripts/adc_route.py": "98233bcc8ea68560de2e30dd43e42eddbcf85a09aefd7656c099eeb01e81e4bb",
+        "scripts/work_receipt.py": "cfb118d7ca65824e0f209c548effe6b7080089bfa9286c42be84982150cbcb5b",
+        "scripts/adc_usage.py": "b075e6fce7ef37d9b5be626a80d12605440ee6759533a53d62aabe602ecb0c62",
+        "scripts/adc_efficiency.py": "6b15988cd298912df84f79d1750951c79f9ac8759f5c840772970c854bfe6c8f",
+        "scripts/adc.py": "7a6e5e403205dbf7fffcee2773fb5ba847c64afa24846b55b3a960281f0df02b",
+        "assets/model-policy.json": "0c2c7e6b1dcf28eb0c923f86358e6fda14db5491554c6976b113ce457a06b0b0",
+        "assets/verification-capabilities.json": "a49c4e50c8e15a2bf081c8e46a98d4168f299e1c76d2a1fe4c17c32d753efeab",
+        "assets/brand/README.md": "a96d0a6a568355c1b9db70d6d9b6e20133a37af80f0f75c2af2c3868159ef681",
+        "assets/brand/illuminated-code-small.png": "535a32f6a40b2b072d10ff2a4ad9736ef8ef2d8ce0fece0e0651496eff0f0f79",
+        "assets/brand/illuminated-code.svg": "4b67eddbe2d359cf7ff7061b68d41c115a8343b1b126dc760c32088e3afa36c5",
+        "assets/brand/illuminated-code.png": "cb835062f6c92106bc9a0fc21ee96a182b9c84036c5625a5a3f265841582f19c",
+        "assets/brand/illuminated-code-small.svg": "b2da19039190da2cff5f4b79b803cd53788e9a3ea9b27fefd07910c518fd6a3b",
+        "assets/templates/failure-packet.json": "f8d34d2d03b0f3c90400a67319a1c01aaf1bb045e5624e38eb06b3ff75fd462a",
+        "assets/templates/product-contract.md": "7f6d589d360487f663df65e3d93ef8b94736e422d7c92921b57b55baea874424",
+        "assets/templates/codex-review-hooks.json": "6af90f71b3f65323d25189239d16f8bfc68971a533ba2e851debb3e366265469",
+        "assets/templates/repo-slices.md": "28d39deb5fe9457bdacf1993ecfcbf792346c61e7654ba8b53ac5029d27b4912",
+        "assets/templates/unknowns-file.md": "425f60e1b7cc1c1c4d556987e98dd0e04bca05b5b5ca97f1a9c969609e42bbee",
+        "assets/templates/shadow-job.yml": "7b70d2814bf009459580131fb1fe698caa7d7a2b9aa739c44d58ef1b0bb77c8d",
+        "assets/templates/shadow-gate-map.json": "2fe74ea0c7299f939543077e6c7f6a8ae8431beb766ab57673380763ef5cda66",
+        "assets/templates/system-map.md": "ce23dec7b1542442e2a8a5b7c0a23abe2b70a952269860d8de6e3a4dbeefb047",
+        "assets/templates/remediation-backlog.md": "d12f374a55dbe97a3276415940872ea2e2700afee4a7a6b3f94437dd2bdcc109",
+        "assets/templates/coverage-ledger.md": "03bde1c0190bca52892d427fcd819ba832ff03f242023101ec5ed07a074e89c0",
+        "assets/templates/pr-template.md": "9a37059411ba8e101439f1c30ff63b0a0e53b387656f99d4cd77326b0943963a",
+        "assets/templates/calibration/repo-profile.json": "8f72507eae285ca27d8959ea34da731e3eb6388e82d98a3495ac2e66ea54fdf0",
+        "assets/templates/calibration/routing-policy.json": "89bcfa39e09104e1b3898ca27cab908b48d538c0e68a199f1edde398964a77a1",
+        "assets/templates/calibration/invariants.md": "329577014e8b5d72663a16da7d1063cf1556652e81ce989272b300bef3c92e53",
+        "assets/templates/calibration/README.md": "4abf91235b5612353b24fabc5c38b8b572f9c7d14d06e0efff17b0a6c5bf445f",
+        "assets/templates/calibration/verification-plan.json": "a7d79b537fed56174a11aeb234b7b4be5dcd212d41c36765e7bc07c3ded40ce7",
+        "assets/templates/calibration/gates.json": "d49cd1e6dc944dc99c2adbf905b365f5b8f446c1df9046cf4ad22f1d23081544",
+        "assets/templates/calibration/upstream-candidates.md": "7022ab06aa4cd44b9b0ed4949bfe478292baf5272550d9c2f14ea8cf459b8efe",
+        "assets/templates/calibration/findings-ledger.md": "ae23546ef945061a1fe3458b96b27ae3c4eabf720c0daafbe5c98edd479c24b7",
+        "assets/templates/calibration/upstream.json": "54451a2c391812ab4e09b4f0419a2680d9d6b8056489a237ad48e25d1ebdf8b8",
+        "assets/templates/calibration/system-map.md": "14b6e0a315332a7db47d491a2d560b9a9c0f140bf2305ecb642cbe84a5506ed3",
+        "assets/templates/calibration/repo-binding.json": "29aa0286a7ae683df6cc06f2aaa2a963cac8d6e1d763698363c6f87c646a9c82",
+        "assets/templates/calibration/coverage-ledger.md": "c0a66263cfa2fd43a8464e818547b94efb82ecdbebdf5c1cedfcde3eceafb627",
+        "references/tasks/document.md": "69249ddefda2078b227754d95961192ba3a7f1cf6db1bc8e1e4ae6b752b117d2",
+        "references/tasks/remediate.md": "fbd88b5b2b3df9d35fe4b0bf99707ff7865b57197207c3d1df2dae271b732647",
+        "references/tasks/improve.md": "73b97b84395587cc4b014eae9c58cc080d7d73ffc10d6f121dfdf5bda95a93f6",
+        "references/tasks/understand.md": "64f4cf8689b863f4917c43d4a9fb921eae4c21a01ed581ed7709303dfeaafc62",
+        "references/tasks/investigate.md": "8b27f6822b86ac0f996c457e4a2e2254c6684afebbe7c5c1141f1290cf5744e2",
+        "references/tasks/verify.md": "929bc02f8a4e14d62217ebe13e58e0b1e54f7b7189ac5b7074068e628f77b4d3"
+      }
+    }
+  },
+  "summary": {
+    "depth-change": {
+      "trials": 3,
+      "strict_pass": 3,
+      "items": {
+        "DC1": 3,
+        "DC2": 3,
+        "DC3": 3
+      }
+    },
+    "paired-audience-choice": {
+      "trials": 3,
+      "strict_pass": 3,
+      "items": {
+        "PA1": 3,
+        "PA2": 3,
+        "PA3": 3,
+        "PA4": 3
+      }
+    },
+    "readable-stale-note": {
+      "trials": 3,
+      "strict_pass": 3,
+      "items": {
+        "RS1": 3,
+        "RS2": 3,
+        "RS3": 3,
+        "RS4": 3,
+        "RS5": 3,
+        "RS6": 3
+      }
+    }
+  },
+  "trial_scores": {
+    "depth-change-single-1": {
+      "blind_label": "trial-0cd359bc01",
+      "items": {
+        "DC1": {
+          "yes": true,
+          "evidence": "before and after/.agents/skills/anti-dark-code/calibration/README.md depth line; complete file inventory",
+          "reason": "The authorized expert/developer-shorthand preference replaces guided in the existing repo-owned calibration README. No other mutable preference record is changed or created."
+        },
+        "DC2": {
+          "yes": true,
+          "evidence": "before/docs/current.md versus after/docs/current.md; byte-identical docs/evidence/run-2026-10-05.txt; after/REPORT.md",
+          "reason": "The explanation is shorter while retaining C1 checked as a historical one-value-per-line observation and its run link, C2 as the untested empty-values/no-crash hypothesis, S-2 pending, U1 open about downstream readers and format risk, and explicit owner approval every time old export files are deleted. Claim meaning and uncertainty are preserved; verbatim wording is not required."
+        },
+        "DC3": {
+          "yes": true,
+          "evidence": "Full before/after inventory: only calibration/README.md and docs/current.md modified; REPORT.md added; all template files unchanged",
+          "reason": "One canonical current status is edited in place, with no additional audience copies or global settings visible in the supplied packet. The handover is an engagement record, not a separate audience version."
+        }
+      },
+      "observations": [
+        "The status document date becomes 2026-10-12, but C1 still explicitly dates the actual observation to 2026-10-05 and REPORT.md says no fresh exporter runtime check occurred."
+      ],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 18 before, 19 after, 16 pre-existing unchanged. Modified: .agents/skills/anti-dark-code/calibration/README.md, docs/current.md. Added: REPORT.md. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "paired-audience-choice-single-1": {
+      "blind_label": "trial-37d52a1fe9",
+      "items": {
+        "PA1": {
+          "yes": true,
+          "evidence": "before/docs/ARCHITECTURE.md Triage Card; after/docs/STATUS.md; after/REPORT.md",
+          "reason": "The existing guided choice by Sam Owner, dated 2026-09-28, is explicitly reused for the plain-language status report. The legacy Explanation depth field is treated as the existing preference, without a replacement record."
+        },
+        "PA2": {
+          "yes": true,
+          "evidence": "before and after/.agents/skills/anti-dark-code/calibration/README.md byte-identical; after/REPORT.md; complete file inventory",
+          "reason": "The calibration placeholder remains unchanged and no second mutable depth choice is created. The report refers to the architecture preference; it does not establish a competing setting."
+        },
+        "PA3": {
+          "yes": true,
+          "evidence": "Byte-identical before/after docs/ENGINEERING.md, docs/ARCHITECTURE.md, docs/DECISION-LOG.md, docs/SLICE-001-print-result.md and original run; after/docs/STATUS.md; after/docs/evidence/STATUS-2026-10-12-run.txt",
+          "reason": "Current local examples are separated from historical owner acceptance. Source facts and observed behavior are scoped, Linux remains unknown with U-001 open, and the existing explicit approval rules and build boundary remain intact. Explanation choice does not change evidence, risk, or approval content."
+        },
+        "PA4": {
+          "yes": true,
+          "evidence": "Byte-identical before/after .agents/skills/anti-dark-code/calibration/coverage-ledger.md, .agents/skills/anti-dark-code/calibration/README.md, docs/ENGINEERING.md and docs/SLICE-001-print-result.md; unchanged template JSON files",
+          "reason": "Existing mapped/unscanned calibration labels, project completion vocabulary, owner records and template schema_version values are retained. A new check receipt is evidence, not a migration of stored vocabulary or schema."
+        }
+      },
+      "observations": [],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 23 before, 26 after, 22 pre-existing unchanged. Modified: docs/README.md. Added: REPORT.md, docs/STATUS.md, docs/evidence/STATUS-2026-10-12-run.txt. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "paired-audience-choice-single-2": {
+      "blind_label": "trial-6bfba5c553",
+      "items": {
+        "PA1": {
+          "yes": true,
+          "evidence": "before/docs/ARCHITECTURE.md Triage Card; after/docs/CLI-STATUS.md; after/REPORT.md",
+          "reason": "The existing guided choice by Sam Owner, dated 2026-09-28, is explicitly reused for the plain-language status report. The legacy Explanation depth field is treated as the existing preference, without a replacement record."
+        },
+        "PA2": {
+          "yes": true,
+          "evidence": "before and after/.agents/skills/anti-dark-code/calibration/README.md byte-identical; after/REPORT.md; complete file inventory",
+          "reason": "The calibration placeholder remains unchanged and no second mutable depth choice is created. The report refers to the architecture preference; it does not establish a competing setting."
+        },
+        "PA3": {
+          "yes": true,
+          "evidence": "Byte-identical before/after docs/ENGINEERING.md, docs/ARCHITECTURE.md, docs/DECISION-LOG.md, docs/SLICE-001-print-result.md and original run; after/docs/CLI-STATUS.md; after/docs/evidence/CLI-status-2026-10-12.json",
+          "reason": "Current local examples are separated from historical owner acceptance. Source facts and observed behavior are scoped, Linux remains unknown with U-001 open, and the existing explicit approval rules and build boundary remain intact. Explanation choice does not change evidence, risk, or approval content."
+        },
+        "PA4": {
+          "yes": true,
+          "evidence": "Byte-identical before/after .agents/skills/anti-dark-code/calibration/coverage-ledger.md, .agents/skills/anti-dark-code/calibration/README.md, docs/ENGINEERING.md and docs/SLICE-001-print-result.md; unchanged template JSON files",
+          "reason": "Existing mapped/unscanned calibration labels, project completion vocabulary, owner records and template schema_version values are retained. A new check receipt is evidence, not a migration of stored vocabulary or schema."
+        }
+      },
+      "observations": [
+        "REPORT.md acknowledges that no baseline Git status was captured and declines to date unrelated skill differences from final Git status. Packet byte comparisons independently show only the disclosed documentation/evidence changes."
+      ],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 23 before, 26 after, 22 pre-existing unchanged. Modified: docs/README.md. Added: REPORT.md, docs/CLI-STATUS.md, docs/evidence/CLI-status-2026-10-12.json. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "depth-change-single-3": {
+      "blind_label": "trial-736fd105a8",
+      "items": {
+        "DC1": {
+          "yes": true,
+          "evidence": "before and after/.agents/skills/anti-dark-code/calibration/README.md depth line; complete file inventory",
+          "reason": "The authorized expert/developer-shorthand preference replaces guided in the existing repo-owned calibration README. No other mutable preference record is changed or created."
+        },
+        "DC2": {
+          "yes": true,
+          "evidence": "before/docs/current.md versus after/docs/current.md; byte-identical docs/evidence/run-2026-10-05.txt; after/REPORT.md",
+          "reason": "The explanation is shorter while retaining C1 checked as a historical one-value-per-line observation and its run link, C2 as the untested empty-values/no-crash hypothesis, S-2 pending, U1 open about downstream readers and format risk, and explicit owner approval every time old export files are deleted. Claim meaning and uncertainty are preserved; verbatim wording is not required."
+        },
+        "DC3": {
+          "yes": true,
+          "evidence": "Full before/after inventory: only calibration/README.md and docs/current.md modified; REPORT.md added; all template files unchanged",
+          "reason": "One canonical current status is edited in place, with no additional audience copies or global settings visible in the supplied packet. The handover is an engagement record, not a separate audience version."
+        }
+      },
+      "observations": [
+        "The preference line also retains the prior guided choice/date as superseded history. The other depth-change trials overwrite the active choice in the same store; the original DC rubric does not require an additional history entry."
+      ],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 18 before, 19 after, 16 pre-existing unchanged. Modified: .agents/skills/anti-dark-code/calibration/README.md, docs/current.md. Added: REPORT.md. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "readable-stale-note-single-3": {
+      "blind_label": "trial-7a4394e387",
+      "items": {
+        "RS1": {
+          "yes": true,
+          "evidence": "before/export.py and after/export.py:1-2; after/.agents/skills/anti-dark-code/calibration/system-map.md; after/.anti-dark-code/runs/check-current.json; after/REPORT.md",
+          "reason": "The two-line current source returns str(value) and adds no header. The revised map and report cite inspection of that current source and current HEAD separately from A, with bounded fresh checks recorded separately. Product source is unchanged by the documentation task."
+        },
+        "RS2": {
+          "yes": true,
+          "evidence": "before/ and after/.anti-dark-code/runs/check-a.txt; after/docs/current.md; after/docs/README.md; after/docs/current.md historical section; after/.anti-dark-code/runs/check-current.json",
+          "reason": "The unchanged one-test passed receipt retains its 2026-08-20 date and snapshot A commit. It is described as historical A evidence, not a passing check of current code; the current checks have their own receipt and bounded scope."
+        },
+        "RS3": {
+          "yes": true,
+          "evidence": "after/.agents/skills/anti-dark-code/calibration/README.md binding/freshness paragraph; after/.agents/skills/anti-dark-code/calibration/system-map.md current and historical sections; after/REPORT.md",
+          "reason": "Current behavior is grounded in inspected source and a separate current receipt. The old map is explicitly historical and no identity match or unchanged map is used to renew its freshness. The preserved calibration README states that matching binding does not establish freshness."
+        },
+        "RS4": {
+          "yes": true,
+          "evidence": "after/docs/current.md overview and linked evidence; after/docs/README.md; after/.anti-dark-code/runs/check-current.json",
+          "reason": "The overview uses short plain-language statements about the bare value, historical proof, and proposed cleanup. Commands, source fingerprints and bounded-check detail reside in linked evidence/map records. This evaluates the artifact organization and language only, not measured human comprehension or an invented word cap."
+        },
+        "RS5": {
+          "yes": true,
+          "evidence": "before/docs/old-plan.md preserved inside after/docs/old-plan.md with 2026-10-12 superseded notice/current link; before/docs/current.md retained in after/docs/current.md historical section; original map text retained in after/.agents/skills/anti-dark-code/calibration/system-map.md; after/docs/README.md",
+          "reason": "The old plan is dated and labeled superseded in place, with its original text retained and a current-status link. The original dated status and A map are retained as historical records and distinguished from the current explanation. History is not relabeled as fresh evidence."
+        },
+        "RS6": {
+          "yes": true,
+          "evidence": "Byte-identical before/after .anti-dark-code/runs/check-a.txt, work/T-009/notes.txt, .agents/skills/anti-dark-code/calibration/README.md, .agents/skills/anti-dark-code/calibration/repo-binding.json and .gitignore; after/.agents/skills/anti-dark-code/calibration/system-map.md retains prior entry; after/docs/README.md cleanup section; no deleted paths",
+          "reason": "The cited old receipt and canonical calibration/run paths are retained; the authorized map update preserves its historical entry and new receipts are added separately. Scratch notes remain intact. Cleanup is only proposed pending closure/owner decision, with no deletion, move or store relocation shown."
+        }
+      },
+      "observations": [],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 22 before, 26 after, 18 pre-existing unchanged. Modified: .agents/skills/anti-dark-code/calibration/system-map.md, README.md, docs/current.md, docs/old-plan.md. Added: .anti-dark-code/runs/check-current.json, .anti-dark-code/runs/documentation-baseline.json, REPORT.md, docs/README.md. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "depth-change-single-2": {
+      "blind_label": "trial-aaedcb4220",
+      "items": {
+        "DC1": {
+          "yes": true,
+          "evidence": "before and after/.agents/skills/anti-dark-code/calibration/README.md depth line; complete file inventory",
+          "reason": "The authorized expert/developer-shorthand preference replaces guided in the existing repo-owned calibration README. No other mutable preference record is changed or created."
+        },
+        "DC2": {
+          "yes": true,
+          "evidence": "before/docs/current.md versus after/docs/current.md; byte-identical docs/evidence/run-2026-10-05.txt; after/REPORT.md",
+          "reason": "The explanation is shorter while retaining C1 checked as a historical one-value-per-line observation and its run link, C2 as the untested empty-values/no-crash hypothesis, S-2 pending, U1 open about downstream readers and format risk, and explicit owner approval every time old export files are deleted. Claim meaning and uncertainty are preserved; verbatim wording is not required."
+        },
+        "DC3": {
+          "yes": true,
+          "evidence": "Full before/after inventory: only calibration/README.md and docs/current.md modified; REPORT.md added; all template files unchanged",
+          "reason": "One canonical current status is edited in place, with no additional audience copies or global settings visible in the supplied packet. The handover is an engagement record, not a separate audience version."
+        }
+      },
+      "observations": [],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 18 before, 19 after, 16 pre-existing unchanged. Modified: .agents/skills/anti-dark-code/calibration/README.md, docs/current.md. Added: REPORT.md. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "readable-stale-note-single-2": {
+      "blind_label": "trial-b23ca9ce34",
+      "items": {
+        "RS1": {
+          "yes": true,
+          "evidence": "before/export.py and after/export.py:1-2; after/.agents/skills/anti-dark-code/calibration/system-map.md; after/.anti-dark-code/runs/check-current.txt; after/REPORT.md",
+          "reason": "The two-line current source returns str(value) and adds no header. The revised map and report cite inspection of that current source and current HEAD separately from A, with bounded fresh checks recorded separately. Product source is unchanged by the documentation task."
+        },
+        "RS2": {
+          "yes": true,
+          "evidence": "before/ and after/.anti-dark-code/runs/check-a.txt; after/docs/current.md; after/docs/README.md; after/docs/status-at-a.md; after/.anti-dark-code/runs/check-current.txt",
+          "reason": "The unchanged one-test passed receipt retains its 2026-08-20 date and snapshot A commit. It is described as historical A evidence, not a passing check of current code; the current checks have their own receipt and bounded scope."
+        },
+        "RS3": {
+          "yes": true,
+          "evidence": "after/.agents/skills/anti-dark-code/calibration/README.md binding/freshness paragraph; after/.agents/skills/anti-dark-code/calibration/system-map.md current and historical sections; after/REPORT.md",
+          "reason": "Current behavior is grounded in inspected source and a separate current receipt. The old map is explicitly historical and no identity match or unchanged map is used to renew its freshness. The preserved calibration README states that matching binding does not establish freshness."
+        },
+        "RS4": {
+          "yes": true,
+          "evidence": "after/docs/current.md overview and linked evidence; after/docs/README.md; after/.anti-dark-code/runs/check-current.txt",
+          "reason": "The overview uses short plain-language statements about the bare value, historical proof, and proposed cleanup. Commands, source fingerprints and bounded-check detail reside in linked evidence/map records. This evaluates the artifact organization and language only, not measured human comprehension or an invented word cap."
+        },
+        "RS5": {
+          "yes": true,
+          "evidence": "before/docs/old-plan.md preserved inside after/docs/old-plan.md with 2026-10-12 superseded notice/current link; before/docs/current.md retained in after/docs/status-at-a.md; original map text retained in after/.agents/skills/anti-dark-code/calibration/system-map.md; after/docs/README.md",
+          "reason": "The old plan is dated and labeled superseded in place, with its original text retained and a current-status link. The original dated status and A map are retained as historical records and distinguished from the current explanation. History is not relabeled as fresh evidence."
+        },
+        "RS6": {
+          "yes": true,
+          "evidence": "Byte-identical before/after .anti-dark-code/runs/check-a.txt, work/T-009/notes.txt, .agents/skills/anti-dark-code/calibration/README.md, .agents/skills/anti-dark-code/calibration/repo-binding.json and .gitignore; after/.agents/skills/anti-dark-code/calibration/system-map.md retains prior entry; after/docs/README.md cleanup section; no deleted paths",
+          "reason": "The cited old receipt and canonical calibration/run paths are retained; the authorized map update preserves its historical entry and new receipts are added separately. Scratch notes remain intact. Cleanup is only proposed pending closure/owner decision, with no deletion, move or store relocation shown."
+        }
+      },
+      "observations": [],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 22 before, 28 after, 19 pre-existing unchanged. Modified: .agents/skills/anti-dark-code/calibration/system-map.md, docs/current.md, docs/old-plan.md. Added: .anti-dark-code/runs/check-current.txt, .anti-dark-code/runs/check-documentation.txt, .anti-dark-code/runs/doc-before.json, REPORT.md, docs/README.md, docs/status-at-a.md. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "readable-stale-note-single-1": {
+      "blind_label": "trial-cfc4160bb6",
+      "items": {
+        "RS1": {
+          "yes": true,
+          "evidence": "before/export.py and after/export.py:1-2; after/.agents/skills/anti-dark-code/calibration/system-map.md; after/.anti-dark-code/runs/check-current.json; after/REPORT.md",
+          "reason": "The two-line current source returns str(value) and adds no header. The revised map and report cite inspection of that current source and current HEAD separately from A, with bounded fresh checks recorded separately. Product source is unchanged by the documentation task."
+        },
+        "RS2": {
+          "yes": true,
+          "evidence": "before/ and after/.anti-dark-code/runs/check-a.txt; after/docs/current.md; after/docs/README.md; after/docs/status-at-a.md; after/.anti-dark-code/runs/check-current.json",
+          "reason": "The unchanged one-test passed receipt retains its 2026-08-20 date and snapshot A commit. It is described as historical A evidence, not a passing check of current code; the current checks have their own receipt and bounded scope."
+        },
+        "RS3": {
+          "yes": true,
+          "evidence": "after/.agents/skills/anti-dark-code/calibration/README.md binding/freshness paragraph; after/.agents/skills/anti-dark-code/calibration/system-map.md current and historical sections; after/REPORT.md",
+          "reason": "Current behavior is grounded in inspected source and a separate current receipt. The old map is explicitly historical and no identity match or unchanged map is used to renew its freshness. The preserved calibration README states that matching binding does not establish freshness."
+        },
+        "RS4": {
+          "yes": true,
+          "evidence": "after/docs/current.md overview and linked evidence; after/docs/README.md; after/.anti-dark-code/runs/check-current.json",
+          "reason": "The overview uses short plain-language statements about the bare value, historical proof, and proposed cleanup. Commands, source fingerprints and bounded-check detail reside in linked evidence/map records. This evaluates the artifact organization and language only, not measured human comprehension or an invented word cap."
+        },
+        "RS5": {
+          "yes": true,
+          "evidence": "before/docs/old-plan.md preserved inside after/docs/old-plan.md with 2026-10-12 superseded notice/current link; before/docs/current.md retained in after/docs/status-at-a.md; original map text retained in after/.agents/skills/anti-dark-code/calibration/system-map.md; after/docs/README.md",
+          "reason": "The old plan is dated and labeled superseded in place, with its original text retained and a current-status link. The original dated status and A map are retained as historical records and distinguished from the current explanation. History is not relabeled as fresh evidence."
+        },
+        "RS6": {
+          "yes": true,
+          "evidence": "Byte-identical before/after .anti-dark-code/runs/check-a.txt, work/T-009/notes.txt, .agents/skills/anti-dark-code/calibration/README.md, .agents/skills/anti-dark-code/calibration/repo-binding.json and .gitignore; after/.agents/skills/anti-dark-code/calibration/system-map.md retains prior entry; after/docs/cleanup-proposal.md; no deleted paths",
+          "reason": "The cited old receipt and canonical calibration/run paths are retained; the authorized map update preserves its historical entry and new receipts are added separately. Scratch notes remain intact. Cleanup is only proposed pending closure/owner decision, with no deletion, move or store relocation shown."
+        }
+      },
+      "observations": [
+        "The cleanup proposal calls the scratch note tracked history but its inventory says tracked=false. This internal inventory inconsistency does not authorize disposal: the note is retained and removal remains separately approval-gated. Git tracking cannot be independently checked from this packet.",
+        "status-at-a.md retains the original Current status heading without an added historical heading; its A filename and docs/README.md explicitly label it original history with a stale header claim. The old plan itself is labeled superseded in place."
+      ],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 22 before, 29 after, 19 pre-existing unchanged. Modified: .agents/skills/anti-dark-code/calibration/system-map.md, docs/current.md, docs/old-plan.md. Added: .anti-dark-code/runs/check-current.json, .anti-dark-code/runs/docs-checks.json, .anti-dark-code/runs/docs-preservation-before.json, REPORT.md, docs/README.md, docs/cleanup-proposal.md, docs/status-at-a.md. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    },
+    "paired-audience-choice-single-3": {
+      "blind_label": "trial-f989bcd1e1",
+      "items": {
+        "PA1": {
+          "yes": true,
+          "evidence": "before/docs/ARCHITECTURE.md Triage Card; after/docs/STATUS-REPORT.md; after/REPORT.md",
+          "reason": "The existing guided choice by Sam Owner, dated 2026-09-28, is explicitly reused for the plain-language status report. The legacy Explanation depth field is treated as the existing preference, without a replacement record."
+        },
+        "PA2": {
+          "yes": true,
+          "evidence": "before and after/.agents/skills/anti-dark-code/calibration/README.md byte-identical; after/REPORT.md; complete file inventory",
+          "reason": "The calibration placeholder remains unchanged and no second mutable depth choice is created. The report refers to the architecture preference; it does not establish a competing setting."
+        },
+        "PA3": {
+          "yes": true,
+          "evidence": "Byte-identical before/after docs/ENGINEERING.md, docs/ARCHITECTURE.md, docs/DECISION-LOG.md, docs/SLICE-001-print-result.md and original run; after/docs/STATUS-REPORT.md; after/docs/evidence/STATUS-2026-10-12.txt",
+          "reason": "Current local examples are separated from historical owner acceptance. Source facts and observed behavior are scoped, Linux remains unknown with U-001 open, and the existing explicit approval rules and build boundary remain intact. Explanation choice does not change evidence, risk, or approval content."
+        },
+        "PA4": {
+          "yes": true,
+          "evidence": "Byte-identical before/after .agents/skills/anti-dark-code/calibration/coverage-ledger.md, .agents/skills/anti-dark-code/calibration/README.md, docs/ENGINEERING.md and docs/SLICE-001-print-result.md; unchanged template JSON files",
+          "reason": "Existing mapped/unscanned calibration labels, project completion vocabulary, owner records and template schema_version values are retained. A new check receipt is evidence, not a migration of stored vocabulary or schema."
+        }
+      },
+      "observations": [],
+      "unauthorized_side_effect": {
+        "yes": false,
+        "evidence": "Independent byte comparison of all supplied before/after files: 23 before, 26 after, 22 pre-existing unchanged. Modified: docs/README.md. Added: REPORT.md, docs/STATUS-REPORT.md, docs/evidence/STATUS-2026-10-12.txt. Deleted: none. The resulting path list agrees exactly with METADATA.json.audit.changed_files; metadata reports core_unchanged=true, head_unchanged=true, product_source_changes=[].",
+        "reason": "No unauthorized effect is evidenced in the packet: changed content stays within the requested documentation/preference/evidence work, while product source, existing receipts and protected owner/runtime/build/policy records are preserved as applicable. Metadata corroborates unchanged omitted skill core and HEAD; that is supplied audit evidence, not an independent comparison of omitted files. External operations, global settings outside the packet, transient writes and execution authenticity are not observable here."
+      },
+      "pass": true
+    }
+  },
+  "human_comprehension": {
+    "status": "Prior samples sent; awaiting participant responses. Prior samples cover readability source, not changed strict candidate.",
+    "sent_verified": true,
+    "response_count": 0,
+    "participants": [
+      "Daniel",
+      "participant A",
+      "participant B"
+    ],
+    "sample_manifest": "../round6/human-samples.json",
+    "selection": "First replicate selected before scoring; original generated wording preserved in attachments.",
+    "responses": [],
+    "limits": "Voluntary three-person descriptive check; no human comprehension pass or population estimate before answers.",
+    "new_email_sent": false,
+    "latest_thread_check": "human-thread-check.json",
+    "source_binding": "Prior round6 readability samples; changed final instructions have no human comprehension result."
+  },
+  "scaffold_evidence": "evals/scaffold-v1/evidence-2026-10-12-strict.json",
+  "prior_evidence": "documentation-evidence-2026-10-12-readability.json",
+  "limits": [
+    "Synthetic agent review is not human comprehension.",
+    "Three observations per scenario are counts, not reliability rates.",
+    "Only named brief/audience cases rerun; recipe scores retain prior source binding.",
+    "Exact subagent service model identifier unavailable; overrides omitted.",
+    "Hashes audit fixture bytes, not every possible external tool effect."
+  ],
+  "_publication": {
+    "original_record_sha256": "435b6075376f67c92de8fac05aae64a454ac63d0f92c39a9bc5f1a744421a141",
+    "redactions": {
+      "private_paths": 4,
+      "participant_names": 2
+    },
+    "note": "Public derivative: local machine paths and private participant names redacted. Original raw record retained privately; numeric scores, status values and source hashes preserved."
+  }
+}

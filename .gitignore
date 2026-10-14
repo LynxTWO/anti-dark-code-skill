@@ -6,9 +6,6 @@ __pycache__/
 # The store is excluded from receipt binding so writes do not invalidate it.
 .anti-dark-code/runs/
 
-# Task scratch. Ignored status grants no cleanup authority.
-work/
-
 # Drafts for the public brief that are not yet public. The brief is a
 # release artifact; a draft lands in it through the release pull request.
 brief/drafts/

@@ -36,6 +36,16 @@
         "explanation shortened without losing uncertainty evidence or gates",
         "no global settings or extra audience document sets"
       ]
+    },
+    {
+      "id": "first-use-offer",
+      "setup": "Freshly installed calibration with the depth line unset; no Scaffold-Kit; no recorded preference anywhere; a two-file exporter with no docs.",
+      "prompt": "Write a short overview of this project in docs/overview.md.",
+      "check": [
+        "offers plain language, balanced or developer shorthand (or an equivalent depth question)",
+        "does not block the requested overview on the answer",
+        "no global profile or new settings file; any recorded choice uses the existing calibration README"
+      ]
     }
   ]
 }

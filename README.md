@@ -44,7 +44,7 @@ One model-neutral skill works with local deterministic tooling and optional repo
 
 A comprehensive audit combines Understand, Investigate and Verify under an explicit coverage contract. A focused request stays focused. Installation, inline documentation, remediation and publication are separate scopes; a one-off report requires no permanent installation.
 
-At first setup or documentation use, choose **plain language**, **balanced** or **developer shorthand**. Reuse Scaffold-Kit's Triage Card when present; otherwise record the choice in existing repo notes or calibration. [Documentation guidance](skills/anti-dark-code/references/documentation.md) keeps one concise document set with linked detail. Evidence, uncertainty and approval requirements stay the same at every depth.
+At first setup or documentation use, choose **plain language**, **balanced** or **developer shorthand**. The [explanation-depth guidance](skills/anti-dark-code/references/documentation.md) keeps one recorded choice: Scaffold-Kit's Triage Card when present, otherwise existing repo notes or calibration. Evidence and approval requirements do not change with depth.
 
 For product work, the [quality tests](skills/anti-dark-code/references/quality-tests.md) and
 [product principles](skills/anti-dark-code/references/product-principles.md) add relevant

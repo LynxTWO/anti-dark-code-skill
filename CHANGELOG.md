@@ -2,9 +2,10 @@
 
 ## Unreleased documentation improvements to unified.18
 
-- Add guided/plain language, standard/balanced and expert/developer shorthand explanations using one existing project preference. Reuse Scaffold-Kit's Triage Card or repo-owned notes; preserve evidence, stored schemas and approval gates.
-- Define concise overviews, canonical document owners, dependency-based freshness, current/historical navigation and bounded scratch folders in a conditional reference.
-- Clarify that ignored run receipts may be cited evidence and need preservation before authorized cleanup. Label the old audit/design record as historical.
+- Carry the already reviewed documentation changes and their source-bound trial evidence into GitHub without modifying the final installed core or plugin metadata. `design/evals/product-v1/documentation-evidence-2026-10-14-packaging.json` records local installation checks and the current candidate validation. Public evidence derivatives redact local machine paths and private participant names, retaining original hashes, scores and limits.
+- Offer guided/plain language, standard/balanced or expert/developer shorthand at first setup or documentation use, and keep one recorded choice: Scaffold-Kit's Triage Card when present, otherwise the existing task record or calibration README. Evidence and approval do not change with depth.
+- Remove the inaccurate `.gitignore` claim that run receipts are safe to delete, and label the old audit/design record as historical.
+- Behavioral trials for the documentation additions are in `design/evals/product-v1/documentation-evidence-2026-10-12.json`. Additions whose obligations no baseline trial missed in five runs were pruned under pass 15's rule; their text is kept in that file.
 
 Source changes only; no release publication, installer execution or consumer update is implied.
 

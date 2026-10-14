@@ -36,7 +36,7 @@ python3 scripts/adc.py bootstrap --repo /path/to/repo --hosts all --expect-core-
 
 The default is dry-run. The apply form adds --apply. Bootstrap does not execute repository code or install dependencies. Its bounded profile previews gate changes and confirmation resets; exact source bindings protect previously approved gates from needless reset when bounded discovery merely misses them.
 
-During first setup or documentation use, the assistant offers plain language, balanced or developer shorthand and records the choice in existing repo notes, or reuses Scaffold-Kit's Triage Card. The CLI remains noninteractive. [Documentation guidance](skills/anti-dark-code/references/documentation.md) defines concise overviews, ownership, freshness and scratch folders; updates preserve local choices and evidence.
+During first setup or documentation use, the assistant offers plain language, balanced or developer shorthand and records the choice in existing repo notes, or reuses Scaffold-Kit's Triage Card ([explanation depth](skills/anti-dark-code/references/documentation.md)). The CLI remains noninteractive, and updates preserve the recorded choice.
 
 Validate from the target repository after installation:
 

@@ -1,0 +1,290 @@
+{
+  "date": "2026-10-14",
+  "scope": "Prepare the previously approved final skill and plugin payload for GitHub review.",
+  "authority": {
+    "github_updates": "Owner requested updates to both GitHub skill repositories after checking the local installations.",
+    "permitted_effects": [
+      "Source branch and draft pull request",
+      "Existing repository documentation and evidence updates"
+    ],
+    "held_effects": [
+      "Merge",
+      "Tag",
+      "Release",
+      "Plugin-directory publication",
+      "Deployment",
+      "Installed-plugin changes"
+    ]
+  },
+  "payload": {
+    "version": "2026.10.9-unified.18",
+    "archive_sha256": "1eb4616daf1ce493293f80ad418e9d1a59d6a5dd80d76a8f287c6b14faee63ed",
+    "archive_files": 128,
+    "core_files": 121,
+    "all_final_package_files_byte_identical": true,
+    "files_sha256": {
+      "LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+      "gemini-extension.json": "c2bd9127c9ee0fe88412659fa8d7f34872a284deadab3f8af38c2b75b9826d59",
+      "plugin.json": "56b63ea6dffc3b6340994539ca192af2a52f9e232fc1b98d4907b4e367f5404c",
+      ".claude-plugin/marketplace.json": "33cce8201a61d82c9e341681012a1ce1d8d964321e1b7a665adef2a486ea9f3c",
+      ".claude-plugin/plugin.json": "3cda48f8dd5291941dec5ef16a0422f8d2708dc43d3bf21feedd23c4002852b0",
+      ".codex-plugin/plugin.json": "c7a212e8e78d0b00b4ec678aecab3bd9e87116deb54ba3ba3b353ee1a8e2c7b2",
+      "skills/anti-dark-code/LICENSE.md": "c2cffd1120b34b8dcf55f16caa2ceb7c734965093a0d85fa7cce8d3df2280a72",
+      "skills/anti-dark-code/SOURCE-SCOPE.json": "bc7b5f4c06527fe137fb867b72e764d02a87422a0af1bef6b85c76b2a7f65416",
+      "skills/anti-dark-code/VERSION": "005636cbc7e6a9a6b4df937f93df8137c0221e8a25be7cf2eabc81a5d2cc00ac",
+      "skills/anti-dark-code/SKILL.md": "1e7eb6baabecbefd2d823a3ad10622c2ad9670c066dcdd2aad073e5b397cb629",
+      "skills/anti-dark-code/.gitattributes": "1f03619729beff9edaf98efb019da9692c19752ebc62eb08707b18c391e8beeb",
+      "skills/anti-dark-code/references/specialist-exact-gate-contract.md": "59468bcab3f9a1ef81969eafb9ea82f6bea33c2481395ecca8347cf3040013bf",
+      "skills/anti-dark-code/references/specialist-native-reachability.md": "bb43c97e9638b8b97811ab9d76a836b63195f2d43b57f74e2395f46d2eb25c13",
+      "skills/anti-dark-code/references/host-gemini-cli.md": "f9431767cdf3ab3573dce9855a1a55fd601ac24c8831c059daaafcb800abc8b2",
+      "skills/anti-dark-code/references/verification-capabilities.md": "ea29db21e33cce556888bb64bd84439c58dc1bdfe4438d63985127bdd84211f2",
+      "skills/anti-dark-code/references/specialist-mutation-restoration.md": "578d8015e800861aa7386b518c89b5d2034f7f15059e4434e966f8e8ff0e1c41",
+      "skills/anti-dark-code/references/05-coverage-slicing.md": "9f73d6649c589328f77a5300e6db710ea1e93713410eb7241520b9364dc38fc8",
+      "skills/anti-dark-code/references/assurance-release-closure.md": "243a60e95cd0c9a38e0038445ffe59b721a2a62f1203d7ee83f790eef8091789",
+      "skills/anti-dark-code/references/07-adversarial-review.md": "f0e826aaafdc438fdd013175e3c262ef2d0e9be1799875abfb7ed38ebde3cc2d",
+      "skills/anti-dark-code/references/shadow-evidence.md": "1b4a6c2bf0583d57ceb60503ac44f6e289c96a64ab0a140d723de600f1dba4b2",
+      "skills/anti-dark-code/references/11-remediation-loop.md": "5f863054ae0edc11fa5332fad05f3599ffa16ef61b14e9f416b42d8c0bb12a13",
+      "skills/anti-dark-code/references/model-selection.md": "7d5873eb2a5fa5d4d4895ef421703c2b1f4b81eaf68783ec705be7611e9be0f3",
+      "skills/anti-dark-code/references/assurance-runtime-boundaries.md": "823529c4dca6cdad8155a4c3327a0700fda7e0a7d0df41a0b17edcdaa9f49118",
+      "skills/anti-dark-code/references/assurance-publication-integrity.md": "8a1d820ead85165de9afb12a42e9de51b769fb789d4412e1fae45b4d68f54471",
+      "skills/anti-dark-code/references/specialist-audited-producers.md": "294cc2b9e46ffac81c66da069a081fc3fd3556777d8a657451f97ed6b629228d",
+      "skills/anti-dark-code/references/00-preflight.md": "517bbf262fade7e9136a82c3fddc1d0918bcb10f9acf419c5f09b95b066a19f0",
+      "skills/anti-dark-code/references/14-deterministic-verification.md": "1c2c1052516dc4c55082e9fa5db792a79bd55aed6f4452294683c8ecfd8756c6",
+      "skills/anti-dark-code/references/assurance-native-execution.md": "0f56080dfe9c6fee09e0129261d79948eff2175a8b24716076e503eca56b3efc",
+      "skills/anti-dark-code/references/13-calibrated-local-mode.md": "19f7add23337056b51eed0772ebf8cab476417a11b834814d35582ced429e401",
+      "skills/anti-dark-code/references/01-steering.md": "585a9d42e17bedfacaa6e101bb0384e6f610d8e997ccc24828b96c26bbee5b6b",
+      "skills/anti-dark-code/references/orchestration-mode.md": "48029056e36e29f79168475055502571e72e1322b033a173d7077ab29c4ba4b8",
+      "skills/anti-dark-code/references/routine-task-review.md": "00a6d558203205e579df712a7ddb57437a92a5fc6e6a3097ea82bf00fa6799e5",
+      "skills/anti-dark-code/references/specialist-verifier-falsifiability.md": "ab4af5be1cc84706afe223e4ceaada166ce45fccc3102c66a1cf9de4783d43ab",
+      "skills/anti-dark-code/references/host-adapters.md": "a848f2297c1d42f774d11e46770c7297664b9ad3eb23f3170301230e1ea811ba",
+      "skills/anti-dark-code/references/16-community-feedback-and-efficiency.md": "e56a68da9bfbbd431d59c3c64aba73eedf8b47193536471716100bea1adf64e8",
+      "skills/anti-dark-code/references/assurance-preservation.md": "4032c98539c156efb72126107ff54936c961ac5b9871a5597d3527692b9d366f",
+      "skills/anti-dark-code/references/06-writing-hygiene.md": "558962383623197fda1d42ce4445765a8b9586d7368755608cfac7440b5c1a08",
+      "skills/anti-dark-code/references/10-maintenance-harness.md": "e85ce7d509b8df9eb59788b69a33c2f65070dcefd2a9e78e7b2a7fd980a023a0",
+      "skills/anti-dark-code/references/assurance-hardware-recovery.md": "ae00ba2d812a530f81c8309007d1d8ba2d0d9ccd7e936cb57f558d162874a0a4",
+      "skills/anti-dark-code/references/04-logging-audit.md": "653206cda0ddce9955f861dbad3d3b24b4934bc28620e78bb3468f4b5797901d",
+      "skills/anti-dark-code/references/host-codex.md": "a718970e98bab81227c723f195125e89e653fe503dbaa6cd4cb79f9262dc702f",
+      "skills/anti-dark-code/references/quality-tests.md": "06e249c59a0576f4264244f9b226a03f510d4456d670248a3b06b811d63ccc1a",
+      "skills/anti-dark-code/references/specialist-remediation-edges.md": "fdbcb725d7b48b6175a1e770522d218702832de1296e3d1772d3f540db3ff599",
+      "skills/anti-dark-code/references/specialist-hidden-control-planes.md": "fbd716572457dc734ee3a0b84acf43f54a60dfee3885ccead3083678623f01c7",
+      "skills/anti-dark-code/references/02-architecture-map.md": "c71861427355aa907a9687a1813e53de4724267325d5522fde73eac5c78b74c0",
+      "skills/anti-dark-code/references/12-transcreation-boundary.md": "ee21b2c07a5641fbe623ac195c50ecf3a7e76de1139a15383155e50b318d7672",
+      "skills/anti-dark-code/references/03-critical-path-comments.md": "bc7e1b4ca3bfe920bb85374c548731e6bfdb824a9757544db39918e227f5f1c8",
+      "skills/anti-dark-code/references/assurance-contracts.md": "4c6bacf6ad842848fd64d424e4bfae70d6433ae9e11e908cc394b67771ef6b0d",
+      "skills/anti-dark-code/references/real-world-usage.md": "6c215cf6c5eb60d7c296ab88de879051c60927552cc5ff7d739348a01c378cb4",
+      "skills/anti-dark-code/references/documentation.md": "73bc7bb948c2bb0ebe5590cb3326a94548fba6e89ec7675aae38434dcac79518",
+      "skills/anti-dark-code/references/specialist-process-verdicts.md": "7842525aba85a0529b2fe523872331b6044ac3be272c84f9a6bb8cc9d0b53148",
+      "skills/anti-dark-code/references/specialist-gate-environment.md": "f409674584711940f6fb4adc38d8c5c6c61cca5a05d27c2a0615d617c06947e3",
+      "skills/anti-dark-code/references/combined-03-06-loop.md": "b2e976493658348bc6ad3f6fd92006bf6cac222f949bc3f89a59acf591dbe7fa",
+      "skills/anti-dark-code/references/assurance-claim-proof.md": "69915008b0ddb96ad518a688a4479695573f8e6ae34bdd4828eb3a67db378f2a",
+      "skills/anti-dark-code/references/specialist-restricted-builds.md": "f0f5ce8248652f646592f9c864734413d04506545c61484755223000f2027ebe",
+      "skills/anti-dark-code/references/09-artifact-gc.md": "fcb1baa821a8ef02cc6b83acbc952ac8915140bbce1b0d5b28c5ef7bff656df4",
+      "skills/anti-dark-code/references/15-dogfeeding-flowback.md": "3cc0884179770fc6f82ac674da26deb3d40fec9c913d4e561aa3f59a35c03e43",
+      "skills/anti-dark-code/references/08-scenario-stress-test.md": "b3337e4b7f85127e2b5fc334f4ada8ef7b3baa684a62fb1138ad41f5c76b3575",
+      "skills/anti-dark-code/references/product-principles.md": "aaced02c378b69e55e617cb670753a6f99de3d5e1755582cfd33abf10317137f",
+      "skills/anti-dark-code/references/00-conventions.md": "cd6af4c166bbd68f5086a5c51ef79b4ab3b0271557802d1c78c430ffce05f725",
+      "skills/anti-dark-code/references/repo-verification-profiles.md": "f4f215cef29d34c9b6121fc33c20aa02b1fbf9ffeb7a3f1fa333c7a047c04177",
+      "skills/anti-dark-code/references/host-claude-code.md": "ed966d72cc852d11967f10848f5119ad7ffaeb26f1760ddc6264e47e9adc99c4",
+      "skills/anti-dark-code/references/proportionality.md": "28f5d11e30e4a48581c025ee09d99071a0610719959af5240d3eb4cb64c369ba",
+      "skills/anti-dark-code/references/host-generic.md": "77129e4d275d24aee7be9b4669a27c87fede174a4828954fdde8bd35cc258061",
+      "skills/anti-dark-code/references/example-stress-test-report.md": "5510c796b24f46d048b380a7c2cd74791fefc13a08eb96216f24d2f57f3dfb63",
+      "skills/anti-dark-code/tests/test_usage_privacy.py": "91d9664c77fa9d429d15a7b7236a70883a80f525f7f3cbb3761d2dc2771d2a2e",
+      "skills/anti-dark-code/tests/test_work_receipt.py": "56ae48d4200818228b60295f8ddf0cfb017d51b5ed3109db883374975fa41fe0",
+      "skills/anti-dark-code/tests/test_packaging.py": "8e4d22889b793ca1d3afb0fe617e231824bf567791032fbe7b647c0e062e814f",
+      "skills/anti-dark-code/tests/test_product_probe.py": "9e97e01cec8199a2154fc04f649baee5e686f6dd2b31d4e9389a19f08f41ed3f",
+      "skills/anti-dark-code/tests/test_route_cli.py": "ccc0d9288c373566071ef608b21a37dd1bada4a500acd54f3ea9b28ebf303dc0",
+      "skills/anti-dark-code/tests/test_documentation_contract.py": "1ffcd6194643b7ca8300d77127b3c7c528d308eebe89f08cd8540b44d259d494",
+      "skills/anti-dark-code/tests/test_usage_sources.py": "c3de31dba464646212159dc385ab74fab40c7f3d07b1f84cf676b3803715c7b6",
+      "skills/anti-dark-code/tests/test_usage.py": "623751105c2c936982505eee09ad2e1cd081aebddeff24bfb3b526d243519231",
+      "skills/anti-dark-code/tests/test_adc.py": "8b9830deedd31aee5ad9510ab13d122ad08e3b17de91332157dfc14a6a7f022e",
+      "skills/anti-dark-code/tests/test_receipt.py": "07b36443bb60563a1d5b9e7c03d2743cf7c604cf759483978cc6d28d273937c2",
+      "skills/anti-dark-code/tests/test_model_policy.py": "f096533b846fa810fab73d628148788cce918c003d5c8bea096dca20818a3d91",
+      "skills/anti-dark-code/tests/test_efficiency.py": "e08b13d12e5b7a164bd3ba17e3870ac91674a348e4aec654ec81cb5916c31c36",
+      "skills/anti-dark-code/tests/test_route.py": "92ca34c0e6e544f79cc2a96874a48a377b53136926981c72eb03d9168c984944",
+      "skills/anti-dark-code/tests/test_usage_review.py": "2ab3fe578b53c84e3cf27611a489e5f619a4cdfafd1fd066eaa59438de4a1834",
+      "skills/anti-dark-code/agents/openai.yaml": "5ffb52973b3911c2f9a250e26865047635afa0668b7dc9f290f5a1c79e097ad6",
+      "skills/anti-dark-code/scripts/adc_receipt.py": "48206cce7a87822a5dce8f63e65d1da2850e33630c0f85ec43e8f75e7e21fb92",
+      "skills/anti-dark-code/scripts/adc_usage_sources.py": "dc3f3233c8087418c0c8472541fb72f0a39e39a817b239036ff3e28efec54625",
+      "skills/anti-dark-code/scripts/adc_packaging.py": "2cc977cc0ce7553b65bcae665b3c9dd2b7b7bdbefba3b39c1f29e073ff1d39e4",
+      "skills/anti-dark-code/scripts/adc_model_policy.py": "2673c36e588f59675b0fa6bce24ac22ce558910bbea79ddf2695a8b1d9be42dd",
+      "skills/anti-dark-code/scripts/adc_shadow.py": "6c65c26c93c652017361d5450dcc982ed79bb0b50e096d4879cc93728bcb6ed2",
+      "skills/anti-dark-code/scripts/adc_usage_review.py": "8f9f87b46bb6ba8224a01acf67b0b16a656b4572d8e6cfdfe7a289b765b70d59",
+      "skills/anti-dark-code/scripts/adc_route.py": "98233bcc8ea68560de2e30dd43e42eddbcf85a09aefd7656c099eeb01e81e4bb",
+      "skills/anti-dark-code/scripts/work_receipt.py": "cfb118d7ca65824e0f209c548effe6b7080089bfa9286c42be84982150cbcb5b",
+      "skills/anti-dark-code/scripts/adc_usage.py": "b075e6fce7ef37d9b5be626a80d12605440ee6759533a53d62aabe602ecb0c62",
+      "skills/anti-dark-code/scripts/adc_efficiency.py": "6b15988cd298912df84f79d1750951c79f9ac8759f5c840772970c854bfe6c8f",
+      "skills/anti-dark-code/scripts/adc.py": "7a6e5e403205dbf7fffcee2773fb5ba847c64afa24846b55b3a960281f0df02b",
+      "skills/anti-dark-code/assets/model-policy.json": "0c2c7e6b1dcf28eb0c923f86358e6fda14db5491554c6976b113ce457a06b0b0",
+      "skills/anti-dark-code/assets/verification-capabilities.json": "a49c4e50c8e15a2bf081c8e46a98d4168f299e1c76d2a1fe4c17c32d753efeab",
+      "skills/anti-dark-code/assets/brand/README.md": "a96d0a6a568355c1b9db70d6d9b6e20133a37af80f0f75c2af2c3868159ef681",
+      "skills/anti-dark-code/assets/brand/illuminated-code-small.png": "535a32f6a40b2b072d10ff2a4ad9736ef8ef2d8ce0fece0e0651496eff0f0f79",
+      "skills/anti-dark-code/assets/brand/illuminated-code.svg": "4b67eddbe2d359cf7ff7061b68d41c115a8343b1b126dc760c32088e3afa36c5",
+      "skills/anti-dark-code/assets/brand/illuminated-code.png": "cb835062f6c92106bc9a0fc21ee96a182b9c84036c5625a5a3f265841582f19c",
+      "skills/anti-dark-code/assets/brand/illuminated-code-small.svg": "b2da19039190da2cff5f4b79b803cd53788e9a3ea9b27fefd07910c518fd6a3b",
+      "skills/anti-dark-code/assets/templates/failure-packet.json": "f8d34d2d03b0f3c90400a67319a1c01aaf1bb045e5624e38eb06b3ff75fd462a",
+      "skills/anti-dark-code/assets/templates/product-contract.md": "7f6d589d360487f663df65e3d93ef8b94736e422d7c92921b57b55baea874424",
+      "skills/anti-dark-code/assets/templates/codex-review-hooks.json": "6af90f71b3f65323d25189239d16f8bfc68971a533ba2e851debb3e366265469",
+      "skills/anti-dark-code/assets/templates/repo-slices.md": "28d39deb5fe9457bdacf1993ecfcbf792346c61e7654ba8b53ac5029d27b4912",
+      "skills/anti-dark-code/assets/templates/unknowns-file.md": "425f60e1b7cc1c1c4d556987e98dd0e04bca05b5b5ca97f1a9c969609e42bbee",
+      "skills/anti-dark-code/assets/templates/shadow-job.yml": "7b70d2814bf009459580131fb1fe698caa7d7a2b9aa739c44d58ef1b0bb77c8d",
+      "skills/anti-dark-code/assets/templates/shadow-gate-map.json": "2fe74ea0c7299f939543077e6c7f6a8ae8431beb766ab57673380763ef5cda66",
+      "skills/anti-dark-code/assets/templates/system-map.md": "ce23dec7b1542442e2a8a5b7c0a23abe2b70a952269860d8de6e3a4dbeefb047",
+      "skills/anti-dark-code/assets/templates/remediation-backlog.md": "d12f374a55dbe97a3276415940872ea2e2700afee4a7a6b3f94437dd2bdcc109",
+      "skills/anti-dark-code/assets/templates/coverage-ledger.md": "03bde1c0190bca52892d427fcd819ba832ff03f242023101ec5ed07a074e89c0",
+      "skills/anti-dark-code/assets/templates/pr-template.md": "9a37059411ba8e101439f1c30ff63b0a0e53b387656f99d4cd77326b0943963a",
+      "skills/anti-dark-code/assets/templates/calibration/repo-profile.json": "8f72507eae285ca27d8959ea34da731e3eb6388e82d98a3495ac2e66ea54fdf0",
+      "skills/anti-dark-code/assets/templates/calibration/routing-policy.json": "89bcfa39e09104e1b3898ca27cab908b48d538c0e68a199f1edde398964a77a1",
+      "skills/anti-dark-code/assets/templates/calibration/invariants.md": "329577014e8b5d72663a16da7d1063cf1556652e81ce989272b300bef3c92e53",
+      "skills/anti-dark-code/assets/templates/calibration/README.md": "4abf91235b5612353b24fabc5c38b8b572f9c7d14d06e0efff17b0a6c5bf445f",
+      "skills/anti-dark-code/assets/templates/calibration/verification-plan.json": "a7d79b537fed56174a11aeb234b7b4be5dcd212d41c36765e7bc07c3ded40ce7",
+      "skills/anti-dark-code/assets/templates/calibration/gates.json": "d49cd1e6dc944dc99c2adbf905b365f5b8f446c1df9046cf4ad22f1d23081544",
+      "skills/anti-dark-code/assets/templates/calibration/upstream-candidates.md": "7022ab06aa4cd44b9b0ed4949bfe478292baf5272550d9c2f14ea8cf459b8efe",
+      "skills/anti-dark-code/assets/templates/calibration/findings-ledger.md": "ae23546ef945061a1fe3458b96b27ae3c4eabf720c0daafbe5c98edd479c24b7",
+      "skills/anti-dark-code/assets/templates/calibration/upstream.json": "54451a2c391812ab4e09b4f0419a2680d9d6b8056489a237ad48e25d1ebdf8b8",
+      "skills/anti-dark-code/assets/templates/calibration/system-map.md": "14b6e0a315332a7db47d491a2d560b9a9c0f140bf2305ecb642cbe84a5506ed3",
+      "skills/anti-dark-code/assets/templates/calibration/repo-binding.json": "29aa0286a7ae683df6cc06f2aaa2a963cac8d6e1d763698363c6f87c646a9c82",
+      "skills/anti-dark-code/assets/templates/calibration/coverage-ledger.md": "c0a66263cfa2fd43a8464e818547b94efb82ecdbebdf5c1cedfcde3eceafb627",
+      "skills/anti-dark-code/references/tasks/document.md": "69249ddefda2078b227754d95961192ba3a7f1cf6db1bc8e1e4ae6b752b117d2",
+      "skills/anti-dark-code/references/tasks/remediate.md": "fbd88b5b2b3df9d35fe4b0bf99707ff7865b57197207c3d1df2dae271b732647",
+      "skills/anti-dark-code/references/tasks/improve.md": "73b97b84395587cc4b014eae9c58cc080d7d73ffc10d6f121dfdf5bda95a93f6",
+      "skills/anti-dark-code/references/tasks/understand.md": "64f4cf8689b863f4917c43d4a9fb921eae4c21a01ed581ed7709303dfeaafc62",
+      "skills/anti-dark-code/references/tasks/investigate.md": "8b27f6822b86ac0f996c457e4a2e2254c6684afebbe7c5c1141f1290cf5744e2",
+      "skills/anti-dark-code/references/tasks/verify.md": "929bc02f8a4e14d62217ebe13e58e0b1e54f7b7189ac5b7074068e628f77b4d3",
+      ".agents/plugins/marketplace.json": "61c73aa6496c5e63270be84ec04c84faa98bd00fba8dc4c21850ba043ad899fe"
+    }
+  },
+  "github_base_sha": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+  "local_installation": {
+    "record_date": "2026-10-13",
+    "record_sha256": "63a79ef255ac151bba3e1556b8cc32f1337652d25171363e8d03169161418576",
+    "Claude_Code": {
+      "enabled": true,
+      "package_file_hashes_passed": true,
+      "version_visibly_verified": true
+    },
+    "Codex": {
+      "enabled": true,
+      "package_file_hashes_passed": true,
+      "live_skill_discovery_passed": true
+    },
+    "published": false
+  },
+  "candidate_checks": [
+    {
+      "check": "adc-core-universal",
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 0.48
+    },
+    {
+      "check": "adc-package",
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 0.06
+    },
+    {
+      "check": "adc-claude-manifest",
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 0.62,
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "check": "adc-claude-catalog",
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 0.69,
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "check": "adc-full-unit-suite",
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 149.88,
+      "passed": 757,
+      "skipped": 8,
+      "subtests_passed": 703,
+      "python": "3.14.7",
+      "pytest": "9.1.1",
+      "platform": "macOS",
+      "skip_reason_capture": "Counts captured; per-test skip reasons were not captured."
+    }
+  ],
+  "public_evidence_derivatives": [
+    {
+      "path": "design/evals/product-v1/documentation-evidence-2026-10-12-choices.json",
+      "original_sha256": "056955d3da179ad6ae6fa1ec568cdad26b1bd22eb7ea73b069d00cf037bd7541",
+      "public_sha256": "425622ba8a9fc152fdeff0ac58cfd1f4d1f6612b85637c057247522cfcbe3a76",
+      "redactions": {
+        "private_paths": 2,
+        "participant_names": 0
+      }
+    },
+    {
+      "path": "design/evals/product-v1/documentation-evidence-2026-10-12-lean.json",
+      "original_sha256": "b912d45288d765283c542067414ae0750f342cb9fa7b3188566672e6a088e9e2",
+      "public_sha256": "3187e526f150d5e888a84bb0f71b3e6557172317f88be519c1087aa806af3565",
+      "redactions": {
+        "private_paths": 9,
+        "participant_names": 0
+      }
+    },
+    {
+      "path": "design/evals/product-v1/documentation-evidence-2026-10-12-readability.json",
+      "original_sha256": "425c4e87fac2d34476633768dcb141ba58e5207924eca5d86ae398de037ae055",
+      "public_sha256": "a08500dc9644e82396d1b104750bd77f47d1d524976736c990a9283d86e545f0",
+      "redactions": {
+        "private_paths": 2,
+        "participant_names": 2
+      }
+    },
+    {
+      "path": "design/evals/product-v1/documentation-evidence-2026-10-12-recipe.json",
+      "original_sha256": "91c34b2652119e7784ee0d4d18539de5bb8a2ea1079be7d99402d99f31ddd68e",
+      "public_sha256": "c139528cf14f8ddce2137e3e8ebaa46b9cbf2c44a97474a9b1dfe9093cff6679",
+      "redactions": {
+        "private_paths": 2,
+        "participant_names": 0
+      }
+    },
+    {
+      "path": "design/evals/product-v1/documentation-evidence-2026-10-12-strict.json",
+      "original_sha256": "435b6075376f67c92de8fac05aae64a454ac63d0f92c39a9bc5f1a744421a141",
+      "public_sha256": "82760bc78e678227b4a20e05b2b4daa46a4f041fa255a87736220166f1178057",
+      "redactions": {
+        "private_paths": 4,
+        "participant_names": 2
+      }
+    },
+    {
+      "path": "design/evals/product-v1/documentation-evidence-2026-10-12.json",
+      "original_sha256": "c54467cca10c060ac32a85187560fafdea0463420e76d1deb884541d5755ed7c",
+      "public_sha256": "6263bf02efce3705786ad11a0772409dbb402cf63371013e54f12d33f1efbc65",
+      "redactions": {
+        "private_paths": 207,
+        "participant_names": 0
+      }
+    }
+  ],
+  "scores_and_statuses_preserved": true,
+  "human_feedback": {
+    "prior_revised_samples": "Owner explicitly approved comprehension of the exact revised Samples A/B on 2026-10-13.",
+    "local_setup": "On 2026-10-14 the owner reported the setup appeared good on their end.",
+    "limits": "Feedback does not establish a controlled participant study, approval of unseen outputs, or independently observed icon rendering."
+  },
+  "new_agent_behavioral_trials": 0,
+  "host_limits": [
+    "Claude Code uses a generic plugin symbol; its documented icon field is directory-listing metadata.",
+    "Codex resolves the exact Scaffold Kit logo and composer icon. Visual rendering was not independently verified because computer use blocks the calling Codex window.",
+    "Local installation is for Claude Code and Codex on this machine; no separate Claude chat-account upload was performed."
+  ],
+  "untested": [
+    "Fresh model-generation trials for unchanged instruction payload",
+    "New human-comprehension testing",
+    "CI platform, hostile-environment and mutation-replay results at this local checkpoint"
+  ],
+  "no_new_core_changes": true,
+  "release_state": "Unreleased candidate: no tag, release or directory submission."
+}
