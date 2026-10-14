@@ -126,6 +126,8 @@ class PluginPackagingTests(unittest.TestCase):
                     source = manifests[host]["plugins"][0]["source"]
                     self.assertEqual(source["sha"], expected)
                     self.assertNotIn("ref", source)
+                    self.assertEqual(source["source"], "url")
+                    self.assertEqual(source["url"], "https://github.com/LynxTWO/anti-dark-code-skill.git")
         historical = packaging.metadata("2026.10.09-unified.18")
         self.assertEqual(historical[".agents/plugins/marketplace.json"]["plugins"][0]["source"],
                          {"source": "local", "path": "./"})

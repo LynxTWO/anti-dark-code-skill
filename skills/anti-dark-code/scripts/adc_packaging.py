@@ -76,7 +76,7 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
             "owner": shared["author"],
             "plugins": [{"name": "anti-dark-code", "source": (
                 "./" if legacy_listing else
-                {"source": "github", "repo": "LynxTWO/anti-dark-code-skill", "sha": STABLE_PLUGIN_SHA}
+                {"source": "url", "url": REPOSITORY + ".git", "sha": STABLE_PLUGIN_SHA}
             ), "description": shared["description"]}],
         },
     }
