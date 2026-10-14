@@ -106,6 +106,17 @@ class PluginPackagingTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 packaging.plugin_version(invalid)
 
+    def test_preview_listing_limits_and_historical_metadata(self):
+        legacy = packaging.metadata("2026.10.09-unified.18")["plugin.json"]["extensions"]["com.openai"]["interface"]
+        self.assertEqual(legacy["shortDescription"], "Review and improve code from evidence.")
+        current = packaging.metadata("2026.10.14-unified.19")
+        interface = current["plugin.json"]["extensions"]["com.openai"]["interface"]
+        self.assertEqual(interface, current[".codex-plugin/plugin.json"]["interface"])
+        self.assertLessEqual(len(interface["shortDescription"]), 30)
+        self.assertTrue(interface["longDescription"])
+        self.assertTrue(interface["developerName"])
+        self.assertEqual(interface["category"], "Productivity")
+
     def test_missing_or_redirected_artwork_is_rejected(self):
         self.move_core()
         path = self.core / "assets" / "brand" / "illuminated-code.png"

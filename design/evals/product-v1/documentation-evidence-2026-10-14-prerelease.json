@@ -1,0 +1,202 @@
+{
+  "date": "2026-10-14",
+  "scope": "Local opt-in preview preparation; no plugin publication or remote source push. Instruction text, approval requirements, status semantics and compact-document rules unchanged.",
+  "channel": {
+    "marketplace": "lynxtwo-preview",
+    "activation": "Explicit installation from a separately named catalog; version strings alone do not select a channel.",
+    "stable_installs_restored": true,
+    "one_enabled_copy_per_kit_per_host_verified": true,
+    "codex_config_bytes_restored": true
+  },
+  "hosts": {
+    "codex_cli": "codex-cli 0.162.0-alpha.17.2",
+    "claude_cli": "2.1.295 (Claude Code)",
+    "actual_workflows": "Fresh Codex CLI and Claude Desktop Code planning and read-only audit tasks completed from installed preview payloads.",
+    "native_upgrade_and_rollback": "Stable payload installed in test catalog, upgraded to preview and rolled back in both hosts; expected versions and every cached byte checked.",
+    "discovery": "Live Codex skills/list and plugin/read verified preview and restored stable copies; actual Claude skill invocation completed."
+  },
+  "generated_documents": [
+    {
+      "host": "codex",
+      "brief_sha256": "de67f1fdd4bddb75e73191b1ee59ded3f49ac2592c36eac8a065ba63dfcb0343",
+      "word_count_method": "Whitespace split over the entire Markdown brief, including header, state, tables and approval, consistent with round26 trial evidence.",
+      "whole_brief_words": 475,
+      "under_500_word_cap": true,
+      "above_normal_400_word_target": true,
+      "guided_setting_present": true,
+      "generated_prose_checks": {
+        "explains_cli": true,
+        "explains_identifiers": true,
+        "pending_questions_in_generated_brief": true,
+        "how_it_will_be_checked_heading": true,
+        "proposed_status": true,
+        "approval_pending": true
+      },
+      "partial_audit_exit": 0,
+      "readiness_exit": 1,
+      "readiness_is_expected_refusal_for_pending_choices": true,
+      "protected_files_match_original": {
+        "demo.py": true,
+        "README.md": true,
+        ".gitignore": true,
+        "docs/SLICE-001-print-result.md": true,
+        "docs/evidence/SLICE-001-run.txt": true
+      },
+      "report_saved": true,
+      "human_comprehension_measured": false,
+      "brief_file": "SLICE-002-version.md",
+      "length_note": "Above the normal 400-word target but below the 500 cap; retained pending choices, preservation boundaries and concrete checks."
+    },
+    {
+      "host": "claude",
+      "brief_sha256": "199216a3ea83de66487f78704d53ce2d611b6947884dcfaa1fe16fb1de22cd4b",
+      "word_count_method": "Whitespace split over the entire Markdown brief, including header, state, tables and approval, consistent with round26 trial evidence.",
+      "whole_brief_words": 453,
+      "under_500_word_cap": true,
+      "above_normal_400_word_target": true,
+      "guided_setting_present": true,
+      "generated_prose_checks": {
+        "explains_cli": true,
+        "explains_identifiers": true,
+        "pending_questions_in_generated_brief": true,
+        "how_it_will_be_checked_heading": true,
+        "proposed_status": true,
+        "approval_pending": true
+      },
+      "partial_audit_exit": 0,
+      "readiness_exit": 1,
+      "readiness_is_expected_refusal_for_pending_choices": true,
+      "protected_files_match_original": {
+        "demo.py": true,
+        "README.md": true,
+        ".gitignore": true,
+        "docs/SLICE-001-print-result.md": true,
+        "docs/evidence/SLICE-001-run.txt": true
+      },
+      "report_saved": true,
+      "human_comprehension_measured": false,
+      "brief_file": "SLICE-002-version-flag.md",
+      "length_note": "Above the normal 400-word target but below the 500 cap; retained pending choices, preservation boundaries and concrete checks."
+    }
+  ],
+  "retained_misses": [
+    {
+      "check": "Claude first generated brief",
+      "initial": "531 words by whole-Markdown whitespace split, over 500; host reported 488 using a different count.",
+      "resolution": "Bounded follow-up trimmed wording to 453, preserving facts, decisions, checks and approval. First draft retained.",
+      "limit": "This is a repaired output, not a first-pass success or a guarantee of future length compliance."
+    },
+    {
+      "check": "Claude handover read-evidence claim",
+      "initial": "Claimed audit tests were skimmed, though omitted runtime test file was missing.",
+      "resolution": "Packaging reviewer corrected this unsupported report claim using actual transcript; original retained. No kit instruction changed.",
+      "limit": "No model rerun was performed for this report correction."
+    }
+  ],
+  "human_comprehension": "Not measured by these automated/native checks. Earlier owner approval remains scoped to the previously reviewed Samples A and B.",
+  "not_run": [
+    {
+      "check": "Native Windows/Linux plugin installs",
+      "status": "untested on this macOS machine"
+    },
+    {
+      "check": "New candidate cross-platform CI and full mutation replay",
+      "status": "not rerun; source branches remain local. Prior merged-main CI passes; routing scripts and mutation matrix unchanged."
+    },
+    {
+      "check": "Codex icon visual rendering",
+      "status": "untested because computer-use access to Codex is disallowed; resolved logo/composerIcon paths and unchanged image bytes verified."
+    },
+    {
+      "check": "Directory portal submission/review",
+      "status": "not attempted; publishing explicitly held"
+    },
+    {
+      "check": "skills-ref and gh skill publish --dry-run",
+      "status": "unavailable in installed CLIs"
+    }
+  ],
+  "prior_main_ci": {
+    "adc_tests": "success",
+    "previously_inconsistent_job": "Now completed/success; every step success.",
+    "preview_candidate_covered": false
+  },
+  "publication": {
+    "remote_branch_push": false,
+    "remote_tag_push": false,
+    "github_release": false,
+    "directory_submission": false,
+    "local_rehearsal_tags": "ADC only: local-preview-check-20261014-33 (initial failed heading) and local-preview-check-20261014-33-r2 (passed), never pushed."
+  },
+  "plugin": "anti-dark-code",
+  "version": "2026.10.14-unified.19",
+  "listing": {
+    "subtitle": "Review code from evidence",
+    "subtitle_chars": 25,
+    "long_description_chars": 125,
+    "display_name_chars": 14,
+    "developer_name": "LynxTWO",
+    "category": "Productivity",
+    "contrast_white": 2.4557626876119087,
+    "icon_bytes_unchanged": true
+  },
+  "package": {
+    "version": "2026.10.14-unified.19",
+    "changed_runtime_files": [
+      "gemini-extension.json",
+      "plugin.json",
+      ".claude-plugin/plugin.json",
+      ".codex-plugin/plugin.json",
+      "skills/anti-dark-code/VERSION",
+      "skills/anti-dark-code/tests/test_packaging.py",
+      "skills/anti-dark-code/scripts/adc_packaging.py",
+      "skills/anti-dark-code/assets/verification-capabilities.json"
+    ],
+    "instruction_files_unchanged": true,
+    "sha256": "b80643fb7a4e21415f0b8ec05ce75f4303807a74cc81d33d36e918899086ee9f",
+    "bytes": 682019,
+    "file_count": 128,
+    "zip_crc_and_extracted_hashes_pass": true
+  },
+  "package_file": "anti-dark-code-preview-plugin-2026-10-14.zip",
+  "instruction_files_changed": [],
+  "tests": {
+    "full_pytest_initial": {
+      "passed": 757,
+      "failed": 1,
+      "skipped": 8,
+      "subtests_passed": 703,
+      "failure": "Existing brief/website version labels did not match new VERSION."
+    },
+    "affected_release_surface_retest": {
+      "passed": 1,
+      "failed": 0
+    },
+    "packaging_regression_retest": {
+      "passed": 11,
+      "failed": 0,
+      "subtests_passed": 3
+    },
+    "skip_reasons": "Eight Windows-only termination, ownership, ACL and PowerShell checks require Windows.",
+    "universal_validation": "passed, zero errors/warnings",
+    "clean_extracted_distribution": "passed",
+    "metadata_generator": "passed",
+    "local_tagged_release_check": "passed on second rehearsal after using an exact version changelog heading; original failed result retained",
+    "historical_unified18_release_check": "passed with current helper",
+    "consumer_upgrade_rollback": "passed for reviewed local stable baseline and exact published unified18 archive; calibration notes, approvals and gate bindings preserved. Only installed-version/digest bookkeeping and last-verified timestamp refreshed. Wrong digest refused before mutation."
+  },
+  "receipts": {
+    "validation.json": "bcd0849b5bf3cf11cee36c2d15d341b310765a1311dfbbb8be40099778779b9e",
+    "generated-document-checks.json": "a08d889bde03ac1b3de2853392b8639631fc13a14591c3f1e7300aa34aec8783",
+    "first-pass-length-checks.json": "78e6b5f21ae9938ec242bc414ecd2e701d9b8dd15f6b65b0ea5b02febd1d30d6",
+    "handover-claim-correction.json": "927efc5cb5eda56130c1e10cd8bee1b553fd80ba1a0f7979844e4b03a35d89e3",
+    "claude-host-workflow-receipts.json": "e2deb8cbadc1eb25512ab55692596b4c9a16bff3ba4cfa48a95c6eb967e5f393",
+    "consumer-transition.json": "43a54cf8cb37a5ba653732e848a7b48d7e963c39975db769cb46ff026537a129",
+    "published-consumer-transition.json": "9c710a155787a2959c1c60f354dab47630ce3874e92e85682a584a98f33c6cac",
+    "stable-restoration.json": "7766b98cda838bec653dee82c5fdb8a5d1748ba849d1ae24a560187192ef9158",
+    "host-cleanup.json": "47bc3a952aaf1f8bd45f24f7c852328840a49e9d4787eb8833ca7d78205040f6",
+    "pdf-checks.json": "bb3ebf0e53c9eb26970419785833714704fe8c8ec795267cdd6fcd3f7b8238dd",
+    "preservation-and-listing.json": "32fd2bc6c5ff9d7fa35cbe2ae9e3f8929ad6e497fa209e89638c65996f8fef18",
+    "ci-shard-resolved.json": "5ee7c8be013811cbbd799de107ba72b944e47a05e21c42a85b3d9306ea8a5bdd"
+  }
+}

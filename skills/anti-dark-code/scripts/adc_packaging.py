@@ -33,9 +33,11 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
         "license": "FSL-1.1-MIT",
         "keywords": ["code-review", "architecture", "verification", "agent-skills"],
     }
+    # Preserve metadata verification for releases through unified.18.
+    legacy_listing = "-unified." in version and int(version.rsplit("-unified.", 1)[1]) <= 18
     interface = {
         "displayName": "Anti-Dark-Code",
-        "shortDescription": "Review and improve code from evidence.",
+        "shortDescription": "Review and improve code from evidence." if legacy_listing else "Review code from evidence",
         "longDescription": "Map unfamiliar code, investigate supported findings, and verify authorized changes. Optional usage collection remains opt-in.",
         "developerName": "LynxTWO",
         "category": "Productivity",
