@@ -19,6 +19,8 @@ Keep these calibration names and existing schemas:
 
 Templates remain in assets/templates/calibration/. Preserve target calibration during updates; never copy source calibration sideways.
 
+At first setup, offer the [documentation depth choice](documentation.md) and save it in the existing repo-owned README or reuse Scaffold-Kit's Triage Card. Updates preserve that choice. The installer CLI stays noninteractive; the assistant asks during setup or first use, without adding JSON fields or delaying independent work.
+
 ## Source and physical boundaries
 
 Normal sources require a valid universal SOURCE-SCOPE.json and clean templates. The installer rejects sources inside the target, managed installations, populated top-level calibration and internal links/junctions. Git sources must be clean and at a release tag; use a reviewed tag/extract plus its independently obtained published digest.

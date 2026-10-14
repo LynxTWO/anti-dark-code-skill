@@ -1,5 +1,11 @@
 # Audit and Design Decision
 
+Historical design rationale for unified.1 through unified.4 (August 2026).
+Counts, command lists and layouts below describe those snapshots. For current
+operation use [Operations](OPERATIONS.md), [the skill](skills/anti-dark-code/SKILL.md)
+and [release history](CHANGELOG.md). This record is preserved as evidence and is
+not a current installation or startup checklist.
+
 ## Historical Provenance Note
 
 The source archive names in this audit identify the material reviewed during package design. They are provenance only. They are not installation inputs, transferable calibration, default repository assumptions, or operational migration instructions. Repo-specific content from one archive must remain inside that repository unless a separate lesson is generalized, reviewed, and promoted into the universal core.

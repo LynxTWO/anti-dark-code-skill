@@ -10,6 +10,8 @@ means the planted failures and clean controls behave as specified, not that the
 broken app meets its product contract or an assistant finds every problem.
 Browser automation does not establish screen-reader or participant usability.
 
+`documentation-cases.json` holds isolated instruction trials for explanation depth, stale notes, paired preferences and cited scratch evidence. Give the trial raw prompts and artifacts, hiding the rubric. Record the exact skill source, outputs, executed checks and scorer. `documentation-evidence-2026-10-12.json` records three to five baseline and treated trials per case under pass 15's rule, blind scores, the prune decisions with the pruned text, and post-prune checks. These trials do not establish readability with human participants, and older evidence does not qualify changed instructions.
+
 Optional browser environment, separate from the standard-library runtime and
 the Python unit-test environment:
 
@@ -42,3 +44,13 @@ Actual model trials must retain redacted response/diff evidence and independent
 review provenance. No such trial is inferred from unit tests, browser checks or
 the same author's walkthrough. Report zero executed agent trials when none ran;
 do not publish an accuracy percentage from this set's fixture checks.
+
+`documentation-evidence-2026-10-12-lean.json` records unchanged ADC instruction hashes and the repeated suite/validators alongside the Scaffold follow-up. It claims no new ADC behavioral trials and keeps previous results bound to their recorded source.
+
+`documentation-evidence-2026-10-12-recipe.json` records unchanged ADC instructions and distribution validation alongside the targeted Scaffold recipe follow-up. No new ADC behavioral result is inferred.
+
+`documentation-evidence-2026-10-12-choices.json` records the same ADC instruction source alongside Scaffold's Open-choice and conditional-stub revision, with repeated distribution validation and no new ADC behavioral trials.
+
+`documentation-evidence-2026-10-12-readability.json` retains prior strict counts: paired preferences 3/3, depth changes 1/3 and stale notes 2/3. `documentation-evidence-2026-10-12-strict.json` records three passes in each case after lean replacements preserve canonical preferences, hypothesis meaning and dated history. Nine contexts have exact final installed-core bindings and independent blinded scores; earlier failures remain recorded. Source and clean-applied distribution checks are recorded separately. Agent results do not establish human comprehension; prior emailed samples retain their earlier source binding, with participant responses pending.
+
+`documentation-evidence-2026-10-14-packaging.json` records final local installs and GitHub candidate checks with no further core changes or new model trials. Public evidence derivatives retain their original hashes, source identities and numeric scores while redacting private paths and participant names. Historical assertions describe the evidence available at their recorded time.

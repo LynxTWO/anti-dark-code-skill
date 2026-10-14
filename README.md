@@ -44,6 +44,8 @@ One model-neutral skill works with local deterministic tooling and optional repo
 
 A comprehensive audit combines Understand, Investigate and Verify under an explicit coverage contract. A focused request stays focused. Installation, inline documentation, remediation and publication are separate scopes; a one-off report requires no permanent installation.
 
+At first setup or documentation use, choose **plain language**, **balanced** or **developer shorthand**. The [explanation-depth guidance](skills/anti-dark-code/references/documentation.md) keeps one recorded choice: Scaffold-Kit's Triage Card when present, otherwise existing repo notes or calibration. Evidence and approval requirements do not change with depth.
+
 For product work, the [quality tests](skills/anti-dark-code/references/quality-tests.md) and
 [product principles](skills/anti-dark-code/references/product-principles.md) add relevant
 user journeys, consent, accessible interaction, recovery and data-control checks.
@@ -97,7 +99,7 @@ Opted-in [routine task reviews](skills/anti-dark-code/references/routine-task-re
 
 ## Project and evidence
 
-[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) records design context. The [public site](https://lynxtwo.github.io/anti-dark-code-skill/), rendered from `docs/index.html`, and the [PDF brief](brief/anti-dark-code-brief.pdf) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
+[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) preserves historical unified.1-4 rationale; use Operations for current behavior. The [public site](https://lynxtwo.github.io/anti-dark-code-skill/), rendered from `docs/index.html`, and the [PDF brief](brief/anti-dark-code-brief.pdf) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
 
 Efficiency receipts remain a separate opt-in evidence workflow. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
 

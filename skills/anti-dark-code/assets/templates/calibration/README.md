@@ -2,6 +2,8 @@
 
 This directory is repo-owned memory. The shared skill updater preserves it.
 
+Documentation depth: [guided | standard | expert; choose at first setup/use].
+
 This calibration belongs to one repository. Do not copy it into another repository as a template, shortcut, or starting point.
 
 Read only the files relevant to the current pass. Update them when evidence changes. Each human-authored claim should carry a confidence label and evidence path.

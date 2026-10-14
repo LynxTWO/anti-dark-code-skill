@@ -1,9 +1,9 @@
 __pycache__/
 *.pyc
 
-# Routing receipts are local run artifacts, safe to delete. The receipt
-# store is deliberately excluded from the receipt binding for the same
-# reason: writing one must not invalidate it.
+# Routing receipts are local, not automatically disposable. Preserve cited
+# evidence under skills/anti-dark-code/references/09-artifact-gc.md before cleanup.
+# The store is excluded from receipt binding so writes do not invalidate it.
 .anti-dark-code/runs/
 
 # Drafts for the public brief that are not yet public. The brief is a
