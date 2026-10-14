@@ -1,6 +1,8 @@
 # Changelog
 
-## 2026.10.14-unified.19 (unpublished preview candidate)
+## 2026.10.14-unified.19
+
+Unpublished preview candidate.
 
 - Shorten the listing subtitle in `scripts/adc_packaging.py` to the directory limit, preserving historical release metadata. Add packaging regression coverage; regenerate the six manifests and advance VERSION and the capability catalog version together. Refresh existing README, website and field-brief version labels and PDF provenance; the stable release link stays pinned. Skill instructions and verification capabilities are unchanged.
 - Prepare a separate opt-in preview catalog and rehearse local host installation, upgrade and rollback. No tag, GitHub release or directory submission is published.
