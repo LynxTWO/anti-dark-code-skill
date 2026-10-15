@@ -8,7 +8,11 @@
   "plugins": [
     {
       "name": "anti-dark-code",
-      "source": "./",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/LynxTWO/anti-dark-code-skill.git",
+        "sha": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
+      },
       "description": "Evidence-based architecture review, code audits, verification, and authorized improvements."
     }
   ]

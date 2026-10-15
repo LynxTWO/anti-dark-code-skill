@@ -27,6 +27,8 @@ Review a [named release](https://github.com/LynxTWO/anti-dark-code-skill/release
 
 **Version**: `2026.10.14-unified.19` (unpublished preview candidate; see [release history](CHANGELOG.md)).
 
+The default catalogs remain pinned to published unified.18. To test this development candidate, explicitly opt into the [shared preview catalog](PLUGINS.md#metadata-and-release-checks); updating a stable catalog does not select preview source.
+
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.

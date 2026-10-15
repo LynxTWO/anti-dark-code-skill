@@ -1,0 +1,97 @@
+{
+  "scope": "Local catalog-isolation validation before PR CI; no plugin publication. CI receipts belong to the PR head separately.",
+  "recorded_at": "2026-10-14T23:36:47.722868+00:00",
+  "plugin": "anti-dark-code",
+  "stable_source": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+  "preview_source": "ac4c5895e7cf42d4bb2d86c29d8528bcafae6992",
+  "instruction_markdown_changes": [],
+  "native_hosts": {
+    "codex": {
+      "initial": {
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "51c4856bca57beea0d10d31e05c1ea71811549477dbbfbc1b16e94d4579bc3b0"
+      },
+      "stable-after-preview-advance": {
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "51c4856bca57beea0d10d31e05c1ea71811549477dbbfbc1b16e94d4579bc3b0"
+      },
+      "explicit-preview": {
+        "version": "2026.10.14-unified.19",
+        "source_files_checked": 351,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "1f6dbe2cb567d78d1278adca257fc0054dd577b0a899342985e3b63bbcd76422"
+      },
+      "rollback": {
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "51c4856bca57beea0d10d31e05c1ea71811549477dbbfbc1b16e94d4579bc3b0"
+      },
+      "no_preview_plugin_installed_after_stable_refresh": true
+    },
+    "claude": {
+      "initial": {
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "51c4856bca57beea0d10d31e05c1ea71811549477dbbfbc1b16e94d4579bc3b0"
+      },
+      "stable-after-preview-advance": {
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "51c4856bca57beea0d10d31e05c1ea71811549477dbbfbc1b16e94d4579bc3b0"
+      },
+      "explicit-preview": {
+        "version": "2026.10.14-unified.19",
+        "source_files_checked": 351,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "1f6dbe2cb567d78d1278adca257fc0054dd577b0a899342985e3b63bbcd76422"
+      },
+      "rollback": {
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_file_hashes_match": true,
+        "core_inventory_exact": true,
+        "receipt_sha256": "51c4856bca57beea0d10d31e05c1ea71811549477dbbfbc1b16e94d4579bc3b0"
+      },
+      "no_preview_plugin_installed_after_stable_refresh": true
+    }
+  },
+  "retained_failure": {
+    "first_attempt": "Claude plugin update selected SSH for a github source and failed host-key verification.",
+    "correction": "Use explicit HTTPS url sources in both hosts; no SSH configuration was changed.",
+    "first_attempt_receipt_sha256": "0b172ce896b94533bfe07412536cd4b47f9db2ec4dfc61b0d8d473f5fae0ea77",
+    "rerun": "Full cycle passed in both hosts."
+  },
+  "restoration": {
+    "original_configuration_bytes_match": true,
+    "original_stable_cache_bytes_match": true
+  },
+  "limits": [
+    "Forced native refresh/update commands exercised; Claude autoUpdate was configured true for the temporary stable catalogs. No background timer was observed.",
+    "Native checks ran on macOS; native Windows/Linux installs were not exercised.",
+    "Direct development-source installs bypass stable catalogs. Earlier unpinned preview installs may need removal and reinstall from the corrected stable catalog.",
+    "No live Pages deployment or plugin release is claimed by this pre-merge evidence."
+  ],
+  "local_tests": {
+    "packaging_passed": 12,
+    "passing_subtests": 5,
+    "clean_archive_universal": "0 errors, 0 warnings",
+    "clean_archive_distribution": "0 errors, 0 warnings",
+    "historical_unified18_release_check": "passed",
+    "local_candidate_release_check": "passed; local-channel-check-20261014-37 was not pushed",
+    "working_tree_note": "Initial universal check passed with one generated-bytecode warning; clean tracked archive is warning-free."
+  }
+}

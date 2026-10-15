@@ -12,6 +12,8 @@ import subprocess
 CORE_PATH = Path("skills/anti-dark-code")
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 REPOSITORY = "https://github.com/LynxTWO/anti-dark-code-skill"
+# Published unified.18. Moving development source must not move stable installs.
+STABLE_PLUGIN_SHA = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
 
 
 def plugin_version(version: str) -> str:
@@ -60,7 +62,10 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
             "name": "anti-dark-code",
             "interface": {"displayName": "Anti-Dark-Code"},
             "plugins": [{
-                "name": "anti-dark-code", "source": {"source": "local", "path": "./"},
+                "name": "anti-dark-code", "source": (
+                    {"source": "local", "path": "./"} if legacy_listing else
+                    {"source": "url", "url": REPOSITORY + ".git", "sha": STABLE_PLUGIN_SHA}
+                ),
                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                 "category": "Productivity",
             }],
@@ -69,7 +74,10 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
             "name": "anti-dark-code",
             "description": shared["description"],
             "owner": shared["author"],
-            "plugins": [{"name": "anti-dark-code", "source": "./", "description": shared["description"]}],
+            "plugins": [{"name": "anti-dark-code", "source": (
+                "./" if legacy_listing else
+                {"source": "url", "url": REPOSITORY + ".git", "sha": STABLE_PLUGIN_SHA}
+            ), "description": shared["description"]}],
         },
     }
 

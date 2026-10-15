@@ -18,11 +18,12 @@ distribution tree is needed.
 | Claude Code | `.claude-plugin/plugin.json` | Same core under `skills/` |
 | Gemini CLI | `gemini-extension.json` | Same core under `skills/` |
 
-Both marketplaces expose the repository root as one plugin. Relative `./` means
-the marketplace root, not the directory containing its catalog. There is no
-second `plugins/anti-dark-code/` copy. Metadata advertises a skill only: no MCP
+The existing marketplace identities now pin the published unified.18 commit,
+independently of development on `main`. Historical catalogs used relative `./`,
+which resolves inside that catalog's checkout. There is no duplicated core.
+Metadata advertises a skill only: no MCP
 server, credentials, automatic hooks, telemetry, or background jobs are enabled.
-Existing optional collection commands still require their own explicit opt-in.
+Existing optional collection commands still require their own explicit opt-in. Catalog fetch URLs are explicitly HTTPS, so updates do not depend on SSH host-key setup.
 
 The host owns its plugin cache. Do not keep both a plugin-provided and a standalone
 global copy enabled in one host after switching installation methods. Repository
@@ -104,7 +105,7 @@ Then complete the usual version/changelog/brief provenance updates and the tagge
 `release-check` described in OPERATIONS.md. Publishing a tag, GitHub release or
 skill-registry entry is a separate release action.
 
-Preview releases use the separate `lynxtwo-preview` marketplace supplied with the preview bundle. Opt in explicitly and keep one active copy per host. Remove the preview copy and reinstall from the stable catalog to roll back. Calendar versions remain canonical; the catalog selects the channel, and a future GitHub release must be marked prerelease. Preview source is prepared for review; no plugin release or directory submission has been published.
+Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold-kit/tree/main/preview), named `lynxtwo-preview`, with immutable candidate pins. Its instructions cover installation and rollback; keep one active copy per kit. Calendar versions remain canonical. A GitHub prerelease label does not control host updates: stable and preview catalogs select separate source commits. Plugin publishing remains on hold.
 
 ## Native host checks for unified.16
 
