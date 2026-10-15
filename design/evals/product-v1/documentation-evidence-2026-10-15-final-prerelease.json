@@ -1,0 +1,703 @@
+{
+  "recorded_at": "2026-10-15T12:16:22.717968+00:00",
+  "scope": "Final opt-in preview package preparation with approved Living Blueprint briefs; source PRs only.",
+  "candidate_sources": {
+    "scaffold-kit": {
+      "version": "0.4.2",
+      "commit": "1b019d8cb2981d18aae7af4949e1463f68023672",
+      "sha256": "a448eecc935d6c2c0e33aefbafda628595e4e71b7b6f4f804043c3150c900a73",
+      "file_count": 58,
+      "bytes": 1228555
+    },
+    "anti-dark-code": {
+      "version": "2026.10.15-unified.20",
+      "commit": "8c34f35514630b3abb6121cb9acf3d1826beb78e",
+      "sha256": "0e043108cf95e2e846548fdab503dd1c97aeaf5ac45c75ac209e2f1a2f14b563",
+      "file_count": 357,
+      "bytes": 2295111
+    }
+  },
+  "catalog": {
+    "name": "lynxtwo-preview",
+    "both_host_manifests_pin_exact_candidate_commits": true,
+    "stable_catalog_files_byte_identical_to_merged_main": true,
+    "stable": {
+      "scaffold-kit": "d6783f8f51db0b6c74f001f425666225d7e79220",
+      "anti-dark-code": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
+    },
+    "candidate_commits_are_payload_snapshots": "Catalog and evidence follow in later source commits to avoid a self-referential pin. Plugin archives exactly match the pinned payload commits; use the separate final preview catalog to opt in."
+  },
+  "host_checks": {
+    "platform": "macOS arm64",
+    "versions": {
+      "codex": "0.162.0-alpha.17.2",
+      "claude": "2.1.295"
+    },
+    "native_steps": {
+      "codex": {
+        "initial": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "stable-after-preview-advance": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "previous-preview": {
+          "scaffold-kit": {
+            "version": "0.4.1",
+            "source_files_checked": 56,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.14-unified.19",
+            "source_files_checked": 351,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "updated-preview": {
+          "scaffold-kit": {
+            "version": "0.4.2",
+            "source_files_checked": 58,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.20",
+            "source_files_checked": 357,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "fresh-final-preview": {
+          "scaffold-kit": {
+            "version": "0.4.2",
+            "source_files_checked": 58,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.20",
+            "source_files_checked": 357,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "rollback": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        }
+      },
+      "claude": {
+        "initial": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "stable-after-preview-advance": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "previous-preview": {
+          "scaffold-kit": {
+            "version": "0.4.1",
+            "source_files_checked": 56,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.14-unified.19",
+            "source_files_checked": 351,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "updated-preview": {
+          "scaffold-kit": {
+            "version": "0.4.2",
+            "source_files_checked": 58,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.20",
+            "source_files_checked": 357,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "fresh-final-preview": {
+          "scaffold-kit": {
+            "version": "0.4.2",
+            "source_files_checked": 58,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.20",
+            "source_files_checked": 357,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        },
+        "rollback": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341,
+            "all_source_file_hashes_match": true,
+            "core_inventory_exact": true
+          }
+        }
+      }
+    },
+    "one_active_copy_per_kit_at_each_checkpoint": true,
+    "every_tracked_source_file_sha256_matches_selected_commit": true,
+    "managed_core_inventories_exact": true,
+    "fresh_codex_app_server_discovery": {
+      "skills_list": "Both enabled namespaced skills returned without loader errors.",
+      "plugin_read": "Both plugin descriptors returned successfully; source inventory verifies artwork bytes."
+    },
+    "all_four_original_configuration_files_byte_restored": true,
+    "permanent_original_stable_cache_bytes_restored": true,
+    "codex_local_catalog_update": "Local directory is read directly by plugin add. marketplace upgrade is only for Git catalogs.",
+    "claude_stable_auto_update_policy": "Enabled temporarily for forced native refresh; no background timer observed."
+  },
+  "managed_consumer_checks": {
+    "baseline": "Exact Git archive of published v2026.10.09-unified.18; independently verified by release-check",
+    "steps": [
+      {
+        "step": "consumer-upgrade",
+        "source_digest": "87bb22a44a57172418d7f276029b7d584a10236e87707668ba641f18e7dbb296",
+        "version": "2026.10.15-unified.20",
+        "calibration_knowledge_and_approvals_byte_identical": true,
+        "repository_binding_only_last_verified_timestamp_may_change": true,
+        "upstream_version_and_digest_follow_installed_core": true,
+        "approval_status_and_gate_binding_preserved": true,
+        "installed_core_bytes_match": true,
+        "product_and_adapter_unchanged": true,
+        "repo_code_executed": false
+      },
+      {
+        "step": "consumer-rollback",
+        "source_digest": "24beceec388efb6ec1e1fa68a3d348a4fe615f701a03b31107323ce5835a68bd",
+        "version": "2026.10.09-unified.18",
+        "calibration_knowledge_and_approvals_byte_identical": true,
+        "repository_binding_only_last_verified_timestamp_may_change": true,
+        "upstream_version_and_digest_follow_installed_core": true,
+        "approval_status_and_gate_binding_preserved": true,
+        "installed_core_bytes_match": true,
+        "product_and_adapter_unchanged": true,
+        "repo_code_executed": false
+      }
+    ],
+    "wrong_digest_refused_before_mutation": true,
+    "dry_runs_no_installation_writes": true,
+    "fixture_approval_is_synthetic": true
+  },
+  "adc_core_digest": {
+    "version": "2026.10.15-unified.20",
+    "sha256": "87bb22a44a57172418d7f276029b7d584a10236e87707668ba641f18e7dbb296",
+    "file_count": 121,
+    "method": "Independent sorted path, NUL, binary SHA-256 over canonical managed inventory; matches bundled helper."
+  },
+  "validations": [
+    {
+      "label": "scaffold-kit-skill",
+      "exit_code": 0,
+      "args": [
+        "skills-ref",
+        "validate",
+        "<work>/round30/github-scaffold-kit/round33-scaffold/skills/scaffold-kit"
+      ],
+      "stdout": "Valid skill: <work>/round30/github-scaffold-kit/round33-scaffold/skills/scaffold-kit\n",
+      "stderr": ""
+    },
+    {
+      "label": "scaffold-kit-claude-manifest",
+      "exit_code": 0,
+      "args": [
+        "claude",
+        "plugin",
+        "validate",
+        "--strict",
+        "<work>/round30/github-scaffold-kit/round33-scaffold/.claude-plugin/plugin.json"
+      ],
+      "stdout": "Validating plugin manifest: <work>/round30/github-scaffold-kit/round33-scaffold/.claude-plugin/plugin.json\n\n\u2714 Validation passed\n",
+      "stderr": ""
+    },
+    {
+      "label": "scaffold-kit-claude-stable-catalog",
+      "exit_code": 0,
+      "args": [
+        "claude",
+        "plugin",
+        "validate",
+        "--strict",
+        "<work>/round30/github-scaffold-kit/round33-scaffold/.claude-plugin/marketplace.json"
+      ],
+      "stdout": "Validating marketplace manifest: <work>/round30/github-scaffold-kit/round33-scaffold/.claude-plugin/marketplace.json\n\n\u2714 Validation passed\n",
+      "stderr": ""
+    },
+    {
+      "label": "scaffold-kit-github-dry-run",
+      "exit_code": 0,
+      "args": [
+        "gh",
+        "skill",
+        "publish",
+        "<work>/round30/github-scaffold-kit/round33-scaffold",
+        "--dry-run"
+      ],
+      "stdout": "warning\t\tsecret scanning is not enabled. Recommended to prevent accidental credential exposure (gh repo edit --enable-secret-scanning)\nwarning\t\tsecret scanning push protection is not enabled. Blocks pushes containing secrets (gh repo edit --enable-secret-scanning-push-protection)\nwarning\t\tno active tag protection rulesets found. Consider protecting tags to ensure immutable releases (Settings > Rules > Rulesets)\n",
+      "stderr": "\nDry run complete. Use without --dry-run to publish.\n"
+    },
+    {
+      "label": "anti-dark-code-skill",
+      "exit_code": 0,
+      "args": [
+        "skills-ref",
+        "validate",
+        "<work>/round30/github-anti-dark-code/round33-adc/skills/anti-dark-code"
+      ],
+      "stdout": "Valid skill: <work>/round30/github-anti-dark-code/round33-adc/skills/anti-dark-code\n",
+      "stderr": ""
+    },
+    {
+      "label": "anti-dark-code-claude-manifest",
+      "exit_code": 0,
+      "args": [
+        "claude",
+        "plugin",
+        "validate",
+        "--strict",
+        "<work>/round30/github-anti-dark-code/round33-adc/.claude-plugin/plugin.json"
+      ],
+      "stdout": "Validating plugin manifest: <work>/round30/github-anti-dark-code/round33-adc/.claude-plugin/plugin.json\n\n\u2139 Advice (does not change the verdict):\n\n  \u276f <work>/round30/github-anti-dark-code/round33-adc/README.md: This README has no line that installs \"anti-dark-code\" from a marketplace. Add the install line, which works in one step on Claude Code 2.1.275 or later. Validate the folder that holds its marketplace.json to have <owner>/<repo> filled in, and the name its marketplace lists it under.\n      /plugin install anti-dark-code --marketplace <owner>/<repo>\n\n\u2714 Validation passed\n",
+      "stderr": ""
+    },
+    {
+      "label": "anti-dark-code-claude-stable-catalog",
+      "exit_code": 0,
+      "args": [
+        "claude",
+        "plugin",
+        "validate",
+        "--strict",
+        "<work>/round30/github-anti-dark-code/round33-adc/.claude-plugin/marketplace.json"
+      ],
+      "stdout": "Validating marketplace manifest: <work>/round30/github-anti-dark-code/round33-adc/.claude-plugin/marketplace.json\n\n\u2714 Validation passed\n",
+      "stderr": ""
+    },
+    {
+      "label": "anti-dark-code-github-dry-run",
+      "exit_code": 0,
+      "args": [
+        "gh",
+        "skill",
+        "publish",
+        "<work>/round30/github-anti-dark-code/round33-adc",
+        "--dry-run"
+      ],
+      "stdout": "warning\t\t.agents/skills/ contains installed skills and should be added to .gitignore to avoid publishing other authors' content\nwarning\t\tsecret scanning is not enabled. Recommended to prevent accidental credential exposure (gh repo edit --enable-secret-scanning)\nwarning\t\tsecret scanning push protection is not enabled. Blocks pushes containing secrets (gh repo edit --enable-secret-scanning-push-protection)\nwarning\t\tno active tag protection rulesets found. Consider protecting tags to ensure immutable releases (Settings > Rules > Rulesets)\n",
+      "stderr": "\nDry run complete. Use without --dry-run to publish.\n"
+    },
+    {
+      "label": "preview-catalog",
+      "exit_code": 0,
+      "args": [
+        "claude",
+        "plugin",
+        "validate",
+        "--strict",
+        "<work>/round30/github-scaffold-kit/round33-scaffold/preview/.claude-plugin/marketplace.json"
+      ],
+      "stdout": "Validating marketplace manifest: <work>/round30/github-scaffold-kit/round33-scaffold/preview/.claude-plugin/marketplace.json\n\n\u2714 Validation passed\n",
+      "stderr": ""
+    },
+    {
+      "label": "adc-generated-package-and-host-checks",
+      "exit_code": 0,
+      "args": [
+        "python3",
+        "-B",
+        "<work>/round30/github-anti-dark-code/round33-adc/skills/anti-dark-code/scripts/adc_packaging.py",
+        "--repo",
+        "<work>/round30/github-anti-dark-code/round33-adc",
+        "--host-checks"
+      ],
+      "stdout": "VALID plugin package: 0 error(s)\n{\"host\": \"claude\", \"status\": \"passed\", \"exit_code\": 0, \"output\": \"Validating marketplace manifest: <work>/round30/github-anti-dark-code/round33-adc/.claude-plugin/marketplace.json\\n\\n\\u2139 Advice (does not change the verdict):\\n\\n  \\u276f <work>/round30/github-anti-dark-code/round33-adc/README.md: This README has no line that installs \\\"anti-dark-code\\\" from a marketplace. Add the install line, which works in one step on Claude Code 2.1.275 or later. In it, replace <owner>/<repo> with the repository that holds the marketplace.\\n      /plugin install anti-dark-code --marketplace <owner>/<repo>\\n\\n\\u2714 Validation passed\\n\"}\n{\"host\": \"skills-ref\", \"status\": \"passed\", \"exit_code\": 0, \"output\": \"Valid skill: <work>/round30/github-anti-dark-code/round33-adc/skills/anti-dark-code\\n\"}\n{\"host\": \"gh\", \"status\": \"passed\", \"exit_code\": 0, \"output\": \"warning\\t\\t.agents/skills/ contains installed skills and should be added to .gitignore to avoid publishing other authors' content\\nwarning\\t\\tsecret scanning is not enabled. Recommended to prevent accidental credential exposure (gh repo edit --enable-secret-scanning)\\nwarning\\t\\tsecret scanning push protection is not enabled. Blocks pushes containing secrets (gh repo edit --enable-secret-scanning-push-protection)\\nwarning\\t\\tno active tag protection rulesets found. Consider protecting tags to ensure immutable releases (Settings > Rules > Rulesets)\\n\\nDry run complete. Use without --dry-run to publish.\\n\"}\n",
+      "stderr": ""
+    },
+    {
+      "label": "adc-clean-distribution",
+      "exit_code": 0,
+      "args": [
+        "python3",
+        "-B",
+        "<work>/round30/github-anti-dark-code/round33-adc/skills/anti-dark-code/scripts/adc.py",
+        "validate",
+        "--skill",
+        "<work>/round46/packages/anti-dark-code/skills/anti-dark-code",
+        "--mode",
+        "distribution"
+      ],
+      "stdout": "VALID (distribution): 0 errors, 0 warning(s)\n",
+      "stderr": ""
+    },
+    {
+      "label": "adc-tagged-candidate-release-check",
+      "exit_code": 0,
+      "args": [
+        "python3",
+        "-B",
+        "<work>/round30/github-anti-dark-code/round33-adc/skills/anti-dark-code/scripts/adc.py",
+        "release-check",
+        "--repo",
+        "<work>/round30/github-anti-dark-code/round33-adc",
+        "--tag",
+        "local-final-preview-check-20261015-46",
+        "--previous-tag",
+        "v2026.10.09-unified.18",
+        "--expect-core-digest",
+        "87bb22a44a57172418d7f276029b7d584a10236e87707668ba641f18e7dbb296",
+        "--host-checks"
+      ],
+      "stdout": "{\n  \"tag\": \"local-final-preview-check-20261015-46\",\n  \"previous_tag\": \"v2026.10.09-unified.18\",\n  \"core_digest\": \"87bb22a44a57172418d7f276029b7d584a10236e87707668ba641f18e7dbb296\",\n  \"digest_expected\": \"87bb22a44a57172418d7f276029b7d584a10236e87707668ba641f18e7dbb296\",\n  \"digest_match\": true,\n  \"distribution_valid\": true,\n  \"distribution_errors\": [],\n  \"packaging_valid\": true,\n  \"packaging_errors\": [],\n  \"host_checks\": [\n    {\n      \"host\": \"claude\",\n      \"status\": \"passed\",\n      \"exit_code\": 0,\n      \"output\": \"Validating marketplace manifest: <temporary>\\n\\n\\u2139 Advice (does not change the verdict):\\n\\n  \\u276f <temporary> This README has no line that installs \\\"anti-dark-code\\\" from a marketplace. Add the install line, which works in one step on Claude Code 2.1.275 or later. In it, replace <owner>/<repo> with the repository that holds the marketplace.\\n      /plugin install anti-dark-code --marketplace <owner>/<repo>\\n\\n\\u2714 Validation passed\\n\"\n    },\n    {\n      \"host\": \"skills-ref\",\n      \"status\": \"passed\",\n      \"exit_code\": 0,\n      \"output\": \"Valid skill: <temporary>\\n\"\n    },\n    {\n      \"host\": \"gh\",\n      \"status\": \"passed\",\n      \"exit_code\": 0,\n      \"output\": \"warning\\t\\t.agents/skills/ may contain installed skills that are not gitignored (could not verify: failed to run git: fatal: not a git repository (or any of the parent directories): .git\\n)\\nwarning\\t\\tnot a git repository. Initialize with: git init && gh repo create\\n\\nDry run complete. Use without --dry-run to publish.\\n\"\n    }\n  ],\n  \"undescribed_files\": [],\n  \"errors\": [],\n  \"ok\": true,\n  \"version\": \"2026.10.15-unified.20\"\n}\nRELEASE OK: local-final-preview-check-20261015-46 reproduces its core and describes its own changes\n",
+      "stderr": ""
+    }
+  ],
+  "test_results": {
+    "scaffold_kit": {
+      "python_3_14": {
+        "audit_listing_passed": 55,
+        "artifact_channel_passed": 3
+      },
+      "python_3_9": {
+        "audit_listing_passed": 55,
+        "artifact_channel_passed": 3
+      }
+    },
+    "anti_dark_code": {
+      "python": "3.14.7/macOS",
+      "passed": 759,
+      "subtests_passed": 707,
+      "skipped": 8,
+      "skips": "Windows-only cases; native Windows assertions are left to CI.",
+      "failed": 0,
+      "outer_artifact_tests_passed": 3
+    },
+    "ci": "Final cross-platform suites, clean distribution and mutation replay run on the PR head; consult the PR checks. This source record does not assert a future CI outcome."
+  },
+  "retained_attempts": [
+    {
+      "result": "Interrupted",
+      "detail": "First full ADC suite stopped during user interruption at 76%; full replacement run completed successfully."
+    },
+    {
+      "result": "Environment failure resolved",
+      "detail": "Default and bundled Python lacked PyYAML for quick_validate; isolated validator environment installed PyYAML. Scaffold quick validator passed. Agent Skills reference validator 0.1.1 passed for both."
+    },
+    {
+      "result": "Validator mismatch retained",
+      "detail": "Older bundled quick_validate rejects ADC compatibility frontmatter. The current Agent Skills specification and reference validator accept that field; no skill instruction change made.",
+      "source": "https://agentskills.io/specification"
+    },
+    {
+      "result": "Interrupted native rehearsal recovered",
+      "detail": "Operator stopped the first rehearsal while investigating unfiltered Codex listing; installs had advanced. All original config/cache bytes restored before rerun."
+    },
+    {
+      "result": "Native command failure corrected",
+      "detail": "Codex marketplace upgrade refused a local directory catalog. Tester instructions and rehearsal corrected to native plugin add; complete rerun passed."
+    }
+  ],
+  "publication": {
+    "remote_tags_created": false,
+    "github_releases_created": false,
+    "release_assets_uploaded": false,
+    "directory_submissions": false,
+    "plugin_publishing": "on hold",
+    "local_release_check_tag": "local-final-preview-check-20261015-46 (not pushed)"
+  },
+  "artifacts": {
+    "anti-dark-code-2026.10.15-unified.20-preview.zip": {
+      "sha256": "0e043108cf95e2e846548fdab503dd1c97aeaf5ac45c75ac209e2f1a2f14b563",
+      "bytes": 2295111
+    },
+    "lynxtwo-preview-catalog-2026-10-15.zip": {
+      "sha256": "970e19b68890350b062efa9ab08deb0b05b581f07fa0d7ee5b7a482bc5ad6e82",
+      "bytes": 2074
+    },
+    "ADC-CORE-SHA256.txt": {
+      "sha256": "fe0bf8e0decf68edb5abe868016846a98931f9c45c5e3d1d00333965c860af93",
+      "bytes": 119
+    },
+    "scaffold-kit-0.4.2-preview.zip": {
+      "sha256": "a448eecc935d6c2c0e33aefbafda628595e4e71b7b6f4f804043c3150c900a73",
+      "bytes": 1228555
+    },
+    "PRERELEASE-NOTES.txt": {
+      "sha256": "af0915f7c9ff1eabd6204138c53fd11f2ab1a8bb1f781cc71e0a7363f912b1ad",
+      "bytes": 2976
+    }
+  },
+  "limits": [
+    "Forced native refresh/update was tested, not scheduled background update timing.",
+    "Native host installs were tested on macOS only; cross-platform Python CI is distinct.",
+    "No new LLM planning trials: instructions and templates are unchanged; final checks cover package discovery, bytes, lifecycle and PDF artifacts.",
+    "No new human comprehension study or claim that automated checks establish comprehension.",
+    "No new GUI icon inspection, PDF/UA audit or screen-reader reading-order audit.",
+    "Dry-run GitHub publication validation passed with advisory repository/security warnings; no settings or publication changed."
+  ],
+  "references": [
+    "https://developers.openai.com/plugins/build/plugins",
+    "https://code.claude.com/docs/en/plugins/marketplace-reference",
+    "https://agentskills.io/specification"
+  ],
+  "kit": "anti-dark-code",
+  "preservation": {
+    "stable_catalog_bytes_unchanged": true,
+    "instruction_template_script_bytes_unchanged": true,
+    "core_changes": [
+      "skills/anti-dark-code/VERSION",
+      "skills/anti-dark-code/assets/verification-capabilities.json"
+    ],
+    "capability_definitions_unchanged": true,
+    "candidate": "8c34f35514630b3abb6121cb9acf3d1826beb78e"
+  },
+  "brief_checks": [
+    {
+      "theme": "light",
+      "sha256": "08fad94213cd47a7555638c5c78aef1e146c133c4114e73fb1cf45225977a117",
+      "page_count": 7,
+      "page_words": [
+        252,
+        209,
+        245,
+        275,
+        258,
+        302,
+        311
+      ],
+      "named_destinations": [
+        "/overview",
+        "/outcomes",
+        "/product",
+        "/evidence",
+        "/tools",
+        "/knowledge",
+        "/maintenance"
+      ],
+      "approved_html_and_pdf_body_unchanged_except_version_and_date": true,
+      "declared_substitutions": {
+        "2026.10.14-unified.19": "2026.10.15-unified.20",
+        "date": "2026-10-14 to 2026-10-15"
+      },
+      "two_fresh_renders_match_after_timestamp_normalization": true,
+      "screen_checks": {
+        "themes": "light",
+        "widths": [
+          1200,
+          768,
+          375,
+          320
+        ],
+        "horizontal_overflow": false,
+        "broken_images_or_anchors": false,
+        "runtime_errors": []
+      },
+      "print_layout": [
+        {
+          "id": "overview",
+          "gap": 22.484375,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "outcomes",
+          "gap": 49.203125,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "product",
+          "gap": 34.8125,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "evidence",
+          "gap": 75.359375,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "tools",
+          "gap": 251.671875,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "knowledge",
+          "gap": 108.859375,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "maintenance",
+          "gap": 105.078125,
+          "scroll": 1123,
+          "client": 1123
+        }
+      ],
+      "visual_review": "Final Poppler contact sheets inspected; version/date label changes only.",
+      "human_comprehension": "Not tested for this packaging revision; automated checks do not prove comprehension.",
+      "pdf_ua_and_screen_reader_reading_order": "Not audited."
+    },
+    {
+      "theme": "dark",
+      "sha256": "5d840dfcd08d2b3ab1390a7d66b1d2da3c7c52d6939ac106e31e330c13d69a6b",
+      "page_count": 7,
+      "page_words": [
+        252,
+        209,
+        245,
+        275,
+        258,
+        302,
+        311
+      ],
+      "named_destinations": [
+        "/overview",
+        "/outcomes",
+        "/product",
+        "/evidence",
+        "/tools",
+        "/knowledge",
+        "/maintenance"
+      ],
+      "approved_html_and_pdf_body_unchanged_except_version_and_date": true,
+      "declared_substitutions": {
+        "2026.10.14-unified.19": "2026.10.15-unified.20",
+        "date": "2026-10-14 to 2026-10-15"
+      },
+      "two_fresh_renders_match_after_timestamp_normalization": true,
+      "screen_checks": {
+        "themes": "dark",
+        "widths": [
+          1200,
+          768,
+          375,
+          320
+        ],
+        "horizontal_overflow": false,
+        "broken_images_or_anchors": false,
+        "runtime_errors": []
+      },
+      "print_layout": [
+        {
+          "id": "overview",
+          "gap": 22.484375,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "outcomes",
+          "gap": 49.203125,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "product",
+          "gap": 34.8125,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "evidence",
+          "gap": 75.359375,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "tools",
+          "gap": 251.671875,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "knowledge",
+          "gap": 108.859375,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "maintenance",
+          "gap": 105.078125,
+          "scroll": 1123,
+          "client": 1123
+        }
+      ],
+      "visual_review": "Final Poppler contact sheets inspected; version/date label changes only.",
+      "human_comprehension": "Not tested for this packaging revision; automated checks do not prove comprehension.",
+      "pdf_ua_and_screen_reader_reading_order": "Not audited."
+    }
+  ]
+}
