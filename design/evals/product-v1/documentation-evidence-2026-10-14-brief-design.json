@@ -1,0 +1,247 @@
+{
+  "recorded_at": "2026-10-15T03:01:33.777873+00:00",
+  "scope": "Approved Living Blueprint presentation of the plain-language field brief; no runtime skill, plugin catalog, version or publishing changes.",
+  "canonical_source": "docs/brief/anti-dark-code-brief.html",
+  "compatibility_copy": "brief/anti-dark-code-brief.html",
+  "compatibility_copy_byte_identical": true,
+  "baseline_html_sha256": "318a0bd15fed9b0048a48eaa6e46519163e40a5f584dce3a8c660b4c5bb50f67",
+  "source_sha256": "bd7acdaa544d5f72dd8a1a304181fc7893ee8a9fec5c91c15e8b44af78515826",
+  "changes": [
+    "Failed-save example uses its existing clauses as three proposed checks.",
+    "Directional diagrams retain authorization and human review boundaries, with no automatic promotion arrow.",
+    "Final-page installation instructions have a prominent panel; reference identifiers retain their compatibility disclaimer.",
+    "Hosted source and legacy source copy are checked for exact byte equality. Both PDFs have source-bound provenance.",
+    "Existing homepage onboarding, metrics, support, stable release link and behavior are preserved; only brief links are added."
+  ],
+  "html_checks": [
+    {
+      "theme": "light",
+      "width": 1200,
+      "client": 1200,
+      "scroll": 1200,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "client": 768,
+      "scroll": 768,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "client": 375,
+      "scroll": 375,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "client": 320,
+      "scroll": 320,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "light",
+      "print_layout": [
+        {
+          "id": "overview",
+          "gap": 23.484375,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "outcomes",
+          "gap": 50.203125,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "product",
+          "gap": 34.8125,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "evidence",
+          "gap": 72.359375,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "tools",
+          "gap": 251.671875,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "knowledge",
+          "gap": 108.859375,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "maintenance",
+          "gap": 105.078125,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        }
+      ],
+      "runtime_errors": []
+    },
+    {
+      "theme": "dark",
+      "width": 1200,
+      "client": 1200,
+      "scroll": 1200,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "client": 768,
+      "scroll": 768,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "client": 375,
+      "scroll": 375,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "client": 320,
+      "scroll": 320,
+      "brokenAnchors": [],
+      "sheets": 7
+    },
+    {
+      "theme": "dark",
+      "print_layout": [
+        {
+          "id": "overview",
+          "gap": 23.484375,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "outcomes",
+          "gap": 50.203125,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "product",
+          "gap": 34.8125,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "evidence",
+          "gap": 72.359375,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "tools",
+          "gap": 251.671875,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "knowledge",
+          "gap": 108.859375,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        },
+        {
+          "id": "maintenance",
+          "gap": 105.078125,
+          "height": 1122.515625,
+          "scroll": 1123,
+          "client": 1123
+        }
+      ],
+      "runtime_errors": []
+    }
+  ],
+  "pdf_checks": [
+    {
+      "theme": "light",
+      "pages": 7,
+      "all_original_visible_text_blocks_present": true,
+      "page_character_inventory_exact": true,
+      "normalization": "Unicode NFKC, whitespace removal and case folding; CSS capitalization changes only",
+      "bytes": 241045,
+      "sha256": "5738fd7cc4063a6a616e08784f60c9c2dd28341cf6ba7e52d69bedb7cb5a0d11"
+    },
+    {
+      "theme": "dark",
+      "pages": 7,
+      "all_original_visible_text_blocks_present": true,
+      "page_character_inventory_exact": true,
+      "normalization": "Unicode NFKC, whitespace removal and case folding; CSS capitalization changes only",
+      "bytes": 241136,
+      "sha256": "22e2fccc24e70e7da82650cae3a2a340ee665c92737a6f091b22a158e3fefac9"
+    }
+  ],
+  "render_checks": {
+    "both_palettes_match_approved_preview_after_timestamp_normalization": true,
+    "two_fresh_renders_match": true
+  },
+  "limits": [
+    "No new human comprehension study.",
+    "No PDF/UA or screen-reader reading-order audit.",
+    "PDF block comparisons normalize whitespace, Unicode compatibility forms and CSS capitalization."
+  ],
+  "core_runtime": "unchanged",
+  "publication": "Plugin publishing remains on hold.",
+  "local_tests": {
+    "runtime": "macOS arm64 / Python 3.14.7",
+    "core_suite": {
+      "passed": 759,
+      "failed": 0,
+      "skipped": 8,
+      "subtests_passed": 707,
+      "skip_scope": "Windows-only termination, ownership, ACL and PowerShell checks."
+    },
+    "brief_artifact_regressions": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "core_validation": "0 errors, 0 warnings on clean source after moving pre-existing generated caches outside the skill tree",
+    "plugin_packaging": "0 errors",
+    "intermediate_result": "An initial run started before provenance refresh and failed its source/PDF binding check; refreshed metadata, targeted retest and final full suite pass."
+  },
+  "ci_correction": {
+    "run": "https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/38674407741",
+    "observed_failure": "New artifact check used the platform default text encoding; Windows cp1252 could not decode the UTF-8 README.",
+    "fix": "Use explicit UTF-8 for all text reads in the new artifact checks. No product or brief content changed.",
+    "local_retest": "All 3 artifact checks pass. Windows coverage is delegated to CI."
+  }
+}

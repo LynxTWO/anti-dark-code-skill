@@ -69,6 +69,7 @@ jobs:
           # piping pytest into tail would report tail's status and a red suite
           # would read as green. See the shell exit-code contract in
           # references/14-deterministic-verification.md.
+          python -B -m unittest discover -s tests
           python -m pytest skills/anti-dark-code/tests -q -n auto
 
   distribution:

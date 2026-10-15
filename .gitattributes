@@ -24,3 +24,5 @@ metrics/schemas/*.json text eol=lf
 brief/*.html text eol=lf
 brief/*.provenance.json text eol=lf
 brief/*.pdf -text
+docs/brief/*.html text eol=lf
+design/render-brief-pdf.py text eol=lf

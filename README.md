@@ -101,7 +101,7 @@ Opted-in [routine task reviews](skills/anti-dark-code/references/routine-task-re
 
 ## Project and evidence
 
-[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) preserves historical unified.1-4 rationale; use Operations for current behavior. The [public site](https://lynxtwo.github.io/anti-dark-code-skill/), rendered from `docs/index.html`, and the [PDF brief](brief/anti-dark-code-brief.pdf) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
+[VERSION](skills/anti-dark-code/VERSION) and [CHANGELOG.md](CHANGELOG.md) identify the package's declared version and release history. [AUDIT-AND-DESIGN.md](AUDIT-AND-DESIGN.md) preserves historical unified.1-4 rationale; use Operations for current behavior. The [public site](https://lynxtwo.github.io/anti-dark-code-skill/), rendered from `docs/index.html`, and the plain-language field brief ([HTML](https://lynxtwo.github.io/anti-dark-code-skill/brief/anti-dark-code-brief.html), [light PDF](brief/anti-dark-code-brief.pdf), [dark PDF](brief/anti-dark-code-brief-dark.pdf)) describe this workflow. [Metrics](metrics/) retain separately qualified historical evidence.
 
 Efficiency receipts remain a separate opt-in evidence workflow. Actual usage is not savings; controlled pairs need comparable conditions and passing quality. Public receipts are community-self-reported, not provider-attested. Unmeasured historical savings remain unknown.
 
