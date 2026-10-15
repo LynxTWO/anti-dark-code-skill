@@ -1,15 +1,14 @@
 {
   "schema_version": 1,
-  "version": "2026.10.14-unified.19",
-  "publication": "Plugin publishing on hold; documentation update only.",
+  "version": "2026.10.15-unified.20",
+  "publication": "Unpublished preview candidate; no remote tag, release or directory submission.",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
   "source_path": "docs/brief/anti-dark-code-brief.html",
-  "compatibility_source_path": "brief/anti-dark-code-brief.html",
-  "source_sha256": "bd7acdaa544d5f72dd8a1a304181fc7893ee8a9fec5c91c15e8b44af78515826",
+  "source_sha256": "5b4f7d5b0b083e6676d1d3f70beb157845ad7250ea68964cb63b7eb26e35e3a5",
   "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
   "color_scheme": "dark",
-  "pdf_sha256": "22e2fccc24e70e7da82650cae3a2a340ee665c92737a6f091b22a158e3fefac9",
-  "normalized_pdf_sha256": "cd35074f391d930477db7c3b958490a7184766a98f97b6b026e15bc2b06c2649",
+  "pdf_sha256": "5d840dfcd08d2b3ab1390a7d66b1d2da3c7c52d6939ac106e31e330c13d69a6b",
+  "normalized_pdf_sha256": "3b7c3c0a0c174dd536ee6966fb270d47291dd586b6dbacd0a7a96296384935ee",
   "validated_with": {
     "page_count": 7,
     "page_words": [
@@ -30,99 +29,71 @@
       "/knowledge",
       "/maintenance"
     ],
+    "approved_html_and_pdf_body_unchanged_except_version_and_date": true,
+    "declared_substitutions": {
+      "2026.10.14-unified.19": "2026.10.15-unified.20",
+      "date": "2026-10-14 to 2026-10-15"
+    },
     "two_fresh_renders_match_after_timestamp_normalization": true,
-    "matches_approved_local_preview_after_timestamp_normalization": true,
-    "normalization": "Only generation timestamps, using the existing normalize_pdf_bytes helper.",
-    "ordered_html_wording_and_links_unchanged": true,
-    "original_visible_pdf_blocks_and_page_character_inventory_retained": true,
-    "responsive_checks": [
-      {
-        "theme": "dark",
-        "width": 1200,
-        "client": 1200,
-        "scroll": 1200,
-        "brokenAnchors": [],
-        "sheets": 7
-      },
-      {
-        "theme": "dark",
-        "width": 768,
-        "client": 768,
-        "scroll": 768,
-        "brokenAnchors": [],
-        "sheets": 7
-      },
-      {
-        "theme": "dark",
-        "width": 375,
-        "client": 375,
-        "scroll": 375,
-        "brokenAnchors": [],
-        "sheets": 7
-      },
-      {
-        "theme": "dark",
-        "width": 320,
-        "client": 320,
-        "scroll": 320,
-        "brokenAnchors": [],
-        "sheets": 7
-      }
-    ],
+    "screen_checks": {
+      "themes": "dark",
+      "widths": [
+        1200,
+        768,
+        375,
+        320
+      ],
+      "horizontal_overflow": false,
+      "broken_images_or_anchors": false,
+      "runtime_errors": []
+    },
     "print_layout": [
       {
         "id": "overview",
-        "gap": 23.484375,
-        "height": 1122.515625,
+        "gap": 22.484375,
         "scroll": 1123,
         "client": 1123
       },
       {
         "id": "outcomes",
-        "gap": 50.203125,
-        "height": 1122.515625,
+        "gap": 49.203125,
         "scroll": 1123,
         "client": 1123
       },
       {
         "id": "product",
         "gap": 34.8125,
-        "height": 1122.515625,
         "scroll": 1123,
         "client": 1123
       },
       {
         "id": "evidence",
-        "gap": 72.359375,
-        "height": 1122.515625,
+        "gap": 75.359375,
         "scroll": 1123,
         "client": 1123
       },
       {
         "id": "tools",
         "gap": 251.671875,
-        "height": 1122.515625,
         "scroll": 1123,
         "client": 1123
       },
       {
         "id": "knowledge",
         "gap": 108.859375,
-        "height": 1122.515625,
         "scroll": 1123,
         "client": 1123
       },
       {
         "id": "maintenance",
         "gap": 105.078125,
-        "height": 1122.515625,
         "scroll": 1123,
         "client": 1123
       }
     ],
-    "visual_review": "All seven pages in both palettes were inspected in the approved local preview; final generated PDFs match those artifacts after timestamp normalization. Final Poppler renders checked against reviewed renders.",
-    "human_comprehension": "Not tested for this visual revision; automated checks do not establish comprehension.",
-    "pdf_ua_and_screen_reader_reading_order": "Not audited.",
-    "evidence": "design/evals/product-v1/documentation-evidence-2026-10-14-brief-design.json"
-  }
+    "visual_review": "Final Poppler contact sheets inspected; version/date label changes only.",
+    "human_comprehension": "Not tested for this packaging revision; automated checks do not prove comprehension.",
+    "pdf_ua_and_screen_reader_reading_order": "Not audited."
+  },
+  "compatibility_source_path": "brief/anti-dark-code-brief.html"
 }

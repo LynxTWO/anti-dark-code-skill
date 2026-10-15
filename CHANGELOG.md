@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.10.15-unified.20
+
+Unpublished preview candidate.
+
+- Include the approved Living Blueprint brief in light and dark with synchronized canonical and compatibility HTML, version labels and source-bound PDF provenance.
+- Carry forward the reviewed plain-language documentation changes in `references/13-calibrated-local-mode.md`, `references/documentation.md`, `references/tasks/document.md` and `assets/templates/calibration/README.md` from the unpublished unified.19 candidate; their earlier trial evidence and limits remain recorded.
+- Refresh VERSION, the capability catalog version and generated host metadata for cache-safe preview updates. Instructions, deterministic tools, capability definitions, approval semantics and stable pins are unchanged.
+- Prepare final opt-in installation, update and rollback checks; no remote tag, release, asset upload or directory submission is published.
+
 ## 2026.10.14-unified.19
 
 Unpublished preview candidate.

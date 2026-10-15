@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "2026.10.14-unified.19",
+  "catalog_version": "2026.10.15-unified.20",
   "description": "Machine-readable catalog for the 22 Anti-Dark-Code verification capabilities.",
   "statuses": [
     "selected",
