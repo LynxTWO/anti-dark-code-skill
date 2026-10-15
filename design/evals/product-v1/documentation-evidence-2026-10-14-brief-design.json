@@ -237,5 +237,11 @@
     "core_validation": "0 errors, 0 warnings on clean source after moving pre-existing generated caches outside the skill tree",
     "plugin_packaging": "0 errors",
     "intermediate_result": "An initial run started before provenance refresh and failed its source/PDF binding check; refreshed metadata, targeted retest and final full suite pass."
+  },
+  "ci_correction": {
+    "run": "https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/38674407741",
+    "observed_failure": "New artifact check used the platform default text encoding; Windows cp1252 could not decode the UTF-8 README.",
+    "fix": "Use explicit UTF-8 for all text reads in the new artifact checks. No product or brief content changed.",
+    "local_retest": "All 3 artifact checks pass. Windows coverage is delegated to CI."
   }
 }
