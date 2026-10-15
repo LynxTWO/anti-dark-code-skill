@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.10.15-unified.21
+
+Preview candidate.
+
+- Remove temporary publication-state claims from the current README and plugin guide. Preserve historical release/evaluation records and all operating instructions, capabilities and approval semantics.
+- Refresh VERSION, the capability catalog version, generated host metadata, and brief version/provenance bindings for cache-safe opt-in preview updates. Stable catalogs remain pinned to published unified.18.
+- Carry forward the reviewed plain-language documentation in `references/13-calibrated-local-mode.md`, `references/documentation.md`, `references/tasks/document.md` and `assets/templates/calibration/README.md` from the earlier preview preparation; their dated trial evidence and limits remain recorded.
+
 ## 2026.10.15-unified.20
 
 Unpublished preview candidate.
