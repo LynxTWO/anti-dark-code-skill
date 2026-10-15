@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "version": "2026.10.15-unified.20",
-  "publication": "Unpublished preview candidate; no remote tag, release or directory submission.",
+  "version": "2026.10.15-unified.21",
+  "publication": "Preview candidate; publication is a separate owner action.",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
   "source_path": "docs/brief/anti-dark-code-brief.html",
-  "source_sha256": "5b4f7d5b0b083e6676d1d3f70beb157845ad7250ea68964cb63b7eb26e35e3a5",
+  "source_sha256": "969a8f31fc2c124e178795245199a0405c5e8ab76ea82a9145feb47450e594f3",
   "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
   "color_scheme": "light",
-  "pdf_sha256": "08fad94213cd47a7555638c5c78aef1e146c133c4114e73fb1cf45225977a117",
-  "normalized_pdf_sha256": "f0108a59fbdb6aff6f686a77fbee8ac1541ea9429ba4794ef0127698a249e741",
+  "pdf_sha256": "ca0d5424273a3b94d34656efe3a9f13365fa97f4f06e3c58db1f0e595bfab86c",
+  "normalized_pdf_sha256": "646dfa52935ae8720b08b9812c474d53f348ff37a2a048d75acc67421811ff29",
   "validated_with": {
     "page_count": 7,
     "page_words": [
@@ -29,10 +29,10 @@
       "/knowledge",
       "/maintenance"
     ],
-    "approved_html_and_pdf_body_unchanged_except_version_and_date": true,
+    "approved_body_and_safeguards_unchanged_except_declared_publication_copy_and_version": true,
     "declared_substitutions": {
-      "2026.10.14-unified.19": "2026.10.15-unified.20",
-      "date": "2026-10-14 to 2026-10-15"
+      "2026.10.15-unified.20": "2026.10.15-unified.21",
+      "publication_copy": "Scaffold cover drops unpublished; final preview paragraph drops only the publishing-hold sentence. ADC body unchanged. Dates unchanged."
     },
     "two_fresh_renders_match_after_timestamp_normalization": true,
     "screen_checks": {
@@ -91,7 +91,7 @@
         "client": 1123
       }
     ],
-    "visual_review": "Final Poppler contact sheets inspected; version/date label changes only.",
+    "visual_review": "Final Poppler contact sheets inspected; Version labels and the two approved Scaffold publication-copy deletions only.",
     "human_comprehension": "Not tested for this packaging revision; automated checks do not prove comprehension.",
     "pdf_ua_and_screen_reader_reading_order": "Not audited."
   },

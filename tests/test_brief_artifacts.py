@@ -12,6 +12,14 @@ def digest(path):
 
 
 class BriefArtifactTests(unittest.TestCase):
+    def test_current_publication_copy_has_no_temporary_status_claims(self):
+        for relative in ('README.md', 'docs/brief/anti-dark-code-brief.html', 'PLUGINS.md', 'docs/index.html'):
+            with self.subTest(path=relative):
+                text = (ROOT / relative).read_text(encoding="utf-8").casefold()
+                self.assertNotIn("for the unpublished", text)
+                self.assertNotIn("unpublished preview candidate", text)
+                self.assertNotIn("publishing remains on hold", text)
+
     def test_hosted_source_and_compatibility_copy_match(self):
         source = ROOT / 'docs/brief/anti-dark-code-brief.html'
         self.assertEqual(source.read_bytes(), (ROOT / 'brief/anti-dark-code-brief.html').read_bytes())

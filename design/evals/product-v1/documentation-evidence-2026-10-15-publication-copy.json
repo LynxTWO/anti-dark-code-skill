@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-15T13:11:24.456499+00:00",
+  "scope": "Publication-copy cleanup and refreshed opt-in preview packages; no runtime instruction change or publishing.",
+  "candidate": {
+    "scaffold-kit": {
+      "version": "0.4.3",
+      "commit": "db84b392efc35136e6ba68710dce23ba651ce681",
+      "sha256": "df5a98407d1e855e4e4123c63263a0e5a2234bdd31af3516e966bc5ba6421708",
+      "bytes": 1234717,
+      "file_count": 59
+    },
+    "anti-dark-code": {
+      "version": "2026.10.15-unified.21",
+      "commit": "205d03c88da2c550647dcfad733abe953a847b26",
+      "sha256": "50f33ce31e04c4988f0a209c6a2787c6bfe5789f73aed09ee100f90add6cf94a",
+      "bytes": 2301436,
+      "file_count": 358
+    }
+  },
+  "payload_binding": "Immutable payload commits precede the catalog/evidence commit. Both host preview manifests select those exact commits. Use the separate preview catalog ZIP; root catalogs in source snapshots remain stable.",
+  "edits": [
+    "Drop unpublished from the current README and publishing-hold text from PLUGINS.md.",
+    "Advance canonical VERSION and generated metadata; capability definitions remain identical."
+  ],
+  "preservation": {
+    "stable_catalog_bytes_unchanged": true,
+    "instructions_scripts_templates_and_artwork_unchanged": true,
+    "capability_definitions_unchanged": true,
+    "core_changes": [
+      "skills/anti-dark-code/VERSION",
+      "skills/anti-dark-code/assets/verification-capabilities.json"
+    ]
+  },
+  "historical_records": "Earlier changelog entries and dated evaluation evidence retain their as-recorded publication status.",
+  "regression": {
+    "original_reader_facing_surfaces_rejected": true,
+    "expected_failing_subtests": 2,
+    "current_corrected_copy": "Passes the full outer suite.",
+    "historical_evidence_and_changelog_not_rewritten": true
+  },
+  "pdf_checks": [
+    {
+      "theme": "light",
+      "sha256": "ca0d5424273a3b94d34656efe3a9f13365fa97f4f06e3c58db1f0e595bfab86c",
+      "page_count": 7,
+      "repeat_renders_match": true,
+      "only_declared_copy_and_version_changes": true,
+      "declared_changes": {
+        "2026.10.15-unified.20": "2026.10.15-unified.21",
+        "publication_copy": "Scaffold cover drops unpublished; final preview paragraph drops only the publishing-hold sentence. ADC body unchanged. Dates unchanged."
+      },
+      "responsive_widths": [
+        1200,
+        768,
+        375,
+        320
+      ],
+      "runtime_errors": [],
+      "minimum_print_footer_gap_px": 22.484375,
+      "visual_review": "All final pages in both palettes inspected in Poppler contact sheets."
+    },
+    {
+      "theme": "dark",
+      "sha256": "fb8bac7fe5987a69aade8e6aa681f2f9d6c08149bfb583d7e31af2365f8d0946",
+      "page_count": 7,
+      "repeat_renders_match": true,
+      "only_declared_copy_and_version_changes": true,
+      "declared_changes": {
+        "2026.10.15-unified.20": "2026.10.15-unified.21",
+        "publication_copy": "Scaffold cover drops unpublished; final preview paragraph drops only the publishing-hold sentence. ADC body unchanged. Dates unchanged."
+      },
+      "responsive_widths": [
+        1200,
+        768,
+        375,
+        320
+      ],
+      "runtime_errors": [],
+      "minimum_print_footer_gap_px": 22.484375,
+      "visual_review": "All final pages in both palettes inspected in Poppler contact sheets."
+    }
+  ],
+  "local_tests": {
+    "scaffold": {
+      "python_versions": [
+        "3.9.6",
+        "3.14.7"
+      ],
+      "audit_listing_passed": 55,
+      "outer_artifact_channel_passed": 4
+    },
+    "adc": {
+      "python": "3.14.7/macOS",
+      "passed": 759,
+      "subtests_passed": 707,
+      "skipped": 8,
+      "skips": "Windows-only cases.",
+      "failed": 0,
+      "outer_artifact_passed": 4
+    },
+    "universal_validation": {
+      "errors": 0,
+      "warnings": 1,
+      "warning": "Pre-existing generated Python caches are ignored in universal validation and excluded from Git archives."
+    },
+    "distribution_validation": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "negative_control": "Two failing original-copy subtests per kit are expected and demonstrate that the new regression catches the original defects; corrected full suites pass."
+  },
+  "package_validation": [
+    {
+      "check": "scaffold-kit-skill",
+      "exit_code": 0
+    },
+    {
+      "check": "scaffold-kit-claude-manifest",
+      "exit_code": 0
+    },
+    {
+      "check": "scaffold-kit-claude-stable-catalog",
+      "exit_code": 0
+    },
+    {
+      "check": "scaffold-kit-github-dry-run",
+      "exit_code": 0
+    },
+    {
+      "check": "anti-dark-code-skill",
+      "exit_code": 0
+    },
+    {
+      "check": "anti-dark-code-claude-manifest",
+      "exit_code": 0
+    },
+    {
+      "check": "anti-dark-code-claude-stable-catalog",
+      "exit_code": 0
+    },
+    {
+      "check": "anti-dark-code-github-dry-run",
+      "exit_code": 0
+    },
+    {
+      "check": "preview-catalog",
+      "exit_code": 0
+    },
+    {
+      "check": "adc-generated-package-and-host-checks",
+      "exit_code": 0
+    },
+    {
+      "check": "adc-clean-distribution",
+      "exit_code": 0
+    },
+    {
+      "check": "adc-tagged-candidate-release-check",
+      "exit_code": 0
+    }
+  ],
+  "native_hosts": {
+    "platform": "macOS arm64",
+    "codex_version": "0.162.0-alpha.17.2",
+    "claude_version": "2.1.295",
+    "previous_preview_versions": {
+      "scaffold-kit": "0.4.2",
+      "anti-dark-code": "2026.10.15-unified.20"
+    },
+    "steps": {
+      "codex": {
+        "initial": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341
+          }
+        },
+        "stable-after-preview-advance": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341
+          }
+        },
+        "previous-preview": {
+          "scaffold-kit": {
+            "version": "0.4.2",
+            "source_files_checked": 58
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.20",
+            "source_files_checked": 357
+          }
+        },
+        "updated-preview": {
+          "scaffold-kit": {
+            "version": "0.4.3",
+            "source_files_checked": 59
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.21",
+            "source_files_checked": 358
+          }
+        },
+        "fresh-final-preview": {
+          "scaffold-kit": {
+            "version": "0.4.3",
+            "source_files_checked": 59
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.21",
+            "source_files_checked": 358
+          }
+        },
+        "rollback": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341
+          }
+        }
+      },
+      "claude": {
+        "initial": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341
+          }
+        },
+        "stable-after-preview-advance": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341
+          }
+        },
+        "previous-preview": {
+          "scaffold-kit": {
+            "version": "0.4.2",
+            "source_files_checked": 58
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.20",
+            "source_files_checked": 357
+          }
+        },
+        "updated-preview": {
+          "scaffold-kit": {
+            "version": "0.4.3",
+            "source_files_checked": 59
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.21",
+            "source_files_checked": 358
+          }
+        },
+        "fresh-final-preview": {
+          "scaffold-kit": {
+            "version": "0.4.3",
+            "source_files_checked": 59
+          },
+          "anti-dark-code": {
+            "version": "2026.10.15-unified.21",
+            "source_files_checked": 358
+          }
+        },
+        "rollback": {
+          "scaffold-kit": {
+            "version": "0.4.0",
+            "source_files_checked": 42
+          },
+          "anti-dark-code": {
+            "version": "2026.10.9-unified.18",
+            "source_files_checked": 341
+          }
+        }
+      }
+    },
+    "all_selected_source_hashes_and_core_inventories_exact": true,
+    "one_active_copy_per_kit_at_each_checkpoint": true,
+    "fresh_codex_discovery_passed": true,
+    "original_four_host_configuration_files_byte_restored": true,
+    "permanent_stable_caches_byte_restored": true,
+    "codex_local_catalog_update": "plugin add reads the local catalog; marketplace upgrade is only for Git catalogs."
+  },
+  "managed_consumer": {
+    "baseline": "Exact Git archive of published v2026.10.09-unified.18; independently verified by release-check",
+    "steps": [
+      {
+        "step": "consumer-upgrade",
+        "source_digest": "247a935bc87eb6443624d170cc29a7e49bd202d560af9259476e43a13d022357",
+        "version": "2026.10.15-unified.21",
+        "calibration_knowledge_and_approvals_byte_identical": true,
+        "repository_binding_only_last_verified_timestamp_may_change": true,
+        "upstream_version_and_digest_follow_installed_core": true,
+        "approval_status_and_gate_binding_preserved": true,
+        "installed_core_bytes_match": true,
+        "product_and_adapter_unchanged": true,
+        "repo_code_executed": false
+      },
+      {
+        "step": "consumer-rollback",
+        "source_digest": "24beceec388efb6ec1e1fa68a3d348a4fe615f701a03b31107323ce5835a68bd",
+        "version": "2026.10.09-unified.18",
+        "calibration_knowledge_and_approvals_byte_identical": true,
+        "repository_binding_only_last_verified_timestamp_may_change": true,
+        "upstream_version_and_digest_follow_installed_core": true,
+        "approval_status_and_gate_binding_preserved": true,
+        "installed_core_bytes_match": true,
+        "product_and_adapter_unchanged": true,
+        "repo_code_executed": false
+      }
+    ],
+    "wrong_digest_refused_before_mutation": true,
+    "dry_runs_no_installation_writes": true,
+    "fixture_approval_is_synthetic": true
+  },
+  "adc_core_digest": {
+    "version": "2026.10.15-unified.21",
+    "sha256": "247a935bc87eb6443624d170cc29a7e49bd202d560af9259476e43a13d022357",
+    "file_count": 121,
+    "method": "Independent sorted path, NUL, binary SHA-256 over canonical managed inventory; matches bundled helper."
+  },
+  "ci": "PR workflows run on the final source head; current outcomes belong to the PR checks and the separately recorded final CI receipt. No future CI outcome is asserted here.",
+  "publication": {
+    "operation": "Source branches and PRs only.",
+    "remote_tags_releases_assets_directory_submissions": false,
+    "local_release_check_tag": "local-publication-copy-check-20261015-48; never pushed.",
+    "plugin_publishing": "On hold at this recorded preparation step."
+  },
+  "limits": [
+    "Native Windows/Linux host installation and timed background auto-update are untested.",
+    "Existing core generated caches produced one local universal warning; clean candidate distribution passed without warnings.",
+    "Host-validator dry runs passed with advisory warnings; no settings or publishing changed.",
+    "No new human comprehension, model planning, GUI icon rendering or PDF/UA/reading-order evaluation. Automated checks do not prove human comprehension."
+  ]
+}

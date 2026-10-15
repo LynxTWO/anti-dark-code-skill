@@ -105,7 +105,7 @@ Then complete the usual version/changelog/brief provenance updates and the tagge
 `release-check` described in OPERATIONS.md. Publishing a tag, GitHub release or
 skill-registry entry is a separate release action.
 
-Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold-kit/tree/main/preview), named `lynxtwo-preview`, with immutable candidate pins. Its instructions cover installation and rollback; keep one active copy per kit. Calendar versions remain canonical. A GitHub prerelease label does not control host updates: stable and preview catalogs select separate source commits. Plugin publishing remains on hold.
+Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold-kit/tree/main/preview), named `lynxtwo-preview`, with immutable candidate pins. Its instructions cover installation and rollback; keep one active copy per kit. Calendar versions remain canonical. A GitHub prerelease label does not control host updates: stable and preview catalogs select separate source commits.
 
 ## Native host checks for unified.16
 
