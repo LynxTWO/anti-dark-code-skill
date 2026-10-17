@@ -1,5 +1,7 @@
 # Product evaluation set v1
 
+Current human feedback: [`documentation-evidence-2026-10-17-human-comprehension.json`](documentation-evidence-2026-10-17-human-comprehension.json) records the owner’s October 17 report that all three participants passed the trial comprehension review of the samples and both field briefs. This is owner-reported descriptive feedback; individual answers and exact reviewed revisions were not supplied. Earlier pending/untested statements below and in dated records describe the evidence available then. Automated checks do not establish human comprehension.
+
 This versioned set separates fixture behavior from assistant behavior. The broken
 and clean Pocket Notes apps share an explicit contract in `cases.json`. Expected
 outcomes are frozen independently of a future assistant's response. The author
