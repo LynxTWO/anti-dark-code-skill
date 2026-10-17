@@ -1,0 +1,48 @@
+{
+  "recorded_on": "2026-10-17",
+  "status": "Owner-reported human comprehension review passed for all three participants.",
+  "source": {
+    "type": "Direct owner report in the project conversation",
+    "summary": "The owner reported that the owner and two other participants all passed the trial comprehension review.",
+    "scope_question": "Which materials did all three of you review?",
+    "scope_answer": "Both the samples and field briefs"
+  },
+  "reported_results": {
+    "participant_count": 3,
+    "passed_count": 3,
+    "failed_count": 0,
+    "materials": [
+      "Previously supplied trial samples",
+      "The Scaffold Kit and Anti-dark-code field briefs"
+    ],
+    "basis": "Owner report; individual answers and scoring sheets were not supplied."
+  },
+  "source_binding": {
+    "sample_references": [
+      "documentation-evidence-2026-10-12-strict.json#human_comprehension"
+    ],
+    "sample_revision": "The report does not identify exact sample variants or hashes. Earlier sample records retain their own source bindings.",
+    "field_brief_reference": {
+      "plugin_version": "2026.10.15-unified.21",
+      "reviewed_payload_commit": "205d03c88da2c550647dcfad733abe953a847b26",
+      "files": {
+        "brief/anti-dark-code-brief.html": "969a8f31fc2c124e178795245199a0405c5e8ab76ea82a9145feb47450e594f3",
+        "brief/anti-dark-code-brief.pdf": "ca0d5424273a3b94d34656efe3a9f13365fa97f4f06e3c58db1f0e595bfab86c",
+        "brief/anti-dark-code-brief-dark.pdf": "fb8bac7fe5987a69aade8e6aa681f2f9d6c08149bfb583d7e31af2365f8d0946"
+      }
+    },
+    "binding_limit": "These hashes identify the existing prerelease field briefs for reference; the report did not independently identify the exact bytes each participant read. No new source qualification is inferred."
+  },
+  "limits": [
+    "This is a three-person descriptive comprehension review reported by the owner, not a controlled study or population success estimate.",
+    "Review completion date, individual responses, rubric and scoring records were not supplied. The recorded date is the date the report was received.",
+    "The result is human feedback, not a conclusion inferred from automated checks. It does not qualify unseen future outputs or establish host compatibility.",
+    "Project statuses, implementation approvals, pending decisions and authorization boundaries are unchanged."
+  ],
+  "preservation": {
+    "historical_evidence": "Earlier pending/untested statements remain as recorded at their original dates. This entry supplies the later result.",
+    "published_prereleases": "Existing release tags, package bytes and checksums remain unchanged.",
+    "stable_and_preview_pins": "Unchanged.",
+    "runtime_instructions": "Unchanged."
+  }
+}
