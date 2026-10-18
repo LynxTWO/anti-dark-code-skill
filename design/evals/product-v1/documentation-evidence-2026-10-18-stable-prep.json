@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-18",
+  "scope": "Anti-dark-code unified.22 stable-release preparation only; no release, catalog promotion or Agensi replacement",
+  "base_commit": "30466df0779376445cf000f7f51215e9a3a20e16",
+  "version": "2026.10.18-unified.22",
+  "preservation": {
+    "instructions_scripts_templates_and_safeguards_unchanged": true,
+    "capability_definitions_unchanged": true,
+    "stable_catalog_bytes_unchanged": true,
+    "stable_pin": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+    "shared_preview_unchanged": ".21, 205d03c88da2c550647dcfad733abe953a847b26"
+  },
+  "local_tests": {
+    "runtime": "Python 3.14.7 / macOS arm64 / pytest 9.1.1",
+    "argv": "python -B -m pytest skills/anti-dark-code/tests tests/test_brief_artifacts.py -q",
+    "passed": 763,
+    "failed": 0,
+    "skipped": 8,
+    "subtests_passed": 715,
+    "skips": "Platform-specific Windows cases",
+    "outer_unittest": {
+      "passed": 4,
+      "failed": 0
+    },
+    "initial_attempt": "758 passed, 1 failed, 8 skipped: publication-date consistency required updated rather than prepared; corrected source wording, no assertion weakened."
+  },
+  "host_checks": {
+    "package_metadata": "passed, 0 errors",
+    "gh_dry_run": "passed; warnings retained for installed-skill ignore, secret scanning and tag protection. Dry run does not publish or prove installation.",
+    "claude_native_cli": "unavailable in PATH; no new native Claude install/update/rollback claim",
+    "skills_ref": "unavailable in PATH",
+    "fresh_native_host_installation": "not run for .22; earlier .21 evidence remains historical"
+  },
+  "managed_install_update_rollback": {
+    "scope": "Fresh local managed-core check in synthetic git consumer; no native host installation or user configuration writes",
+    "results": [
+      {
+        "operation": "install-stable18",
+        "version": "2026.10.09-unified.18",
+        "core_digest": "24beceec388efb6ec1e1fa68a3d348a4fe615f701a03b31107323ce5835a68bd",
+        "all_managed_bytes_match": true,
+        "owner_calibration_and_gate_policy_preserved": true,
+        "upstream_installed_version_and_digest_updated": true,
+        "binding_identity_preserved_last_verified_timestamp_may_refresh": true,
+        "consumer_file_preserved": true
+      },
+      {
+        "operation": "update-candidate22",
+        "version": "2026.10.18-unified.22",
+        "core_digest": "86dd3cb29779acdf7e5c3bfc060d1344921c9abb8adc11d4b930a0732df05630",
+        "all_managed_bytes_match": true,
+        "owner_calibration_and_gate_policy_preserved": true,
+        "upstream_installed_version_and_digest_updated": true,
+        "binding_identity_preserved_last_verified_timestamp_may_refresh": true,
+        "consumer_file_preserved": true
+      },
+      {
+        "operation": "rollback-stable18",
+        "version": "2026.10.09-unified.18",
+        "core_digest": "24beceec388efb6ec1e1fa68a3d348a4fe615f701a03b31107323ce5835a68bd",
+        "all_managed_bytes_match": true,
+        "owner_calibration_and_gate_policy_preserved": true,
+        "upstream_installed_version_and_digest_updated": true,
+        "binding_identity_preserved_last_verified_timestamp_may_refresh": true,
+        "consumer_file_preserved": true
+      },
+      {
+        "wrong_digest_refused": true
+      }
+    ]
+  },
+  "managed_check_method_note": "Harness initially assumed every calibration byte immutable; source inspection showed last_verified timestamp and upstream version/digest intentionally refresh. Final check permits only those documented fields while preserving owner calibration, gate policy and binding identity. No product code change required.",
+  "pdf": {
+    "light": {
+      "schema_version": 1,
+      "version": "2026.10.18-unified.22",
+      "publication": "Stable release candidate; not published. Stable catalogs remain on unified.18.",
+      "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
+      "source_path": "docs/brief/anti-dark-code-brief.html",
+      "source_sha256": "612ef008c4a91ad056193ff39ca9fd74d8c45f18e9480d286d8da3a35c71bc68",
+      "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
+      "color_scheme": "light",
+      "pdf_sha256": "47d2ece1240f35a693cd158277b94fed35c1861a4fca64004d56a0904a0bd475",
+      "normalized_pdf_sha256": "68276471fb8007c6b636f1caf7c9392f8dac37ca350adab0b838a096643a8351",
+      "validated_with": {
+        "declared_substitutions": {
+          "2026.10.15-unified.21": "2026.10.18-unified.22",
+          "cover_status": "Preview candidate updated 2026-10-15 -> Stable release candidate updated 2026-10-18; not yet released"
+        },
+        "approved_body_and_safeguards_unchanged_except_declared_version_and_status": true,
+        "human_comprehension": "Owner-reported review of earlier samples/field briefs retained; no new participant study of this candidate.",
+        "pdf_ua_and_screen_reader_reading_order": "Not audited.",
+        "pdf_pages": 7,
+        "screen_widths_without_horizontal_overflow": [
+          1200,
+          768,
+          375,
+          320
+        ],
+        "broken_internal_links": 0,
+        "canonical_and_compatibility_html_byte_identical": true,
+        "visual_review": "All seven pages of each palette reviewed as Poppler-rendered contact sheets; no clipping or overlap observed.",
+        "second_render_normalized_digest_matches": true
+      },
+      "compatibility_source_path": "brief/anti-dark-code-brief.html"
+    },
+    "dark": {
+      "schema_version": 1,
+      "version": "2026.10.18-unified.22",
+      "publication": "Stable release candidate; not published. Stable catalogs remain on unified.18.",
+      "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
+      "source_path": "docs/brief/anti-dark-code-brief.html",
+      "source_sha256": "612ef008c4a91ad056193ff39ca9fd74d8c45f18e9480d286d8da3a35c71bc68",
+      "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
+      "color_scheme": "dark",
+      "pdf_sha256": "232b90f56f265ed2a227f8af7bf26ea90b6044352d9906565606ff00aaf94c71",
+      "normalized_pdf_sha256": "a78e18c0d939fbad9e1045b82963211a5844c0617f67cb9316a5b3dec61b0413",
+      "validated_with": {
+        "declared_substitutions": {
+          "2026.10.15-unified.21": "2026.10.18-unified.22",
+          "cover_status": "Preview candidate updated 2026-10-15 -> Stable release candidate updated 2026-10-18; not yet released"
+        },
+        "approved_body_and_safeguards_unchanged_except_declared_version_and_status": true,
+        "human_comprehension": "Owner-reported review of earlier samples/field briefs retained; no new participant study of this candidate.",
+        "pdf_ua_and_screen_reader_reading_order": "Not audited.",
+        "pdf_pages": 7,
+        "screen_widths_without_horizontal_overflow": [
+          1200,
+          768,
+          375,
+          320
+        ],
+        "broken_internal_links": 0,
+        "canonical_and_compatibility_html_byte_identical": true,
+        "visual_review": "All seven pages of each palette reviewed as Poppler-rendered contact sheets; no clipping or overlap observed.",
+        "second_render_normalized_digest_matches": true
+      },
+      "compatibility_source_path": "brief/anti-dark-code-brief.html"
+    }
+  },
+  "human_comprehension": "Owner-reported Jeremy, Rachel and Daniel approval covers previously reviewed samples and briefs; not a new study of this candidate or client-tracker example. Automated checks do not establish comprehension.",
+  "publication_gate": "Keep stable catalogs on published .18 until stable release is separately authorized. Promote final stable pins with generator/historical regression updates, run exact native-channel checks, then refresh Agensi through review before removing Preview. Buyer delivery and Agensi-delivered helper execution remain untested.",
+  "release_check": {
+    "validated_payload_commit": "41597e258705c952693e3fb349b5dcca68f78941",
+    "core_digest": "86dd3cb29779acdf7e5c3bfc060d1344921c9abb8adc11d4b930a0732df05630",
+    "local_only_tag_in_separate_clone": true,
+    "ok": true,
+    "distribution_errors": 0,
+    "distribution_warnings": 0,
+    "metadata_errors": 0,
+    "undescribed_files": [],
+    "scope": "Payload commit before this evidence-only addition; no source, renderer or PDF bytes changed by this record."
+  }
+}

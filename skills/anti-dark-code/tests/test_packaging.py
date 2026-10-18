@@ -119,7 +119,8 @@ class PluginPackagingTests(unittest.TestCase):
 
     def test_stable_catalog_pin_is_independent_of_development_version(self):
         expected = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
-        for version in ("2026.10.14-unified.19", "2026.11.01-unified.20"):
+        for version in ("2026.10.14-unified.19", "2026.11.01-unified.20",
+                        "2026.10.15-unified.21", "2026.10.18-unified.22"):
             with self.subTest(version=version):
                 manifests = packaging.metadata(version)
                 for host in (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json"):

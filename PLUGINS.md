@@ -107,6 +107,22 @@ skill-registry entry is a separate release action.
 
 Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold-kit/tree/main/preview), named `lynxtwo-preview`, with immutable candidate pins. Its instructions cover installation and rollback; keep one active copy per kit. Calendar versions remain canonical. A GitHub prerelease label does not control host updates: stable and preview catalogs select separate source commits.
 
+## Stable candidate unified.22
+
+Version `2026.10.18-unified.22` is prepared for stable review, not published.
+The two default catalogs still select the published unified.18 commit; the
+separate preview catalog still selects unified.21. This preparation does not
+change installed users' channels or the Agensi listings.
+
+After candidate review, publish its stable release with the tested ZIP, brief
+artifacts, checksums and managed-core digest. Then advance the stable catalogs
+in a separately reviewed promotion, updating the metadata generator and its
+historical-release regressions together. Verify stable-channel install, update
+and rollback against those final pins. Existing preview archives remain intact.
+Refresh Agensi's core ZIP through its required review before removing Preview
+from its individual listing and bundle copy. Retain the documented buyer-delivery,
+helper-execution and host-coverage limits.
+
 ## Native host checks for unified.16
 
 On macOS arm64, the unified.16 core installed through Codex CLI
