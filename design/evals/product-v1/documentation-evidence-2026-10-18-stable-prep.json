@@ -140,5 +140,16 @@
     }
   },
   "human_comprehension": "Owner-reported Jeremy, Rachel and Daniel approval covers previously reviewed samples and briefs; not a new study of this candidate or client-tracker example. Automated checks do not establish comprehension.",
-  "publication_gate": "Keep stable catalogs on published .18 until stable release is separately authorized. Promote final stable pins with generator/historical regression updates, run exact native-channel checks, then refresh Agensi through review before removing Preview. Buyer delivery and Agensi-delivered helper execution remain untested."
+  "publication_gate": "Keep stable catalogs on published .18 until stable release is separately authorized. Promote final stable pins with generator/historical regression updates, run exact native-channel checks, then refresh Agensi through review before removing Preview. Buyer delivery and Agensi-delivered helper execution remain untested.",
+  "release_check": {
+    "validated_payload_commit": "41597e258705c952693e3fb349b5dcca68f78941",
+    "core_digest": "86dd3cb29779acdf7e5c3bfc060d1344921c9abb8adc11d4b930a0732df05630",
+    "local_only_tag_in_separate_clone": true,
+    "ok": true,
+    "distribution_errors": 0,
+    "distribution_warnings": 0,
+    "metadata_errors": 0,
+    "undescribed_files": [],
+    "scope": "Payload commit before this evidence-only addition; no source, renderer or PDF bytes changed by this record."
+  }
 }
