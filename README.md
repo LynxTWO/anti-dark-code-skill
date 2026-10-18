@@ -25,9 +25,9 @@ For example, ask: “Use anti-dark-code to map this repository's entry points an
 
 Review a [named release](https://github.com/LynxTWO/anti-dark-code-skill/releases) and follow [Operations](OPERATIONS.md) for source verification, installation dry run, and host discovery. For project planning, [Scaffold Kit](https://github.com/LynxTWO/scaffold-kit) produces the architecture, engineering rules, decisions, and an approved slice brief; Anti-Dark-Code supplies mapping and verification evidence.
 
-**Version**: `2026.10.15-unified.21` (preview candidate; see [release history](CHANGELOG.md)).
+**Version**: `2026.10.18-unified.22` (stable release candidate; not yet published; see [release history](CHANGELOG.md)).
 
-The default catalogs remain pinned to published unified.18. To test this development candidate, explicitly opt into the [shared preview catalog](PLUGINS.md#metadata-and-release-checks); updating a stable catalog does not select preview source.
+The default catalogs remain pinned to published unified.18. This branch prepares a stable release; the existing [shared preview catalog](PLUGINS.md#metadata-and-release-checks) still selects its reviewed .21 preview. Review the exact .22 candidate source for local testing. Stable publication and catalog promotion remain separate owner-authorized actions.
 
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 

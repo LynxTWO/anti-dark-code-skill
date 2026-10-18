@@ -1,99 +1,33 @@
 {
   "schema_version": 1,
-  "version": "2026.10.15-unified.21",
-  "publication": "Preview candidate; publication is a separate owner action.",
+  "version": "2026.10.18-unified.22",
+  "publication": "Stable release candidate; not published. Stable catalogs remain on unified.18.",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
   "source_path": "docs/brief/anti-dark-code-brief.html",
-  "source_sha256": "969a8f31fc2c124e178795245199a0405c5e8ab76ea82a9145feb47450e594f3",
+  "source_sha256": "612ef008c4a91ad056193ff39ca9fd74d8c45f18e9480d286d8da3a35c71bc68",
   "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
   "color_scheme": "light",
-  "pdf_sha256": "ca0d5424273a3b94d34656efe3a9f13365fa97f4f06e3c58db1f0e595bfab86c",
-  "normalized_pdf_sha256": "646dfa52935ae8720b08b9812c474d53f348ff37a2a048d75acc67421811ff29",
+  "pdf_sha256": "47d2ece1240f35a693cd158277b94fed35c1861a4fca64004d56a0904a0bd475",
+  "normalized_pdf_sha256": "68276471fb8007c6b636f1caf7c9392f8dac37ca350adab0b838a096643a8351",
   "validated_with": {
-    "page_count": 7,
-    "page_words": [
-      252,
-      209,
-      245,
-      275,
-      258,
-      302,
-      311
-    ],
-    "named_destinations": [
-      "/overview",
-      "/outcomes",
-      "/product",
-      "/evidence",
-      "/tools",
-      "/knowledge",
-      "/maintenance"
-    ],
-    "approved_body_and_safeguards_unchanged_except_declared_publication_copy_and_version": true,
     "declared_substitutions": {
-      "2026.10.15-unified.20": "2026.10.15-unified.21",
-      "publication_copy": "Scaffold cover drops unpublished; final preview paragraph drops only the publishing-hold sentence. ADC body unchanged. Dates unchanged."
+      "2026.10.15-unified.21": "2026.10.18-unified.22",
+      "cover_status": "Preview candidate updated 2026-10-15 -> Stable release candidate updated 2026-10-18; not yet released"
     },
-    "two_fresh_renders_match_after_timestamp_normalization": true,
-    "screen_checks": {
-      "themes": "light",
-      "widths": [
-        1200,
-        768,
-        375,
-        320
-      ],
-      "horizontal_overflow": false,
-      "broken_images_or_anchors": false,
-      "runtime_errors": []
-    },
-    "print_layout": [
-      {
-        "id": "overview",
-        "gap": 22.484375,
-        "scroll": 1123,
-        "client": 1123
-      },
-      {
-        "id": "outcomes",
-        "gap": 49.203125,
-        "scroll": 1123,
-        "client": 1123
-      },
-      {
-        "id": "product",
-        "gap": 34.8125,
-        "scroll": 1123,
-        "client": 1123
-      },
-      {
-        "id": "evidence",
-        "gap": 75.359375,
-        "scroll": 1123,
-        "client": 1123
-      },
-      {
-        "id": "tools",
-        "gap": 251.671875,
-        "scroll": 1123,
-        "client": 1123
-      },
-      {
-        "id": "knowledge",
-        "gap": 108.859375,
-        "scroll": 1123,
-        "client": 1123
-      },
-      {
-        "id": "maintenance",
-        "gap": 105.078125,
-        "scroll": 1123,
-        "client": 1123
-      }
+    "approved_body_and_safeguards_unchanged_except_declared_version_and_status": true,
+    "human_comprehension": "Owner-reported review of earlier samples/field briefs retained; no new participant study of this candidate.",
+    "pdf_ua_and_screen_reader_reading_order": "Not audited.",
+    "pdf_pages": 7,
+    "screen_widths_without_horizontal_overflow": [
+      1200,
+      768,
+      375,
+      320
     ],
-    "visual_review": "Final Poppler contact sheets inspected; Version labels and the two approved Scaffold publication-copy deletions only.",
-    "human_comprehension": "Not tested for this packaging revision; automated checks do not prove comprehension.",
-    "pdf_ua_and_screen_reader_reading_order": "Not audited."
+    "broken_internal_links": 0,
+    "canonical_and_compatibility_html_byte_identical": true,
+    "visual_review": "All seven pages of each palette reviewed as Poppler-rendered contact sheets; no clipping or overlap observed.",
+    "second_render_normalized_digest_matches": true
   },
   "compatibility_source_path": "brief/anti-dark-code-brief.html"
 }
