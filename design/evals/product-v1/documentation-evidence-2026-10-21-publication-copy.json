@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-21",
+  "scope": "Final publication-copy cleanup for 2026.10.18-unified.22; no publication or catalog promotion.",
+  "baseline_commit": "40e5476d5b15dc6a0cb996330e5053f84bc0052a",
+  "changes": [
+    "Replace temporary release-status wording on current README, plugin guide, homepage and brief cover with neutral source-version wording and links to GitHub Releases.",
+    "Regenerate light/dark PDFs and source-bound provenance; extend the existing publication-copy test."
+  ],
+  "unchanged": [
+    "Entire skills/anti-dark-code managed core, including version, instructions, statuses, approval safeguards, tools, templates and artwork.",
+    "Both default stable catalogs and their metadata generator.",
+    "Scaffold Kit, shared preview catalogs, Agensi and the pending client follow-up example.",
+    "Historical changelog entries and dated evaluation evidence."
+  ],
+  "managed_core_digest": "86dd3cb29779acdf7e5c3bfc060d1344921c9abb8adc11d4b930a0732df05630",
+  "stable_pin": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+  "checks": {
+    "affected_regressions": "17 passed, 0 failed, 0 skipped (four brief tests, one canonical-release-surface test, twelve packaging tests); 15 subtests passed. Other tests in test_adc.py were deselected by the focused selector.",
+    "negative_control": "The strengthened publication-copy test rejects the original baseline at four status surfaces and the missing plugin-guide Releases link.",
+    "package_metadata": "0 errors.",
+    "claude_manifest": "Claude Code 2.1.299 strict plugin-manifest validation passed; optional README install-line advice retained. No host installation or model call performed in this copy-only pass.",
+    "brief": {
+      "source_change": "Only the declared cover version/status line changed; all other brief bytes, including safeguards, preserved.",
+      "canonical_compatibility_identical": true,
+      "screen_checks": [
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "light",
+          "width": 1200,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "light",
+          "width": 768,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "light",
+          "width": 375,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "light",
+          "width": 320,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "dark",
+          "width": 1200,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "dark",
+          "width": 768,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "dark",
+          "width": 375,
+          "page_errors": []
+        },
+        {
+          "overflow": false,
+          "broken_anchors": [],
+          "theme": "dark",
+          "width": 320,
+          "page_errors": []
+        }
+      ],
+      "pdf_checks": [
+        {
+          "theme": "light",
+          "pages": 7,
+          "raw_sha256": "3887c23cfb2d1925a2e34be0eee04747b64f07989c37860d2fe398cc980f9d98",
+          "normalized_sha256": "5bb60f3fdfd6e47b7ec1b537c18be921bd6f78511921483f36e8944517754307",
+          "second_render_matches": true
+        },
+        {
+          "theme": "dark",
+          "pages": 7,
+          "raw_sha256": "ab2a4895041dc31144370b57eaaa1c99810664a4c5553738765f097d66f7e1e2",
+          "normalized_sha256": "72383334ee84bba310be0ab08f5d98470a50a1d6f6e1c8f9ec2dfd4676c42ebe",
+          "second_render_matches": true
+        }
+      ],
+      "managed_core_digest": "86dd3cb29779acdf7e5c3bfc060d1344921c9abb8adc11d4b930a0732df05630"
+    }
+  },
+  "prior_native_evidence": {
+    "date": "2026-10-18",
+    "tested_commit": "40e5476d5b15dc6a0cb996330e5053f84bc0052a",
+    "platform": "macOS arm64",
+    "codex_cli": "0.163.0-alpha.10.2",
+    "claude_code": "2.1.299",
+    "passed": [
+      "Fresh .18 and .22 native install and discovery.",
+      "Separate-catalog stable forced-refresh isolation; .21-to-.22 update and .18 rollback.",
+      "Same-catalog .18-to-.22 update and .18 rollback in temporary catalogs.",
+      "All 361 delivered source files and exact core inventories matched the merged package.",
+      "Delivered probe and plan helpers executed against unchanged synthetic input.",
+      "Original host configuration and permanent caches restored."
+    ],
+    "qualification": "These are recorded prior checks of the byte-identical managed core and unchanged manifests. Native install/update/rollback were not rerun for this documentation-only revision. Prior full-source byte equivalence does not describe the newly revised outer documents.",
+    "prior_ci": "https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/39121965944",
+    "initial_command_errors": "Two supplementary Claude validation calls targeted a standalone skill directory or Markdown file and failed. Corrected plugin-manifest validation passed; no package fix or weakened assertion was used."
+  },
+  "limits": [
+    "Native Windows/Linux plugin installs, desktop UI restart and timed background auto-update remain untested.",
+    "Actual model workflow execution, buyer delivery and Agensi-delivered helper execution remain untested.",
+    "PDF/UA and screen-reader reading order were not audited.",
+    "Earlier human-comprehension feedback was owner-reported for prior samples and field briefs; no new participant study, and automated tests do not prove comprehension."
+  ],
+  "publication": "No stable release, version tag, stable/preview pin change or Agensi replacement is authorized by this cleanup. Final commit-bound package checks and PR CI are recorded separately in the local patch report and PR."
+}

@@ -107,21 +107,22 @@ skill-registry entry is a separate release action.
 
 Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold-kit/tree/main/preview), named `lynxtwo-preview`, with immutable candidate pins. Its instructions cover installation and rollback; keep one active copy per kit. Calendar versions remain canonical. A GitHub prerelease label does not control host updates: stable and preview catalogs select separate source commits.
 
-## Stable candidate unified.22
+## Release channels and promotion
 
-Version `2026.10.18-unified.22` is prepared for stable review, not published.
-The two default catalogs still select the published unified.18 commit; the
-separate preview catalog still selects unified.21. This preparation does not
-change installed users' channels or the Agensi listings.
+The default catalogs select published unified.18; the shared preview catalog
+selects unified.21. Check [GitHub Releases](https://github.com/LynxTWO/anti-dark-code-skill/releases)
+for published versions. A newer source version does not promote either channel.
 
-After candidate review, publish its stable release with the tested ZIP, brief
-artifacts, checksums and managed-core digest. Then advance the stable catalogs
-in a separately reviewed promotion, updating the metadata generator and its
-historical-release regressions together. Verify stable-channel install, update
-and rollback against those final pins. Existing preview archives remain intact.
+Publish a reviewed release with its tested ZIP, brief artifacts, checksums and
+managed-core digest. Advance the stable catalogs in a separately reviewed
+promotion, updating the metadata generator and its historical-release regressions
+together. Verify stable-channel install, update and rollback against those final
+pins. Keep existing preview archives intact.
+
 Refresh Agensi's core ZIP through its required review before removing Preview
 from its individual listing and bundle copy. Retain the documented buyer-delivery,
-helper-execution and host-coverage limits.
+helper-execution and host-coverage limits. Publication, catalog promotion and
+marketplace replacement each require owner authorization.
 
 ## Native host checks for unified.16
 

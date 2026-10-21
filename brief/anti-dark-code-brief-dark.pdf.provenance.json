@@ -1,21 +1,20 @@
 {
   "schema_version": 1,
   "version": "2026.10.18-unified.22",
-  "publication": "Stable release candidate; not published. Stable catalogs remain on unified.18.",
+  "publication": "Source version; GitHub Releases records publication status. Catalog promotion is separate.",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
   "source_path": "docs/brief/anti-dark-code-brief.html",
-  "source_sha256": "612ef008c4a91ad056193ff39ca9fd74d8c45f18e9480d286d8da3a35c71bc68",
+  "source_sha256": "ff2e5a012ceed5e82524c2666a09b3bcb61514da7a70cdda40c4adc3a00872fc",
   "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
   "color_scheme": "dark",
-  "pdf_sha256": "232b90f56f265ed2a227f8af7bf26ea90b6044352d9906565606ff00aaf94c71",
-  "normalized_pdf_sha256": "a78e18c0d939fbad9e1045b82963211a5844c0617f67cb9316a5b3dec61b0413",
+  "pdf_sha256": "ab2a4895041dc31144370b57eaaa1c99810664a4c5553738765f097d66f7e1e2",
+  "normalized_pdf_sha256": "72383334ee84bba310be0ab08f5d98470a50a1d6f6e1c8f9ec2dfd4676c42ebe",
   "validated_with": {
     "declared_substitutions": {
-      "2026.10.15-unified.21": "2026.10.18-unified.22",
-      "cover_status": "Preview candidate updated 2026-10-15 -> Stable release candidate updated 2026-10-18; not yet released"
+      "cover_status": "Stable release candidate 2026.10.18-unified.22; updated 2026-10-18. Not yet released. -> Version 2026.10.18-unified.22; updated 2026-10-18."
     },
-    "approved_body_and_safeguards_unchanged_except_declared_version_and_status": true,
-    "human_comprehension": "Owner-reported review of earlier samples/field briefs retained; no new participant study of this candidate.",
+    "approved_body_and_safeguards_unchanged_except_declared_cover_status": true,
+    "human_comprehension": "Owner-reported review of earlier samples/field briefs retained; no new participant study of this copy edit.",
     "pdf_ua_and_screen_reader_reading_order": "Not audited.",
     "pdf_pages": 7,
     "screen_widths_without_horizontal_overflow": [
@@ -26,8 +25,8 @@
     ],
     "broken_internal_links": 0,
     "canonical_and_compatibility_html_byte_identical": true,
-    "visual_review": "All seven pages of each palette reviewed as Poppler-rendered contact sheets; no clipping or overlap observed.",
-    "second_render_normalized_digest_matches": true
+    "second_render_normalized_digest_matches": true,
+    "visual_review": "All seven pages in each palette reviewed as Poppler-rendered contact sheets on 2026-10-21; no clipping or overlap observed."
   },
   "compatibility_source_path": "brief/anti-dark-code-brief.html"
 }
