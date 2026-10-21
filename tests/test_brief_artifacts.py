@@ -16,9 +16,20 @@ class BriefArtifactTests(unittest.TestCase):
         for relative in ('README.md', 'docs/brief/anti-dark-code-brief.html', 'PLUGINS.md', 'docs/index.html'):
             with self.subTest(path=relative):
                 text = (ROOT / relative).read_text(encoding="utf-8").casefold()
-                self.assertNotIn("for the unpublished", text)
-                self.assertNotIn("unpublished preview candidate", text)
-                self.assertNotIn("publishing remains on hold", text)
+                for temporary_claim in (
+                    "for the unpublished", "unpublished preview candidate",
+                    "publishing remains on hold", "stable release candidate",
+                    "stable candidate unified.22", "not yet published",
+                    "not yet released", "prepared for stable review, not published",
+                    "this branch prepares a stable release",
+                ):
+                    self.assertNotIn(temporary_claim, text)
+        for relative in ('README.md', 'PLUGINS.md'):
+            with self.subTest(release_status_link=relative):
+                self.assertIn(
+                    'https://github.com/LynxTWO/anti-dark-code-skill/releases',
+                    (ROOT / relative).read_text(encoding="utf-8"),
+                )
 
     def test_hosted_source_and_compatibility_copy_match(self):
         source = ROOT / 'docs/brief/anti-dark-code-brief.html'

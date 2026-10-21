@@ -2,11 +2,10 @@
 
 ## 2026.10.18-unified.22
 
-Stable release candidate; not yet published.
-
 - Prepare the previously reviewed unified.21 workflow for stable release without changing instructions, approval requirements, stored statuses or runtime behavior. Carry forward the recorded three-person comprehension feedback with its limits.
-- Refresh VERSION, the capability catalog version, six generated plugin manifests, README, website and both brief palettes/provenance for the stable candidate. Keep the canonical and compatibility HTML byte-identical.
+- Refresh VERSION, the capability catalog version, six generated plugin manifests, README, website and both brief palettes/provenance for this version. Keep the canonical and compatibility HTML byte-identical.
 - Keep stable catalogs pinned to published unified.18 and the shared preview catalog on unified.21. Extend catalog-isolation regression coverage to this candidate. Stable publication, catalog promotion and Agensi replacement remain separate actions after review.
+- Finalize current publication copy without asserting release availability; link GitHub Releases for publication status. Regenerate both brief palettes and extend the publication-copy regression. Instructions and catalog pins are unchanged.
 
 ## 2026.10.15-unified.21
 
