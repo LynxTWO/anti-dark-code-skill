@@ -118,7 +118,7 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertEqual(interface["category"], "Productivity")
 
     def test_stable_catalog_pin_is_independent_of_development_version(self):
-        expected = "faeb00f996c87385d8339673b6a9cbb75549fa5c"
+        expected = "defd1f1aa25b0a9b62a98ddb72bfc04e8d624e00"
         for version in ("2026.10.18-unified.22", "2026.11.01-unified.23"):
             with self.subTest(version=version):
                 manifests = packaging.metadata(version)
@@ -153,6 +153,42 @@ class PluginPackagingTests(unittest.TestCase):
         current["plugins"][0]["source"]["sha"] = "0" * 40
         catalog.write_text(json.dumps(current) + "\n", encoding="utf-8")
         self.assertTrue(packaging.validate_package(self.repo, published_catalogs=True))
+
+    def test_published23_archive_preserves_original_pin_without_allowing_mixed_catalogs(self):
+        self.version = "2026.10.22-unified.23"
+        self.move_core()
+        original = packaging.metadata(self.version, published_catalogs=True)
+        current = packaging.metadata(self.version)
+        catalogs = (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json")
+        for name in catalogs:
+            self.assertEqual(original[name]["plugins"][0]["source"]["sha"],
+                             "faeb00f996c87385d8339673b6a9cbb75549fa5c")
+        self.assertEqual(packaging.validate_package(self.repo, published_catalogs=True), [])
+        for name, value in original.items():
+            (self.repo / name).write_text(json.dumps(value) + "\n", encoding="utf-8")
+        self.assertTrue(packaging.validate_package(self.repo))
+        self.assertEqual(packaging.validate_package(self.repo, published_catalogs=True), [])
+        self.fixture.commit_all(self.repo, "published .23 before promotion")
+        self.git("tag", "published23")
+        self.assertTrue(adc.release_check(self.repo, "published23")["packaging_valid"])
+        for name in catalogs:
+            (self.repo / name).write_text(json.dumps(current[name]) + "\n", encoding="utf-8")
+            self.assertTrue(packaging.validate_package(self.repo, published_catalogs=True))
+            (self.repo / name).write_text(json.dumps(original[name]) + "\n", encoding="utf-8")
+        unknown = original[catalogs[0]]
+        unknown["plugins"][0]["source"]["sha"] = "0" * 40
+        (self.repo / catalogs[0]).write_text(json.dumps(unknown) + "\n", encoding="utf-8")
+        self.assertTrue(packaging.validate_package(self.repo, published_catalogs=True))
+        redirected = self.repo / ".claude-plugin"
+        original_read = Path.read_text
+        def guarded_read(path, *args, **kwargs):
+            if redirected in path.parents:
+                self.fail("read through a redirected .23 catalog")
+            return original_read(path, *args, **kwargs)
+        with mock.patch.object(Path, "is_junction", lambda path: path == redirected), \
+                mock.patch.object(Path, "read_text", guarded_read):
+            errors = packaging.validate_package(self.repo, published_catalogs=True)
+        self.assertTrue(any("must not traverse links" in error for error in errors), errors)
 
     def test_release_check_preserves_published22_catalogs(self):
         self.move_core()

@@ -18,7 +18,7 @@ distribution tree is needed.
 | Claude Code | `.claude-plugin/plugin.json` | Same core under `skills/` |
 | Gemini CLI | `gemini-extension.json` | Same core under `skills/` |
 
-The existing marketplace identities now pin the published unified.22 commit,
+The existing marketplace identities now pin the published unified.23 commit,
 independently of development on `main`. Historical catalogs used relative `./`,
 which resolves inside that catalog's checkout. There is no duplicated core.
 Metadata advertises a skill only: no MCP
@@ -31,8 +31,8 @@ calibration and an opted-in usage ledger are separate from that discovery choice
 
 ## Install a reviewed package
 
-The stable catalogs select published `v2026.10.18-unified.22` at immutable
-commit `faeb00f996c87385d8339673b6a9cbb75549fa5c`. Verify its archive/digest
+The stable catalogs select published `v2026.10.22-unified.23` at immutable
+commit `defd1f1aa25b0a9b62a98ddb72bfc04e8d624e00`. Verify its archive/digest
 using the release instructions. Catalog updates and the plugin source they select
 are separate: following `main` below refreshes the catalog, whose plugin source
 stays pinned until a reviewed promotion.
@@ -88,10 +88,11 @@ The installed Codex skill is namespaced as `anti-dark-code:anti-dark-code`.
 ### Other hosts and fixed historical catalogs
 
 A marketplace registered at an older tag keeps that tag's catalog. In particular,
-the immutable `.22` release archive was built before channel promotion, so its
-embedded catalog still selects `.18`. Refresh/re-register the repository catalog
-above to receive the promoted pin; the `.22` plugin itself is unchanged. The
-metadata generator preserves historical catalogs when checking release archives.
+the immutable `.23` release archive was built before its channel promotion, so its
+embedded catalog selects `.22`; the `.22` archive still selects `.18`. Refresh the
+repository catalog above, or use the separately pinned stable-catalog ZIP on the
+release, to receive the promoted pin. Published plugin archives stay unchanged.
+The metadata generator preserves original catalogs when checking release archives.
 
 Gemini CLI can install that reviewed local checkout:
 
@@ -158,7 +159,7 @@ Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold
 
 ## Release channels and promotion
 
-The default catalogs select published unified.22; the shared preview catalog
+The default catalogs select published unified.23; the shared preview catalog
 selects unified.21. Check [GitHub Releases](https://github.com/LynxTWO/anti-dark-code-skill/releases)
 for published versions. A newer source version does not promote either channel.
 

@@ -9,7 +9,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/LynxTWO/anti-dark-code-skill.git",
-        "sha": "faeb00f996c87385d8339673b6a9cbb75549fa5c"
+        "sha": "defd1f1aa25b0a9b62a98ddb72bfc04e8d624e00"
       },
       "policy": {
         "installation": "AVAILABLE",

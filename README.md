@@ -27,7 +27,7 @@ Review a [named release](https://github.com/LynxTWO/anti-dark-code-skill/release
 
 **Version**: `2026.10.22-unified.23` (see [release history](CHANGELOG.md)). Check [GitHub Releases](https://github.com/LynxTWO/anti-dark-code-skill/releases) for published versions.
 
-The default catalogs select published unified.22; the separate [shared preview catalog](PLUGINS.md#metadata-and-release-checks) selects unified.21. The source version does not change installed users' channels. See [release promotion](PLUGINS.md#release-channels-and-promotion) before changing a catalog or marketplace package.
+The default catalogs select published unified.23; the separate [shared preview catalog](PLUGINS.md#metadata-and-release-checks) selects unified.21. The source version does not change installed users' channels. See [release promotion](PLUGINS.md#release-channels-and-promotion) before changing a catalog or marketplace package.
 
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 
