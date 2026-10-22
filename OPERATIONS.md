@@ -20,6 +20,8 @@ These workflows are explicit maintenance or publication engagements. They are no
 
 Obtain a specific reviewed release tag/archive from the project's trusted release channel and its published managed-core digest. Inspect the archive before using its installer. A clean extract alone does not authenticate who produced it; the expected digest must come from the independently reviewed release evidence.
 
+Use Python 3.12 or newer for the helpers; current compatibility checks cover 3.12–3.15. If the project uses an older Python, run the helpers with a separate installation or environment and keep project tests on the project’s required runtime. In the commands below, replace `python3` with the path to that helper interpreter if needed. Instructions alone need no Python.
+
 From the extracted skill directory (`skills/anti-dark-code/` in new packages;
 `anti-dark-code/` in unified.15 and earlier archives):
 

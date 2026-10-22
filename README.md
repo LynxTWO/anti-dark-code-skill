@@ -33,7 +33,7 @@ Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sp
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
-One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 is the minimum for the bundled tools; newer compatible versions can be used without downgrading. The instructions themselves need no Python. Start with the outcome you need:
+One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 is the minimum for the bundled tools; newer compatible versions work without downgrading, with 3.12–3.15 covered by current compatibility checks. Run the helpers with a separate Python installation or environment if your project uses an older Python; keep the project’s own checks on its required runtime. The instructions themselves need no Python. Start with the outcome you need:
 
 | Request | Task |
 | --- | --- |
