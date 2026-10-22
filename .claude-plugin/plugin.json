@@ -1,6 +1,6 @@
 {
   "name": "anti-dark-code",
-  "version": "2026.10.18-unified.22",
+  "version": "2026.10.22-unified.23",
   "description": "Evidence-based architecture review, code audits, verification, and authorized improvements.",
   "author": {
     "name": "LynxTWO",
@@ -17,5 +17,6 @@
   ],
   "skills": [
     "./skills/"
-  ]
+  ],
+  "icon": "./skills/anti-dark-code/assets/brand/illuminated-code.png"
 }

@@ -1,15 +1,23 @@
 {
   "schema_version": 1,
-  "version": "2026.10.18-unified.22",
+  "version": "2026.10.22-unified.23",
   "publication": "Source version; GitHub Releases records publication status. Catalog promotion is separate.",
   "generator": "Playwright 1.62.0 / Chromium 151.0.7922.34 on Darwin arm64, design/render-brief-pdf.py",
   "source_path": "docs/brief/anti-dark-code-brief.html",
-  "source_sha256": "ff2e5a012ceed5e82524c2666a09b3bcb61514da7a70cdda40c4adc3a00872fc",
+  "source_sha256": "7f460afd4a6eb4c7a7512fba66ba1a858ac91e758034fc88e76cf3e8d80e04c5",
   "renderer_sha256": "95d08b28cfe3bd4f9e49a2cb5be62cdae4f1ff7aa0dc123154275e86d8d93065",
   "color_scheme": "dark",
-  "pdf_sha256": "ab2a4895041dc31144370b57eaaa1c99810664a4c5553738765f097d66f7e1e2",
-  "normalized_pdf_sha256": "72383334ee84bba310be0ab08f5d98470a50a1d6f6e1c8f9ec2dfd4676c42ebe",
+  "pdf_sha256": "75c3935cfe2d15469f1d601afedd83419e7db9787536ed6ac53ed81a30f964aa",
+  "normalized_pdf_sha256": "f22b527c9041c50e23a53f4ecea60d926d5faf4aa58a6f496dc5f5ebbb82e1b3",
   "validated_with": {
+    "version_update": "Only version/date labels changed; compared extracted PDF text with those substitutions normalized.",
+    "human_comprehension": "Earlier owner-reported review retained with original scope; no new participant study.",
+    "pdf_ua_and_screen_reader_reading_order": "Not audited.",
+    "pdf_pages": 7,
+    "visual_review": "All pages reviewed as Poppler contact sheets on 2026-10-22; no clipping or overlap observed. Existing layout and body preserved."
+  },
+  "compatibility_source_path": "brief/anti-dark-code-brief.html",
+  "prior_render_validation": {
     "declared_substitutions": {
       "cover_status": "Stable release candidate 2026.10.18-unified.22; updated 2026-10-18. Not yet released. -> Version 2026.10.18-unified.22; updated 2026-10-18."
     },
@@ -27,6 +35,5 @@
     "canonical_and_compatibility_html_byte_identical": true,
     "second_render_normalized_digest_matches": true,
     "visual_review": "All seven pages in each palette reviewed as Poppler-rendered contact sheets on 2026-10-21; no clipping or overlap observed."
-  },
-  "compatibility_source_path": "brief/anti-dark-code-brief.html"
+  }
 }

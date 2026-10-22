@@ -64,7 +64,9 @@ def metadata(version: str, *, artwork: bool = True, published_catalogs: bool = F
     return {
         "plugin.json": {"$schema": SCHEMA, **shared, "extensions": {"com.openai": {"interface": interface}}},
         ".codex-plugin/plugin.json": {**shared, "skills": "./skills/", "interface": interface},
-        ".claude-plugin/plugin.json": {**shared, "skills": ["./skills/"]},
+        ".claude-plugin/plugin.json": {**shared, "skills": ["./skills/"],
+            **({"icon": "./skills/anti-dark-code/assets/brand/illuminated-code.png"}
+               if artwork and revision is not None and revision >= 23 else {})},
         "gemini-extension.json": {key: shared[key] for key in ("name", "version", "description")},
         ".agents/plugins/marketplace.json": {
             "name": "anti-dark-code",
