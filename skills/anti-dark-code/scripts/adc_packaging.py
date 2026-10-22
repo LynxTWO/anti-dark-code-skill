@@ -94,6 +94,11 @@ def linklike(path: Path) -> bool:
     return path.is_symlink() or path.is_junction()
 
 
+def redirected(path: Path, repo: Path) -> bool:
+    return any(linklike(part) for part in (path, *path.parents)
+               if part.is_relative_to(repo) and part != repo)
+
+
 def validate_package(repo: Path, *, published_catalogs: bool = False) -> list[str]:
     repo = repo.resolve()
     errors = []
@@ -116,10 +121,11 @@ def validate_package(repo: Path, *, published_catalogs: bool = False) -> list[st
             historical = metadata(version, published_catalogs=True)
             catalogs = (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json")
             # Accept both original catalogs together, never mixed/unknown pins.
-            # Linked files still fail the path checks below.
+            # Reject redirected paths before any historical-catalog read.
             try:
-                if all(json.loads((repo / name).read_text(encoding="utf-8")) == historical[name]
-                       for name in catalogs):
+                if (not any(redirected(repo / name, repo) for name in catalogs)
+                        and all(json.loads((repo / name).read_text(encoding="utf-8")) == historical[name]
+                                for name in catalogs)):
                     expected = historical
             except (OSError, ValueError):
                 pass
@@ -127,7 +133,7 @@ def validate_package(repo: Path, *, published_catalogs: bool = False) -> list[st
         return errors + ["missing or invalid canonical VERSION"]
     for relative, wanted in expected.items():
         path = repo / relative
-        if linklike(path) or any(linklike(parent) for parent in path.parents if parent.is_relative_to(repo) and parent != repo):
+        if redirected(path, repo):
             errors.append(f"{relative}: metadata path must not traverse links")
             continue
         try:
@@ -143,7 +149,7 @@ def validate_package(repo: Path, *, published_catalogs: bool = False) -> list[st
             continue
         relative = interface[field]
         path = repo / relative
-        if any(linklike(part) for part in (path, *path.parents) if part.is_relative_to(repo) and part != repo):
+        if redirected(path, repo):
             errors.append(f"{relative}: artwork path must not traverse links")
         elif not path.is_file():
             errors.append(f"{relative}: missing plugin artwork")

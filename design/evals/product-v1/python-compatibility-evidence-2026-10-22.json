@@ -143,5 +143,22 @@
     "url": "https://github.com/LynxTWO/anti-dark-code-skill/actions/runs/39794548692",
     "all_18_jobs": "success",
     "verified_via": "fresh jobs API after stale run/check snapshots disagreed"
+  },
+  "merge_review_correction": {
+    "recorded_at_utc": "2026-10-22T15:10:16.664030+00:00",
+    "finding": "The new published-.22 catalog detector read catalog JSON before checking redirects; normal validation rejected redirects only afterward.",
+    "repair": "Use the same path/ancestor redirect guard before historical-catalog reads and during normal metadata/artwork checks.",
+    "regression": "test_published_catalog_detection_rejects_redirects_before_reading",
+    "before": "All six symlink/junction subcases failed because redirected catalog text was read.",
+    "after": "15 focused packaging tests and 14 subtests passed, including all six new cases.",
+    "prior_evidence_scope": "Earlier per-version/native results retain their recorded source identities. The guard correction changes packaging read ordering; merge acceptance additionally requires CI on the corrected head.",
+    "preserved": [
+      "published release assets",
+      "preview catalog pins",
+      "catalog identities and stable .22 target",
+      "Python 3.12 minimum",
+      "existing path rejection and mixed-pin rejection"
+    ],
+    "other_review_fix": "The public starter release link now points to the already-published stable .22; four brief checks passed."
   }
 }

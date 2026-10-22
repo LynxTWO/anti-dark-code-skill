@@ -166,6 +166,28 @@ class PluginPackagingTests(unittest.TestCase):
         result = adc.release_check(self.repo, "published22", previous_tag="old-layout")
         self.assertTrue(result["packaging_valid"], result)
 
+    def test_published_catalog_detection_rejects_redirects_before_reading(self):
+        self.version = "2026.10.18-unified.22"
+        self.move_core()
+        for name, value in packaging.metadata(self.version, published_catalogs=True).items():
+            (self.repo / name).write_text(json.dumps(value) + "\n", encoding="utf-8")
+        original_read = Path.read_text
+        for relative in (".agents", ".agents/plugins/marketplace.json", ".claude-plugin"):
+            redirect = self.repo / relative
+
+            def guarded_read(path, *args, **kwargs):
+                if path == redirect or redirect in path.parents:
+                    self.fail("read through a redirected catalog path")
+                return original_read(path, *args, **kwargs)
+
+            for kind in ("is_symlink", "is_junction"):
+                with self.subTest(path=relative, kind=kind):
+                    with mock.patch.object(Path, kind, lambda path: path == redirect), \
+                            mock.patch.object(Path, "read_text", guarded_read):
+                        errors = packaging.validate_package(self.repo, published_catalogs=True)
+                    self.assertTrue(any("metadata path must not traverse links" in error
+                                        for error in errors), errors)
+
     def test_missing_or_redirected_artwork_is_rejected(self):
         self.move_core()
         path = self.core / "assets" / "brand" / "illuminated-code.png"
