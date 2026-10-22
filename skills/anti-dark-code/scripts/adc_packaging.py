@@ -12,8 +12,9 @@ import subprocess
 CORE_PATH = Path("skills/anti-dark-code")
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 REPOSITORY = "https://github.com/LynxTWO/anti-dark-code-skill"
-# Published unified.18. Moving development source must not move stable installs.
-STABLE_PLUGIN_SHA = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
+# Published unified.22. Moving development source must not move stable installs.
+STABLE_PLUGIN_SHA = "faeb00f996c87385d8339673b6a9cbb75549fa5c"
+PREVIOUS_STABLE_PLUGIN_SHA = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
 
 
 def plugin_version(version: str) -> str:
@@ -24,7 +25,7 @@ def plugin_version(version: str) -> str:
     return ".".join(str(int(match[i])) for i in (1, 2, 3)) + (match[4] or "")
 
 
-def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
+def metadata(version: str, *, artwork: bool = True, published_catalogs: bool = False) -> dict[str, dict]:
     shared = {
         "name": "anti-dark-code",
         "version": plugin_version(version),
@@ -37,6 +38,13 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
     }
     # Preserve metadata verification for releases through unified.18.
     legacy_listing = "-unified." in version and int(version.rsplit("-unified.", 1)[1]) <= 18
+    # Earlier releases retain their original catalogs. The published .22 archive
+    # also predates channel promotion; only archive verification opts into that
+    # exact historical shape. Normal generation/checking requires the new pin.
+    revision = int(version.rsplit("-unified.", 1)[1]) if "-unified." in version else None
+    historical_pin = (revision is not None and revision <= 21) or (
+        published_catalogs and version == "2026.10.18-unified.22")
+    catalog_sha = PREVIOUS_STABLE_PLUGIN_SHA if historical_pin else STABLE_PLUGIN_SHA
     interface = {
         "displayName": "Anti-Dark-Code",
         "shortDescription": "Review and improve code from evidence." if legacy_listing else "Review code from evidence",
@@ -64,7 +72,7 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
             "plugins": [{
                 "name": "anti-dark-code", "source": (
                     {"source": "local", "path": "./"} if legacy_listing else
-                    {"source": "url", "url": REPOSITORY + ".git", "sha": STABLE_PLUGIN_SHA}
+                    {"source": "url", "url": REPOSITORY + ".git", "sha": catalog_sha}
                 ),
                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                 "category": "Productivity",
@@ -76,7 +84,7 @@ def metadata(version: str, *, artwork: bool = True) -> dict[str, dict]:
             "owner": shared["author"],
             "plugins": [{"name": "anti-dark-code", "source": (
                 "./" if legacy_listing else
-                {"source": "url", "url": REPOSITORY + ".git", "sha": STABLE_PLUGIN_SHA}
+                {"source": "url", "url": REPOSITORY + ".git", "sha": catalog_sha}
             ), "description": shared["description"]}],
         },
     }
@@ -86,7 +94,7 @@ def linklike(path: Path) -> bool:
     return path.is_symlink() or path.is_junction()
 
 
-def validate_package(repo: Path) -> list[str]:
+def validate_package(repo: Path, *, published_catalogs: bool = False) -> list[str]:
     repo = repo.resolve()
     errors = []
     core = repo / CORE_PATH
@@ -104,6 +112,17 @@ def validate_package(repo: Path) -> list[str]:
         # manifest with missing artwork still fails the strict comparison.
         legacy_artwork = version == "2026.09.27-unified.16" and not brand.exists() and not linklike(brand)
         expected = metadata(version, artwork=not legacy_artwork)
+        if published_catalogs and version == "2026.10.18-unified.22":
+            historical = metadata(version, published_catalogs=True)
+            catalogs = (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json")
+            # Accept both original catalogs together, never mixed/unknown pins.
+            # Linked files still fail the path checks below.
+            try:
+                if all(json.loads((repo / name).read_text(encoding="utf-8")) == historical[name]
+                       for name in catalogs):
+                    expected = historical
+            except (OSError, ValueError):
+                pass
     except (OSError, ValueError):
         return errors + ["missing or invalid canonical VERSION"]
     for relative, wanted in expected.items():

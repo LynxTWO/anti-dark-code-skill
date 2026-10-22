@@ -118,9 +118,8 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertEqual(interface["category"], "Productivity")
 
     def test_stable_catalog_pin_is_independent_of_development_version(self):
-        expected = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
-        for version in ("2026.10.14-unified.19", "2026.11.01-unified.20",
-                        "2026.10.15-unified.21", "2026.10.18-unified.22"):
+        expected = "faeb00f996c87385d8339673b6a9cbb75549fa5c"
+        for version in ("2026.10.18-unified.22", "2026.11.01-unified.23"):
             with self.subTest(version=version):
                 manifests = packaging.metadata(version)
                 for host in (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json"):
@@ -129,10 +128,43 @@ class PluginPackagingTests(unittest.TestCase):
                     self.assertNotIn("ref", source)
                     self.assertEqual(source["source"], "url")
                     self.assertEqual(source["url"], "https://github.com/LynxTWO/anti-dark-code-skill.git")
+        for version in ("2026.10.14-unified.19", "2026.11.01-unified.20", "2026.10.15-unified.21"):
+            with self.subTest(historical_version=version):
+                for host in (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json"):
+                    self.assertEqual(packaging.metadata(version)[host]["plugins"][0]["source"]["sha"],
+                                     "f3bb47904a9eb4d75e19cc84dcdbb62039feac46")
         historical = packaging.metadata("2026.10.09-unified.18")
         self.assertEqual(historical[".agents/plugins/marketplace.json"]["plugins"][0]["source"],
                          {"source": "local", "path": "./"})
         self.assertEqual(historical[".claude-plugin/marketplace.json"]["plugins"][0]["source"], "./")
+
+    def test_published22_catalogs_require_archive_context_and_both_original_pins(self):
+        self.move_core()
+        self.version = "2026.10.18-unified.22"
+        (self.core / "VERSION").write_text(self.version + "\n", encoding="utf-8")
+        for name, value in packaging.metadata(self.version, published_catalogs=True).items():
+            (self.repo / name).write_text(json.dumps(value) + "\n", encoding="utf-8")
+        self.assertTrue(packaging.validate_package(self.repo))
+        self.assertEqual(packaging.validate_package(self.repo, published_catalogs=True), [])
+        catalog = self.repo / ".claude-plugin/marketplace.json"
+        current = packaging.metadata(self.version)[".claude-plugin/marketplace.json"]
+        catalog.write_text(json.dumps(current) + "\n", encoding="utf-8")
+        self.assertTrue(packaging.validate_package(self.repo, published_catalogs=True))
+        current["plugins"][0]["source"]["sha"] = "0" * 40
+        catalog.write_text(json.dumps(current) + "\n", encoding="utf-8")
+        self.assertTrue(packaging.validate_package(self.repo, published_catalogs=True))
+
+    def test_release_check_preserves_published22_catalogs(self):
+        self.move_core()
+        self.version = "2026.10.18-unified.22"
+        (self.core / "VERSION").write_text(self.version + "\n", encoding="utf-8")
+        (self.repo / "CHANGELOG.md").write_text(f"# Changelog\n\n## {self.version}\n\nPackage the core.\n", encoding="utf-8")
+        for name, value in packaging.metadata(self.version, published_catalogs=True).items():
+            (self.repo / name).write_text(json.dumps(value) + "\n", encoding="utf-8")
+        self.fixture.commit_all(self.repo, "published .22 before catalog promotion")
+        self.git("tag", "published22")
+        result = adc.release_check(self.repo, "published22", previous_tag="old-layout")
+        self.assertTrue(result["packaging_valid"], result)
 
     def test_missing_or_redirected_artwork_is_rejected(self):
         self.move_core()

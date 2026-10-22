@@ -18,7 +18,7 @@ distribution tree is needed.
 | Claude Code | `.claude-plugin/plugin.json` | Same core under `skills/` |
 | Gemini CLI | `gemini-extension.json` | Same core under `skills/` |
 
-The existing marketplace identities now pin the published unified.18 commit,
+The existing marketplace identities now pin the published unified.22 commit,
 independently of development on `main`. Historical catalogs used relative `./`,
 which resolves inside that catalog's checkout. There is no duplicated core.
 Metadata advertises a skill only: no MCP
@@ -31,14 +31,53 @@ calibration and an opted-in usage ledger are separate from that discovery choice
 
 ## Install a reviewed package
 
-Use the published `v2026.10.09-unified.18` tag and verify its archive/digest using
-the release instructions. Development checkouts are for local testing. Pin the catalog
-checkout itself; the catalog's local source then resolves inside that same revision.
+The stable catalogs select published `v2026.10.18-unified.22` at immutable
+commit `faeb00f996c87385d8339673b6a9cbb75549fa5c`. Verify its archive/digest
+using the release instructions. Catalog updates and the plugin source they select
+are separate: following `main` below refreshes the catalog, whose plugin source
+stays pinned until a reviewed promotion.
 
-Codex can register a pinned Git marketplace:
+### Claude desktop (chat / Cowork)
+
+Claude plugins require a paid Claude plan (Pro, Max, Team or Enterprise),
+according to [Anthropic's plugin help](https://support.claude.com/en/articles/13837440-use-plugins-in-claude).
+A free desktop account cannot install this as a plugin. In a supported account:
+
+1. Open **Customize > Plugins > Add > Add marketplace** (some app versions use
+   **Settings > Plugins**).
+2. Enter `https://github.com/LynxTWO/anti-dark-code-skill` and sync the repository.
+3. Select **Anti-Dark-Code** and add/install it, then start a new conversation/task.
+
+Use the repository root, not `skills/anti-dark-code/` or a `SKILL.md` URL.
+For **Upload plugin**, use the release's `*-plugin-source.zip`, which contains
+`.claude-plugin/plugin.json`. The `*-skill.zip` and Agensi core package are
+standalone skills, not plugin ZIPs. A skill-only plugin is valid: it needs no
+MCP server or automatic hooks. [Anthropic's plugin guide](https://claude.com/docs/plugins/overview)
+describes repository sync, ZIP uploads and the supported surfaces. File access
+and helper execution still depend on the host; chat installation alone does not
+supply local repository access.
+
+### Claude Code
+
+Add the repository marketplace and install its named plugin:
+
+```text
+/plugin marketplace add https://github.com/LynxTWO/anti-dark-code-skill.git
+/plugin install anti-dark-code@anti-dark-code
+```
+
+From a shell, use `claude plugin marketplace add <same-URL>` and
+`claude plugin install anti-dark-code@anti-dark-code`. Start a new session or
+run `/reload-plugins`. A CLI installation stays on that machine; it does not add
+the plugin to your claude.ai account. A locally reviewed catalog checkout also
+works with `/plugin marketplace add /path/to/reviewed-checkout`.
+
+### Codex
+
+Register the stable catalog:
 
 ```sh
-codex plugin marketplace add LynxTWO/anti-dark-code-skill --ref v2026.10.09-unified.18
+codex plugin marketplace add https://github.com/LynxTWO/anti-dark-code-skill.git --ref main
 ```
 
 Install Anti-Dark-Code from that marketplace in the desktop app and test discovery
@@ -46,12 +85,13 @@ in a new chat. For a local test, `codex plugin marketplace add /path/to/checkout
 registers that checkout; registration alone is not installation or runtime proof.
 The installed Codex skill is namespaced as `anti-dark-code:anti-dark-code`.
 
-Claude Code can add the marketplace from a clean checkout of the reviewed tag:
+### Other hosts and fixed historical catalogs
 
-```text
-/plugin marketplace add /path/to/reviewed-checkout
-/plugin install anti-dark-code@anti-dark-code
-```
+A marketplace registered at an older tag keeps that tag's catalog. In particular,
+the immutable `.22` release archive was built before channel promotion, so its
+embedded catalog still selects `.18`. Refresh/re-register the repository catalog
+above to receive the promoted pin; the `.22` plugin itself is unchanged. The
+metadata generator preserves historical catalogs when checking release archives.
 
 Gemini CLI can install that reviewed local checkout:
 
@@ -109,7 +149,7 @@ Both kits share one [opt-in preview catalog](https://github.com/LynxTWO/scaffold
 
 ## Release channels and promotion
 
-The default catalogs select published unified.18; the shared preview catalog
+The default catalogs select published unified.22; the shared preview catalog
 selects unified.21. Check [GitHub Releases](https://github.com/LynxTWO/anti-dark-code-skill/releases)
 for published versions. A newer source version does not promote either channel.
 
