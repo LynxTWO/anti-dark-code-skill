@@ -413,7 +413,7 @@
 <p class="prose">Anti-Dark-Code is a model-neutral skill for AI-assisted code review, architecture mapping, code audits, verification, and authorized improvements.</p>
 <ol class="prose">
 <li><a href="https://github.com/LynxTWO/anti-dark-code-skill/releases/tag/v2026.10.18-unified.22">Review the unified.22 release</a>, its source, evidence, and <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/LICENSE.md">FSL-1.1-MIT license</a>.</li>
-<li>Follow the <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">operator guide</a> to verify the source and inspect an installer dry run. Confirm your host discovers the skill. Instructions need no runtime; Python 3.12 is the minimum for optional tools, and newer compatible versions can be used.</li>
+<li>Follow the <a href="https://github.com/LynxTWO/anti-dark-code-skill/blob/main/OPERATIONS.md">operator guide</a> to verify the source and inspect an installer dry run. Confirm your host discovers the skill. Instructions need no runtime; optional tools need Python 3.12 or newer and can use a separate installation from a project running an older Python.</li>
 <li>Choose a bounded task and review the resulting evidence and coverage gaps before authorizing changes.</li>
 </ol>
 <div class="callout"><h3>Example request</h3><p>“Use anti-dark-code to map this repository's entry points and identify the next useful checks. Keep this pass read-only and label what remains unknown.”</p><p>This is a starter prompt, not a measured trial. It requests a map and verification advice; it does not approve repairs or deployment.</p></div>
@@ -491,7 +491,7 @@
 
 <section class="sheet" id="tools">
 <h2>Let tools establish what they can</h2>
-<p class="prose">Trusted bundled tools use the standard library, with Python 3.12 as the minimum version. Newer compatible versions can be used without downgrading. Read-only <code>adc.py probe</code> inventories a repository; <code>adc.py plan</code> screens verification capabilities. Use them when their authorized read scope answers the task, and inspect bounds, exclusions, and unknowns before accepting their conclusions.</p>
+<p class="prose">Trusted bundled tools use the standard library, with Python 3.12 as the minimum version. Newer compatible versions work without downgrading; current compatibility checks cover 3.12–3.15. Helpers can use a separate Python installation or environment from a project using an older Python; keep project tests on their required runtime. Read-only <code>adc.py probe</code> inventories a repository; <code>adc.py plan</code> screens verification capabilities. Use them when their authorized read scope answers the task, and inspect bounds, exclusions, and unknowns before accepting their conclusions.</p>
 <p class="prose">Comprehensive verification plans reconcile the canonical capability catalog. Narrow work identifies relevant obligations and exclusions. Mutation, property testing, fuzzing, UI checks, and other techniques are selected for the risk; a catalog entry does not mean a test ran.</p>
 <p class="prose">If the runtime or tool is unavailable, name the blocker and do bounded manual work, stating which machine checks are missing. Installation is not a prerequisite. Contradictory evidence reopens the affected classification.</p>
 <figure>

@@ -104,7 +104,10 @@ subsequent repository edits, tool executions, or optional usage collection.
 
 ## Metadata and release checks
 
-Python 3.12 is the minimum for bundled helpers, not a required exact version.
+Python 3.12 is the minimum for bundled helpers, not a required exact version;
+newer compatible versions work without downgrading. The helpers can use a separate
+Python installation or environment from a project running an older Python. Keep
+the project’s own tests and tools on their required runtime.
 CI targets every minor from 3.12 through 3.15 on Linux, plus 3.12 and 3.15 on
 macOS and Windows. Check the run results for versions actually verified; a
 configured matrix is not a passing result. Prefer an upstream-maintained Python
