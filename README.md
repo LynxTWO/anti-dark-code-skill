@@ -27,13 +27,13 @@ Review a [named release](https://github.com/LynxTWO/anti-dark-code-skill/release
 
 **Version**: `2026.10.18-unified.22` (see [release history](CHANGELOG.md)). Check [GitHub Releases](https://github.com/LynxTWO/anti-dark-code-skill/releases) for published versions.
 
-The default catalogs select published unified.18; the separate [shared preview catalog](PLUGINS.md#metadata-and-release-checks) selects unified.21. The source version does not change installed users' channels. See [release promotion](PLUGINS.md#release-channels-and-promotion) before changing a catalog or marketplace package.
+The default catalogs select published unified.22; the separate [shared preview catalog](PLUGINS.md#metadata-and-release-checks) selects unified.21. The source version does not change installed users' channels. See [release promotion](PLUGINS.md#release-channels-and-promotion) before changing a catalog or marketplace package.
 
 Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sponsors](https://github.com/sponsors/LynxTWO).
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
-One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 or newer runs the standard-library tools. Start with the outcome you need:
+One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 is the minimum for the bundled tools; newer compatible versions can be used without downgrading. The instructions themselves need no Python. Start with the outcome you need:
 
 | Request | Task |
 | --- | --- |
@@ -61,6 +61,12 @@ The [skill core](skills/anti-dark-code/SKILL.md) defines the workflow and safety
 Unified.16 packages the universal source under `skills/anti-dark-code/`
 with Agent Plugins, Codex, Claude Code and Gemini CLI manifests. See
 [PLUGINS.md](PLUGINS.md) for pinned installation, compatibility and validation.
+For Claude desktop, use **Customize > Plugins > Add marketplace** with this
+repository's root URL; plugins require a paid Claude plan. For Claude Code, run
+`/plugin marketplace add https://github.com/LynxTWO/anti-dark-code-skill.git`, then
+`/plugin install anti-dark-code@anti-dark-code`. The full `*-plugin-source.zip`
+is also a plugin; the standalone `*-skill.zip` is not. See the
+[desktop and CLI instructions](PLUGINS.md#claude-desktop-chat--cowork).
 Older unified.15 archives use the `anti-dark-code/` source path.
 
 ## Start from a reviewed release

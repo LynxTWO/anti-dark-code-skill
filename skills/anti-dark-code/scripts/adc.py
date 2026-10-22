@@ -2368,7 +2368,7 @@ def release_check(
         findings["distribution_errors"] = list(errors)
 
         if core.parent.name == "skills":
-            packaging_errors = load_packaging_helper().validate_package(extract)
+            packaging_errors = load_packaging_helper().validate_package(extract, published_catalogs=True)
             findings["packaging_valid"] = not packaging_errors
             findings["packaging_errors"] = packaging_errors
             if host_checks and not packaging_errors and not errors:

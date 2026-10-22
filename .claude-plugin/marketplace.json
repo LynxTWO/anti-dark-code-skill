@@ -11,7 +11,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/LynxTWO/anti-dark-code-skill.git",
-        "sha": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
+        "sha": "faeb00f996c87385d8339673b6a9cbb75549fa5c"
       },
       "description": "Evidence-based architecture review, code audits, verification, and authorized improvements."
     }

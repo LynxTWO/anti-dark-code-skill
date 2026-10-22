@@ -1,0 +1,176 @@
+{
+  "recorded_at_utc": "2026-10-22T14:05:11.554338+00:00",
+  "scope": "Stable catalog promotion and installation guidance only. Runtime instructions, release assets and preview catalogs unchanged.",
+  "source_commit_tested": "5c6db5452e9dfdde87bddecfb0da230add17d05d",
+  "selected_stable_release": "v2026.10.18-unified.22",
+  "selected_stable_sha": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+  "previous_stable_sha": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+  "canonical_managed_core_digest": "86dd3cb29779acdf7e5c3bfc060d1344921c9abb8adc11d4b930a0732df05630",
+  "catalog_sha256": {
+    ".agents/plugins/marketplace.json": "fb36a457ae124d68c16dfe9670c94ef40808c93737283501b48c4e43c8ff6f23",
+    ".claude-plugin/marketplace.json": "624bcfdb6e44eda3cf82c1d70a9a1c6d24bde32471d16407a0875794374fd119"
+  },
+  "preview_unchanged": true,
+  "shared_preview_catalog_git_blob_shas": {
+    "preview/.agents/plugins/marketplace.json": "7063cdea40d3cb9240002bb85d3c1eaea6dc7cd9",
+    "preview/.claude-plugin/marketplace.json": "178fbb206915bc1b12ac32eee4bc3d71a8774180"
+  },
+  "local_checks": {
+    "clean_distribution": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "metadata_generator": "passed; generated catalogs select released .22 SHA",
+    "focused_packaging_tests": 14,
+    "full_python_3_12_suite": {
+      "passed": 761,
+      "skipped": 8,
+      "subtests_passed": 712,
+      "failed": 0
+    },
+    "brief_artifact_tests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "historical_release_checks": [
+      "v2026.10.09-unified.18",
+      "v2026.10.15-unified.21",
+      "v2026.10.18-unified.22"
+    ]
+  },
+  "native_versions": {
+    "claude_code": "2.1.308",
+    "codex": "0.163.0-alpha.10.2",
+    "platform": "macOS arm64"
+  },
+  "native_checks": {
+    "claude": {
+      "install18": {
+        "commit": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      },
+      "update22": {
+        "commit": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+        "version": "2026.10.18-unified.22",
+        "source_files_checked": 362,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      },
+      "fresh22": {
+        "commit": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+        "version": "2026.10.18-unified.22",
+        "source_files_checked": 362,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      },
+      "rollback18": {
+        "commit": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      }
+    },
+    "codex": {
+      "install18": {
+        "commit": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      },
+      "update22": {
+        "commit": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+        "version": "2026.10.18-unified.22",
+        "source_files_checked": 362,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      },
+      "fresh22": {
+        "commit": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+        "version": "2026.10.18-unified.22",
+        "source_files_checked": 362,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      },
+      "fresh_discovery": true,
+      "rollback18": {
+        "commit": "f3bb47904a9eb4d75e19cc84dcdbb62039feac46",
+        "version": "2026.10.9-unified.18",
+        "source_files_checked": 341,
+        "all_source_files_match": true,
+        "core_inventory_exact": true,
+        "enabled": true
+      }
+    }
+  },
+  "claude_strict_manifest": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "claude_component_inventory": {
+    "skills": [
+      "anti-dark-code"
+    ],
+    "agents": 0,
+    "hooks": 0,
+    "mcp_servers": 0,
+    "lsp_servers": 0
+  },
+  "remote_repository_install": {
+    "passed": true,
+    "catalog_ref": "codex/promote-stable-unified22",
+    "catalog_commit": "5c6db5452e9dfdde87bddecfb0da230add17d05d",
+    "plugin_commit": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+    "hosts": [
+      "Claude Code",
+      "Codex"
+    ],
+    "all_source_bytes_and_core_inventory_match": true
+  },
+  "rollback_method": "Remove .22, restore the .18 catalog pin, refresh and reinstall; verify .18 source bytes and one enabled test copy.",
+  "personal_configuration_unchanged": true,
+  "desktop_inspection": {
+    "app_version": "3.1623.4",
+    "observed": "Settings > Customize > Plugins > Add plugin > Add marketplace > Add from a repository; Upload plugin also offered. Dialog canceled without account changes.",
+    "account_installation_executed": false
+  },
+  "friend_report": {
+    "message": "Anti-dark-code is a plain skill, not a plugin",
+    "context": "Owner believes Claude desktop on a free account; exact steps unavailable",
+    "exact_failure_reproduced": false,
+    "finding": "Plugin package structure is valid and native installation passed. Free-plan desktop plugin access is unsupported in current Anthropic documentation; this is a likely independent blocker, not a proven origin of the quoted message.",
+    "official_plan_source": "https://support.claude.com/en/articles/13837440-use-plugins-in-claude",
+    "official_repository_and_zip_source": "https://claude.com/docs/plugins/overview"
+  },
+  "zip_entry_point_check": {
+    "plugin_source_zip_contains_claude_plugin_manifest": true,
+    "standalone_skill_zip_contains_plugin_manifest": false,
+    "release_assets_modified": false
+  },
+  "harness_corrections": [
+    "Initial claude plugin details --json failed because that command has no --json flag. Retained first attempt, checked help, reran the entire isolated host sequence successfully with plain-text details.",
+    "An initial release-check --json diagnostic was rejected; release-check emits JSON without that flag. Corrected command passed with the published digest.",
+    "Initial isolated Codex preflight needed its empty CODEX_HOME directory created; corrected before install checks."
+  ],
+  "limits": [
+    "No free-plan desktop installation test",
+    "No Windows/Linux native installation",
+    "No timed background update test",
+    "No Agensi buyer delivery test",
+    "Desktop repository dialog inspected only; no account-level upload/install performed.",
+    "Automated tests do not prove human comprehension."
+  ],
+  "local_raw_evidence_folder": "anti-dark-code-stable-promotion-2026-10-22",
+  "publication": "PR only; no merge, new release, tag movement, asset replacement or Agensi change."
+}
