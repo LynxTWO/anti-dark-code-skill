@@ -12,9 +12,13 @@ import subprocess
 CORE_PATH = Path("skills/anti-dark-code")
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 REPOSITORY = "https://github.com/LynxTWO/anti-dark-code-skill"
-# Published unified.22. Moving development source must not move stable installs.
-STABLE_PLUGIN_SHA = "faeb00f996c87385d8339673b6a9cbb75549fa5c"
+# Published unified.23. Moving development source must not move stable installs.
+STABLE_PLUGIN_SHA = "defd1f1aa25b0a9b62a98ddb72bfc04e8d624e00"
 PREVIOUS_STABLE_PLUGIN_SHA = "f3bb47904a9eb4d75e19cc84dcdbb62039feac46"
+PUBLISHED_CATALOG_PINS = {
+    "2026.10.18-unified.22": PREVIOUS_STABLE_PLUGIN_SHA,
+    "2026.10.22-unified.23": "faeb00f996c87385d8339673b6a9cbb75549fa5c",
+}
 
 
 def plugin_version(version: str) -> str:
@@ -38,13 +42,12 @@ def metadata(version: str, *, artwork: bool = True, published_catalogs: bool = F
     }
     # Preserve metadata verification for releases through unified.18.
     legacy_listing = "-unified." in version and int(version.rsplit("-unified.", 1)[1]) <= 18
-    # Earlier releases retain their original catalogs. The published .22 archive
-    # also predates channel promotion; only archive verification opts into that
-    # exact historical shape. Normal generation/checking requires the new pin.
+    # Archive checks preserve both original catalogs for each published release.
+    # Normal generation selects the current stable pin; previews stay separate.
     revision = int(version.rsplit("-unified.", 1)[1]) if "-unified." in version else None
-    historical_pin = (revision is not None and revision <= 21) or (
-        published_catalogs and version == "2026.10.18-unified.22")
-    catalog_sha = PREVIOUS_STABLE_PLUGIN_SHA if historical_pin else STABLE_PLUGIN_SHA
+    catalog_sha = (PREVIOUS_STABLE_PLUGIN_SHA if revision is not None and revision <= 21
+                   else PUBLISHED_CATALOG_PINS.get(version, STABLE_PLUGIN_SHA)
+                   if published_catalogs else STABLE_PLUGIN_SHA)
     interface = {
         "displayName": "Anti-Dark-Code",
         "shortDescription": "Review and improve code from evidence." if legacy_listing else "Review code from evidence",
@@ -119,7 +122,7 @@ def validate_package(repo: Path, *, published_catalogs: bool = False) -> list[st
         # manifest with missing artwork still fails the strict comparison.
         legacy_artwork = version == "2026.09.27-unified.16" and not brand.exists() and not linklike(brand)
         expected = metadata(version, artwork=not legacy_artwork)
-        if published_catalogs and version == "2026.10.18-unified.22":
+        if published_catalogs and version in PUBLISHED_CATALOG_PINS:
             historical = metadata(version, published_catalogs=True)
             catalogs = (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json")
             # Accept both original catalogs together, never mixed/unknown pins.
