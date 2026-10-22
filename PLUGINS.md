@@ -104,6 +104,12 @@ subsequent repository edits, tool executions, or optional usage collection.
 
 ## Metadata and release checks
 
+Python 3.12 is the minimum for bundled helpers, not a required exact version.
+CI targets every minor from 3.12 through 3.15 on Linux, plus 3.12 and 3.15 on
+macOS and Windows. Check the run results for versions actually verified; a
+configured matrix is not a passing result. Prefer an upstream-maintained Python
+release; future versions need their own checks. Instructions alone need no Python.
+
 Unified.17 adds the Illuminated code logo and a simplified composer
 icon. Their editable SVG sources and PNG exports live together in
 `skills/anti-dark-code/assets/brand/`. The portable OpenAI overlay and Codex

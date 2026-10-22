@@ -25,12 +25,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.12"]
+        python-version: ["3.12", "3.15"]
         include:
-          # Forward drift, cheaply. The floor is what the three platforms above
-          # prove; this catches a newer interpreter changing behaviour under us.
+          # Every intervening minor on Linux; minimum/latest on all three OSes.
           - os: ubuntu-latest
             python-version: "3.13"
+          - os: ubuntu-latest
+            python-version: "3.14"
 
     steps:
       - name: Check out the candidate

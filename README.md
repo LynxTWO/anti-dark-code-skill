@@ -33,7 +33,7 @@ Optional support: [leave a one-time tip or become a monthly sponsor on GitHub Sp
 
 Qualification covers controlled trials and repository copies; it does not establish performance on every host or codebase. Review the source and release evidence before installation.
 
-One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 or newer runs the standard-library tools. Start with the outcome you need:
+One model-neutral skill works with local deterministic tooling and optional repository calibration. Python 3.12 is the minimum for the bundled tools; newer compatible versions can be used without downgrading. The instructions themselves need no Python. Start with the outcome you need:
 
 | Request | Task |
 | --- | --- |
