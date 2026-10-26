@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import collections
+import datetime as dt
 import json
 import re
 import stat
@@ -22,7 +23,7 @@ PATH_RULE = "Local managed/calibration paths must not traverse links (" + RULE_R
 HEADING = re.compile(r"^ {0,3}(#{1,6})\s+(.+?)(?:\s+#+\s*)?$")
 FIELD = re.compile(
     r"^\s*(?:[-*+]\s+)?(?:\*\*)?"
-    r"(Risk(?: level)?|Status|Concern|Area or file|Why it matters|Next best check)"
+    r"(Risk(?: level)?|Status|Blocks|Revisit|Concern|Area or file|Why it matters|Next best check)"
     r"\s*:(?:\*\*)?\s*(.*?)\s*$", re.I)
 DATE = re.compile(
     r"\b\d{4}-\d{2}-\d{2}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|"
@@ -35,6 +36,11 @@ PATH_TOKEN = re.compile(
 CLOSED_STATUSES = {"resolved", "fixed", "done", "closed"}
 RISK_VALUE = re.compile(r"^(low|medium|high|critical)(?=$|[\s([{,:;.\-])")
 STATUS_VALUE = re.compile(r"^(in progress|open|ready|blocked|deferred|resolved|fixed|done|closed)(?=$|[\s([{,:;.\-])")
+BLOCKS_VALUE = re.compile(r"^(next release|later|nothing)(?=$|[\s([{,:;.\-])")
+REVISIT_DATE = re.compile(
+    r"^(?P<markup>`+|\*{1,3}|_{1,3})?(?P<date>\d{4}-\d{2}-\d{2})"
+    r"(?(markup)(?P=markup))(?=$|[\s([{,:;.\-])")
+REVISIT_MARKUP = re.compile(r"^(`+|\*{1,3}|_{1,3})")
 
 
 def markdown_lines(text: str):
@@ -62,6 +68,22 @@ def vocabulary_value(value: str, pattern: re.Pattern[str]) -> str:
     return match.group(1) if match else value
 
 
+def revisit_date(value: str) -> dt.date | None:
+    value = value.strip()
+    markup_match = REVISIT_MARKUP.match(value)
+    if markup_match:
+        markup = markup_match.group(1)
+        if len(value) > 2 * len(markup) and value.endswith(markup):
+            value = value[len(markup):-len(markup)].strip()
+    match = REVISIT_DATE.match(value)
+    if match:
+        try:
+            return dt.date.fromisoformat(match.group("date"))
+        except ValueError:
+            pass
+    return None
+
+
 def unknown_entries(text: str) -> list[dict[str, Any]]:
     entries = []
     section: list[str] = []
@@ -73,11 +95,13 @@ def unknown_entries(text: str) -> list[dict[str, Any]]:
     def section_fields() -> dict[str, str]:
         fields = {}
         for line in section:
-            parts = re.split(r"\s+(?=\*\*(?:Risk(?: level)?|Status):\*\*)", line, flags=re.I)
+            parts = re.split(r"\s+(?=\*\*(?:Risk(?: level)?|Status|Blocks|Revisit):\*\*)", line, flags=re.I)
             for part in parts:
                 match = FIELD.match(part)
                 if match:
-                    fields[match.group(1).lower()] = normalized_value(match.group(2))
+                    field_name = match.group(1).lower()
+                    # Preserve paired date markup before an optional qualifier.
+                    fields[field_name] = match.group(2).strip() if field_name == "revisit" else normalized_value(match.group(2))
         return fields
 
     def finish() -> None:
@@ -85,7 +109,7 @@ def unknown_entries(text: str) -> list[dict[str, Any]]:
             # Closed items is a container at any heading level, not an entry.
             for line in section:
                 if re.match(r"^\s*[-*+]\s+\*\*[^*]+\*\*\s*[-:]", line):
-                    entries.append({"status": "closed", "risk": "missing", "open": False, "missing_status": True})
+                    entries.append({"status": "closed", "risk": "missing", "blocks": "missing", "revisit": "", "open": False, "missing_status": True})
             return
         fields = section_fields()
         if fields or (heading_level >= 3 and any(line.strip() for line in section)):
@@ -94,6 +118,8 @@ def unknown_entries(text: str) -> list[dict[str, Any]]:
             entries.append({
                 "status": "closed" if in_closed else status or "missing",
                 "risk": risk or "missing",
+                "blocks": vocabulary_value(fields.get("blocks", ""), BLOCKS_VALUE) or "missing",
+                "revisit": fields.get("revisit", ""),
                 "open": not in_closed and status not in CLOSED_STATUSES,
                 "missing_status": not bool(status),
             })
@@ -175,7 +201,8 @@ def calibration_paths(text: str, suffix: str):
                     yield kind, value, match.group("link") is not None or value.startswith(".")
 
 
-def report(repo: Path, adc, max_open: int | None = None) -> dict[str, Any]:
+def report(repo: Path, adc, max_open: int | None = None, *, today: dt.date | None = None) -> dict[str, Any]:
+    today = today if today is not None else dt.date.today()
     repo = repo.expanduser().resolve()
     if not repo.is_dir():
         raise SystemExit("Repository directory not found")
@@ -296,9 +323,11 @@ def report(repo: Path, adc, max_open: int | None = None) -> dict[str, Any]:
         "rule": UNKNOWNS_RULE, "files": unknown_files, "total_entries": len(entries),
         "by_status": dict(sorted(collections.Counter(row["status"] for row in entries).items())),
         "by_risk": dict(sorted(collections.Counter(row["risk"] for row in entries).items())),
+        "by_blocks": dict(sorted(collections.Counter(row["blocks"] for row in entries).items())),
         "open_entries": sum(row["open"] for row in entries),
         "open_without_status": sum(row["open"] and row["missing_status"] for row in entries),
         "open_high_critical": sum(row["open"] and row["risk"] in {"high", "critical"} for row in entries),
+        "open_past_revisit": sum(bool(row["open"] and (date := revisit_date(row["revisit"])) is not None and date < today) for row in entries),
     }
     if unknowns["open_without_status"]:
         finding("missing-status", f"{unknowns['open_without_status']} open entries have no status", UNKNOWNS_RULE)
@@ -314,16 +343,17 @@ def report(repo: Path, adc, max_open: int | None = None) -> dict[str, Any]:
     exceeded = max_open is not None and unknowns["open_entries"] > max_open
     if exceeded:
         finding("max-open", f"Open entries {unknowns['open_entries']} exceed --max-open {max_open}", UNKNOWNS_RULE)
-    return {"schema_version": 1, "unknowns": unknowns, "maps": maps, "scan": scan,
+    return {"schema_version": 1, "evaluated_on": today.isoformat(), "unknowns": unknowns, "maps": maps, "scan": scan,
             "max_open": max_open, "max_open_exceeded": exceeded, "findings": findings}
 
 
 def print_report(result: dict[str, Any]) -> None:
     unknowns = result["unknowns"]
+    print(f"EVALUATED_ON {result['evaluated_on']}")
     print("UNKNOWNS " + " ".join(f"{key}={unknowns[key]}" for key in (
-        "total_entries", "open_entries", "open_without_status", "open_high_critical")))
+        "total_entries", "open_entries", "open_without_status", "open_high_critical", "open_past_revisit")))
     print(f"  rule: {unknowns['rule']}")
-    for key in ("by_status", "by_risk"):
+    for key in ("by_status", "by_risk", "by_blocks"):
         print(f"  {key}: " + (", ".join(f"{name}={count}" for name, count in unknowns[key].items()) or "none"))
     for row in result["maps"]:
         print(f"MAP {row['path']} " + " ".join(f"{key}={value}" for key, value in row.items() if key not in {"path", "rule"}))

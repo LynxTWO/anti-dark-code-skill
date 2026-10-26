@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import importlib.util
 import io
 import json
@@ -213,6 +214,147 @@ Status: resolved
         self.assertEqual(unknowns["open_entries"], 1)
         self.assertEqual(unknowns["open_without_status"], 1)
 
+    def test_blocks_buckets_include_qualified_missing_and_unknown_values(self):
+        self.write("docs/unknowns/example.md", """### First question
+- **Risk:** high
+- **Status:** open
+- **Blocks:** next release (acceptance check)
+- **Revisit:** 2026-10-25
+### Second question
+**Status:** open
+**Blocks:** LATER - follow-up work
+### Third question
+**Status:** resolved
+**Blocks:** nothing; informational
+### Fourth question
+**Status:** open
+### Fifth question
+**Status:** open
+**Blocks:** unknown
+### Sixth question
+**Status:** open
+**Blocks:** owner review
+""")
+        report = health.report(self.repo, adc, today=dt.date(2026, 10, 26))
+        self.assertEqual(report["unknowns"]["by_blocks"], {
+            "later": 1, "missing": 1, "next release": 1,
+            "nothing": 1, "owner review": 1, "unknown": 1})
+        self.assertEqual(report["unknowns"]["open_past_revisit"], 1)
+        self.assertEqual(report["unknowns"]["total_entries"], 6)
+
+    def test_revisit_dates_are_strictly_past_the_report_evaluation_date(self):
+        self.write("docs/unknowns/example.md", """### Past
+**Status:** open
+**Revisit:** 2026-10-25 (owner review)
+### Today
+**Status:** blocked on a synthetic prerequisite
+**Revisit:** 2026-10-26
+### Future
+**Status:** in progress
+**Revisit:** 2026-10-27 - follow-up check
+""")
+        report = health.report(self.repo, adc, today=dt.date(2026, 10, 26))
+        self.assertEqual(report["evaluated_on"], "2026-10-26")
+        self.assertEqual(report["unknowns"]["open_past_revisit"], 1)
+        self.assertEqual(report["unknowns"]["open_entries"], 3)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            health.print_report(report)
+        self.assertIn("EVALUATED_ON 2026-10-26", output.getvalue())
+        self.assertIn("open_past_revisit=1", output.getvalue())
+        self.assertIn("by_blocks: missing=3", output.getvalue())
+
+    def test_invalid_revisit_dates_and_event_text_are_not_overdue_dates(self):
+        values = ["2026-02-30", "2025-13-01", "0000-01-01", "2026-10-250", "after deployment", "after the 2020-01-01 migration", "on 2020-01-01", "unknown", ""]
+        self.write("docs/unknowns/example.md", "\n".join(
+            f"### Question {index}\n**Status:** open\n**Revisit:** {value}\n"
+            for index, value in enumerate(values)))
+        report = health.report(self.repo, adc, today=dt.date(2026, 10, 26))
+        self.assertEqual(report["unknowns"]["open_past_revisit"], 0)
+        self.assertEqual(report["unknowns"]["open_entries"], len(values))
+        self.assertIsNone(health.revisit_date("2023-02-29"))
+        self.assertEqual(health.revisit_date("2024-02-29"), dt.date(2024, 2, 29))
+
+    def test_decorated_revisit_dates_with_qualifiers_are_counted(self):
+        values = [
+            "`2020-02-29` (owner review)", "``2020-02-29`` - follow-up check",
+            "*2020-02-29* (owner review)", "**2020-02-29**: owner review",
+            "_2020-02-29_ (owner review)", "__2020-02-29__; owner review",
+            "***2020-02-29*** (owner review)", "___2020-02-29___ (owner review)",
+            "`2020-02-29`", "**2020-02-29**",
+            "`2020-02-29 (owner review)`", "**2020-02-29 (owner review)**",
+        ]
+        self.write("docs/unknowns/example.md", "\n".join(
+            f"### Question {index}\n**Status:** open\n**Revisit:** {value}\n"
+            for index, value in enumerate(values)))
+        report = health.report(self.repo, adc, today=dt.date(2026, 10, 26))
+        self.assertEqual(report["unknowns"]["open_past_revisit"], len(values))
+        self.assertEqual(report["unknowns"]["open_entries"], len(values))
+        for value in values:
+            with self.subTest(value=value):
+                self.assertEqual(health.revisit_date(value), dt.date(2020, 2, 29))
+
+    def test_decorated_revisit_dates_preserve_invalid_and_event_exclusions(self):
+        values = [
+            "`2023-02-29` (owner review)", "**2020-02-290** (owner review)",
+            "`2020-02-29T00:00:00` (owner review)", "`2020-02-29`extra",
+            "*2020-02-29*extra", "after `2020-02-29` (owner review)",
+            "`after 2020-02-29` (owner review)", "**2020-02-29* (owner review)",
+            "`2020-02-29 (owner review)", "2020-02-29` (owner review)",
+            "**2020-02-29` (owner review)",
+        ]
+        self.write("docs/unknowns/example.md", "\n".join(
+            f"### Question {index}\n**Status:** open\n**Revisit:** {value}\n"
+            for index, value in enumerate(values)))
+        report = health.report(self.repo, adc, today=dt.date(2026, 10, 26))
+        self.assertEqual(report["unknowns"]["open_past_revisit"], 0)
+        self.assertEqual(report["unknowns"]["open_entries"], len(values))
+        for value in values:
+            with self.subTest(value=value):
+                self.assertIsNone(health.revisit_date(value))
+
+    def test_closed_entries_with_old_revisit_dates_are_not_overdue(self):
+        self.write("docs/unknowns/example.md", """## Entries
+### Resolved question
+**Status:** resolved (2026-10-01)
+**Blocks:** nothing
+**Revisit:** 2020-01-01
+## Closed items
+### Archived question
+**Status:** open
+**Blocks:** later
+**Revisit:** 2020-01-01
+""")
+        report = health.report(self.repo, adc, max_open=0, today=dt.date(2026, 10, 26))
+        self.assertEqual(report["unknowns"]["by_blocks"], {"later": 1, "nothing": 1})
+        self.assertEqual(report["unknowns"]["open_past_revisit"], 0)
+        self.assertEqual(report["unknowns"]["open_entries"], 0)
+        self.assertFalse(report["max_open_exceeded"])
+
+    def test_new_fields_in_one_paragraph_preserve_existing_threshold_counts(self):
+        self.write("docs/unknowns/example.md", """### Question
+**Risk:** critical before release. **Status:** blocked on review. **Blocks:** next release (acceptance). **Revisit:** 2026-10-25 (review).
+""")
+        report = health.report(self.repo, adc, max_open=0, today=dt.date(2026, 10, 26))
+        unknowns = report["unknowns"]
+        self.assertEqual(unknowns["by_status"], {"blocked": 1})
+        self.assertEqual(unknowns["by_risk"], {"critical": 1})
+        self.assertEqual(unknowns["by_blocks"], {"next release": 1})
+        self.assertEqual(unknowns["open_entries"], 1)
+        self.assertEqual(unknowns["open_high_critical"], 1)
+        self.assertEqual(unknowns["open_past_revisit"], 1)
+        self.assertTrue(report["max_open_exceeded"])
+
+    def test_missing_exit_fields_remain_missing_without_changing_entry_status(self):
+        self.write("docs/unknowns/example.md", "### Question\n**Concern:** A synthetic check is pending.\n")
+        report = health.report(self.repo, adc, today=dt.date(2026, 10, 26))
+        unknowns = report["unknowns"]
+        self.assertEqual(unknowns["by_blocks"], {"missing": 1})
+        self.assertEqual(unknowns["by_status"], {"missing": 1})
+        self.assertEqual(unknowns["open_entries"], 1)
+        self.assertEqual(unknowns["open_without_status"], 1)
+        self.assertEqual(unknowns["open_past_revisit"], 0)
+
     def test_nested_evidence_heading_stays_with_resolved_entry(self):
         self.write("docs/unknowns/example.md", """# Unknowns
 ## Entries
@@ -372,13 +514,16 @@ A follow-up check is pending.
         code, output = self.cli("--json")
         self.assertEqual(code, 0)
         report = json.loads(output)
-        self.assertEqual(set(report), {"schema_version", "unknowns", "maps", "scan", "max_open", "max_open_exceeded", "findings"})
+        self.assertEqual(set(report), {"schema_version", "evaluated_on", "unknowns", "maps", "scan", "max_open", "max_open_exceeded", "findings"})
         self.assertEqual(report["schema_version"], 1)
+        self.assertEqual(dt.date.fromisoformat(report["evaluated_on"]).isoformat(), report["evaluated_on"])
         self.assertEqual(set(report["unknowns"]), {
-            "rule", "files", "total_entries", "by_status", "by_risk", "open_entries",
-            "open_without_status", "open_high_critical"})
+            "rule", "files", "total_entries", "by_status", "by_risk", "by_blocks", "open_entries",
+            "open_without_status", "open_high_critical", "open_past_revisit"})
         self.assertEqual(report["unknowns"]["total_entries"], 0)
         self.assertEqual(report["unknowns"]["by_status"], {})
+        self.assertEqual(report["unknowns"]["by_blocks"], {})
+        self.assertEqual(report["unknowns"]["open_past_revisit"], 0)
         self.assertEqual(report["maps"], [])
         self.assertTrue(report["scan"]["complete"])
         code, output = self.cli()
