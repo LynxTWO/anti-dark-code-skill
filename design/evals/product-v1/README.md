@@ -2,6 +2,8 @@
 
 Current human feedback: [`documentation-evidence-2026-10-17-human-comprehension.json`](documentation-evidence-2026-10-17-human-comprehension.json) records the owner’s October 17 report that all three participants passed the trial comprehension review of the samples and both field briefs. This is owner-reported descriptive feedback; individual answers and exact reviewed revisions were not supplied. Earlier pending/untested statements below and in dated records describe the evidence available then. Automated checks do not establish human comprehension.
 
+[`documentation-evidence-2026-10-26-sprawl.json`](documentation-evidence-2026-10-26-sprawl.json) records counts, hashes and short scored quotes from 40 synthetic producer contexts, baseline top-ups, the corrected capture derivative and the final matched comparison. Receipt reuse and unknown-count reporting retain observed value; duplicate map wording and mandatory unknown fields are rejected. The final core changes one instruction file with no net word growth. Earlier failures keep their source bindings; these trials do not establish a statistical rate or human comprehension.
+
 This versioned set separates fixture behavior from assistant behavior. The broken
 and clean Pocket Notes apps share an explicit contract in `cases.json`. Expected
 outcomes are frozen independently of a future assistant's response. The author

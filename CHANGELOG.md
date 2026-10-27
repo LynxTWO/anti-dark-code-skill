@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reuse existing run receipts in authorized documents and report unknowns counts before and after changes, with matched instruction trials. Report supplied Blocks values and overdue dated Revisit entries in `docs-health`.
 - Add the read-only `docs-health` command for unknowns counts, calibrated document paths, map heading signals and an optional open-entry limit, with synthetic regression tests.
 
 ## 2026.10.22-unified.23
