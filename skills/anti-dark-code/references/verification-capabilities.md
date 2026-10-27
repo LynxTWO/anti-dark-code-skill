@@ -4,6 +4,8 @@ Use this optional index to interpret a selected capability or an unresolved plan
 
 A comprehensive plan mechanically screens every catalog entry under [verification planning](14-deterministic-verification.md). A narrow task can assess a declared subset without loading all detailed recipes. Apply [core evidence and execution](../SKILL.md): selection is not execution and execution is not a broader guarantee.
 
+`scripts/adc.py docs-health --repo <path> [--json] [--max-open N]` reports unknowns counts and map heading signals without writes or repository-code execution.
+
 | ID | Capability and useful proof | Important limit or trigger |
 |---|---|---|
 | V01 | Mutation: alter important semantic decisions and examine surviving mutants. | Meaningful tests/stable oracle first; [restoration](specialist-mutation-restoration.md), counts and survivor diagnosis matter more than score. |

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add the read-only `docs-health` command for unknowns counts, calibrated document paths, map heading signals and an optional open-entry limit, with synthetic regression tests.
+
 ## 2026.10.22-unified.23
 
 Post-publication catalog promotion: select the published .23 commit in both stable catalogs. Update `scripts/adc_packaging.py` and `tests/test_packaging.py` to preserve the original .22 and .23 archive catalogs while rejecting mixed, unknown or redirected catalogs. Preview pins and published assets stay unchanged.

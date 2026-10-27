@@ -5279,6 +5279,38 @@ def _verify_loaded_route_receipt(
     return verdict.exit_code, None
 
 
+def nonnegative_int(value: str) -> int:
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("must be zero or greater")
+    return number
+
+
+def command_docs_health(args: argparse.Namespace) -> int:
+    helper_path = Path(__file__).with_name("adc_docs_health.py")
+    spec = importlib.util.spec_from_file_location("adc_docs_health", helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit("Could not load the documentation health helper")
+    module = importlib.util.module_from_spec(spec)
+    previous_bytecode_setting = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous_bytecode_setting
+    # Passing these existing path/traversal helpers avoids importing target code.
+    helpers = argparse.Namespace(
+        lexical_absolute=lexical_absolute, symlink_components=symlink_components,
+        iter_repo_files=iter_repo_files, calibration_dir=calibration_dir,
+        IGNORED_DIRS=IGNORED_DIRS)
+    result = module.report(Path(args.repo), helpers, args.max_open)
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        module.print_report(result)
+    return int(result["max_open_exceeded"])
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="adc.py", description="Deterministic helpers for the Anti-Dark-Code skill")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -5291,6 +5323,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--content-scan-limit", type=int, default=4_000)
     p.add_argument("--exclude", action="append", metavar="PATH_OR_GLOB", help="Repo-relative path or glob to leave out of the scan. Repeatable. Recorded in the profile and reused when the plan re-probes.")
     p.set_defaults(func=command_probe)
+
+    p = sub.add_parser("docs-health", help="Read-only unknowns counts and map heading signals")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--json", action="store_true", help="Print the documentation health JSON report")
+    p.add_argument("--max-open", type=nonnegative_int, metavar="N", help="Exit 1 when open unknowns exceed N")
+    p.set_defaults(func=command_docs_health)
 
     p = sub.add_parser("plan", help=f"Evaluate all {CAPABILITY_COUNT} verification capabilities")
     p.add_argument("--repo", default=".")
